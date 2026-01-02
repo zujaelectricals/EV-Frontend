@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   Car,
@@ -30,13 +30,13 @@ import {
   Store,
   Shield,
   ScrollText,
-  ChevronDown,
   ChevronLeft,
   Zap,
   UserCheck,
 } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/utils';
+import { AdminSidebar } from './AdminSidebar';
 
 interface MenuItem {
   label: string;
@@ -46,12 +46,8 @@ interface MenuItem {
 }
 
 const userMenuItems: MenuItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { label: 'EV Pre-Booking', icon: Car, path: '/bookings' },
-  { label: 'EMI & Payments', icon: CreditCard, path: '/payments' },
-  { label: 'Redemption Wallet', icon: Wallet, path: '/redemption' },
-  { label: 'Orders', icon: Package, path: '/orders' },
-  { label: 'Profile', icon: User, path: '/profile' },
+  { label: 'My Profile', icon: User, path: '/profile' },
+  { label: 'Browse Vehicles', icon: Car, path: '/scooters' },
   { label: 'Become Distributor', icon: UserPlus, path: '/become-distributor' },
 ];
 
@@ -93,25 +89,37 @@ const adminMenuItems: MenuItem[] = [
 export const Sidebar = () => {
   const location = useLocation();
   const { user } = useAppSelector((state) => state.auth);
+  const { bookings } = useAppSelector((state) => state.booking);
   const [collapsed, setCollapsed] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<string[]>(['user']);
 
-  const toggleSection = (section: string) => {
-    setExpandedSections((prev) =>
-      prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]
-    );
-  };
+  // Render AdminSidebar for admin users
+  if (user?.role === 'admin') {
+    return <AdminSidebar />;
+  }
+
+  // Check if user is eligible for distributor program
+  // First check preBookingInfo, then fallback to bookings if preBookingInfo is missing
+  const hasEligiblePreBooking = user?.preBookingInfo?.hasPreBooked && 
+    (user.preBookingInfo.isDistributorEligible || user.preBookingInfo.preBookingAmount >= 5000);
+  
+  // Fallback: Check bookings if preBookingInfo is not available or doesn't show eligibility
+  const hasEligibleBooking = bookings.some(booking => booking.preBookingAmount >= 5000);
+  
+  const isDistributorEligible = hasEligiblePreBooking || hasEligibleBooking;
 
   const renderMenuItem = (item: MenuItem) => {
     const isActive = location.pathname === item.path;
     const Icon = item.icon;
+    const isBecomeDistributor = item.path === '/become-distributor';
+    const showEligibleBadge = isBecomeDistributor && isDistributorEligible && !user?.isDistributor;
+    const showNotEligibleBadge = isBecomeDistributor && !isDistributorEligible && user?.preBookingInfo?.hasPreBooked;
 
     return (
       <Link
         key={item.path}
         to={item.path}
         className={cn(
-          'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+          'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
           isActive
             ? 'bg-primary/10 text-primary neon-glow'
             : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
@@ -127,10 +135,20 @@ export const Sidebar = () => {
           <motion.span
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="truncate"
+            className="truncate flex-1"
           >
             {item.label}
           </motion.span>
+        )}
+        {showEligibleBadge && !collapsed && (
+          <span className="px-2 py-0.5 text-xs bg-success/20 text-success rounded-full">
+            Eligible
+          </span>
+        )}
+        {showNotEligibleBadge && !collapsed && (
+          <span className="px-2 py-0.5 text-xs bg-warning/20 text-warning rounded-full">
+            Not Eligible
+          </span>
         )}
         {isActive && (
           <motion.div
@@ -142,37 +160,15 @@ export const Sidebar = () => {
     );
   };
 
-  const renderSection = (title: string, items: MenuItem[], sectionKey: string) => {
-    const isExpanded = expandedSections.includes(sectionKey);
-
-    return (
-      <div key={sectionKey} className="mb-4">
-        <button
-          onClick={() => toggleSection(sectionKey)}
-          className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
-        >
-          {!collapsed && <span>{title}</span>}
-          {!collapsed && (
-            <ChevronDown
-              className={cn('h-4 w-4 transition-transform', isExpanded && 'rotate-180')}
-            />
-          )}
-        </button>
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="relative space-y-1 overflow-hidden"
-            >
-              {items.map(renderMenuItem)}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    );
+  // Get menu items based on user role
+  const getMenuItems = (): MenuItem[] => {
+    if (user?.role === 'staff') {
+      return staffMenuItems;
+    } else if (user?.isDistributor) {
+      return [...userMenuItems, ...distributorMenuItems];
+    } else {
+      return userMenuItems;
+    }
   };
 
   return (
@@ -188,11 +184,14 @@ export const Sidebar = () => {
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
         {!collapsed && (
-          <Link to="/" className="flex items-center gap-2">
+          <Link 
+            to={user?.role === 'admin' ? '/admin' : user?.role === 'staff' ? '/staff/leads' : '/'} 
+            className="flex items-center gap-2"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20">
               <Zap className="h-6 w-6 text-primary" />
             </div>
-            <span className="font-display text-lg font-bold gradient-text">EV Platform</span>
+            <span className="font-display text-lg font-bold gradient-text">Zuja</span>
           </Link>
         )}
         <button
@@ -205,13 +204,9 @@ export const Sidebar = () => {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4">
-        {renderSection('User', userMenuItems, 'user')}
-        
-        {user?.isDistributor && renderSection('Distributor', distributorMenuItems, 'distributor')}
-        
-        {user?.role === 'staff' && renderSection('Staff', staffMenuItems, 'staff')}
-        
-        {user?.role === 'admin' && renderSection('Admin', adminMenuItems, 'admin')}
+        <div className="space-y-1">
+          {getMenuItems().map(renderMenuItem)}
+        </div>
       </nav>
 
       {/* User Info */}

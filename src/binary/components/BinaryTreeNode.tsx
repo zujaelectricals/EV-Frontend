@@ -35,7 +35,7 @@ export const BinaryTreeNode = ({ node, depth = 0, onNodeClick }: BinaryTreeNodeP
         className={cn(
           'relative cursor-pointer rounded-xl border-2 p-4 transition-all',
           node.isActive
-            ? 'border-primary bg-primary/10 shadow-[0_0_20px_hsl(160_100%_50%/0.3)]'
+            ? 'border-primary bg-primary/10 shadow-[0_4px_6px_-1px_hsl(222_47%_11%/_0.1),_0_2px_4px_-1px_hsl(222_47%_11%/_0.06)]'
             : 'border-muted bg-muted/50',
           node.position === 'root' && 'border-primary bg-primary/20'
         )}

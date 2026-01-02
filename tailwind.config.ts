@@ -105,8 +105,8 @@ export default {
           "100%": { transform: "scale(1)", opacity: "1" },
         },
         "pulse-border": {
-          "0%, 100%": { borderColor: "hsl(160 100% 50% / 0.3)" },
-          "50%": { borderColor: "hsl(160 100% 50% / 0.8)" },
+          "0%, 100%": { borderColor: "hsl(221 83% 53% / 0.3)" },
+          "50%": { borderColor: "hsl(221 83% 53% / 0.6)" },
         },
       },
       animation: {
@@ -119,9 +119,9 @@ export default {
         "pulse-border": "pulse-border 2s ease-in-out infinite",
       },
       boxShadow: {
-        neon: "0 0 20px hsl(160 100% 50% / 0.5)",
-        "neon-strong": "0 0 40px hsl(160 100% 50% / 0.7)",
-        glass: "0 8px 32px hsl(220 50% 5% / 0.5)",
+        neon: "0 4px 6px -1px hsl(222 47% 11% / 0.1), 0 2px 4px -1px hsl(222 47% 11% / 0.06)",
+        "neon-strong": "0 10px 15px -3px hsl(222 47% 11% / 0.1), 0 4px 6px -2px hsl(222 47% 11% / 0.05)",
+        glass: "0 1px 3px hsl(222 47% 11% / 0.1), 0 1px 2px hsl(222 47% 11% / 0.06)",
       },
     },
   },

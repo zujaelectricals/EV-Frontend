@@ -1,16 +1,43 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Menu, X, ShoppingCart, User, Zap } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, Zap, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAppSelector, useAppDispatch } from '@/app/hooks';
+import { logout, isUserAuthenticated } from '@/app/slices/authSlice';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 
 export function StoreNavbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
+  const { bookings } = useAppSelector((state) => state.booking);
+
+  // Check both Redux state and localStorage
+  const authenticated = isAuthenticated || isUserAuthenticated();
+  const isDistributor = user?.isDistributor && user?.distributorInfo?.isVerified;
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/');
+  };
 
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/scooters', label: 'Scooters' },
+    { href: '/about', label: 'About Us' },
+    { href: '/contact', label: 'Contact' },
     { href: '/login', label: 'Become a Distributor' },
   ];
 
@@ -25,7 +52,7 @@ export function StoreNavbar() {
             <div className="p-2 bg-primary/10 rounded-lg">
               <Zap className="w-6 h-6 text-primary" />
             </div>
-            <span className="text-xl font-bold text-foreground">EVolta</span>
+            <span className="text-xl font-bold text-foreground">Suja Electric</span>
           </Link>
 
           {/* Desktop Nav */}
@@ -57,12 +84,93 @@ export function StoreNavbar() {
                 0
               </span>
             </Button>
-            <Link to="/login">
-              <Button variant="outline" size="sm" className="gap-2">
-                <User className="w-4 h-4" />
-                Login
-              </Button>
-            </Link>
+            
+            {authenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="relative">
+                    <User className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium">{user?.name || 'User'}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                      {isDistributor && (
+                        <Badge className="mt-1 w-fit bg-success text-success-foreground text-xs">
+                          Distributor
+                        </Badge>
+                      )}
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem onClick={() => navigate('/profile?tab=orders')}>
+                    <Package className="mr-2 h-4 w-4" />
+                    <span>My Orders</span>
+                    {bookings.length > 0 && (
+                      <Badge variant="secondary" className="ml-auto">
+                        {bookings.length}
+                      </Badge>
+                    )}
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => navigate('/profile?tab=wishlist')}>
+                    <Heart className="mr-2 h-4 w-4" />
+                    <span>Wishlist</span>
+                    {wishlistItems.length > 0 && (
+                      <Badge variant="secondary" className="ml-auto">
+                        {wishlistItems.length}
+                      </Badge>
+                    )}
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => navigate('/profile?tab=payments')}>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    <span>Payment Methods</span>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => navigate('/profile?tab=addresses')}>
+                    <MapPin className="mr-2 h-4 w-4" />
+                    <span>Addresses</span>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => navigate('/profile?tab=redemption')}>
+                    <Gift className="mr-2 h-4 w-4" />
+                    <span>Redemption Points</span>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => navigate('/profile?tab=settings')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Account Settings</span>
+                  </DropdownMenuItem>
+                  
+                  {isDistributor && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate('/profile?tab=distributor')}>
+                        <Award className="mr-2 h-4 w-4" />
+                        <span>Distributor Options</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/login">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <User className="w-4 h-4" />
+                  Login
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -96,9 +204,26 @@ export function StoreNavbar() {
               </Link>
             ))}
             <div className="pt-3 border-t border-border flex gap-3">
-              <Link to="/login" className="flex-1" onClick={() => setIsOpen(false)}>
-                <Button className="w-full" size="sm">Login</Button>
-              </Link>
+              {authenticated ? (
+                <div className="w-full space-y-2">
+                  <Link to="/profile?tab=orders" onClick={() => setIsOpen(false)} className="block py-2 text-sm">
+                    My Orders
+                  </Link>
+                  <Link to="/profile?tab=wishlist" onClick={() => setIsOpen(false)} className="block py-2 text-sm">
+                    Wishlist
+                  </Link>
+                  <Link to="/profile?tab=settings" onClick={() => setIsOpen(false)} className="block py-2 text-sm">
+                    Account Settings
+                  </Link>
+                  <Button onClick={handleLogout} variant="outline" className="w-full mt-2" size="sm">
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <Link to="/login" className="flex-1" onClick={() => setIsOpen(false)}>
+                  <Button className="w-full" size="sm">Login</Button>
+                </Link>
+              )}
             </div>
           </div>
         </motion.div>

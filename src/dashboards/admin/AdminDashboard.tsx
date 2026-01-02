@@ -31,6 +31,7 @@ import {
 import { useGetGrowthMetricsQuery, useGetBookingTrendsQuery, useGetPaymentTypesQuery, useGetStaffPerformanceQuery } from '@/app/api/growthApi';
 import { StatsCard } from '@/shared/components/StatsCard';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 export const AdminDashboard = () => {
   const { data: metrics } = useGetGrowthMetricsQuery();
@@ -38,7 +39,7 @@ export const AdminDashboard = () => {
   const { data: paymentTypes } = useGetPaymentTypesQuery();
   const { data: staffPerformance } = useGetStaffPerformanceQuery();
 
-  const COLORS = ['#00FFA3', '#00D4FF', '#FFB800', '#FF6B6B'];
+  const COLORS = ['hsl(221 83% 53%)', 'hsl(199 89% 48%)', 'hsl(38 92% 50%)', 'hsl(0 84% 60%)'];
 
   const container = {
     hidden: { opacity: 0 },
@@ -52,6 +53,19 @@ export const AdminDashboard = () => {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 },
   };
+
+  // Mock data matching the image
+  const mockMetrics = {
+    evBookings: { value: 1250, change: 15.2, trend: 'up' },
+    activeBuyers: { value: 8450, change: 8.5, trend: 'up' },
+  };
+
+  const bookingTrendsData = [
+    { month: 'Jan', bookings: 120 },
+    { month: 'Feb', bookings: 180 },
+    { month: 'Mar', bookings: 250 },
+    { month: 'Apr', bookings: 320 },
+  ];
 
   return (
     <div className="space-y-8">
@@ -88,65 +102,47 @@ export const AdminDashboard = () => {
         animate="show"
         className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
       >
-        <motion.div variants={item}>
-          <StatsCard
-            title="EV Bookings"
-            value={metrics?.evBookings.value.toLocaleString() || '0'}
-            icon={Car}
-            variant="primary"
-            change={metrics?.evBookings.change}
-            trend={metrics?.evBookings.trend}
-          />
+        <motion.div variants={item} className="md:col-span-1">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">EV Bookings</p>
+                  <p className="text-3xl font-bold text-foreground">{mockMetrics.evBookings.value.toLocaleString()}</p>
+                  <div className="flex items-center gap-1 mt-2">
+                    <ArrowUpRight className="h-4 w-4 text-success" />
+                    <span className="text-sm text-success font-medium">
+                      {mockMetrics.evBookings.change}% vs last month
+                    </span>
+                  </div>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Car className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
-        <motion.div variants={item}>
-          <StatsCard
-            title="Active Buyers"
-            value={metrics?.activeBuyers.value.toLocaleString() || '0'}
-            icon={Users}
-            variant="info"
-            change={metrics?.activeBuyers.change}
-            trend={metrics?.activeBuyers.trend}
-          />
-        </motion.div>
-        <motion.div variants={item}>
-          <StatsCard
-            title="Distributors"
-            value={metrics?.distributorNetwork.value.toLocaleString() || '0'}
-            icon={Users}
-            variant="success"
-            change={metrics?.distributorNetwork.change}
-            trend={metrics?.distributorNetwork.trend}
-          />
-        </motion.div>
-        <motion.div variants={item}>
-          <StatsCard
-            title="Pair Velocity"
-            value={metrics?.binaryPairVelocity.value || 0}
-            icon={Activity}
-            variant="warning"
-            change={metrics?.binaryPairVelocity.change}
-            trend={metrics?.binaryPairVelocity.trend}
-          />
-        </motion.div>
-        <motion.div variants={item}>
-          <StatsCard
-            title="Revenue"
-            value={`₹${((metrics?.monthlyRevenue.value || 0) / 100000).toFixed(1)}L`}
-            icon={DollarSign}
-            variant="primary"
-            change={metrics?.monthlyRevenue.change}
-            trend={metrics?.monthlyRevenue.trend}
-          />
-        </motion.div>
-        <motion.div variants={item}>
-          <StatsCard
-            title="Redemption Rate"
-            value={`${metrics?.redemptionRate.value || 0}%`}
-            icon={Target}
-            variant="info"
-            change={metrics?.redemptionRate.change}
-            trend={metrics?.redemptionRate.trend}
-          />
+        <motion.div variants={item} className="md:col-span-1">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Active Buyers</p>
+                  <p className="text-3xl font-bold text-foreground">{mockMetrics.activeBuyers.value.toLocaleString()}</p>
+                  <div className="flex items-center gap-1 mt-2">
+                    <ArrowUpRight className="h-4 w-4 text-success" />
+                    <span className="text-sm text-success font-medium">
+                      {mockMetrics.activeBuyers.change}% vs last month
+                    </span>
+                  </div>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-success/10 flex items-center justify-center">
+                  <Users className="h-6 w-6 text-success" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       </motion.div>
 
@@ -157,8 +153,9 @@ export const AdminDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="glass-card col-span-2 rounded-xl p-6"
+          className="col-span-2"
         >
+          <Card className="p-6">
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-primary/20 p-2">
@@ -177,33 +174,35 @@ export const AdminDashboard = () => {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={bookingTrends}>
+            <AreaChart data={bookingTrendsData}>
               <defs>
                 <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00FFA3" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#00FFA3" stopOpacity={0} />
+                  <stop offset="5%" stopColor="hsl(221 83% 53%)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(221 83% 53%)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1a2a3a" />
-              <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
-              <YAxis stroke="#6b7280" fontSize={12} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+              <XAxis dataKey="month" stroke="hsl(215 16% 47%)" fontSize={12} />
+              <YAxis stroke="hsl(215 16% 47%)" fontSize={12} domain={[0, 600]} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'hsl(220 40% 10%)',
-                  border: '1px solid hsl(160 100% 50% / 0.3)',
+                  backgroundColor: 'hsl(0 0% 100%)',
+                  border: '1px solid hsl(214 32% 91%)',
                   borderRadius: '8px',
+                  color: 'hsl(222 47% 11%)',
                 }}
               />
               <Area
                 type="monotone"
-                dataKey="value"
-                stroke="#00FFA3"
+                dataKey="bookings"
+                stroke="hsl(221 83% 53%)"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorBookings)"
               />
             </AreaChart>
           </ResponsiveContainer>
+          </Card>
         </motion.div>
 
         {/* Payment Types */}
@@ -211,8 +210,8 @@ export const AdminDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="glass-card rounded-xl p-6"
         >
+          <Card className="p-6">
           <div className="mb-6 flex items-center gap-3">
             <div className="rounded-lg bg-info/20 p-2">
               <PieChart className="h-5 w-5 text-info" />
@@ -239,9 +238,10 @@ export const AdminDashboard = () => {
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'hsl(220 40% 10%)',
-                  border: '1px solid hsl(160 100% 50% / 0.3)',
+                  backgroundColor: 'hsl(0 0% 100%)',
+                  border: '1px solid hsl(214 32% 91%)',
                   borderRadius: '8px',
+                  color: 'hsl(222 47% 11%)',
                 }}
               />
             </RePieChart>
@@ -257,6 +257,7 @@ export const AdminDashboard = () => {
               </div>
             ))}
           </div>
+          </Card>
         </motion.div>
       </div>
 
@@ -267,8 +268,8 @@ export const AdminDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="glass-card rounded-xl p-6"
         >
+          <Card className="p-6">
           <div className="mb-6 flex items-center gap-3">
             <div className="rounded-lg bg-warning/20 p-2">
               <BarChart3 className="h-5 w-5 text-warning" />
@@ -280,19 +281,21 @@ export const AdminDashboard = () => {
           </div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={staffPerformance}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1a2a3a" />
-              <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
-              <YAxis stroke="#6b7280" fontSize={12} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+              <XAxis dataKey="name" stroke="hsl(215 16% 47%)" fontSize={12} />
+              <YAxis stroke="hsl(215 16% 47%)" fontSize={12} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'hsl(220 40% 10%)',
-                  border: '1px solid hsl(160 100% 50% / 0.3)',
+                  backgroundColor: 'hsl(0 0% 100%)',
+                  border: '1px solid hsl(214 32% 91%)',
                   borderRadius: '8px',
+                  color: 'hsl(222 47% 11%)',
                 }}
               />
-              <Bar dataKey="value" fill="#FFB800" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="value" fill="hsl(38 92% 50%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          </Card>
         </motion.div>
 
         {/* Alerts */}
@@ -300,8 +303,8 @@ export const AdminDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="glass-card rounded-xl p-6"
         >
+          <Card className="p-6">
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-destructive/20 p-2">
@@ -358,6 +361,7 @@ export const AdminDashboard = () => {
               </motion.div>
             ))}
           </div>
+          </Card>
         </motion.div>
       </div>
     </div>

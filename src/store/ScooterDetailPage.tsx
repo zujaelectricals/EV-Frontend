@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Battery, Gauge, Zap, Shield, Check, Star, 
@@ -11,12 +11,25 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { scooters } from './data/scooters';
 import { StoreNavbar } from './StoreNavbar';
+import { PreBookingModal } from './components/PreBookingModal';
+import { useAppSelector } from '@/app/hooks';
+import { Footer } from '@/components/Footer';
 
 export function ScooterDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAppSelector((state) => state.auth);
   const [selectedColor, setSelectedColor] = useState(0);
   const [paymentType, setPaymentType] = useState<'full' | 'emi'>('full');
+  const [showPreBookingModal, setShowPreBookingModal] = useState(false);
+  
+  const referralCode = searchParams.get('ref');
+
+  // Scroll to top when component mounts or when product ID changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [id]);
 
   const scooter = scooters.find(s => s.id === id);
 
@@ -40,21 +53,21 @@ export function ScooterDetailPage() {
   ];
 
   const specs = [
-    { label: 'Range', value: `${scooter.range} km`, icon: Battery },
+    { label: 'Range', value: `${scooter.range}+ km`, icon: Battery },
     { label: 'Top Speed', value: `${scooter.topSpeed} km/h`, icon: Gauge },
-    { label: 'Battery', value: scooter.batteryCapacity, icon: Zap },
-    { label: 'Warranty', value: '5 Years', icon: Shield },
+    { label: 'Battery', value: scooter.batteryVoltage || scooter.batteryCapacity, icon: Zap },
+    { label: 'Charging', value: scooter.chargingTime || '4-5h', icon: Clock },
   ];
 
-  const features = [
-    'Smart Digital Display',
-    'LED DRL Headlamps',
-    'Regenerative Braking',
-    'Mobile App Connectivity',
-    'GPS Navigation',
-    'Anti-Theft Alarm',
+  const features = scooter.functions || [
     'USB Charging Port',
-    'Boot Storage 22L',
+    'Parking Mode',
+    'Reverse Gear',
+    'Digital Meter',
+    'LED Projector Light',
+    'Eco-Power-Sport Mode',
+    'Tubeless Tyres',
+    'Disc & Drum Brakes',
   ];
 
   return (
@@ -226,9 +239,18 @@ export function ScooterDetailPage() {
 
               {/* CTA Buttons */}
               <div className="flex gap-4">
-                <Link to="/login" className="flex-1">
-                  <Button className="w-full text-lg py-6">Book Now</Button>
-                </Link>
+                {user ? (
+                  <Button 
+                    onClick={() => setShowPreBookingModal(true)} 
+                    className="flex-1 text-lg py-6"
+                  >
+                    Pre-Book Now
+                  </Button>
+                ) : (
+                  <Link to={`/login${referralCode ? `?ref=${referralCode}` : ''}`} className="flex-1">
+                    <Button className="w-full text-lg py-6">Login to Pre-Book</Button>
+                  </Link>
+                )}
                 <Button variant="outline" className="py-6 px-6">
                   <MapPin className="w-5 h-5" />
                 </Button>
@@ -286,15 +308,24 @@ export function ScooterDetailPage() {
               <TabsContent value="specs" className="mt-8">
                 <div className="grid md:grid-cols-2 gap-4">
                   {[
-                    { label: 'Motor Power', value: '3.5 kW' },
-                    { label: 'Battery Type', value: 'Lithium-ion' },
-                    { label: 'Charging Time', value: '4-5 hours' },
-                    { label: 'Ground Clearance', value: '165 mm' },
-                    { label: 'Kerb Weight', value: '95 kg' },
-                    { label: 'Seat Height', value: '780 mm' },
-                    { label: 'Wheel Size', value: '12 inch' },
-                    { label: 'Braking', value: 'Disc (F&R)' },
-                  ].map((spec, i) => (
+                    { label: 'Battery', value: scooter.batteryVoltage || scooter.batteryCapacity },
+                    { label: 'Battery Type', value: 'Lithium-ion Battery' },
+                    { label: 'Motor Power', value: scooter.motorPower || scooter.power || '1000W' },
+                    { label: 'Motor Type', value: scooter.motorType || 'Brushless DC' },
+                    { label: 'Charging Duration', value: scooter.chargingTime || '4-5 hours' },
+                    { label: 'Mileage', value: `${scooter.range}+ km` },
+                    { label: 'Max Speed', value: `${scooter.topSpeed} km/h` },
+                    { label: 'Riding Mode', value: scooter.ridingMode || 'Eco-Power-Sport' },
+                    { label: 'Frame Type', value: scooter.frameType || 'Steel' },
+                    { label: 'Brake', value: scooter.brakeType || 'Front Disc - Rear Drum' },
+                    { label: 'Tyre Type', value: scooter.tyreType || 'Tubeless' },
+                    { label: 'Tyre Size', value: scooter.tyreSize || '90/100-10 53J' },
+                    { label: 'Dimension', value: scooter.dimension || '1850×710×1120 MM' },
+                    { label: 'Wheel Base', value: scooter.wheelBase || '1630mm' },
+                    { label: 'Net Weight', value: scooter.netWeight || '80KG' },
+                    { label: 'Meter Type', value: scooter.meterType || 'Digital' },
+                    { label: 'Head Light', value: scooter.headLight || 'LED Projector Light' },
+                  ].filter(spec => spec.value).map((spec, i) => (
                     <div key={i} className="flex justify-between p-4 bg-muted/30 rounded-xl">
                       <span className="text-muted-foreground">{spec.label}</span>
                       <span className="font-medium">{spec.value}</span>
@@ -312,6 +343,17 @@ export function ScooterDetailPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Pre-Booking Modal */}
+      {showPreBookingModal && (
+        <PreBookingModal
+          scooter={scooter}
+          isOpen={showPreBookingModal}
+          onClose={() => setShowPreBookingModal(false)}
+          referralCode={referralCode || undefined}
+        />
+      )}
+      <Footer />
     </div>
   );
 }
