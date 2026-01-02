@@ -1,0 +1,97 @@
+import { api } from './baseApi';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'staff' | 'user';
+  isDistributor: boolean;
+  avatar?: string;
+  phone?: string;
+  joinedAt: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  user: User;
+  token: string;
+}
+
+// Mock user data
+const mockUsers: Record<string, User> = {
+  admin: {
+    id: '1',
+    name: 'Admin User',
+    email: 'admin@evplatform.com',
+    role: 'admin',
+    isDistributor: false,
+    joinedAt: '2024-01-01',
+  },
+  staff: {
+    id: '2',
+    name: 'Staff Member',
+    email: 'staff@evplatform.com',
+    role: 'staff',
+    isDistributor: false,
+    joinedAt: '2024-03-15',
+  },
+  distributor: {
+    id: '3',
+    name: 'John Distributor',
+    email: 'distributor@evplatform.com',
+    role: 'user',
+    isDistributor: true,
+    joinedAt: '2024-02-20',
+  },
+  user: {
+    id: '4',
+    name: 'Regular User',
+    email: 'user@evplatform.com',
+    role: 'user',
+    isDistributor: false,
+    joinedAt: '2024-06-10',
+  },
+};
+
+export const authApi = api.injectEndpoints({
+  endpoints: (builder) => ({
+    login: builder.mutation<LoginResponse, LoginRequest>({
+      queryFn: async ({ email }) => {
+        // Mock login - determine user type from email
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        
+        let userType = 'user';
+        if (email.includes('admin')) userType = 'admin';
+        else if (email.includes('staff')) userType = 'staff';
+        else if (email.includes('distributor')) userType = 'distributor';
+        
+        const user = mockUsers[userType];
+        return {
+          data: {
+            user,
+            token: 'mock-jwt-token-' + user.id,
+          },
+        };
+      },
+    }),
+    logout: builder.mutation<void, void>({
+      queryFn: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return { data: undefined };
+      },
+    }),
+    getCurrentUser: builder.query<User, void>({
+      queryFn: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return { data: mockUsers.distributor };
+      },
+      providesTags: ['User'],
+    }),
+  }),
+});
+
+export const { useLoginMutation, useLogoutMutation, useGetCurrentUserQuery } = authApi;
