@@ -9,6 +9,9 @@ import { UserDashboard } from './dashboards/user/UserDashboard';
 import { DistributorDashboard } from './dashboards/distributor/DistributorDashboard';
 import { AdminDashboard } from './dashboards/admin/AdminDashboard';
 import { StaffDashboard } from './dashboards/staff/StaffDashboard';
+import { HomePage } from './store/HomePage';
+import { ScootersPage } from './store/ScootersPage';
+import { ScooterDetailPage } from './store/ScooterDetailPage';
 import { useAppSelector } from './app/hooks';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -22,13 +25,20 @@ const AppRoutes = () => {
   
   return (
     <Routes>
+      {/* Public Store Routes */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/scooters" element={<ScootersPage />} />
+      <Route path="/scooters/:id" element={<ScooterDetailPage />} />
+      
+      {/* Auth */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />} />
+      
+      {/* Protected Dashboard Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
       <Route path="/distributor" element={<ProtectedRoute><DistributorDashboard /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
       <Route path="/staff/*" element={<ProtectedRoute><StaffDashboard /></ProtectedRoute>} />
-      <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
