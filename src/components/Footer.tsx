@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Zap } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -8,10 +7,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Zap className="w-5 h-5 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold text-primary">Suja Electric</h3>
+              <img src="/logo.png" alt="Zuja Electric" className="h-10 w-auto" />
             </Link>
             <p className="text-sm text-muted-foreground">
               Driving a Smarter, Cleaner Electric Future. Established in 2025, delivering high-quality electric scooters with modern design and advanced technology.

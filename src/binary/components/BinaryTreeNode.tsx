@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 import { User } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,36 +9,95 @@ interface BinaryNode {
   position: 'left' | 'right' | 'root';
   pv: number;
   isActive: boolean;
+  userId?: string;
   children: {
     left: BinaryNode | null;
     right: BinaryNode | null;
   };
 }
 
+interface PendingNode {
+  id: string;
+  userId: string;
+  name: string;
+  pv: number;
+  joinedAt: string;
+}
+
 interface BinaryTreeNodeProps {
   node: BinaryNode;
   depth?: number;
   onNodeClick?: (node: BinaryNode) => void;
+  onNodeDrop?: (nodeId: string, parentId: string, side: 'left' | 'right') => void;
+  draggedNodeId?: string | null;
+  onDragStart?: (nodeId: string | null) => void;
+  selectedPendingNode?: PendingNode | null;
+  onPositionPendingNode?: (parentId: string, side: 'left' | 'right') => void;
 }
 
-export const BinaryTreeNode = ({ node, depth = 0, onNodeClick }: BinaryTreeNodeProps) => {
+export const BinaryTreeNode = ({ 
+  node, 
+  depth = 0, 
+  onNodeClick,
+  onNodeDrop,
+  draggedNodeId,
+  onDragStart,
+  selectedPendingNode,
+  onPositionPendingNode,
+}: BinaryTreeNodeProps) => {
   const hasChildren = node.children.left || node.children.right;
+  const isDragging = draggedNodeId === node.id;
+  const canDrag = node.position !== 'root' && onNodeDrop && !selectedPendingNode;
+
+  const handleDragStart = (e: React.DragEvent) => {
+    if (canDrag && onDragStart) {
+      onDragStart(node.id);
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', node.id);
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    if (onDragStart) {
+      onDragStart(null);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center">
       {/* Node */}
       <motion.div
+        draggable={canDrag}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
         initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
+        animate={{ scale: isDragging ? 0.9 : 1, opacity: isDragging ? 0.5 : 1 }}
         transition={{ delay: depth * 0.1, duration: 0.3 }}
-        whileHover={{ scale: 1.1 }}
-        onClick={() => onNodeClick?.(node)}
+        whileHover={!isDragging ? { scale: 1.1 } : {}}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (selectedPendingNode && onPositionPendingNode) {
+            // Show a simple prompt or use left by default, right on right-click
+            onPositionPendingNode(node.id, 'left');
+          } else {
+            onNodeClick?.(node);
+          }
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          if (selectedPendingNode && onPositionPendingNode) {
+            onPositionPendingNode(node.id, 'right');
+          }
+        }}
         className={cn(
-          'relative cursor-pointer rounded-xl border-2 p-4 transition-all',
+          'relative rounded-xl border-2 p-4 transition-all',
+          canDrag ? 'cursor-move' : 'cursor-pointer',
           node.isActive
             ? 'border-primary bg-primary/10 shadow-[0_4px_6px_-1px_hsl(222_47%_11%/_0.1),_0_2px_4px_-1px_hsl(222_47%_11%/_0.06)]'
             : 'border-muted bg-muted/50',
-          node.position === 'root' && 'border-primary bg-primary/20'
+          node.position === 'root' && 'border-primary bg-primary/20',
+          isDragging && 'opacity-50 z-50',
+          selectedPendingNode && 'ring-2 ring-warning ring-offset-2'
         )}
       >
         {/* Pulse effect for root */}
@@ -90,16 +150,48 @@ export const BinaryTreeNode = ({ node, depth = 0, onNodeClick }: BinaryTreeNodeP
           <div className="flex gap-8">
             <div className="flex flex-col items-center">
               {node.children.left ? (
-                <BinaryTreeNode node={node.children.left} depth={depth + 1} onNodeClick={onNodeClick} />
+                <BinaryTreeNode 
+                  node={node.children.left} 
+                  depth={depth + 1} 
+                  onNodeClick={onNodeClick}
+                  onNodeDrop={onNodeDrop}
+                  draggedNodeId={draggedNodeId}
+                  onDragStart={onDragStart}
+                  selectedPendingNode={selectedPendingNode}
+                  onPositionPendingNode={onPositionPendingNode}
+                />
               ) : (
-                <EmptyNode position="left" />
+                <EmptyNode 
+                  position="left" 
+                  parentId={node.id}
+                  onNodeDrop={onNodeDrop}
+                  draggedNodeId={draggedNodeId}
+                  selectedPendingNode={selectedPendingNode}
+                  onPositionPendingNode={onPositionPendingNode}
+                />
               )}
             </div>
             <div className="flex flex-col items-center">
               {node.children.right ? (
-                <BinaryTreeNode node={node.children.right} depth={depth + 1} onNodeClick={onNodeClick} />
+                <BinaryTreeNode 
+                  node={node.children.right} 
+                  depth={depth + 1} 
+                  onNodeClick={onNodeClick}
+                  onNodeDrop={onNodeDrop}
+                  draggedNodeId={draggedNodeId}
+                  onDragStart={onDragStart}
+                  selectedPendingNode={selectedPendingNode}
+                  onPositionPendingNode={onPositionPendingNode}
+                />
               ) : (
-                <EmptyNode position="right" />
+                <EmptyNode 
+                  position="right" 
+                  parentId={node.id}
+                  onNodeDrop={onNodeDrop}
+                  draggedNodeId={draggedNodeId}
+                  selectedPendingNode={selectedPendingNode}
+                  onPositionPendingNode={onPositionPendingNode}
+                />
               )}
             </div>
           </div>
@@ -109,12 +201,70 @@ export const BinaryTreeNode = ({ node, depth = 0, onNodeClick }: BinaryTreeNodeP
   );
 };
 
-const EmptyNode = ({ position }: { position: 'left' | 'right' }) => (
-  <motion.div
-    initial={{ scale: 0 }}
-    animate={{ scale: 1 }}
-    className="flex h-20 w-20 items-center justify-center rounded-xl border-2 border-dashed border-muted bg-muted/20"
-  >
-    <span className="text-xs text-muted-foreground">{position === 'left' ? 'L' : 'R'}</span>
-  </motion.div>
-);
+interface EmptyNodeProps {
+  position: 'left' | 'right';
+  parentId: string;
+  onNodeDrop?: (nodeId: string, parentId: string, side: 'left' | 'right') => void;
+  draggedNodeId?: string | null;
+  selectedPendingNode?: PendingNode | null;
+  onPositionPendingNode?: (parentId: string, side: 'left' | 'right') => void;
+}
+
+const EmptyNode = ({ 
+  position, 
+  parentId,
+  onNodeDrop,
+  draggedNodeId,
+  selectedPendingNode,
+  onPositionPendingNode,
+}: EmptyNodeProps) => {
+  const [isOver, setIsOver] = React.useState(false);
+
+  const handleClick = () => {
+    if (selectedPendingNode && onPositionPendingNode) {
+      onPositionPendingNode(parentId, position);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOver(false);
+    const nodeId = e.dataTransfer.getData('text/plain');
+    if (nodeId && onNodeDrop) {
+      onNodeDrop(nodeId, parentId, position);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ scale: 0 }}
+      animate={{ scale: isOver ? 1.1 : 1 }}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onClick={handleClick}
+      className={cn(
+        'flex h-20 w-20 items-center justify-center rounded-xl border-2 border-dashed transition-all cursor-pointer',
+        isOver 
+          ? 'border-primary bg-primary/20' 
+          : selectedPendingNode
+          ? 'border-warning bg-warning/10 hover:border-warning hover:bg-warning/20'
+          : 'border-muted bg-muted/20 hover:border-muted-foreground/50'
+      )}
+    >
+      <span className="text-xs text-muted-foreground">{position === 'left' ? 'L' : 'R'}</span>
+    </motion.div>
+  );
+};

@@ -25,7 +25,7 @@ export function MilestoneTracker() {
       case 'm1': // First 3 Referrals
         current = totalReferrals;
         break;
-      case 'm2': // Binary Activation
+      case 'm2': // Binary Account Enablement
         current = totalReferrals >= 3 ? 3 : totalReferrals;
         break;
       case 'm3': // 5 Pairs

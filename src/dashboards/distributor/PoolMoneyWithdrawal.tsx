@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Wallet, AlertCircle, CheckCircle, XCircle, FileText, Car, AlertTriangle, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,8 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateDistributorInfo } from '@/app/slices/authSlice';
 import { addPayout } from '@/app/slices/payoutSlice';
 import { toast } from 'sonner';
+import { useGetBinaryStatsQuery } from '@/app/api/binaryApi';
+import { useSubmitWithdrawalRequestMutation, useGetUserWithdrawalRequestsQuery } from '@/app/api/poolWithdrawalApi';
 
 type WithdrawalReason = 'vehicle_purchase' | 'emergency' | 'pf' | 'resignation' | 'other';
 
@@ -29,13 +31,45 @@ interface WithdrawalRequest {
 export function PoolMoneyWithdrawal() {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const distributorId = user?.id || '';
+  const { data: binaryStats } = useGetBinaryStatsQuery(distributorId, { skip: !distributorId });
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [withdrawalAmount, setWithdrawalAmount] = useState(0);
   const [reason, setReason] = useState<WithdrawalReason>('vehicle_purchase');
   const [description, setDescription] = useState('');
-  const [withdrawalHistory, setWithdrawalHistory] = useState<WithdrawalRequest[]>([]);
+  const [submitWithdrawalRequest] = useSubmitWithdrawalRequestMutation();
+  const { data: withdrawalHistory = [], refetch: refetchWithdrawals } = useGetUserWithdrawalRequestsQuery(distributorId, { skip: !distributorId });
 
-  const poolMoney = user?.distributorInfo?.poolMoney || 0;
+  // Sync pool money from localStorage to Redux state and trigger calculation
+  useEffect(() => {
+    if (user?.id && binaryStats) {
+      try {
+        const authDataStr = localStorage.getItem('ev_nexus_auth_data');
+        if (authDataStr) {
+          const authData = JSON.parse(authDataStr);
+          if (authData.user && authData.user.distributorInfo && 
+              (authData.user.id === user.id || 
+               authData.user.id?.startsWith(user.id) || 
+               user.id.startsWith(authData.user.id))) {
+            const storedPoolMoney = authData.user.distributorInfo.poolMoney || 0;
+            const currentPoolMoney = user.distributorInfo?.poolMoney || 0;
+            
+            // Update Redux if localStorage has different value
+            if (Math.abs(storedPoolMoney - currentPoolMoney) > 0.01) {
+              dispatch(updateDistributorInfo({
+                poolMoney: storedPoolMoney,
+              }));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error syncing pool money:', error);
+      }
+    }
+  }, [user?.id, binaryStats, dispatch, user?.distributorInfo?.poolMoney]);
+
+  // Use pool money from Redux state, fallback to binaryStats, then 0
+  const poolMoney = user?.distributorInfo?.poolMoney ?? binaryStats?.poolMoney ?? 0;
 
   const reasonOptions = [
     { value: 'vehicle_purchase', label: 'Future Vehicle Purchase', icon: Car },
@@ -45,7 +79,7 @@ export function PoolMoneyWithdrawal() {
     { value: 'other', label: 'Other Valid Reason', icon: FileText },
   ];
 
-  const handleWithdrawal = () => {
+  const handleWithdrawal = async () => {
     if (withdrawalAmount <= 0) {
       toast.error('Please enter a valid amount');
       return;
@@ -61,38 +95,47 @@ export function PoolMoneyWithdrawal() {
       return;
     }
 
-    const request: WithdrawalRequest = {
-      id: `withdrawal-${Date.now()}`,
-      amount: withdrawalAmount,
-      reason,
-      description,
-      status: 'pending',
-      requestedAt: new Date().toISOString(),
-    };
+    try {
+      // Submit withdrawal request to centralized storage
+      const result = await submitWithdrawalRequest({
+        userId: distributorId,
+        distributorId: distributorId,
+        distributorName: user?.name || 'Distributor',
+        amount: withdrawalAmount,
+        reason,
+        description,
+      }).unwrap();
 
-    // Add to history
-    setWithdrawalHistory(prev => [request, ...prev]);
+      if (result.success) {
+        // Temporarily deduct pool money (will be finalized after admin approval)
+        // If rejected, it will be restored
+        dispatch(updateDistributorInfo({
+          poolMoney: poolMoney - withdrawalAmount,
+        }));
 
-    // Update pool money (will be finalized after admin approval)
-    dispatch(updateDistributorInfo({
-      poolMoney: poolMoney - withdrawalAmount,
-    }));
+        // Create payout request
+        dispatch(addPayout({
+          id: result.request.id,
+          amount: withdrawalAmount,
+          type: 'pool',
+          status: 'pending',
+          description: `Pool money withdrawal: ${reasonOptions.find(r => r.value === reason)?.label}`,
+          requestedAt: result.request.requestedAt,
+        }));
 
-    // Create payout request
-    dispatch(addPayout({
-      id: request.id,
-      amount: withdrawalAmount,
-      type: 'pool',
-      status: 'pending',
-      description: `Pool money withdrawal: ${reasonOptions.find(r => r.value === reason)?.label}`,
-      requestedAt: request.requestedAt,
-    }));
+        // Refetch withdrawal history
+        refetchWithdrawals();
 
-    toast.success('Withdrawal request submitted. Awaiting admin approval.');
-    setShowWithdrawalModal(false);
-    setWithdrawalAmount(0);
-    setDescription('');
-    setReason('vehicle_purchase');
+        toast.success('Withdrawal request submitted. Awaiting admin approval.');
+        setShowWithdrawalModal(false);
+        setWithdrawalAmount(0);
+        setDescription('');
+        setReason('vehicle_purchase');
+      }
+    } catch (error: any) {
+      console.error('Error submitting withdrawal request:', error);
+      toast.error(error?.data?.data || 'Failed to submit withdrawal request');
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -165,7 +208,7 @@ export function PoolMoneyWithdrawal() {
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground">Withdrawal History</h3>
               <div className="space-y-3">
-                {withdrawalHistory.map((request) => (
+                {withdrawalHistory.map((request: any) => (
                   <motion.div
                     key={request.id}
                     initial={{ opacity: 0, y: 10 }}

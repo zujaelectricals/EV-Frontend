@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Menu, X, ShoppingCart, User, Zap, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { logout, isUserAuthenticated } from '@/app/slices/authSlice';
@@ -14,6 +14,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { ProfileSwitcher } from '@/components/ProfileSwitcher';
 
 export function StoreNavbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,7 +39,7 @@ export function StoreNavbar() {
     { href: '/scooters', label: 'Scooters' },
     { href: '/about', label: 'About Us' },
     { href: '/contact', label: 'Contact' },
-    { href: '/login', label: 'Become a Distributor' },
+    // { href: '/login', label: 'Become a Distributor' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -49,10 +50,7 @@ export function StoreNavbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Zap className="w-6 h-6 text-primary" />
-            </div>
-            <span className="text-xl font-bold text-foreground">Suja Electric</span>
+            <img src="/logo.png" alt="Zuja Electric" className="h-10 w-auto" />
           </Link>
 
           {/* Desktop Nav */}
@@ -84,6 +82,8 @@ export function StoreNavbar() {
                 0
               </span>
             </Button>
+            
+            {authenticated && <ProfileSwitcher />}
             
             {authenticated ? (
               <DropdownMenu>

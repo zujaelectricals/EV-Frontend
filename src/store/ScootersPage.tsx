@@ -120,143 +120,141 @@ export function ScootersPage() {
       <StoreNavbar />
 
       <div className="pt-24 pb-16">
-        <div className="w-[90vw] mx-auto px-4">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+            className="mb-6 sm:mb-8"
           >
-            <h1 className="text-4xl font-bold text-foreground mb-2 font-display">
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2 font-display">
               Electric Scooters
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Discover premium electric scooters from Zuja Electric. Choose from
               our collection of {scooters.length} high-performance models
             </p>
           </motion.div>
 
-          {/* Filters Section - Search on Left, Filters on Right */}
+          {/* Filters Section - Responsive Layout */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mb-8 p-6 bg-card/50 border border-border rounded-2xl"
+            className="mb-8 p-4 sm:p-6 bg-card/50 border border-border rounded-2xl"
           >
-            <div className="flex items-center gap-4 w-full">
-              {/* Left Side: Search Bar with Button */}
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="relative flex-1 max-w-[500px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    placeholder="Search scooters..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        // Search is already reactive, but we can add explicit handling if needed
-                      }
-                    }}
-                    className="pl-10"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    // Search is already reactive via state, but button provides explicit action
+            {/* Search Bar - Full Width on Mobile */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-4 lg:mb-6">
+              <div className="relative flex-1 w-full max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  placeholder="Search scooters..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      // Search is already reactive, but we can add explicit handling if needed
+                    }
                   }}
-                  className="shrink-0"
-                >
-                  <Search className="w-4 h-4 mr-2" />
-                  Search
-                </Button>
+                  className="pl-10 w-full"
+                />
               </div>
+              <Button
+                type="button"
+                onClick={() => {
+                  // Search is already reactive via state, but button provides explicit action
+                }}
+                className="w-full sm:w-auto shrink-0"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Search
+              </Button>
+            </div>
 
-              {/* Right Side: Filter Dropdowns */}
-              <div className="flex items-center gap-3 shrink-0">
-                {/* Category Dropdown */}
-                <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                >
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Brand Dropdown */}
-                <Select value={selectedBrand} onValueChange={setSelectedBrand}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand} value={brand}>
-                        {brand}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Price Range Dropdown */}
-                <Select
-                  value={selectedPriceRange}
-                  onValueChange={setSelectedPriceRange}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {priceRanges.map((range) => (
-                      <SelectItem key={range.label} value={range.label}>
-                        {range.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Mileage Range Dropdown */}
-                <Select
-                  value={selectedMileageRange}
-                  onValueChange={setSelectedMileageRange}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mileageRanges.map((range) => (
-                      <SelectItem key={range.label} value={range.label}>
-                        {range.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Sort Dropdown */}
-                <Select value={selectedSort} onValueChange={setSelectedSort}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Featured">Featured</SelectItem>
-                    <SelectItem value="Price: Low to High">
-                      Price: Low to High
+            {/* Filter Dropdowns - Grid Layout on Mobile, Row Layout on Desktop */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-4">
+              {/* Category Dropdown */}
+              <Select
+                value={selectedCategory}
+                onValueChange={setSelectedCategory}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
                     </SelectItem>
-                    <SelectItem value="Price: High to Low">
-                      Price: High to Low
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Brand Dropdown */}
+              <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Brand" />
+                </SelectTrigger>
+                <SelectContent>
+                  {brands.map((brand) => (
+                    <SelectItem key={brand} value={brand}>
+                      {brand}
                     </SelectItem>
-                    <SelectItem value="Best Range">Best Range</SelectItem>
-                    <SelectItem value="Top Speed">Top Speed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Price Range Dropdown */}
+              <Select
+                value={selectedPriceRange}
+                onValueChange={setSelectedPriceRange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Price Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {priceRanges.map((range) => (
+                    <SelectItem key={range.label} value={range.label}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Mileage Range Dropdown */}
+              <Select
+                value={selectedMileageRange}
+                onValueChange={setSelectedMileageRange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Mileage Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mileageRanges.map((range) => (
+                    <SelectItem key={range.label} value={range.label}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Sort Dropdown */}
+              <Select value={selectedSort} onValueChange={setSelectedSort}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sort By" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Featured">Featured</SelectItem>
+                  <SelectItem value="Price: Low to High">
+                    Price: Low to High
+                  </SelectItem>
+                  <SelectItem value="Price: High to Low">
+                    Price: High to Low
+                  </SelectItem>
+                  <SelectItem value="Best Range">Best Range</SelectItem>
+                  <SelectItem value="Top Speed">Top Speed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </motion.div>
 
@@ -267,7 +265,7 @@ export function ScootersPage() {
 
           {/* Scooters Grid */}
           {filteredScooters.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
               {filteredScooters.map((scooter, i) => (
                 <ScooterCard key={scooter.id} scooter={scooter} index={i} />
               ))}

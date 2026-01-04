@@ -1,0 +1,14 @@
+# Netlify redirects file for SPA routing
+# All routes should be redirected to index.html with 200 status
+# This allows React Router to handle routing on the client side
+
+# Handle all routes - redirect to index.html (SPA fallback)
+/*    /index.html   200
+
+# Optional: Handle specific redirects if needed
+# /old-path    /new-path    301
+
+# Optional: Handle 404 for specific file types that should return 404
+# /api/*    404
+# /*.json   404
+

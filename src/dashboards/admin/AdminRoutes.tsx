@@ -44,6 +44,10 @@ import { PinManagement } from './pages/PinManagement';
 import { PendingPayouts } from './pages/PendingPayouts';
 import { SupportTickets } from './pages/SupportTickets';
 import { DistributorApplications } from './pages/DistributorApplications';
+import { ActivePoolBalances } from './pages/ActivePoolBalances';
+import { EmergencyWithdrawals } from './pages/EmergencyWithdrawals';
+import { NomineeTransfers } from './pages/NomineeTransfers';
+import { PoolUtilization } from './pages/PoolUtilization';
 
 // Placeholder components for nested routes (can be replaced with actual components later)
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -119,10 +123,10 @@ export const AdminRoutes = () => {
 
       {/* Pool Wallet Controller Routes */}
       <Route path="pool-wallet" element={<PoolWalletController />} />
-      <Route path="pool-wallet/balances" element={<PlaceholderPage title="Active Pool Balances" />} />
-      <Route path="pool-wallet/withdrawals" element={<PlaceholderPage title="Emergency Withdrawals" />} />
-      <Route path="pool-wallet/transfers" element={<PlaceholderPage title="Nominee Transfers" />} />
-      <Route path="pool-wallet/utilization" element={<PlaceholderPage title="Pool Utilization" />} />
+      <Route path="pool-wallet/balances" element={<ActivePoolBalances />} />
+      <Route path="pool-wallet/withdrawals" element={<EmergencyWithdrawals />} />
+      <Route path="pool-wallet/transfers" element={<NomineeTransfers />} />
+      <Route path="pool-wallet/utilization" element={<PoolUtilization />} />
 
       {/* Payout Engine Routes */}
       <Route path="payout-engine" element={<PayoutEngine />} />

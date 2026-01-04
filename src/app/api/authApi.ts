@@ -21,7 +21,21 @@ export interface LoginResponse {
   token: string;
 }
 
-// Mock user data
+const STORAGE_KEY = 'ev_nexus_users';
+
+// Helper function to get users from localStorage
+function getStoredUsers(): Array<{ id: string; name: string; email: string; password: string; phone?: string; dateOfBirth?: string; aadhar?: string; joinedAt: string }> {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error reading users from localStorage:', error);
+    return [];
+  }
+}
+
+// Mock user data (for admin, staff, distributor demo accounts)
 const mockUsers: Record<string, User> = {
   admin: {
     id: '1',
@@ -64,20 +78,57 @@ const mockUsers: Record<string, User> = {
 export const authApi = api.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginRequest>({
-      queryFn: async ({ email }) => {
-        // Mock login - determine user type from email
+      queryFn: async ({ email, password }) => {
         await new Promise((resolve) => setTimeout(resolve, 500));
         
+        // First check mock users (for demo accounts)
         let userType = 'user';
         if (email.includes('admin')) userType = 'admin';
         else if (email.includes('staff')) userType = 'staff';
         else if (email.includes('distributor')) userType = 'distributor';
         
-        const user = mockUsers[userType];
+        // Check if it's a mock user (demo accounts don't require password check)
+        if (mockUsers[userType] && email === mockUsers[userType].email) {
+          const user = mockUsers[userType];
+          return {
+            data: {
+              user,
+              token: 'mock-jwt-token-' + user.id,
+            },
+          };
+        }
+        
+        // Check registered users from localStorage
+        const storedUsers = getStoredUsers();
+        const storedUser = storedUsers.find(
+          (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+        );
+        
+        if (storedUser) {
+          // Convert stored user to User type
+          const user: User = {
+            id: storedUser.id,
+            name: storedUser.name,
+            email: storedUser.email,
+            role: 'user',
+            isDistributor: false,
+            phone: storedUser.phone,
+            joinedAt: storedUser.joinedAt,
+          };
+          
+          return {
+            data: {
+              user,
+              token: 'mock-jwt-token-' + user.id,
+            },
+          };
+        }
+        
+        // User not found or invalid credentials
         return {
-          data: {
-            user,
-            token: 'mock-jwt-token-' + user.id,
+          error: {
+            status: 'UNAUTHORIZED',
+            data: 'Invalid email or password',
           },
         };
       },

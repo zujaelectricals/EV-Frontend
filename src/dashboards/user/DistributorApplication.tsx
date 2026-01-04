@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, FileText, CheckCircle, XCircle, AlertCircle, User, Mail, Phone, MapPin, CreditCard, Image as ImageIcon, Car, DollarSign, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import {
   useGetDistributorApplicationQuery 
 } from '@/app/api/distributorApi';
 import { ConditionsDialog } from './ConditionsDialog';
+import { Booking } from '@/app/slices/bookingSlice';
 
 export function DistributorApplication() {
   const dispatch = useAppDispatch();
@@ -44,9 +45,7 @@ export function DistributorApplication() {
     
     // Applicant Details
     applicantName: '',
-    distributorId: '',
     mobileNumber: '',
-    signature: null as File | null,
     date: new Date().toISOString().split('T')[0],
     place: '',
     
@@ -78,15 +77,73 @@ export function DistributorApplication() {
   const { data: existingApplication } = useGetDistributorApplicationQuery(user?.id || '', {
     skip: !user?.id,
   });
+  const [vehicleImagePreview, setVehicleImagePreview] = useState<string | null>(null);
+  const [userOrders, setUserOrders] = useState<Booking[]>([]);
 
-  // Check if user is eligible (has pre-booked with at least ₹5000)
-  // First check preBookingInfo, then fallback to bookings if preBookingInfo is missing
+  // Auto-fill applicant details from user profile
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        applicantName: user.name || prev.applicantName,
+        mobileNumber: user.phone || user.email?.replace(/[^0-9]/g, '').slice(-10) || prev.mobileNumber,
+        place: user.address || user.city || prev.place,
+      }));
+    }
+  }, [user]);
+
+  // Sync bookings to local storage and load user orders
+  useEffect(() => {
+    const storageKey = `user_orders_${user?.id || 'guest'}`;
+    
+    // Save bookings to local storage whenever bookings change
+    if (bookings.length > 0) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(bookings));
+        setUserOrders(bookings);
+      } catch (error) {
+        console.error('Error saving orders to local storage:', error);
+      }
+    } else {
+      // Try to load from local storage if no bookings in Redux
+      try {
+        const storedOrders = localStorage.getItem(storageKey);
+        if (storedOrders) {
+          const parsedOrders = JSON.parse(storedOrders);
+          setUserOrders(parsedOrders);
+        }
+      } catch (error) {
+        console.error('Error loading orders from local storage:', error);
+      }
+    }
+  }, [bookings, user?.id]);
+
+  // Function to convert image URL to File
+  const urlToFile = async (url: string, filename: string): Promise<File | null> => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const file = new File([blob], filename, { type: blob.type });
+      return file;
+    } catch (error) {
+      console.error('Error converting image URL to File:', error);
+      return null;
+    }
+  };
+
+  // Check if user is eligible (has paid at least ₹5000 in total)
+  // Use totalPaid if available, otherwise fallback to preBookingAmount for backward compatibility
+  const userTotalPaid = user?.preBookingInfo?.totalPaid || user?.preBookingInfo?.preBookingAmount || 0;
   const hasEligiblePreBooking = user?.preBookingInfo?.hasPreBooked && 
                                  (user.preBookingInfo.isDistributorEligible || 
-                                  (user.preBookingInfo.preBookingAmount && user.preBookingInfo.preBookingAmount >= 5000));
+                                  userTotalPaid >= 5000);
   
   // Fallback: Check bookings if preBookingInfo is not available or doesn't show eligibility
-  const hasEligibleBooking = bookings.some(booking => booking.preBookingAmount >= 5000);
+  // Use totalPaid if available, otherwise fallback to preBookingAmount
+  const hasEligibleBooking = bookings.some(booking => {
+    const bookingTotalPaid = booking.totalPaid || booking.preBookingAmount || 0;
+    return bookingTotalPaid >= 5000;
+  });
   
   const isEligible = hasEligiblePreBooking || hasEligibleBooking;
   
@@ -94,11 +151,13 @@ export function DistributorApplication() {
   console.log('Distributor Eligibility Check:', {
     hasPreBooked: user?.preBookingInfo?.hasPreBooked,
     preBookingAmount: user?.preBookingInfo?.preBookingAmount,
+    totalPaid: user?.preBookingInfo?.totalPaid,
+    userTotalPaid,
     isDistributorEligible: user?.preBookingInfo?.isDistributorEligible,
     hasEligiblePreBooking,
     hasEligibleBooking,
     bookingsCount: bookings.length,
-    bookingsPreBookingAmounts: bookings.map(b => b.preBookingAmount),
+    bookingsTotalPaid: bookings.map(b => b.totalPaid || b.preBookingAmount),
     isEligible,
   });
 
@@ -107,7 +166,27 @@ export function DistributorApplication() {
   const verificationStatus = user?.distributorInfo?.verificationStatus || existingApplication?.status;
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updates: any = { [field]: value };
+      
+      // Auto-calculate balance amount when MRP or advance paid changes in installment mode
+      if (prev.paymentMode === 'installment') {
+        if (field === 'vehicleMRP' || field === 'advancePaid') {
+          const mrp = field === 'vehicleMRP' ? parseFloat(value) : parseFloat(prev.vehicleMRP);
+          const advance = field === 'advancePaid' ? parseFloat(value) : parseFloat(prev.advancePaid);
+          
+          if (!isNaN(mrp) && !isNaN(advance) && mrp >= advance) {
+            updates.balanceAmount = (mrp - advance).toString();
+          } else if (!isNaN(mrp) && !isNaN(advance) && advance > mrp) {
+            updates.balanceAmount = '0';
+          } else {
+            updates.balanceAmount = '';
+          }
+        }
+      }
+      
+      return { ...prev, ...updates };
+    });
   };
 
   const handleFileUpload = (field: 'aadhar' | 'pan' | 'bankStatement', file: File | null) => {
@@ -118,11 +197,32 @@ export function DistributorApplication() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    // Validate eligibility: total paid must be at least ₹5000
+    if (!isEligible || userTotalPaid < 5000) {
+      toast.error(`You need to pay a total of at least ₹5,000 to submit the distributor application. Your current total paid is ₹${userTotalPaid.toLocaleString()}.`);
+      setIsSubmitting(false);
+      return;
+    }
+
     // Validate required fields
     if (!formData.vehicleModel || !formData.vehicleMRP || !formData.bookingOrderNo) {
       toast.error('Please fill all vehicle selection details');
       setIsSubmitting(false);
       return;
+    }
+
+    // Validate that the selected model matches the booking order's vehicle
+    const selectedOrder = userOrders.find(order => order.id === formData.bookingOrderNo);
+    if (selectedOrder) {
+      if (selectedOrder.vehicleId !== formData.vehicleModel) {
+        const selectedScooter = scooters.find(s => s.id === formData.vehicleModel);
+        const orderScooter = scooters.find(s => s.id === selectedOrder.vehicleId);
+        toast.error(
+          `Model mismatch: Selected model "${selectedScooter?.name || formData.vehicleModel}" does not match the booking order vehicle "${selectedOrder.vehicleName || orderScooter?.name || selectedOrder.vehicleId}". Please select the correct model or booking order.`
+        );
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     if (!formData.vehicleImage) {
@@ -152,8 +252,8 @@ export function DistributorApplication() {
       return;
     }
 
-    if (!formData.applicantName || !formData.distributorId || !formData.mobileNumber || !formData.signature || !formData.place) {
-      toast.error('Please fill all applicant details including signature, date, and place');
+    if (!formData.applicantName || !formData.mobileNumber || !formData.place) {
+      toast.error('Please fill all applicant details including name, mobile number, and place');
       setIsSubmitting(false);
       return;
     }
@@ -172,18 +272,18 @@ export function DistributorApplication() {
         // Generate referral code
         const referralCode = `REF${user?.id.slice(0, 6).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-        // Update user with distributor application
+        // Update user with distributor application status
         dispatch(updateDistributorInfo({
           isDistributor: false, // Will be true after verification
           isVerified: false,
           verificationStatus: 'pending',
-          referralCode,
-          leftCount: 0,
-          rightCount: 0,
-          totalReferrals: 0,
-          binaryActivated: false,
-          poolMoney: 0,
-          joinedAt: new Date().toISOString(),
+          referralCode: user?.distributorInfo?.referralCode || referralCode,
+          leftCount: user?.distributorInfo?.leftCount || 0,
+          rightCount: user?.distributorInfo?.rightCount || 0,
+          totalReferrals: user?.distributorInfo?.totalReferrals || 0,
+          binaryActivated: user?.distributorInfo?.binaryActivated || false,
+          poolMoney: user?.distributorInfo?.poolMoney || 0,
+          joinedAt: user?.distributorInfo?.joinedAt || new Date().toISOString(),
         }));
 
         dispatch(updateUser({
@@ -203,12 +303,10 @@ export function DistributorApplication() {
           balanceAmount: '',
           installmentMode: 'monthly',
           installmentAmount: '',
-          applicantName: '',
-          distributorId: '',
-          mobileNumber: '',
-          signature: null,
+          applicantName: user?.name || '',
+          mobileNumber: user?.phone || user?.email?.replace(/[^0-9]/g, '').slice(-10) || '',
           date: new Date().toISOString().split('T')[0],
-          place: '',
+          place: user?.address || user?.city || '',
           aadharNumber: '',
           panNumber: '',
           bankAccountNumber: '',
@@ -219,6 +317,7 @@ export function DistributorApplication() {
           state: '',
           pincode: '',
         });
+        setVehicleImagePreview(null);
         setConditionsAccepted({
           incentiveConsent: false,
           declarationAccepted: false,
@@ -240,8 +339,8 @@ export function DistributorApplication() {
   if (isVerifiedDistributor) {
     return (
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
+        <Card className="min-h-[300px] flex flex-col">
+          <CardHeader className="pb-6">
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-success" />
               Distributor Status: Active
@@ -250,11 +349,11 @@ export function DistributorApplication() {
               Your distributor account is active. Visit your profile to access distributor options and manage your distributor account.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={() => window.location.href = '/profile?tab=distributor'} className="w-full">
+          <CardContent className="flex gap-4 mt-auto pb-6">
+            <Button onClick={() => window.location.href = '/profile?tab=distributor'} className="w-1/2">
               Go to Distributor Profile
             </Button>
-            <Button onClick={() => window.location.href = '/distributor'} variant="outline" className="w-full">
+            <Button onClick={() => window.location.href = '/distributor'} variant="outline" className="w-1/2">
               Go to Distributor Dashboard
             </Button>
           </CardContent>
@@ -275,23 +374,33 @@ export function DistributorApplication() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                You need to pre-book an EV vehicle with at least ₹5,000 to become eligible for the Distributor Program.
+                You need to pay a total of at least ₹5,000 for your vehicle booking to become eligible for the Distributor Program.
                 {user?.preBookingInfo?.hasPreBooked && (
                   <p className="mt-2 text-sm">
-                    Your current pre-booking amount is ₹{user.preBookingInfo.preBookingAmount.toLocaleString()}. 
-                    Please pre-book with at least ₹5,000 to be eligible.
+                    Your current total amount paid is ₹{(user.preBookingInfo.totalPaid || user.preBookingInfo.preBookingAmount || 0).toLocaleString()}. 
+                    You need to pay a total of ₹5,000 to be eligible. 
+                    {userTotalPaid < 5000 && (
+                      <span className="block mt-1">
+                        You need to pay ₹{(5000 - userTotalPaid).toLocaleString()} more to become eligible.
+                      </span>
+                    )}
                   </p>
                 )}
-                {bookings.length > 0 && bookings.some(b => b.preBookingAmount < 5000) && (
+                {bookings.length > 0 && !hasEligibleBooking && (
                   <p className="mt-2 text-sm">
-                    You have bookings, but none with a pre-booking amount of ₹5,000 or more. 
-                    Please pre-book a vehicle with at least ₹5,000 to be eligible.
+                    You have bookings, but none with a total paid amount of ₹5,000 or more. 
+                    Please make additional payments to reach ₹5,000 total to be eligible.
                   </p>
                 )}
-                <div className="mt-4">
+                <div className="mt-4 flex gap-2">
                   <Button onClick={() => window.location.href = '/scooters'}>
                     Browse Vehicles
                   </Button>
+                  {user?.preBookingInfo?.hasPreBooked && userTotalPaid < 5000 && (
+                    <Button onClick={() => window.location.href = '/profile?tab=orders'} variant="outline">
+                      Make Payment
+                    </Button>
+                  )}
                 </div>
               </AlertDescription>
             </Alert>
@@ -374,6 +483,11 @@ export function DistributorApplication() {
     );
   }
 
+  // Check for model mismatch
+  const selectedOrder = formData.bookingOrderNo ? userOrders.find(order => order.id === formData.bookingOrderNo) : null;
+  const selectedScooter = formData.vehicleModel ? scooters.find(s => s.id === formData.vehicleModel) : null;
+  const isModelMismatch = selectedOrder && selectedScooter && selectedOrder.vehicleId !== formData.vehicleModel;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -384,6 +498,41 @@ export function DistributorApplication() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Eligibility Status Banner */}
+          {isEligible && userTotalPaid >= 5000 ? (
+            <div className="mb-6 p-4 bg-success/10 border border-success/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-success" />
+                <div>
+                  <p className="font-semibold text-success">You are eligible to apply!</p>
+                  <p className="text-sm text-muted-foreground">
+                    Total amount paid: ₹{userTotalPaid.toLocaleString()} (Minimum required: ₹5,000)
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6 p-4 bg-warning/10 border border-warning/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-warning" />
+                <div className="flex-1">
+                  <p className="font-semibold text-warning">Not yet eligible</p>
+                  <p className="text-sm text-muted-foreground">
+                    Current total paid: ₹{userTotalPaid.toLocaleString()}. You need to pay ₹{(5000 - userTotalPaid).toLocaleString()} more to be eligible.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => window.location.href = '/profile?tab=orders'}
+                  >
+                    Make Payment
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* 🛵 Vehicle Selection Details */}
             <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
@@ -396,20 +545,23 @@ export function DistributorApplication() {
               <div className="space-y-2">
                 <Label>Vehicle Image *</Label>
                 <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                  {formData.vehicleImage ? (
+                  {(formData.vehicleImage || vehicleImagePreview) ? (
                     <div className="space-y-2">
                       <img 
-                        src={URL.createObjectURL(formData.vehicleImage)} 
+                        src={formData.vehicleImage ? URL.createObjectURL(formData.vehicleImage) : vehicleImagePreview || ''} 
                         alt="Vehicle" 
                         className="max-h-48 mx-auto rounded-lg"
                       />
-                      <p className="text-sm text-muted-foreground">{formData.vehicleImage.name}</p>
+                      {formData.vehicleImage && (
+                        <p className="text-sm text-muted-foreground">{formData.vehicleImage.name}</p>
+                      )}
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => {
                           setFormData(prev => ({ ...prev, vehicleImage: null }));
+                          setVehicleImagePreview(null);
                         }}
                       >
                         Remove Image
@@ -425,6 +577,7 @@ export function DistributorApplication() {
                           const file = e.target.files?.[0] || null;
                           if (file) {
                             setFormData(prev => ({ ...prev, vehicleImage: file }));
+                            setVehicleImagePreview(null);
                           }
                         }}
                         className="hidden"
@@ -455,13 +608,42 @@ export function DistributorApplication() {
                   <Label htmlFor="vehicleModel">Model Name *</Label>
                   <Select
                     value={formData.vehicleModel}
-                    onValueChange={(value) => {
+                    onValueChange={async (value) => {
                       const selectedScooter = scooters.find(s => s.id === value);
-                      setFormData(prev => ({
-                        ...prev,
-                        vehicleModel: value,
-                        vehicleMRP: selectedScooter ? selectedScooter.price.toString() : prev.vehicleMRP
-                      }));
+                      if (selectedScooter) {
+                        // Auto-fill price and calculate balance if in installment mode
+                        setFormData(prev => {
+                          const updates: any = {
+                            vehicleModel: value,
+                            vehicleMRP: selectedScooter.price.toString()
+                          };
+                          
+                          // Auto-calculate balance amount if in installment mode
+                          if (prev.paymentMode === 'installment' && prev.advancePaid) {
+                            const mrp = selectedScooter.price;
+                            const advance = parseFloat(prev.advancePaid);
+                            if (!isNaN(advance) && mrp >= advance) {
+                              updates.balanceAmount = (mrp - advance).toString();
+                            } else if (!isNaN(advance) && advance > mrp) {
+                              updates.balanceAmount = '0';
+                            }
+                          }
+                          
+                          return { ...prev, ...updates };
+                        });
+                        
+                        // Auto-fill image - convert URL to File and set preview
+                        if (selectedScooter.image) {
+                          setVehicleImagePreview(selectedScooter.image);
+                          const imageFile = await urlToFile(selectedScooter.image, `${selectedScooter.name.toLowerCase().replace(/\s+/g, '-')}.jpg`);
+                          if (imageFile) {
+                            setFormData(prev => ({
+                              ...prev,
+                              vehicleImage: imageFile
+                            }));
+                          }
+                        }
+                      }
                     }}
                     required
                   >
@@ -486,17 +668,68 @@ export function DistributorApplication() {
                     onChange={(e) => handleInputChange('vehicleMRP', e.target.value)}
                     placeholder="Enter MRP"
                     required
+                    readOnly
+                    className="bg-muted"
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="bookingOrderNo">Booking / Purchase Order No *</Label>
-                  <Input
-                    id="bookingOrderNo"
+                  <Select
                     value={formData.bookingOrderNo}
-                    onChange={(e) => handleInputChange('bookingOrderNo', e.target.value)}
-                    placeholder="Enter Booking/Purchase Order Number"
+                    onValueChange={(value) => {
+                      const selectedOrder = userOrders.find(order => order.id === value);
+                      setFormData(prev => {
+                        const updates: any = { bookingOrderNo: value };
+                        
+                        // Auto-fill advance paid amount if installment mode is selected
+                        if (prev.paymentMode === 'installment' && selectedOrder && selectedOrder.preBookingAmount) {
+                          updates.advancePaid = selectedOrder.preBookingAmount.toString();
+                          
+                          // Auto-calculate balance amount
+                          const mrp = parseFloat(prev.vehicleMRP);
+                          const advance = selectedOrder.preBookingAmount;
+                          if (!isNaN(mrp) && mrp >= advance) {
+                            updates.balanceAmount = (mrp - advance).toString();
+                          } else if (!isNaN(mrp) && advance > mrp) {
+                            updates.balanceAmount = '0';
+                          }
+                        }
+                        
+                        return { ...prev, ...updates };
+                      });
+                    }}
                     required
-                  />
+                  >
+                    <SelectTrigger id="bookingOrderNo">
+                      <SelectValue placeholder="Select Booking/Purchase Order Number" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userOrders.length > 0 ? (
+                        userOrders.map((order) => (
+                          <SelectItem key={order.id} value={order.id}>
+                            {order.id} - {order.vehicleName} (₹{order.totalAmount.toLocaleString()})
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-orders" disabled>
+                          No orders found. Please create a booking first.
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {userOrders.length === 0 && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      No orders available. Please make a booking first.
+                    </p>
+                  )}
+                  {isModelMismatch && (
+                    <Alert variant="destructive" className="mt-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Model Mismatch Warning:</strong> The selected model "{selectedScooter?.name || formData.vehicleModel}" does not match the booking order vehicle "{selectedOrder?.vehicleName}". Please select the correct model or booking order to proceed.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               </div>
             </div>
@@ -510,7 +743,31 @@ export function DistributorApplication() {
               
               <RadioGroup
                 value={formData.paymentMode}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMode: value as 'full' | 'installment' }))}
+                onValueChange={(value) => {
+                  const newPaymentMode = value as 'full' | 'installment';
+                  setFormData(prev => {
+                    const updates: any = { paymentMode: newPaymentMode };
+                    
+                    // Auto-fill advance paid amount when selecting installment mode
+                    if (newPaymentMode === 'installment' && prev.bookingOrderNo) {
+                      const selectedOrder = userOrders.find(order => order.id === prev.bookingOrderNo);
+                      if (selectedOrder && selectedOrder.preBookingAmount) {
+                        updates.advancePaid = selectedOrder.preBookingAmount.toString();
+                        
+                        // Auto-calculate balance amount
+                        const mrp = parseFloat(prev.vehicleMRP);
+                        const advance = selectedOrder.preBookingAmount;
+                        if (!isNaN(mrp) && mrp >= advance) {
+                          updates.balanceAmount = (mrp - advance).toString();
+                        } else if (!isNaN(mrp) && advance > mrp) {
+                          updates.balanceAmount = '0';
+                        }
+                      }
+                    }
+                    
+                    return { ...prev, ...updates };
+                  });
+                }}
                 className="space-y-4"
               >
                 <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-accent/50 cursor-pointer">
@@ -566,9 +823,14 @@ export function DistributorApplication() {
                       type="number"
                       value={formData.balanceAmount}
                       onChange={(e) => handleInputChange('balanceAmount', e.target.value)}
-                      placeholder="Enter balance amount"
+                      placeholder="Auto-calculated"
                       required={formData.paymentMode === 'installment'}
+                      readOnly
+                      className="bg-muted"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Calculated as: MRP - Advance Paid
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="installmentMode">Installment Mode *</Label>
@@ -675,16 +937,6 @@ export function DistributorApplication() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="distributorId">Distributor ID *</Label>
-                  <Input
-                    id="distributorId"
-                    value={formData.distributorId}
-                    onChange={(e) => handleInputChange('distributorId', e.target.value)}
-                    placeholder="Enter Distributor ID"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="mobileNumber">Mobile Number *</Label>
                   <Input
                     id="mobileNumber"
@@ -716,73 +968,12 @@ export function DistributorApplication() {
                     required
                   />
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Signature *</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
-                    {formData.signature ? (
-                      <div className="space-y-2">
-                        <img 
-                          src={URL.createObjectURL(formData.signature)} 
-                          alt="Signature" 
-                          className="max-h-32 mx-auto rounded-lg"
-                        />
-                        <p className="text-sm text-muted-foreground">{formData.signature.name}</p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, signature: null }));
-                          }}
-                        >
-                          Remove Signature
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <FileText className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            if (file) {
-                              setFormData(prev => ({ ...prev, signature: file }));
-                            }
-                          }}
-                          className="hidden"
-                          id="signature-upload"
-                        />
-                        <label htmlFor="signature-upload" className="cursor-pointer">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              document.getElementById('signature-upload')?.click();
-                            }}
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Upload Signature
-                          </Button>
-                        </label>
-                      </>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* ✍ Applicant Confirmation */}
               <div className="mt-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/5">
                 <h4 className="font-semibold text-base mb-4">✍ Applicant Confirmation</h4>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Applicant Signature</Label>
-                    <div className="p-3 border rounded-lg bg-background text-sm text-muted-foreground min-h-[40px] flex items-center">
-                      {formData.signature ? '✓ Signature Uploaded' : 'Signature required above'}
-                    </div>
-                  </div>
+                <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Date</Label>
                     <div className="p-3 border rounded-lg bg-background text-sm min-h-[40px] flex items-center">
@@ -797,7 +988,7 @@ export function DistributorApplication() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">
-                  By signing above, I confirm that all information provided is true and accurate.
+                  By submitting this application, I confirm that all information provided is true and accurate.
                 </p>
               </div>
             </div>
@@ -807,13 +998,25 @@ export function DistributorApplication() {
               type="submit" 
               className="w-full" 
               size="lg" 
-              disabled={isSubmitting || !conditionsAccepted.otpVerified}
+              disabled={isSubmitting || !conditionsAccepted.otpVerified || !isEligible || userTotalPaid < 5000}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </Button>
             {!conditionsAccepted.otpVerified && (
               <p className="text-sm text-muted-foreground text-center">
                 Please accept Terms & Conditions and verify OTP to submit
+              </p>
+            )}
+            {isEligible && userTotalPaid < 5000 && (
+              <p className="text-sm text-warning text-center">
+                You need to pay a total of ₹5,000 to submit the application. Current total paid: ₹{userTotalPaid.toLocaleString()}. 
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-warning underline ml-1"
+                  onClick={() => window.location.href = '/profile?tab=orders'}
+                >
+                  Make Payment
+                </Button>
               </p>
             )}
           </form>

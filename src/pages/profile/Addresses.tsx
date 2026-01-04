@@ -88,11 +88,7 @@ export function Addresses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">My Addresses</h2>
-          <p className="text-muted-foreground">Manage your delivery addresses</p>
-        </div>
+      <div className="flex items-center justify-end mb-4">
         <Button onClick={() => {
           setEditingAddress(null);
           setFormData({

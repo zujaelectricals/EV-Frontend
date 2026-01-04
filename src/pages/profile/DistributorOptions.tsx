@@ -30,8 +30,8 @@ export function DistributorOptions() {
     },
     {
       id: 'binary',
-      title: 'Binary Tree',
-      description: 'View your network and track pairs',
+      title: 'Team Network',
+      description: 'View your referral network and track team performance',
       icon: GitBranch,
       action: () => window.location.href = '/distributor/binary-tree',
       actionLabel: 'View Tree',

@@ -11,10 +11,10 @@ export const BinaryTreeViewer = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Binary Tree Viewer</h1>
-          <p className="text-muted-foreground mt-1">Visualize and analyze the distributor binary tree structure</p>
+          <p className="text-muted-foreground mt-1">Visualize and analyze the authorized channel partner binary tree structure</p>
         </div>
         <div className="flex items-center gap-2">
-          <Input placeholder="Search distributor..." className="w-64" />
+          <Input placeholder="Search authorized channel partner..." className="w-64" />
           <Button variant="outline" size="sm">
             Export Tree
           </Button>
@@ -49,7 +49,7 @@ export const BinaryTreeViewer = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Left Leg</p>
+                  <p className="text-sm font-medium text-muted-foreground">Revenue Stream A (RSA)</p>
                   <p className="text-3xl font-bold text-foreground mt-1">345</p>
                 </div>
                 <Users className="h-8 w-8 text-info opacity-20" />
@@ -67,7 +67,7 @@ export const BinaryTreeViewer = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Right Leg</p>
+                  <p className="text-sm font-medium text-muted-foreground">Revenue Stream B (RSB)</p>
                   <p className="text-3xl font-bold text-foreground mt-1">347</p>
                 </div>
                 <Users className="h-8 w-8 text-success opacity-20" />
@@ -109,7 +109,7 @@ export const BinaryTreeViewer = () => {
                 Interactive tree viewer will be integrated here
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                Use the search above to find specific distributors
+                Use the search above to find specific authorized channel partners
               </p>
             </div>
           </div>

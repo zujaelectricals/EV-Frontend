@@ -24,11 +24,7 @@ export function Wishlist() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">My Wishlist</h2>
-          <p className="text-muted-foreground">Save your favorite vehicles for later</p>
-        </div>
+      <div className="flex items-center justify-end mb-4">
         <Link to="/scooters">
           <Button>Continue Shopping</Button>
         </Link>

@@ -14,8 +14,8 @@ export const DistributorIntelligence = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Distributor Intelligence</h1>
-        <p className="text-muted-foreground mt-1">Analyze distributor performance and insights</p>
+        <h1 className="text-3xl font-bold text-foreground">Authorized Channel Partner Intelligence</h1>
+        <p className="text-muted-foreground mt-1">Analyze authorized channel partner performance and insights</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">

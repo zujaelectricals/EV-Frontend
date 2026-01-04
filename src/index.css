@@ -75,13 +75,38 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Orbitron', sans-serif;
+  }
+
+  /* Smooth scrolling for all scrollable elements - desktop optimized */
+  @media (min-width: 769px) {
+    * {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Prevent scroll jitter on desktop */
+  @media (min-width: 769px) {
+    [data-scroll-container] {
+      will-change: scroll-position;
+      contain: layout style paint;
+    }
   }
 }
 
@@ -146,7 +171,7 @@
     background-clip: text;
   }
 
-  /* Scrollbar - Premium white theme */
+  /* Scrollbar - Premium white theme with smooth scrolling */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -154,15 +179,35 @@
 
   ::-webkit-scrollbar-track {
     background: hsl(210 40% 96%);
+    -webkit-overflow-scrolling: touch;
   }
 
   ::-webkit-scrollbar-thumb {
     background: hsl(215 16% 47% / 0.3);
     border-radius: 4px;
+    transition: background 0.2s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(215 16% 47% / 0.5);
+  }
+
+  /* Smooth scroll performance */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      -webkit-overflow-scrolling: touch;
+    }
   }
 
   /* Tree connector lines */
@@ -179,6 +224,19 @@
 }
 
 @layer utilities {
+  /* GPU acceleration for smooth transforms - desktop optimized */
+  .transform-gpu {
+    transform: translateZ(0);
+  }
+
+  @media (min-width: 769px) {
+    .transform-gpu {
+      will-change: transform;
+      backface-visibility: hidden;
+      perspective: 1000px;
+    }
+  }
+
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
@@ -217,6 +275,41 @@
     }
     100% {
       background-position: 200% 0;
+    }
+  }
+
+  .animate-floating-shadow {
+    animation: floatingShadow 4s ease-in-out infinite;
+  }
+
+  @keyframes floatingShadow {
+    0%, 100% {
+      box-shadow: 
+        0 20px 60px rgba(16, 185, 129, 0.3),
+        0 10px 30px rgba(16, 185, 129, 0.2),
+        0 0 0 0 rgba(16, 185, 129, 0.1);
+      transform: translateY(0px);
+    }
+    25% {
+      box-shadow: 
+        20px 20px 60px rgba(16, 185, 129, 0.35),
+        10px 10px 30px rgba(16, 185, 129, 0.25),
+        0 0 20px rgba(16, 185, 129, 0.15);
+      transform: translateY(-5px);
+    }
+    50% {
+      box-shadow: 
+        0 30px 70px rgba(16, 185, 129, 0.4),
+        0 15px 35px rgba(16, 185, 129, 0.3),
+        0 0 30px rgba(16, 185, 129, 0.2);
+      transform: translateY(-10px);
+    }
+    75% {
+      box-shadow: 
+        -20px 20px 60px rgba(16, 185, 129, 0.35),
+        -10px 10px 30px rgba(16, 185, 129, 0.25),
+        0 0 20px rgba(16, 185, 129, 0.15);
+      transform: translateY(-5px);
     }
   }
 }

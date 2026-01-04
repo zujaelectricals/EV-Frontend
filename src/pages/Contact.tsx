@@ -276,7 +276,7 @@ export function Contact() {
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg py-6"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                       size="lg"
                     >
                       {isSubmitting ? (

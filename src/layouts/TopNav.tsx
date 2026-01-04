@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ProfileSwitcher } from '@/components/ProfileSwitcher';
 
 export const TopNav = () => {
   const dispatch = useAppDispatch();
@@ -38,6 +39,9 @@ export const TopNav = () => {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        {/* Profile Switcher */}
+        <ProfileSwitcher />
+
         {/* Notifications */}
         <motion.button
           whileHover={{ scale: 1.05 }}

@@ -55,11 +55,7 @@ export function PaymentMethods() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Payment Methods</h2>
-          <p className="text-muted-foreground">Manage your payment methods</p>
-        </div>
+      <div className="flex items-center justify-end mb-4">
         <Button onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Payment Method

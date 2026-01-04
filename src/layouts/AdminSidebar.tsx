@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -15,7 +15,6 @@ import {
   Shield,
   ScrollText,
   ChevronLeft,
-  Zap,
   User,
   Users,
   Ticket,
@@ -43,6 +42,7 @@ interface MenuSection {
   label: string;
   icon: React.ElementType;
   value: string;
+  path?: string; // Optional path for parent menu item
   children: SubMenuItem[];
   badge?: number;
   badgeVariant?: 'default' | 'destructive' | 'secondary' | 'outline';
@@ -145,6 +145,7 @@ const adminMenuSections: MenuSection[] = [
     icon: Landmark,
     value: 'pool-wallet',
     children: [
+      { label: 'Withdrawal History', path: '/admin/pool-wallet' },
       { label: 'Active Pool Balances', path: '/admin/pool-wallet/balances' },
       { label: 'Emergency Withdrawals', path: '/admin/pool-wallet/withdrawals' },
       { label: 'Nominee Transfers', path: '/admin/pool-wallet/transfers' },
@@ -253,7 +254,8 @@ export const AdminSidebar = () => {
   const getActiveSection = () => {
     const path = location.pathname;
     for (const section of adminMenuSections) {
-      if (section.children.some((child) => path === child.path || path.startsWith(child.path))) {
+      // Check if current path matches parent path or any child path
+      if ((section.path && section.path === path) || section.children.some((child) => path === child.path || path.startsWith(child.path))) {
         return section.value;
       }
     }
@@ -279,16 +281,35 @@ export const AdminSidebar = () => {
     }
   }, [location.pathname]);
 
-  const isSubMenuActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+  const isSubMenuActive = (path: string, allChildren: SubMenuItem[]) => {
+    const currentPath = location.pathname;
+    
+    // Exact match
+    if (currentPath === path) {
+      return true;
+    }
+    
+    // Check if current path starts with this path, but make sure it's not matching a sibling
+    // For example, if path is '/admin/pool-wallet' and currentPath is '/admin/pool-wallet/withdrawals',
+    // we should only match if there's no other child that matches more specifically
+    if (currentPath.startsWith(path + '/')) {
+      // Check if any other child path is a more specific match
+      const moreSpecificMatch = allChildren.find(
+        child => child.path !== path && currentPath.startsWith(child.path)
+      );
+      // Only match if no more specific child path exists
+      return !moreSpecificMatch;
+    }
+    
+    return false;
   };
 
   const isSectionActive = (section: MenuSection) => {
-    return section.children.some((child) => isSubMenuActive(child.path));
+    return section.children.some((child) => isSubMenuActive(child.path, section.children));
   };
 
-  const renderSubMenuItem = (item: SubMenuItem, sectionValue: string) => {
-    const active = isSubMenuActive(item.path);
+  const renderSubMenuItem = (item: SubMenuItem, sectionValue: string, allChildren: SubMenuItem[]) => {
+    const active = isSubMenuActive(item.path, allChildren);
     return (
       <motion.div
         key={item.path}
@@ -328,13 +349,14 @@ export const AdminSidebar = () => {
   const renderSection = (section: MenuSection) => {
     const Icon = section.icon;
     const sectionActive = isSectionActive(section);
+    const isParentPathActive = section.path && location.pathname === section.path;
 
     return (
       <AccordionItem key={section.value} value={section.value} className="border-none">
         <AccordionTrigger
           className={cn(
             'group relative flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:no-underline',
-            sectionActive
+            (sectionActive || isParentPathActive)
               ? 'bg-primary/10 text-primary'
               : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
           )}
@@ -343,7 +365,7 @@ export const AdminSidebar = () => {
             <Icon
               className={cn(
                 'h-5 w-5 shrink-0 transition-colors',
-                sectionActive ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'
+                (sectionActive || isParentPathActive) ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'
               )}
             />
             {!collapsed && (
@@ -364,7 +386,7 @@ export const AdminSidebar = () => {
             transition={{ duration: 0.2 }}
             className="space-y-1 overflow-hidden"
           >
-            {section.children.map((child) => renderSubMenuItem(child, section.value))}
+            {section.children.map((child) => renderSubMenuItem(child, section.value, section.children))}
           </motion.div>
         </AccordionContent>
       </AccordionItem>
@@ -387,17 +409,12 @@ export const AdminSidebar = () => {
     >
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
-        {!collapsed && (
-          <Link
-            to="/admin"
-            className="flex items-center gap-2"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20">
-              <Zap className="h-6 w-6 text-primary" />
-            </div>
-            <span className="font-display text-lg font-bold gradient-text">Zuja</span>
-          </Link>
-        )}
+        <Link
+          to="/admin"
+          className="flex items-center gap-2"
+        >
+          <img src="/logo.png" alt="Zuja Electric" className={collapsed ? "h-8 w-auto" : "h-10 w-auto"} />
+        </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"

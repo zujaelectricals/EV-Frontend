@@ -32,9 +32,18 @@ import { RedemptionShop } from './dashboards/user/RedemptionShop';
 import { PoolMoneyWithdrawal } from './dashboards/distributor/PoolMoneyWithdrawal';
 import { NomineeManagement } from './dashboards/distributor/NomineeManagement';
 import { MilestoneTracker } from './dashboards/distributor/MilestoneTracker';
+import { TeamPerformance } from './dashboards/distributor/TeamPerformance';
+import { SalesTracking } from './dashboards/distributor/SalesTracking';
+import { ReferralLink } from './dashboards/distributor/ReferralLink';
+import { BinaryTreeView } from './dashboards/distributor/BinaryTreeView';
+import { PairMatchingHistory } from './dashboards/distributor/PairMatchingHistory';
+import { Earnings } from './dashboards/distributor/Earnings';
+import { PayoutHistory } from './dashboards/distributor/PayoutHistory';
+import { OrderHistory } from './dashboards/distributor/OrderHistory';
 import { RoleProtectedRoute } from './components/routes/RoleProtectedRoute';
 import { useAppSelector } from './app/hooks';
 import { isUserAuthenticated } from './app/slices/authSlice';
+import NotFound from './pages/NotFound';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
@@ -71,7 +80,15 @@ const AppRoutes = () => {
       <Route path="/become-distributor" element={<ProtectedRoute><DistributorApplication /></ProtectedRoute>} />
       <Route path="/redemption" element={<ProtectedRoute><RedemptionShop /></ProtectedRoute>} />
       <Route path="/distributor" element={<ProtectedRoute><DistributorDashboard /></ProtectedRoute>} />
+      <Route path="/distributor/referral" element={<ProtectedRoute><ReferralLink /></ProtectedRoute>} />
+      <Route path="/distributor/binary-tree" element={<ProtectedRoute><BinaryTreeView /></ProtectedRoute>} />
+      <Route path="/distributor/pair-history" element={<ProtectedRoute><PairMatchingHistory /></ProtectedRoute>} />
+      <Route path="/distributor/earnings" element={<ProtectedRoute><Earnings /></ProtectedRoute>} />
+      <Route path="/distributor/team" element={<ProtectedRoute><TeamPerformance /></ProtectedRoute>} />
+      <Route path="/distributor/sales" element={<ProtectedRoute><SalesTracking /></ProtectedRoute>} />
+      <Route path="/distributor/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
       <Route path="/distributor/pool-wallet" element={<ProtectedRoute><PoolMoneyWithdrawal /></ProtectedRoute>} />
+      <Route path="/distributor/payouts" element={<ProtectedRoute><PayoutHistory /></ProtectedRoute>} />
       <Route path="/distributor/nominee" element={<ProtectedRoute><NomineeManagement /></ProtectedRoute>} />
       <Route path="/distributor/milestones" element={<ProtectedRoute><MilestoneTracker /></ProtectedRoute>} />
       
@@ -81,8 +98,8 @@ const AppRoutes = () => {
       {/* Protected Routes - Staff Only */}
       <Route path="/staff/*" element={<RoleProtectedRoute allowedRoles={['staff']}><StaffRoutes /></RoleProtectedRoute>} />
       
-      {/* Catch-all route - must be last */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* 404 Not Found - must be last */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

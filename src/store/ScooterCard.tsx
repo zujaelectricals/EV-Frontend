@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, Battery, Gauge, Clock, Heart, Star } from "lucide-react";
+import { Heart, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -162,34 +162,6 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
             </div>
             <span className="text-xs text-muted-foreground">
               ({scooter.reviews?.toLocaleString() || "0"})
-            </span>
-          </div>
-        </div>
-
-        {/* Specifications Grid */}
-        <div className="grid grid-cols-4 gap-2.5">
-          <div className="flex flex-col items-center p-3 bg-muted/60 rounded-xl border border-border/50 hover:bg-muted/80 hover:border-primary/30 transition-all duration-200 group/item">
-            <Zap className="w-4 h-4 text-primary mb-1.5 group-hover/item:scale-110 transition-transform" />
-            <span className="text-xs font-bold text-foreground">
-              {scooter.power || "3KW"}
-            </span>
-          </div>
-          <div className="flex flex-col items-center p-3 bg-muted/60 rounded-xl border border-border/50 hover:bg-muted/80 hover:border-primary/30 transition-all duration-200 group/item">
-            <Battery className="w-4 h-4 text-primary mb-1.5 group-hover/item:scale-110 transition-transform" />
-            <span className="text-xs font-bold text-foreground">
-              {scooter.range}km
-            </span>
-          </div>
-          <div className="flex flex-col items-center p-3 bg-muted/60 rounded-xl border border-border/50 hover:bg-muted/80 hover:border-primary/30 transition-all duration-200 group/item">
-            <Gauge className="w-4 h-4 text-primary mb-1.5 group-hover/item:scale-110 transition-transform" />
-            <span className="text-xs font-bold text-foreground">
-              {scooter.topSpeed}km/h
-            </span>
-          </div>
-          <div className="flex flex-col items-center p-3 bg-muted/60 rounded-xl border border-border/50 hover:bg-muted/80 hover:border-primary/30 transition-all duration-200 group/item">
-            <Clock className="w-4 h-4 text-primary mb-1.5 group-hover/item:scale-110 transition-transform" />
-            <span className="text-xs font-bold text-foreground">
-              {scooter.chargingTime || "4h"}
             </span>
           </div>
         </div>

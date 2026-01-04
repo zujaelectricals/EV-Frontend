@@ -304,14 +304,14 @@ export function AboutUs() {
                 Be part of a sustainable future. Explore our scooters or get in touch to learn more.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
-                <Link to="/scooters">
-                  <Button size="lg" className="text-lg px-8 bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Link to="/scooters" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white">
                     Explore Scooters
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
-                <Link to="/contact">
-                  <Button size="lg" variant="outline" className="text-lg px-8 border-emerald-300 dark:border-emerald-400/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-400/10">
+                <Link to="/contact" className="w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-emerald-300 dark:border-emerald-400/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-400/10">
                     Contact Us
                   </Button>
                 </Link>

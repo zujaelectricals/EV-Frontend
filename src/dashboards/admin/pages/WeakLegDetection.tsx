@@ -48,7 +48,7 @@ export const WeakLegDetection = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Weak-Leg Detection</h1>
-        <p className="text-muted-foreground mt-1">Identify distributors with imbalanced binary tree legs</p>
+        <p className="text-muted-foreground mt-1">Identify authorized channel partners with imbalanced binary tree legs</p>
       </div>
 
       {/* Stats */}
@@ -128,15 +128,15 @@ export const WeakLegDetection = () => {
       {/* Weak Legs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Distributors with Weak Legs</CardTitle>
+          <CardTitle>Authorized Channel Partners with Weak Legs</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Distributor</TableHead>
-                <TableHead>Left Leg</TableHead>
-                <TableHead>Right Leg</TableHead>
+                <TableHead>Authorized Channel Partner</TableHead>
+                <TableHead>Revenue Stream A (RSA)</TableHead>
+                <TableHead>Revenue Stream B (RSB)</TableHead>
                 <TableHead>Difference</TableHead>
                 <TableHead>Weak Leg</TableHead>
                 <TableHead>Imbalance %</TableHead>

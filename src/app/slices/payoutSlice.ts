@@ -37,7 +37,7 @@ const initialState: PayoutState = {
   pendingAmount: 0,
   milestones: [
     { id: 'm1', name: 'First 3 Referrals', target: 3, reward: 1000, achieved: false },
-    { id: 'm2', name: 'Binary Activation', target: 3, reward: 2000, achieved: false },
+    { id: 'm2', name: 'Binary Account Enablement', target: 3, reward: 2000, achieved: false },
     { id: 'm3', name: '5 Pairs Completed', target: 5, reward: 5000, achieved: false },
     { id: 'm4', name: '10 Pairs Completed', target: 10, reward: 10000, achieved: false },
   ],

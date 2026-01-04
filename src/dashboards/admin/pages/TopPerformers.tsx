@@ -61,7 +61,7 @@ export const TopPerformers = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Top Performers</h1>
-        <p className="text-muted-foreground mt-1">Recognize and track top-performing distributors</p>
+        <p className="text-muted-foreground mt-1">Recognize and track top-performing authorized channel partners</p>
       </div>
 
       {/* Top 3 Cards */}
@@ -157,8 +157,8 @@ export const TopPerformers = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Rank</TableHead>
-                <TableHead>Distributor</TableHead>
+                <TableHead>Partner Tier</TableHead>
+                <TableHead>Authorized Channel Partner</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead>Total Sales</TableHead>
                 <TableHead>Commissions</TableHead>

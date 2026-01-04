@@ -22,6 +22,10 @@ export interface DistributorInfo {
   rightCount: number;
   totalReferrals: number;
   binaryActivated: boolean;
+  activationBonusCredited: boolean;
+  totalCommissionEarned: number;
+  pairsBeyondLimit: number;
+  pairsAtActivation?: number; // Track pairs count when binary was activated
   poolMoney: number;
   nominee?: Nominee;
   joinedAt?: string;
@@ -29,7 +33,8 @@ export interface DistributorInfo {
 
 export interface PreBookingInfo {
   hasPreBooked: boolean;
-  preBookingAmount: number;
+  preBookingAmount: number; // Initial pre-booking amount
+  totalPaid: number; // Total amount paid so far (including pre-booking and additional payments)
   preBookingDate?: string;
   vehicleId?: string;
   vehicleName?: string;
@@ -143,7 +148,24 @@ const authSlice = createSlice({
       }
     },
     updateDistributorInfo: (state, action: PayloadAction<Partial<DistributorInfo>>) => {
-      if (state.user && state.user.distributorInfo) {
+      if (state.user) {
+        // Initialize distributorInfo if it doesn't exist
+        if (!state.user.distributorInfo) {
+          state.user.distributorInfo = {
+            isDistributor: false,
+            isVerified: false,
+            verificationStatus: 'pending',
+            referralCode: '',
+            leftCount: 0,
+            rightCount: 0,
+            totalReferrals: 0,
+            binaryActivated: false,
+            activationBonusCredited: false,
+            totalCommissionEarned: 0,
+            pairsBeyondLimit: 0,
+            poolMoney: 0,
+          };
+        }
         state.user.distributorInfo = { ...state.user.distributorInfo, ...action.payload };
         // Update localStorage when distributor info is updated
         if (state.token) {

@@ -31,7 +31,6 @@ import {
   Shield,
   ScrollText,
   ChevronLeft,
-  Zap,
   UserCheck,
 } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
@@ -54,12 +53,16 @@ const userMenuItems: MenuItem[] = [
 const distributorMenuItems: MenuItem[] = [
   { label: 'Distributor Dashboard', icon: LayoutDashboard, path: '/distributor' },
   { label: 'Referral Link', icon: LinkIcon, path: '/distributor/referral' },
-  { label: 'Binary Tree View', icon: GitBranch, path: '/distributor/binary-tree' },
-  { label: 'Pair Matching History', icon: History, path: '/distributor/pair-history' },
-  { label: 'Earnings', icon: DollarSign, path: '/distributor/earnings' },
+  { label: 'Team Network', icon: GitBranch, path: '/distributor/binary-tree' },
+  { label: 'Team Matching History', icon: History, path: '/distributor/pair-history' },
+  { label: 'Earnings & Commissions', icon: DollarSign, path: '/distributor/earnings' },
+  { label: 'Team Performance', icon: Users, path: '/distributor/team' },
+  { label: 'Sales Tracking', icon: TrendingUp, path: '/distributor/sales' },
+  { label: 'Order History', icon: Package, path: '/distributor/orders' },
   { label: 'Pool Wallet', icon: Landmark, path: '/distributor/pool-wallet' },
-  { label: 'Nominee', icon: Users, path: '/distributor/nominee' },
   { label: 'Payout History', icon: ClipboardList, path: '/distributor/payouts' },
+  { label: 'Milestone Tracker', icon: Award, path: '/distributor/milestones' },
+  { label: 'Nominee Management', icon: UserCheck, path: '/distributor/nominee' },
 ];
 
 const staffMenuItems: MenuItem[] = [
@@ -97,13 +100,18 @@ export const Sidebar = () => {
     return <AdminSidebar />;
   }
 
-  // Check if user is eligible for distributor program
-  // First check preBookingInfo, then fallback to bookings if preBookingInfo is missing
+  // Check if user is eligible for distributor program (total paid must be at least ₹5000)
+  // Use totalPaid if available, otherwise fallback to preBookingAmount for backward compatibility
+  const userTotalPaid = user?.preBookingInfo?.totalPaid || user?.preBookingInfo?.preBookingAmount || 0;
   const hasEligiblePreBooking = user?.preBookingInfo?.hasPreBooked && 
-    (user.preBookingInfo.isDistributorEligible || user.preBookingInfo.preBookingAmount >= 5000);
+    (user.preBookingInfo.isDistributorEligible || userTotalPaid >= 5000);
   
   // Fallback: Check bookings if preBookingInfo is not available or doesn't show eligibility
-  const hasEligibleBooking = bookings.some(booking => booking.preBookingAmount >= 5000);
+  // Use totalPaid if available, otherwise fallback to preBookingAmount
+  const hasEligibleBooking = bookings.some(booking => {
+    const bookingTotalPaid = booking.totalPaid || booking.preBookingAmount || 0;
+    return bookingTotalPaid >= 5000;
+  });
   
   const isDistributorEligible = hasEligiblePreBooking || hasEligibleBooking;
 
@@ -160,11 +168,15 @@ export const Sidebar = () => {
     );
   };
 
+  // Check if user is a verified distributor
+  const isVerifiedDistributor = (user?.isDistributor && user?.distributorInfo?.isVerified) || 
+                                (user?.distributorInfo && user.distributorInfo.verificationStatus === 'approved');
+
   // Get menu items based on user role
   const getMenuItems = (): MenuItem[] => {
     if (user?.role === 'staff') {
       return staffMenuItems;
-    } else if (user?.isDistributor) {
+    } else if (isVerifiedDistributor) {
       return [...userMenuItems, ...distributorMenuItems];
     } else {
       return userMenuItems;
@@ -183,17 +195,12 @@ export const Sidebar = () => {
     >
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
-        {!collapsed && (
-          <Link 
-            to={user?.role === 'admin' ? '/admin' : user?.role === 'staff' ? '/staff/leads' : '/'} 
-            className="flex items-center gap-2"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20">
-              <Zap className="h-6 w-6 text-primary" />
-            </div>
-            <span className="font-display text-lg font-bold gradient-text">Zuja</span>
-          </Link>
-        )}
+        <Link 
+          to={user?.role === 'admin' ? '/admin' : user?.role === 'staff' ? '/staff/leads' : '/'} 
+          className="flex items-center gap-2"
+        >
+          <img src="/logo.png" alt="Zuja Electric" className={collapsed ? "h-8 w-auto" : "h-10 w-auto"} />
+        </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"

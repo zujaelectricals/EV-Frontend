@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import {
   GitBranch,
   Users,
@@ -10,16 +11,44 @@ import {
   ArrowRight,
   Award,
 } from 'lucide-react';
-import { useAppSelector } from '@/app/hooks';
+import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { useGetBinaryStatsQuery } from '@/app/api/binaryApi';
+import { updateDistributorInfo } from '@/app/slices/authSlice';
 import { StatsCard } from '@/shared/components/StatsCard';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export const DistributorDashboard = () => {
+  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
-  const { data: binaryStats } = useGetBinaryStatsQuery();
+  const distributorId = user?.id || '';
+  const { data: binaryStats } = useGetBinaryStatsQuery(distributorId, { skip: !distributorId });
+
+  // Sync pool money from localStorage to Redux state when binaryStats change
+  useEffect(() => {
+    if (user?.id && binaryStats) {
+      try {
+        const authDataStr = localStorage.getItem('ev_nexus_auth_data');
+        if (authDataStr) {
+          const authData = JSON.parse(authDataStr);
+          if (authData.user && authData.user.distributorInfo && 
+              authData.user.id === user.id) {
+            const storedPoolMoney = authData.user.distributorInfo.poolMoney || 0;
+            // Update Redux state if pool money has changed
+            if (user.distributorInfo?.poolMoney !== storedPoolMoney) {
+              dispatch(updateDistributorInfo({
+                poolMoney: storedPoolMoney,
+                totalReferrals: binaryStats.totalReferrals,
+              }));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error syncing pool money:', error);
+      }
+    }
+  }, [binaryStats, user?.id, dispatch, user?.distributorInfo?.poolMoney]);
 
   const referralLink = `https://zuja.com/ref/${user?.distributorInfo?.referralCode || user?.id || 'demo'}`;
 
@@ -60,7 +89,7 @@ export const DistributorDashboard = () => {
           <div>
             <div className="flex items-center gap-2">
               <Award className="h-5 w-5 text-primary" />
-              <span className="text-sm font-medium text-primary">Distributor Dashboard</span>
+              <span className="text-sm font-medium text-primary">Authorized Channel Partner Dashboard</span>
             </div>
             <h1 className="mt-2 font-display text-3xl font-bold text-foreground">
               Welcome, {user?.name}! 🚀
@@ -91,13 +120,13 @@ export const DistributorDashboard = () => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Referrals"
-          value={user?.distributorInfo?.totalReferrals?.toLocaleString() || '0'}
+          value={(binaryStats?.totalReferrals || 0).toLocaleString()}
           icon={Users}
           variant="primary"
         />
         <StatsCard
           title="Total Pairs"
-          value={binaryStats?.totalPairs?.toString() || '0'}
+          value={(binaryStats?.totalPairs || 0).toString()}
           icon={GitBranch}
           variant="info"
         />
@@ -109,7 +138,7 @@ export const DistributorDashboard = () => {
         />
         <StatsCard
           title="Pool Money"
-          value={`₹${(user?.distributorInfo?.poolMoney || 0).toLocaleString()}`}
+          value={`₹${(binaryStats?.poolMoney || user?.distributorInfo?.poolMoney || 0).toLocaleString()}`}
           icon={DollarSign}
           variant="warning"
         />
@@ -126,7 +155,7 @@ export const DistributorDashboard = () => {
               <GitBranch className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">Binary Tree</p>
+              <p className="font-semibold text-foreground">Team Network</p>
               <p className="text-sm text-muted-foreground">View network</p>
             </div>
             <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground" />

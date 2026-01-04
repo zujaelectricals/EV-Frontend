@@ -4,15 +4,18 @@ import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { setCredentials, isUserAuthenticated } from "@/app/slices/authSlice";
+import { loadBookingsForUser } from "@/app/slices/bookingSlice";
 import { useLoginMutation } from "@/app/api/authApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { SignupModal } from "./SignupModal";
 
 export const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -45,6 +48,8 @@ export const LoginPage = () => {
     try {
       const result = await login({ email, password }).unwrap();
       dispatch(setCredentials({ user: result.user, token: result.token }));
+      // Load bookings for the logged-in user
+      dispatch(loadBookingsForUser(result.user.id));
       toast.success("Welcome back!");
 
       // Redirect based on role, but prioritize the previous location for regular users
@@ -58,9 +63,28 @@ export const LoginPage = () => {
         // For regular users, go back to where they came from, or default to home
         navigate(from !== "/login" ? from : "/", { replace: true });
       }
-    } catch (err) {
-      toast.error("Login failed");
+    } catch (err: unknown) {
+      let errorMessage = "Invalid email or password";
+      if (err && typeof err === "object") {
+        const error = err as {
+          data?: { data?: string; message?: string } | string;
+          error?: string;
+          message?: string;
+        };
+        errorMessage =
+          (typeof error.data === "object" &&
+            (error.data?.data || error.data?.message)) ||
+          (typeof error.data === "string" ? error.data : undefined) ||
+          error.error ||
+          error.message ||
+          errorMessage;
+      }
+      toast.error(errorMessage);
     }
+  };
+
+  const handleSignupSuccess = () => {
+    toast.success("Account created! You can now login with your credentials.");
   };
 
   const quickLogin = (type: string) => {
@@ -176,12 +200,33 @@ export const LoginPage = () => {
             </Button>
           </form>
 
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">Or</span>
+              </div>
+            </div>
+            <div className="mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-gray-300 hover:bg-gray-50"
+                onClick={() => setIsSignupModalOpen(true)}
+              >
+                Create New Account
+              </Button>
+            </div>
+          </div>
+
           <div className="mt-8">
             <p className="mb-4 text-center text-sm text-gray-600">
               Quick login as:
             </p>
             <div className="grid grid-cols-2 gap-3">
-              {["admin", "staff", "distributor", "user"].map((type) => (
+              {["admin", "staff", "user"].map((type) => (
                 <Button
                   key={type}
                   variant="outline"
@@ -196,6 +241,13 @@ export const LoginPage = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Signup Modal */}
+      <SignupModal
+        isOpen={isSignupModalOpen}
+        onClose={() => setIsSignupModalOpen(false)}
+        onSignupSuccess={handleSignupSuccess}
+      />
     </div>
   );
 };

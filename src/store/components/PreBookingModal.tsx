@@ -12,8 +12,10 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { addBooking, updateBooking } from '@/app/slices/bookingSlice';
 import { updatePreBooking } from '@/app/slices/authSlice';
 import { addPayout } from '@/app/slices/payoutSlice';
+import { useAddReferralNodeMutation } from '@/app/api/binaryApi';
 import { toast } from 'sonner';
 import { Scooter } from '../ScooterCard';
+import { PaymentGateway } from './PaymentGateway';
 
 interface PreBookingModalProps {
   scooter: Scooter;
@@ -22,7 +24,7 @@ interface PreBookingModalProps {
   referralCode?: string;
 }
 
-const MIN_PRE_BOOKING = 1000; // Minimum pre-booking amount
+const MIN_PRE_BOOKING = 500; // Minimum pre-booking amount
 const DISTRIBUTOR_ELIGIBILITY_AMOUNT = 5000; // Minimum amount to be eligible for distributor program
 const TDS_RATE = 0.1; // 10% TDS
 const REFERRAL_BONUS = 1000;
@@ -32,13 +34,15 @@ const PAYMENT_DUE_DAYS = 30;
 export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreBookingModalProps) {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const [preBookingAmount, setPreBookingAmount] = useState(1000);
-  const [inputValue, setInputValue] = useState('1000'); // Local state for input field
+  const [addReferralNode] = useAddReferralNodeMutation();
+  const [preBookingAmount, setPreBookingAmount] = useState(500);
+  const [inputValue, setInputValue] = useState('500'); // Local state for input field
   const [paymentMethod, setPaymentMethod] = useState<'full' | 'emi' | 'flexible'>('full');
   const [selectedEMI, setSelectedEMI] = useState<string>('12');
   const [selectedTenure, setSelectedTenure] = useState<number>(12);
   const [referralCodeInput, setReferralCodeInput] = useState(referralCode || '');
   const [joinDistributorProgram, setJoinDistributorProgram] = useState(false);
+  const [showPaymentGateway, setShowPaymentGateway] = useState(false);
 
   // Sync inputValue when preBookingAmount changes externally
   useEffect(() => {
@@ -52,7 +56,9 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
   const refundableAmount = excessAmount - taxAndDeductions;
   // Redemption points only eligible if pre-booked at least ₹5000
   const redemptionPoints = preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT ? DISTRIBUTOR_ELIGIBILITY_AMOUNT : 0;
-  const isDistributorEligible = preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT;
+  // Skip distributor eligibility check if user is already a distributor
+  const isAlreadyDistributor = user?.isDistributor && user?.distributorInfo?.isVerified;
+  const isDistributorEligible = !isAlreadyDistributor && preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT;
 
   const paymentDueDate = new Date();
   paymentDueDate.setDate(paymentDueDate.getDate() + PAYMENT_DUE_DAYS);
@@ -68,6 +74,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
       return;
     }
 
+    // Open payment gateway
+    setShowPaymentGateway(true);
+  };
+
+  const handlePaymentSuccess = async () => {
     // Calculate referral bonus if referral code is provided
     let referralBonus = 0;
     let tdsDeducted = 0;
@@ -87,6 +98,60 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
         netAmount: netBonus,
         requestedAt: new Date().toISOString(),
       }));
+
+      // Add user to distributor's binary tree if referral code belongs to a distributor
+      if (user && preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT) {
+        try {
+          // Find distributor ID by referral code - check both current auth and multiple accounts
+          let distributorId: string | null = null;
+          
+          // First check current auth data
+          const authDataStr = localStorage.getItem('ev_nexus_auth_data');
+          if (authDataStr) {
+            try {
+              const authData = JSON.parse(authDataStr);
+              if (authData.user?.distributorInfo?.referralCode === referralCodeInput.trim() &&
+                  authData.user?.distributorInfo?.isDistributor === true &&
+                  authData.user?.distributorInfo?.isVerified === true) {
+                distributorId = authData.user.id;
+              }
+            } catch (e) {
+              console.error('Error parsing auth data:', e);
+            }
+          }
+          
+          // If not found in current auth, check multiple accounts
+          if (!distributorId) {
+            const accountsKey = 'ev_nexus_multiple_accounts';
+            const stored = localStorage.getItem(accountsKey);
+            if (stored) {
+              const accounts = JSON.parse(stored);
+              const distributor = accounts.find((acc: any) => 
+                acc.user?.distributorInfo?.referralCode === referralCodeInput.trim() &&
+                acc.user?.distributorInfo?.isDistributor === true &&
+                acc.user?.distributorInfo?.isVerified === true
+              );
+              
+              if (distributor?.user?.id) {
+                distributorId = distributor.user.id;
+              }
+            }
+          }
+          
+          if (distributorId) {
+            await addReferralNode({
+              distributorId: distributorId,
+              userId: user.id,
+              userName: user.name,
+              pv: preBookingAmount,
+              referralCode: referralCodeInput.trim(),
+            }).unwrap();
+          }
+        } catch (error) {
+          console.error('Error adding user to binary tree:', error);
+          // Don't fail the booking if this fails
+        }
+      }
     }
 
     // Calculate EMI details if selected
@@ -114,10 +179,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
       preBookingAmount,
       totalAmount,
       remainingAmount,
+      totalPaid: preBookingAmount, // Track total paid amount
       paymentMethod,
       emiPlan,
       paymentDueDate: paymentDueDate.toISOString(),
-      paymentStatus: 'pending' as const,
+      paymentStatus: 'partial' as const, // Partial payment (pre-booking done, balance remaining)
       isActiveBuyer: true,
       redemptionPoints,
       redemptionEligible: false, // Eligible after 1 year
@@ -133,21 +199,24 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
     dispatch(updatePreBooking({
       hasPreBooked: true,
       preBookingAmount,
+      totalPaid: preBookingAmount, // Track total paid amount
       preBookingDate: new Date().toISOString(),
       vehicleId: scooter.id,
       vehicleName: scooter.name,
       isActiveBuyer: true,
       remainingAmount,
       paymentDueDate: paymentDueDate.toISOString(),
-      paymentStatus: 'pending',
+      paymentStatus: 'partial', // Partial payment (pre-booking done, balance remaining)
       redemptionPoints,
       redemptionEligible: false, // Eligible after 1 year and only if pre-booked at least ₹5000
-      isDistributorEligible,
-      wantsToJoinDistributor: joinDistributorProgram,
+      isDistributorEligible: isAlreadyDistributor ? true : isDistributorEligible, // Always true if already distributor
+      wantsToJoinDistributor: isAlreadyDistributor ? false : joinDistributorProgram, // Don't set if already distributor
     }));
 
     let successMessage = 'Pre-booking successful! You are now an Active Buyer.';
-    if (joinDistributorProgram && isDistributorEligible) {
+    if (isAlreadyDistributor) {
+      successMessage = 'Pre-booking successful! Your order has been added to your order history.';
+    } else if (joinDistributorProgram && isDistributorEligible) {
       successMessage += ' You can now apply for the Distributor Program from your profile.';
     }
     toast.success(successMessage);
@@ -155,11 +224,12 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Pre-Book {scooter.name}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Pre-Book {scooter.name}</DialogTitle>
+          </DialogHeader>
 
         <div className="space-y-6">
           {/* Info Alert */}
@@ -496,6 +566,16 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Payment Gateway Modal */}
+    <PaymentGateway
+      isOpen={showPaymentGateway}
+      onClose={() => setShowPaymentGateway(false)}
+      amount={preBookingAmount}
+      onSuccess={handlePaymentSuccess}
+      vehicleName={scooter.name}
+    />
+    </>
   );
 }
 
