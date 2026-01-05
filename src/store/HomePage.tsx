@@ -106,19 +106,20 @@ export function HomePage() {
 
   // Create scroll progress transforms for each service item (5 items)
   // Services slide up sequentially: 50% - 100% of scroll progress with smooth easing
-  const service0Y = useTransform(scrollYProgress, [0.65, 0.75], [30, 0], {
+  // Evenly distributed ranges to maintain consistent spacing during scroll
+  const service0Y = useTransform(scrollYProgress, [0.65, 0.72], [30, 0], {
     clamp: false,
   });
-  const service1Y = useTransform(scrollYProgress, [0.75, 0.85], [30, 0], {
+  const service1Y = useTransform(scrollYProgress, [0.72, 0.79], [30, 0], {
     clamp: false,
   });
-  const service2Y = useTransform(scrollYProgress, [0.85, 0.92], [30, 0], {
+  const service2Y = useTransform(scrollYProgress, [0.79, 0.86], [30, 0], {
     clamp: false,
   });
-  const service3Y = useTransform(scrollYProgress, [0.92, 0.97], [30, 0], {
+  const service3Y = useTransform(scrollYProgress, [0.86, 0.93], [30, 0], {
     clamp: false,
   });
-  const service4Y = useTransform(scrollYProgress, [0.97, 1.0], [30, 0], {
+  const service4Y = useTransform(scrollYProgress, [0.93, 1.0], [30, 0], {
     clamp: false,
   });
 
@@ -443,11 +444,9 @@ export function HomePage() {
           minHeight: "150vh", // Reduced height for better scroll control
           paddingTop: "4rem",
           paddingBottom: "4rem",
-          contain: "layout style paint",
-          transform: "translateZ(0)",
         }}
       >
-        {/* Background Image - Static */}
+        {/* Background Image - Fixed using background-attachment */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -456,8 +455,7 @@ export function HomePage() {
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
-            transform: "translateZ(0)",
-            willChange: "transform",
+            backgroundAttachment: "fixed",
           }}
         />
 
@@ -467,14 +465,15 @@ export function HomePage() {
           style={{
             zIndex: 1,
             background:
-              "linear-gradient(135deg, rgba(209, 250, 229, 0.92) 0%, rgba(255, 255, 255, 0.96) 50%, rgba(209, 250, 229, 0.92) 100%)",
+              "linear-gradient(135deg, rgba(209, 250, 229, 0.75) 0%, rgba(255, 255, 255, 0.80) 50%, rgba(209, 250, 229, 0.75) 100%)",
+            backgroundAttachment: "fixed",
           }}
         />
 
-        {/* Static Background decorative elements with parallax effect */}
+        {/* Static Background decorative elements */}
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ zIndex: 2, transform: "translateZ(0)" }}
+          style={{ zIndex: 2 }}
         >
           <motion.div
             className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-400/10 rounded-full blur-3xl"
@@ -536,19 +535,19 @@ export function HomePage() {
               >
                 Our Services
               </motion.h2>
-              <div className="space-y-4 sm:space-y-6">
+              <div className="flex flex-col gap-4 sm:gap-6">
                 {services.map((service, i) => (
                   <motion.div
                     key={i}
                     style={{
                       y: serviceTransforms[i].y,
                     }}
-                    className="flex items-start gap-3 p-4 sm:p-5 rounded-xl bg-white/80 dark:bg-card/80 border-2 border-gray-300/70 dark:border-gray-500/50 hover:border-gray-400 dark:hover:border-gray-400 transition-all duration-300 ease-out backdrop-blur-sm shadow-sm hover:shadow-lg transform-gpu"
+                    className="flex items-center gap-3 p-4 sm:p-5 rounded-xl bg-white/80 dark:bg-card/80 border-2 border-gray-300/70 dark:border-gray-500/50 hover:border-gray-400 dark:hover:border-gray-400 transition-all duration-300 ease-out backdrop-blur-sm shadow-sm hover:shadow-lg transform-gpu"
                     whileHover={{ scale: 1.01 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   >
-                    <div className="mt-1 w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 flex-shrink-0" />
-                    <p className="text-muted-foreground text-base">{service}</p>
+                    <div className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 flex-shrink-0" />
+                    <p className="text-muted-foreground text-base flex-1">{service}</p>
                   </motion.div>
                 ))}
               </div>

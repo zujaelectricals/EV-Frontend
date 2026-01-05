@@ -42,12 +42,47 @@ import { MonthlyResetEngine } from './pages/MonthlyResetEngine';
 import { UserManagement } from './pages/UserManagement';
 import { PinManagement } from './pages/PinManagement';
 import { PendingPayouts } from './pages/PendingPayouts';
-import { SupportTickets } from './pages/SupportTickets';
+import { SupportTickets } from './SupportTickets';
 import { DistributorApplications } from './pages/DistributorApplications';
 import { ActivePoolBalances } from './pages/ActivePoolBalances';
 import { EmergencyWithdrawals } from './pages/EmergencyWithdrawals';
 import { NomineeTransfers } from './pages/NomineeTransfers';
 import { PoolUtilization } from './pages/PoolUtilization';
+import { Models } from './pages/Models';
+import { StockLevel } from './pages/StockLevel';
+import { DeliveryPipeline } from './pages/DeliveryPipeline';
+import { PendingAllocations } from './pages/PendingAllocations';
+import { ShopList } from './pages/ShopList';
+import { ProductMapping } from './pages/ProductMapping';
+import { RedemptionLoad } from './pages/RedemptionLoad';
+import { CommissionRatio } from './pages/CommissionRatio';
+import { ApprovedPayouts } from './pages/ApprovedPayouts';
+import { RejectedPayouts } from './pages/RejectedPayouts';
+import { BankSettlementLogs } from './pages/BankSettlementLogs';
+import { ActiveUsers } from './pages/ActiveUsers';
+import { PaidUsers } from './pages/PaidUsers';
+import { BlockedUsers } from './pages/BlockedUsers';
+import { EmailUnverified } from './pages/EmailUnverified';
+import { MobileUnverified } from './pages/MobileUnverified';
+import { KYCPending } from './pages/KYCPending';
+import { KYCRejected } from './pages/KYCRejected';
+import { SendNotification } from './pages/SendNotification';
+import { PendingTickets } from './pages/PendingTickets';
+import { AnsweredTickets } from './pages/AnsweredTickets';
+import { ClosedTickets } from './pages/ClosedTickets';
+import { AllTickets } from './pages/AllTickets';
+import { Reports } from './Reports';
+import { TransactionHistory } from './pages/TransactionHistory';
+import { InvestmentLogs } from './pages/InvestmentLogs';
+import { BVLogs } from './pages/BVLogs';
+import { ReferralCommission } from './pages/ReferralCommission';
+import { TeamCommission } from './pages/TeamCommission';
+import { LoginHistory } from './pages/LoginHistory';
+import { NotificationHistory } from './pages/NotificationHistory';
+import { DuplicatePANDetection } from './pages/DuplicatePANDetection';
+import { BankAbuseMonitor } from './pages/BankAbuseMonitor';
+import { ReferralFarmingAlerts } from './pages/ReferralFarmingAlerts';
+import { RapidGrowthSuspicion } from './pages/RapidGrowthSuspicion';
 
 // Placeholder components for nested routes (can be replaced with actual components later)
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -109,17 +144,17 @@ export const AdminRoutes = () => {
 
       {/* EV Inventory Routes */}
       <Route path="inventory" element={<EVInventory />} />
-      <Route path="inventory/models" element={<PlaceholderPage title="Models" />} />
-      <Route path="inventory/stock" element={<PlaceholderPage title="Stock Level" />} />
-      <Route path="inventory/delivery" element={<PlaceholderPage title="Delivery Pipeline" />} />
-      <Route path="inventory/allocations" element={<PlaceholderPage title="Pending Allocations" />} />
+      <Route path="inventory/models" element={<Models />} />
+      <Route path="inventory/stock" element={<StockLevel />} />
+      <Route path="inventory/delivery" element={<DeliveryPipeline />} />
+      <Route path="inventory/allocations" element={<PendingAllocations />} />
 
       {/* Partner Shops Routes */}
       <Route path="partners" element={<PartnerShops />} />
-      <Route path="partners/shops" element={<PlaceholderPage title="Shop List" />} />
-      <Route path="partners/products" element={<PlaceholderPage title="Product Mapping" />} />
-      <Route path="partners/redemption" element={<PlaceholderPage title="Redemption Load" />} />
-      <Route path="partners/commission" element={<PlaceholderPage title="Commission Ratio" />} />
+      <Route path="partners/shops" element={<ShopList />} />
+      <Route path="partners/products" element={<ProductMapping />} />
+      <Route path="partners/redemption" element={<RedemptionLoad />} />
+      <Route path="partners/commission" element={<CommissionRatio />} />
 
       {/* Pool Wallet Controller Routes */}
       <Route path="pool-wallet" element={<PoolWalletController />} />
@@ -131,9 +166,9 @@ export const AdminRoutes = () => {
       {/* Payout Engine Routes */}
       <Route path="payout-engine" element={<PayoutEngine />} />
       <Route path="payout-engine/pending" element={<PendingPayouts />} />
-      <Route path="payout-engine/approved" element={<PlaceholderPage title="Approved Payouts" />} />
-      <Route path="payout-engine/rejected" element={<PlaceholderPage title="Rejected Payouts" />} />
-      <Route path="payout-engine/settlement" element={<PlaceholderPage title="Bank Settlement Logs" />} />
+      <Route path="payout-engine/approved" element={<ApprovedPayouts />} />
+      <Route path="payout-engine/rejected" element={<RejectedPayouts />} />
+      <Route path="payout-engine/settlement" element={<BankSettlementLogs />} />
 
       {/* Pin Management Routes */}
       <Route path="pin-management" element={<PinManagement />} />
@@ -145,39 +180,39 @@ export const AdminRoutes = () => {
 
       {/* User Management Routes */}
       <Route path="users" element={<UserManagement />} />
-      <Route path="users/active" element={<UserManagement />} />
-      <Route path="users/paid" element={<UserManagement />} />
-      <Route path="users/blocked" element={<UserManagement />} />
-      <Route path="users/email-unverified" element={<UserManagement />} />
-      <Route path="users/mobile-unverified" element={<UserManagement />} />
-      <Route path="users/kyc-pending" element={<UserManagement />} />
-      <Route path="users/kyc-rejected" element={<UserManagement />} />
-      <Route path="users/notify" element={<UserManagement />} />
+      <Route path="users/active" element={<ActiveUsers />} />
+      <Route path="users/paid" element={<PaidUsers />} />
+      <Route path="users/blocked" element={<BlockedUsers />} />
+      <Route path="users/email-unverified" element={<EmailUnverified />} />
+      <Route path="users/mobile-unverified" element={<MobileUnverified />} />
+      <Route path="users/kyc-pending" element={<KYCPending />} />
+      <Route path="users/kyc-rejected" element={<KYCRejected />} />
+      <Route path="users/notify" element={<SendNotification />} />
       <Route path="users/distributor-applications" element={<DistributorApplications />} />
 
       {/* Support Tickets Routes */}
       <Route path="tickets" element={<SupportTickets />} />
-      <Route path="tickets/pending" element={<SupportTickets />} />
-      <Route path="tickets/closed" element={<SupportTickets />} />
-      <Route path="tickets/answered" element={<SupportTickets />} />
-      <Route path="tickets/all" element={<SupportTickets />} />
+      <Route path="tickets/pending" element={<PendingTickets />} />
+      <Route path="tickets/closed" element={<ClosedTickets />} />
+      <Route path="tickets/answered" element={<AnsweredTickets />} />
+      <Route path="tickets/all" element={<AllTickets />} />
 
       {/* Reports Routes */}
-      <Route path="reports" element={<PlaceholderPage title="Reports" />} />
-      <Route path="reports/transactions" element={<PlaceholderPage title="Transaction History" />} />
-      <Route path="reports/investments" element={<PlaceholderPage title="Investment Logs" />} />
-      <Route path="reports/bv" element={<PlaceholderPage title="BV Logs" />} />
-      <Route path="reports/referral" element={<PlaceholderPage title="Referral Commission" />} />
-      <Route path="reports/binary" element={<PlaceholderPage title="Binary Commission" />} />
-      <Route path="reports/login" element={<PlaceholderPage title="Login History" />} />
-      <Route path="reports/notifications" element={<PlaceholderPage title="Notification History" />} />
+      <Route path="reports" element={<Reports />} />
+      <Route path="reports/transactions" element={<TransactionHistory />} />
+      <Route path="reports/investments" element={<InvestmentLogs />} />
+      <Route path="reports/bv" element={<BVLogs />} />
+      <Route path="reports/referral" element={<ReferralCommission />} />
+      <Route path="reports/binary" element={<TeamCommission />} />
+      <Route path="reports/login" element={<LoginHistory />} />
+      <Route path="reports/notifications" element={<NotificationHistory />} />
 
       {/* Risk & Compliance Routes */}
       <Route path="compliance" element={<RiskCompliance />} />
-      <Route path="compliance/duplicate-pan" element={<PlaceholderPage title="Duplicate PAN Detection" />} />
-      <Route path="compliance/bank-abuse" element={<PlaceholderPage title="Bank Abuse Monitor" />} />
-      <Route path="compliance/referral-farming" element={<PlaceholderPage title="Referral Farming Alerts" />} />
-      <Route path="compliance/rapid-growth" element={<PlaceholderPage title="Rapid Growth Suspicion" />} />
+      <Route path="compliance/duplicate-pan" element={<DuplicatePANDetection />} />
+      <Route path="compliance/bank-abuse" element={<BankAbuseMonitor />} />
+      <Route path="compliance/referral-farming" element={<ReferralFarmingAlerts />} />
+      <Route path="compliance/rapid-growth" element={<RapidGrowthSuspicion />} />
 
       {/* Audit Logs Routes */}
       <Route path="audit" element={<AuditLogs />} />

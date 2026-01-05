@@ -143,14 +143,14 @@ export const PoolWalletController = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Pool Wallet Controller</h1>
-        <p className="text-muted-foreground mt-1">Manage and approve pool money withdrawal requests</p>
+        <h1 className="text-3xl font-bold text-foreground">Reserve Wallet Controller</h1>
+        <p className="text-muted-foreground mt-1">Manage and approve reserve wallet withdrawal requests</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Pool Money</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Reserve Wallet</CardTitle>
             <Landmark className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
@@ -198,7 +198,7 @@ export const PoolWalletController = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Withdrawal Requests</CardTitle>
-              <CardDescription>Review and approve pool money withdrawal requests from distributors</CardDescription>
+              <CardDescription>Review and approve reserve wallet withdrawal requests from authorized partners</CardDescription>
             </div>
             <Input
               placeholder="Search by name, ID, or reason..."
@@ -236,7 +236,7 @@ export const PoolWalletController = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Request ID</TableHead>
-                      <TableHead>Distributor</TableHead>
+                      <TableHead>Authorized Partner</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Reason</TableHead>
                       <TableHead>Description</TableHead>
@@ -304,7 +304,7 @@ export const PoolWalletController = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Request ID</TableHead>
-                      <TableHead>Distributor</TableHead>
+                      <TableHead>Authorized Partner</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Reason</TableHead>
                       <TableHead>Processed Date</TableHead>
@@ -341,7 +341,7 @@ export const PoolWalletController = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Request ID</TableHead>
-                      <TableHead>Distributor</TableHead>
+                      <TableHead>Authorized Partner</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Reason</TableHead>
                       <TableHead>Admin Comments</TableHead>
@@ -410,7 +410,7 @@ export const PoolWalletController = () => {
           <DialogHeader>
             <DialogTitle>Reject Withdrawal Request</DialogTitle>
             <DialogDescription>
-              Please provide a reason for rejecting this withdrawal request. The pool money will be restored to the distributor.
+              Please provide a reason for rejecting this withdrawal request. The reserve wallet will be restored to the authorized partner.
             </DialogDescription>
           </DialogHeader>
           {selectedRequest && (

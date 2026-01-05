@@ -27,6 +27,7 @@ interface PendingNode {
 interface BinaryTreeNodeProps {
   node: BinaryNode;
   depth?: number;
+  parentId?: string | null;
   onNodeClick?: (node: BinaryNode) => void;
   onNodeDrop?: (nodeId: string, parentId: string, side: 'left' | 'right') => void;
   draggedNodeId?: string | null;
@@ -38,6 +39,7 @@ interface BinaryTreeNodeProps {
 export const BinaryTreeNode = ({ 
   node, 
   depth = 0, 
+  parentId = null,
   onNodeClick,
   onNodeDrop,
   draggedNodeId,
@@ -48,6 +50,9 @@ export const BinaryTreeNode = ({
   const hasChildren = node.children.left || node.children.right;
   const isDragging = draggedNodeId === node.id;
   const canDrag = node.position !== 'root' && onNodeDrop && !selectedPendingNode;
+  const [isOver, setIsOver] = React.useState(false);
+  // Allow dropping on sibling nodes (same parent, different position)
+  const canDrop = onNodeDrop && draggedNodeId && draggedNodeId !== node.id && parentId && !selectedPendingNode;
 
   const handleDragStart = (e: React.DragEvent) => {
     if (canDrag && onDragStart) {
@@ -60,6 +65,36 @@ export const BinaryTreeNode = ({
   const handleDragEnd = (e: React.DragEvent) => {
     if (onDragStart) {
       onDragStart(null);
+    }
+    setIsOver(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (canDrop) {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (canDrop && parentId) {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsOver(false);
+      const nodeId = e.dataTransfer.getData('text/plain');
+      if (nodeId && onNodeDrop) {
+        // When dropping on a sibling node, swap positions
+        // Use the target node's position - the swap logic will handle swapping with the opposite side
+        const targetSide = node.position === 'left' ? 'right' : node.position === 'right' ? 'left' : 'left';
+        onNodeDrop(nodeId, parentId, targetSide);
+      }
     }
   };
 
@@ -89,6 +124,9 @@ export const BinaryTreeNode = ({
             onPositionPendingNode(node.id, 'right');
           }
         }}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         className={cn(
           'relative rounded-xl border-2 p-4 transition-all',
           canDrag ? 'cursor-move' : 'cursor-pointer',
@@ -97,7 +135,8 @@ export const BinaryTreeNode = ({
             : 'border-muted bg-muted/50',
           node.position === 'root' && 'border-primary bg-primary/20',
           isDragging && 'opacity-50 z-50',
-          selectedPendingNode && 'ring-2 ring-warning ring-offset-2'
+          selectedPendingNode && 'ring-2 ring-warning ring-offset-2',
+          isOver && canDrop && 'ring-2 ring-primary bg-primary/20'
         )}
       >
         {/* Pulse effect for root */}
@@ -152,7 +191,8 @@ export const BinaryTreeNode = ({
               {node.children.left ? (
                 <BinaryTreeNode 
                   node={node.children.left} 
-                  depth={depth + 1} 
+                  depth={depth + 1}
+                  parentId={node.id}
                   onNodeClick={onNodeClick}
                   onNodeDrop={onNodeDrop}
                   draggedNodeId={draggedNodeId}
@@ -175,7 +215,8 @@ export const BinaryTreeNode = ({
               {node.children.right ? (
                 <BinaryTreeNode 
                   node={node.children.right} 
-                  depth={depth + 1} 
+                  depth={depth + 1}
+                  parentId={node.id}
                   onNodeClick={onNodeClick}
                   onNodeDrop={onNodeDrop}
                   draggedNodeId={draggedNodeId}

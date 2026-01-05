@@ -213,8 +213,8 @@ export const PoolUtilization = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Pool Utilization</h1>
-          <p className="text-muted-foreground mt-1">Analytics and insights on pool money utilization</p>
+          <h1 className="text-3xl font-bold text-foreground">Reserve Utilization</h1>
+          <p className="text-muted-foreground mt-1">Analytics and insights on reserve wallet utilization</p>
         </div>
         <Button onClick={handleExport} variant="outline">
           <Download className="h-4 w-4 mr-2" />
@@ -230,7 +230,7 @@ export const PoolUtilization = () => {
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Pool Money</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Reserve Wallet</CardTitle>
               <Landmark className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
@@ -256,7 +256,7 @@ export const PoolUtilization = () => {
               <div className="text-2xl font-bold text-foreground">
                 {summaryStats.utilizationRate.toFixed(1)}%
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Pool money utilized</p>
+              <p className="text-xs text-muted-foreground mt-1">Reserve wallet utilized</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -321,7 +321,7 @@ export const PoolUtilization = () => {
                   dataKey="poolMoney" 
                   stroke="hsl(var(--primary))" 
                   strokeWidth={2}
-                  name="Pool Money"
+                  name="Reserve Wallet"
                 />
               </LineChart>
             </ResponsiveContainer>

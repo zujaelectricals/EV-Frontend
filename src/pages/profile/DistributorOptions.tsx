@@ -57,11 +57,11 @@ export function DistributorOptions() {
     },
     {
       id: 'pool',
-      title: 'Pool Money',
-      description: 'Manage your pool money withdrawals',
+      title: 'Reserve Wallet',
+      description: 'Manage your reserve wallet withdrawals',
       icon: Wallet,
       action: () => window.location.href = '/distributor/pool-wallet',
-      actionLabel: 'Manage Pool',
+      actionLabel: 'Manage Reserve',
       value: `₹${(distributorInfo?.poolMoney || 0).toLocaleString()}`,
     },
     {
@@ -87,9 +87,9 @@ export function DistributorOptions() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground mb-2">Distributor Options</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Authorized Partner Options</h2>
         <p className="text-muted-foreground">
-          Manage your distributor account and track your earnings
+          Manage your authorized partner account and track your earnings
         </p>
       </div>
 

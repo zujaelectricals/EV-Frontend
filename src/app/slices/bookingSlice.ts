@@ -31,6 +31,7 @@ export interface Booking {
   referredBy?: string;
   referralBonus?: number;
   tdsDeducted?: number;
+  addedToTeamNetwork?: boolean; // Track if user has been added to distributor's team network
 }
 
 interface BookingState {

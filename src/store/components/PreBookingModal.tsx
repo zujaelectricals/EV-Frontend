@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, AlertCircle, CheckCircle, Info, Calendar, Wallet, Users } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, Info, Calendar, Wallet, Users, Shield, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import { updatePreBooking } from '@/app/slices/authSlice';
 import { addPayout } from '@/app/slices/payoutSlice';
 import { useAddReferralNodeMutation } from '@/app/api/binaryApi';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 import { Scooter } from '../ScooterCard';
 import { PaymentGateway } from './PaymentGateway';
 
@@ -58,7 +59,13 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
   const redemptionPoints = preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT ? DISTRIBUTOR_ELIGIBILITY_AMOUNT : 0;
   // Skip distributor eligibility check if user is already a distributor
   const isAlreadyDistributor = user?.isDistributor && user?.distributorInfo?.isVerified;
-  const isDistributorEligible = !isAlreadyDistributor && preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT;
+  // Check eligibility based on:
+  // 1. Current pre-booking amount >= 5000, OR
+  // 2. Existing total paid amount (from previous pre-booking/payments) >= 5000
+  const existingTotalPaid = user?.preBookingInfo?.totalPaid || 0;
+  const isEligibleByCurrentAmount = preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT;
+  const isEligibleByAccumulatedAmount = existingTotalPaid >= DISTRIBUTOR_ELIGIBILITY_AMOUNT;
+  const isDistributorEligible = !isAlreadyDistributor && (isEligibleByCurrentAmount || isEligibleByAccumulatedAmount);
 
   const paymentDueDate = new Date();
   paymentDueDate.setDate(paymentDueDate.getDate() + PAYMENT_DUE_DAYS);
@@ -71,6 +78,25 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
 
     if (!user) {
       toast.error('Please login to pre-book');
+      return;
+    }
+
+    // Check KYC verification status
+    const kycStatus = user.kycStatus || 'not_submitted';
+    if (kycStatus !== 'verified') {
+      if (kycStatus === 'not_submitted') {
+        toast.error('KYC verification required. Please complete your KYC verification to pre-book vehicles.', {
+          duration: 5000,
+        });
+      } else if (kycStatus === 'pending') {
+        toast.error('Your KYC verification is pending. Please wait for approval before pre-booking.', {
+          duration: 5000,
+        });
+      } else if (kycStatus === 'rejected') {
+        toast.error('Your KYC verification was rejected. Please resubmit your documents to pre-book vehicles.', {
+          duration: 5000,
+        });
+      }
       return;
     }
 
@@ -98,60 +124,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
         netAmount: netBonus,
         requestedAt: new Date().toISOString(),
       }));
-
-      // Add user to distributor's binary tree if referral code belongs to a distributor
-      if (user && preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT) {
-        try {
-          // Find distributor ID by referral code - check both current auth and multiple accounts
-          let distributorId: string | null = null;
-          
-          // First check current auth data
-          const authDataStr = localStorage.getItem('ev_nexus_auth_data');
-          if (authDataStr) {
-            try {
-              const authData = JSON.parse(authDataStr);
-              if (authData.user?.distributorInfo?.referralCode === referralCodeInput.trim() &&
-                  authData.user?.distributorInfo?.isDistributor === true &&
-                  authData.user?.distributorInfo?.isVerified === true) {
-                distributorId = authData.user.id;
-              }
-            } catch (e) {
-              console.error('Error parsing auth data:', e);
-            }
-          }
-          
-          // If not found in current auth, check multiple accounts
-          if (!distributorId) {
-            const accountsKey = 'ev_nexus_multiple_accounts';
-            const stored = localStorage.getItem(accountsKey);
-            if (stored) {
-              const accounts = JSON.parse(stored);
-              const distributor = accounts.find((acc: any) => 
-                acc.user?.distributorInfo?.referralCode === referralCodeInput.trim() &&
-                acc.user?.distributorInfo?.isDistributor === true &&
-                acc.user?.distributorInfo?.isVerified === true
-              );
-              
-              if (distributor?.user?.id) {
-                distributorId = distributor.user.id;
-              }
-            }
-          }
-          
-          if (distributorId) {
-            await addReferralNode({
-              distributorId: distributorId,
-              userId: user.id,
-              userName: user.name,
-              pv: preBookingAmount,
-              referralCode: referralCodeInput.trim(),
-            }).unwrap();
-          }
-        } catch (error) {
-          console.error('Error adding user to binary tree:', error);
-          // Don't fail the booking if this fails
-        }
-      }
     }
 
     // Calculate EMI details if selected
@@ -171,7 +143,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
     }
 
     // Create booking
-    const booking = {
+    let booking = {
       id: `booking-${Date.now()}`,
       vehicleId: scooter.id,
       vehicleName: scooter.name,
@@ -191,7 +163,66 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
       referredBy: referralCodeInput || undefined,
       referralBonus: referralBonus > 0 ? referralBonus : undefined,
       tdsDeducted: referralBonus > 0 ? tdsDeducted : undefined,
+      addedToTeamNetwork: false, // Will be set to true when user is added to team network
     };
+
+    // Add user to distributor's binary tree if referral code belongs to a distributor
+    // Only add if pre-booking amount is >= 5000, otherwise wait for top-up to reach 5000
+    if (user && preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT && referralCodeInput && referralCodeInput.trim()) {
+      try {
+        // Find distributor ID by referral code - check both current auth and multiple accounts
+        let distributorId: string | null = null;
+        
+        // First check current auth data
+        const authDataStr = localStorage.getItem('ev_nexus_auth_data');
+        if (authDataStr) {
+          try {
+            const authData = JSON.parse(authDataStr);
+            if (authData.user?.distributorInfo?.referralCode === referralCodeInput.trim() &&
+                authData.user?.distributorInfo?.isDistributor === true &&
+                authData.user?.distributorInfo?.isVerified === true) {
+              distributorId = authData.user.id;
+            }
+          } catch (e) {
+            console.error('Error parsing auth data:', e);
+          }
+        }
+        
+        // If not found in current auth, check multiple accounts
+        if (!distributorId) {
+          const accountsKey = 'ev_nexus_multiple_accounts';
+          const stored = localStorage.getItem(accountsKey);
+          if (stored) {
+            const accounts = JSON.parse(stored);
+            const distributor = accounts.find((acc: any) => 
+              acc.user?.distributorInfo?.referralCode === referralCodeInput.trim() &&
+              acc.user?.distributorInfo?.isDistributor === true &&
+              acc.user?.distributorInfo?.isVerified === true
+            );
+            
+            if (distributor?.user?.id) {
+              distributorId = distributor.user.id;
+            }
+          }
+        }
+        
+        if (distributorId) {
+          await addReferralNode({
+            distributorId: distributorId,
+            userId: user.id,
+            userName: user.name,
+            pv: preBookingAmount,
+            referralCode: referralCodeInput.trim(),
+          }).unwrap();
+          
+          // Mark that user has been added to team network
+          booking.addedToTeamNetwork = true;
+        }
+      } catch (error) {
+        console.error('Error adding user to binary tree:', error);
+        // Don't fail the booking if this fails
+      }
+    }
 
     dispatch(addBooking(booking));
 
@@ -232,6 +263,37 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
           </DialogHeader>
 
         <div className="space-y-6">
+          {/* KYC Verification Alert */}
+          {user && (user.kycStatus !== 'verified') && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg"
+            >
+              <div className="flex items-start gap-3">
+                <Lock className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground mb-1">
+                    KYC Verification Required
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {user.kycStatus === 'not_submitted' && 'Please complete your KYC verification to pre-book vehicles.'}
+                    {user.kycStatus === 'pending' && 'Your KYC verification is under review. You will be able to pre-book once it\'s approved.'}
+                    {user.kycStatus === 'rejected' && 'Your KYC verification was rejected. Please resubmit your documents.'}
+                  </p>
+                  <Link to="/profile?tab=kyc">
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                      <Shield className="w-4 h-4 mr-2" />
+                      {user.kycStatus === 'not_submitted' && 'Complete KYC Verification'}
+                      {user.kycStatus === 'pending' && 'View KYC Status'}
+                      {user.kycStatus === 'rejected' && 'Resubmit KYC Documents'}
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Info Alert */}
           <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
             <div className="flex items-start gap-3">
@@ -337,43 +399,65 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
               transition={{ duration: 0.3 }}
               className="p-5 bg-success/10 border-2 border-success/30 rounded-xl space-y-4"
             >
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">Join Distribution Program</h3>
-                <Badge className="bg-success text-success-foreground">Eligible</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                With a booking of ₹{DISTRIBUTOR_ELIGIBILITY_AMOUNT.toLocaleString()} or more, you can join our distribution program and earn commissions!
-              </p>
-              
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
-                  <span>Earn commissions on referrals</span>
+              {!joinDistributorProgram ? (
+                // Show simple opt-in option when eligible but not opted in
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="joinDistributor"
+                    checked={joinDistributorProgram}
+                    onCheckedChange={(checked) => setJoinDistributorProgram(checked as boolean)}
+                  />
+                  <Label
+                    htmlFor="joinDistributor"
+                    className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                  >
+                    <Users className="w-4 h-4 text-success" />
+                    Yes, I want to join the distribution program
+                  </Label>
+                  <Badge className="bg-success text-success-foreground ml-auto">Eligible</Badge>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
-                  <span>Access to exclusive distributor portal</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
-                  <span>Priority support and training</span>
-                </div>
-              </div>
+              ) : (
+                // Show full eligibility form when user opts in
+                <>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-foreground">Join Distribution Program</h3>
+                    <Badge className="bg-success text-success-foreground">Eligible</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    With a booking of ₹{DISTRIBUTOR_ELIGIBILITY_AMOUNT.toLocaleString()} or more, you can join our distribution program and earn commissions!
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
+                      <span>Earn commissions on referrals</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
+                      <span>Access to exclusive distributor portal</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
+                      <span>Priority support and training</span>
+                    </div>
+                  </div>
 
-              <div className="flex items-center space-x-2 pt-2 border-t border-success/20">
-                <Checkbox
-                  id="joinDistributor"
-                  checked={joinDistributorProgram}
-                  onCheckedChange={(checked) => setJoinDistributorProgram(checked as boolean)}
-                />
-                <Label
-                  htmlFor="joinDistributor"
-                  className="text-sm font-medium cursor-pointer flex items-center gap-2"
-                >
-                  <Users className="w-4 h-4 text-success" />
-                  Yes, I want to join the distribution program
-                </Label>
-              </div>
+                  <div className="flex items-center space-x-2 pt-2 border-t border-success/20">
+                    <Checkbox
+                      id="joinDistributor"
+                      checked={joinDistributorProgram}
+                      onCheckedChange={(checked) => setJoinDistributorProgram(checked as boolean)}
+                    />
+                    <Label
+                      htmlFor="joinDistributor"
+                      className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                    >
+                      <Users className="w-4 h-4 text-success" />
+                      Yes, I want to join the distribution program
+                    </Label>
+                  </div>
+                </>
+              )}
             </motion.div>
           )}
 
@@ -559,8 +643,19 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
             <Button variant="outline" onClick={onClose} className="flex-1">
               Cancel
             </Button>
-            <Button onClick={handlePreBook} className="flex-1" disabled={preBookingAmount < MIN_PRE_BOOKING}>
-              Pre-Book Now
+            <Button 
+              onClick={handlePreBook} 
+              className="flex-1" 
+              disabled={preBookingAmount < MIN_PRE_BOOKING || (user && user.kycStatus !== 'verified')}
+            >
+              {user && user.kycStatus !== 'verified' ? (
+                <>
+                  <Lock className="w-4 h-4 mr-2" />
+                  KYC Required
+                </>
+              ) : (
+                'Pre-Book Now'
+              )}
             </Button>
           </div>
         </div>

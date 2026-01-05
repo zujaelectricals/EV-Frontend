@@ -28,11 +28,15 @@ import { updatePreBooking } from "@/app/slices/authSlice";
 import { Link } from "react-router-dom";
 import { PaymentGateway } from "@/store/components/PaymentGateway";
 import { toast } from "sonner";
+import { useAddReferralNodeMutation } from "@/app/api/binaryApi";
+
+const DISTRIBUTOR_ELIGIBILITY_AMOUNT = 5000;
 
 export function MyOrders() {
   const dispatch = useAppDispatch();
   const { bookings } = useAppSelector((state) => state.booking);
   const { user } = useAppSelector((state) => state.auth);
+  const [addReferralNode] = useAddReferralNodeMutation();
   const [showPaymentGateway, setShowPaymentGateway] = useState(false);
   const [showPaymentAmountDialog, setShowPaymentAmountDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null);
@@ -94,16 +98,103 @@ export function MyOrders() {
     setShowPaymentGateway(true);
   };
 
-  const handleAdditionalPaymentSuccess = () => {
+  const handleAdditionalPaymentSuccess = async () => {
     if (!selectedBooking) return;
 
     const booking = bookings.find((b) => b.id === selectedBooking);
     if (!booking) return;
 
-    const newTotalPaid =
-      (booking.totalPaid || booking.preBookingAmount) + paymentAmount;
+    const previousTotalPaid = booking.totalPaid || booking.preBookingAmount;
+    const newTotalPaid = previousTotalPaid + paymentAmount;
     const newRemainingAmount = Math.max(0, booking.totalAmount - newTotalPaid);
     const newPaymentStatus = newRemainingAmount === 0 ? "completed" : "partial";
+
+    // Check if user should be added to distributor's team network
+    // Conditions:
+    // 1. User has a referral code in the booking
+    // 2. Previous total paid was < 5000
+    // 3. New total paid >= 5000
+    // 4. User hasn't been added to team network yet
+    const shouldAddToTeamNetwork =
+      booking.referredBy &&
+      booking.referredBy.trim() &&
+      previousTotalPaid < DISTRIBUTOR_ELIGIBILITY_AMOUNT &&
+      newTotalPaid >= DISTRIBUTOR_ELIGIBILITY_AMOUNT &&
+      !booking.addedToTeamNetwork;
+
+    let addedToTeamNetwork = booking.addedToTeamNetwork || false;
+
+    if (shouldAddToTeamNetwork && user) {
+      try {
+        // Find distributor ID by referral code - check both current auth and multiple accounts
+        let distributorId: string | null = null;
+
+        // First check current auth data
+        const authDataStr = localStorage.getItem("ev_nexus_auth_data");
+        if (authDataStr) {
+          try {
+            const authData = JSON.parse(authDataStr);
+            if (
+              authData.user?.distributorInfo?.referralCode ===
+                booking.referredBy.trim() &&
+              authData.user?.distributorInfo?.isDistributor === true &&
+              authData.user?.distributorInfo?.isVerified === true
+            ) {
+              distributorId = authData.user.id;
+            }
+          } catch (e) {
+            console.error("Error parsing auth data:", e);
+          }
+        }
+
+        // If not found in current auth, check multiple accounts
+        if (!distributorId) {
+          const accountsKey = "ev_nexus_multiple_accounts";
+          const stored = localStorage.getItem(accountsKey);
+          if (stored) {
+            const accounts: Array<{
+              user?: {
+                id?: string;
+                distributorInfo?: {
+                  referralCode?: string;
+                  isDistributor?: boolean;
+                  isVerified?: boolean;
+                };
+              };
+            }> = JSON.parse(stored);
+            const distributor = accounts.find(
+              (acc) =>
+                acc.user?.distributorInfo?.referralCode ===
+                  booking.referredBy?.trim() &&
+                acc.user?.distributorInfo?.isDistributor === true &&
+                acc.user?.distributorInfo?.isVerified === true
+            );
+
+            if (distributor?.user?.id) {
+              distributorId = distributor.user.id;
+            }
+          }
+        }
+
+        if (distributorId) {
+          await addReferralNode({
+            distributorId: distributorId,
+            userId: user.id,
+            userName: user.name,
+            pv: newTotalPaid,
+            referralCode: booking.referredBy.trim(),
+          }).unwrap();
+
+          addedToTeamNetwork = true;
+          toast.success(
+            "You have been added to the distributor's team network!"
+          );
+        }
+      } catch (error) {
+        console.error("Error adding user to binary tree:", error);
+        // Don't fail the payment if this fails
+      }
+    }
 
     // Update booking
     dispatch(
@@ -114,6 +205,7 @@ export function MyOrders() {
           remainingAmount: newRemainingAmount,
           paymentStatus: newPaymentStatus,
           status: newRemainingAmount === 0 ? "confirmed" : booking.status,
+          addedToTeamNetwork: addedToTeamNetwork,
         },
       })
     );
@@ -126,7 +218,7 @@ export function MyOrders() {
           totalPaid: newTotalPaid,
           remainingAmount: newRemainingAmount,
           paymentStatus: newPaymentStatus,
-          isDistributorEligible: newTotalPaid >= 5000, // Update eligibility based on total paid
+          isDistributorEligible: newTotalPaid >= DISTRIBUTOR_ELIGIBILITY_AMOUNT, // Update eligibility based on total paid
         })
       );
     }

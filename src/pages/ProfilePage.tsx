@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   Calendar,
   Shield,
+  FileCheck,
 } from "lucide-react";
 import {
   Card,
@@ -38,6 +39,7 @@ import { Wishlist } from "./profile/Wishlist";
 import { PaymentMethods } from "./profile/PaymentMethods";
 import { DistributorOptions } from "./profile/DistributorOptions";
 import { Addresses } from "./profile/Addresses";
+import { KYCVerification } from "./profile/KYCVerification";
 
 export function ProfilePage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -69,12 +71,13 @@ export function ProfilePage() {
       icon: Heart,
       count: wishlistItems.length,
     },
+    { id: "kyc", label: "KYC Verification", icon: Shield },
     { id: "payments", label: "Payment Methods", icon: CreditCard },
     { id: "addresses", label: "Addresses", icon: MapPin },
     { id: "redemption", label: "Redemption Points", icon: Gift },
     { id: "settings", label: "Account Settings", icon: Settings },
     ...(isDistributor
-      ? [{ id: "distributor", label: "Distributor", icon: Award }]
+      ? [{ id: "distributor", label: "Authorized Partner", icon: Award }]
       : []),
   ];
 
@@ -85,9 +88,40 @@ export function ProfilePage() {
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                My Account
-              </h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-foreground">
+                  My Account
+                </h1>
+                {user?.kycStatus && user.kycStatus !== 'not_submitted' ? (
+                  <Badge
+                    variant={
+                      user.kycStatus === 'verified'
+                        ? 'default'
+                        : user.kycStatus === 'pending'
+                        ? 'secondary'
+                        : 'destructive'
+                    }
+                    className={
+                      user.kycStatus === 'verified'
+                        ? 'bg-green-500 hover:bg-green-600'
+                        : ''
+                    }
+                  >
+                    {user.kycStatus === 'verified'
+                      ? 'KYC Verified'
+                      : user.kycStatus === 'pending'
+                      ? 'KYC Pending'
+                      : 'KYC Rejected'}
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="destructive"
+                    className="bg-red-500 hover:bg-red-600 text-white"
+                  >
+                    Not Verified
+                  </Badge>
+                )}
+              </div>
               <p className="text-muted-foreground">
                 Manage your orders, profile, and preferences
               </p>
@@ -127,6 +161,7 @@ export function ProfilePage() {
         <div className="w-full">
           {activeTab === "orders" && <MyOrders />}
           {activeTab === "wishlist" && <Wishlist />}
+          {activeTab === "kyc" && <KYCVerification />}
           {activeTab === "payments" && <PaymentMethods />}
           {activeTab === "addresses" && <Addresses />}
           {activeTab === "redemption" && (

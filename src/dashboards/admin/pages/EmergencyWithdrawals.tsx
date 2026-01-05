@@ -228,7 +228,7 @@ export const EmergencyWithdrawals = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Emergency Withdrawals</h1>
-        <p className="text-muted-foreground mt-1">Fast-track approval for urgent pool money withdrawal requests</p>
+        <p className="text-muted-foreground mt-1">Fast-track approval for urgent reserve wallet withdrawal requests</p>
       </div>
 
       {/* Summary Cards */}
@@ -319,7 +319,7 @@ export const EmergencyWithdrawals = () => {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <CardTitle>Emergency Withdrawal Requests</CardTitle>
-              <CardDescription>Priority queue for emergency pool money withdrawals</CardDescription>
+              <CardDescription>Priority queue for emergency reserve wallet withdrawals</CardDescription>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative">

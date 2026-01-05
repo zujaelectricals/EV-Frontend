@@ -166,10 +166,10 @@ export function PoolMoneyWithdrawal() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wallet className="w-5 h-5" />
-            Pool Money
+            Reserve Wallet
           </CardTitle>
           <CardDescription>
-            Your pool money is 20% of your binary commission earnings, saved for future use.
+            Your reserve wallet is 20% of your team commission earnings, saved for future use.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -177,7 +177,7 @@ export function PoolMoneyWithdrawal() {
           <div className="p-6 bg-primary/10 border border-primary/30 rounded-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Available Pool Money</p>
+                <p className="text-sm text-muted-foreground mb-1">Available Reserve Wallet</p>
                 <p className="text-4xl font-bold text-primary">₹{poolMoney.toLocaleString()}</p>
               </div>
               <Wallet className="w-12 h-12 text-primary/50" />
@@ -188,7 +188,7 @@ export function PoolMoneyWithdrawal() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Pool money can be withdrawn for: Future vehicle purchases, Emergencies, PF contributions, 
+              Reserve wallet can be withdrawn for: Future vehicle purchases, Emergencies, PF contributions, 
               Resignation, or other valid reasons. All withdrawals require admin approval.
             </AlertDescription>
           </Alert>

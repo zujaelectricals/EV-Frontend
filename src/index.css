@@ -119,15 +119,45 @@
   }
 
   .glass-card {
-    background: linear-gradient(135deg, hsl(0 0% 100% / 0.95), hsl(210 40% 98% / 0.9));
-    backdrop-filter: blur(20px);
-    border: 1px solid hsl(214 32% 91% / 0.8);
-    box-shadow: 0 1px 3px hsl(222 47% 11% / 0.1), 0 1px 2px hsl(222 47% 11% / 0.06);
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.7), hsl(210 40% 98% / 0.6));
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid hsl(214 32% 91% / 0.5);
+    box-shadow: 
+      0 8px 32px 0 hsl(222 47% 11% / 0.08),
+      0 0 0 1px hsl(0 0% 100% / 0.3) inset,
+      0 1px 0 0 hsl(0 0% 100% / 0.4) inset,
+      0 -1px 0 0 hsl(0 0% 100% / 0.1) inset;
+    position: relative;
+    isolation: isolate;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      hsl(0 0% 100% / 0.6) 50%, 
+      transparent 100%);
+    pointer-events: none;
+    z-index: 1;
   }
 
   .glass-card:hover {
-    border-color: hsl(221 83% 53% / 0.3);
-    box-shadow: 0 4px 6px -1px hsl(222 47% 11% / 0.1), 0 2px 4px -1px hsl(222 47% 11% / 0.06);
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.8), hsl(210 40% 98% / 0.7));
+    border-color: hsl(221 83% 53% / 0.4);
+    box-shadow: 
+      0 12px 40px 0 hsl(222 47% 11% / 0.12),
+      0 0 0 1px hsl(0 0% 100% / 0.4) inset,
+      0 1px 0 0 hsl(0 0% 100% / 0.5) inset,
+      0 -1px 0 0 hsl(0 0% 100% / 0.15) inset,
+      0 0 20px hsl(221 83% 53% / 0.1);
+    transform: translateY(-2px);
   }
 
   /* Premium effects */

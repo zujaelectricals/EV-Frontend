@@ -58,7 +58,7 @@ export const Earnings = () => {
       tds: 0,
       pool: 0,
       net: activationBonus,
-      description: '₹2,000 one-time bonus when Binary Commission activates',
+      description: '₹2,000 one-time bonus when Team Commission activates',
     }] : []),
     {
       type: 'Team Commission',
@@ -67,7 +67,7 @@ export const Earnings = () => {
       tds: binaryTDS,
       pool: binaryPool,
       net: binaryNet,
-      description: `₹2,000 per team match (after TDS${binaryPool > 0 ? ' and pool money' : ''}) - Max 10 pairs`,
+      description: `₹2,000 per team match (after TDS${binaryPool > 0 ? ' and reserve wallet' : ''}) - Max 10 pairs`,
     },
   ];
 
@@ -93,7 +93,7 @@ export const Earnings = () => {
           variant="warning"
         />
         <StatsCard
-          title="Pool Money"
+          title="Reserve Wallet"
           value={`₹${totalPool.toLocaleString()}`}
           icon={Wallet}
           variant="info"
@@ -136,7 +136,7 @@ export const Earnings = () => {
                     </div>
                     {earning.pool > 0 && (
                       <div className="flex justify-between text-info">
-                        <span className="text-sm">Pool Money (20%):</span>
+                        <span className="text-sm">Reserve Wallet (20%):</span>
                         <span>₹{earning.pool.toLocaleString()}</span>
                       </div>
                     )}
@@ -169,7 +169,7 @@ export const Earnings = () => {
                     <TableHead>Count</TableHead>
                     <TableHead>Gross Amount</TableHead>
                     <TableHead>TDS</TableHead>
-                    <TableHead>Pool Money</TableHead>
+                    <TableHead>Reserve Wallet</TableHead>
                     <TableHead>Net Amount</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -231,7 +231,7 @@ export const Earnings = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Binary Commission</CardTitle>
+            <CardTitle className="text-lg">Team Commission</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-sm text-muted-foreground">
@@ -240,7 +240,7 @@ export const Earnings = () => {
               <li>• ₹2,000 per team match commission (after account enablement)</li>
               <li>• Maximum 10 team matches (₹20,000 total)</li>
               <li>• 10% TDS deduction</li>
-              <li>• ₹4,000 added to Pool Money when reaching limit</li>
+              <li>• ₹4,000 added to Reserve Wallet when reaching limit</li>
               <li>• Pairs beyond 10 are tracked but don't generate commission</li>
             </ul>
             {binaryStats?.pairsBeyondLimit && binaryStats.pairsBeyondLimit > 0 && (

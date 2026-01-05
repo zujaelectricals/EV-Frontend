@@ -343,18 +343,18 @@ export function DistributorApplication() {
           <CardHeader className="pb-6">
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-success" />
-              Distributor Status: Active
+              Authorized Partner Status: Active
             </CardTitle>
             <CardDescription>
-              Your distributor account is active. Visit your profile to access distributor options and manage your distributor account.
+              Your authorized partner account is active. Visit your profile to access authorized partner options and manage your authorized partner account.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex gap-4 mt-auto pb-6">
             <Button onClick={() => window.location.href = '/profile?tab=distributor'} className="w-1/2">
-              Go to Distributor Profile
+              Go to Authorized Partner Profile
             </Button>
             <Button onClick={() => window.location.href = '/distributor'} variant="outline" className="w-1/2">
-              Go to Distributor Dashboard
+              Go to Authorized Partner Dashboard
             </Button>
           </CardContent>
         </Card>

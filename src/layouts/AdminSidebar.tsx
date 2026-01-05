@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -20,22 +20,23 @@ import {
   Ticket,
   FileText,
   Key,
-} from 'lucide-react';
-import { useAppSelector } from '@/app/hooks';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { useAppSelector } from "@/app/hooks";
+import { cn } from "@/lib/utils";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { useGetPendingKYCQuery } from "@/app/api/kycApi";
 
 interface SubMenuItem {
   label: string;
   path: string;
   badge?: number;
-  badgeVariant?: 'default' | 'destructive' | 'secondary' | 'outline';
+  badgeVariant?: "default" | "destructive" | "secondary" | "outline";
 }
 
 interface MenuSection {
@@ -45,204 +46,261 @@ interface MenuSection {
   path?: string; // Optional path for parent menu item
   children: SubMenuItem[];
   badge?: number;
-  badgeVariant?: 'default' | 'destructive' | 'secondary' | 'outline';
+  badgeVariant?: "default" | "destructive" | "secondary" | "outline";
 }
 
 const adminMenuSections: MenuSection[] = [
   {
-    label: 'Platform Dashboard',
+    label: "Platform Dashboard",
     icon: LayoutDashboard,
-    value: 'dashboard',
+    value: "dashboard",
     children: [
-      { label: 'Overview', path: '/admin' },
-      { label: 'Live Metrics', path: '/admin/dashboard/metrics' },
-      { label: 'Alerts Center', path: '/admin/dashboard/alerts' },
+      { label: "Overview", path: "/admin" },
+      { label: "Live Metrics", path: "/admin/dashboard/metrics" },
+      { label: "Alerts Center", path: "/admin/dashboard/alerts" },
     ],
   },
+  // {
+  //   label: 'Growth Analytics',
+  //   icon: TrendingUp,
+  //   value: 'growth',
+  //   children: [
+  //     { label: 'EV Sales Funnel', path: '/admin/growth/sales-funnel' },
+  //     { label: 'Active Buyer Growth', path: '/admin/growth/buyer-growth' },
+  //     { label: 'Distributor Expansion Graph', path: '/admin/growth/distributor-expansion' },
+  //     { label: 'Network Saturation Map', path: '/admin/growth/network-saturation' },
+  //     { label: 'Revenue Forecast', path: '/admin/growth/revenue-forecast' },
+  //   ],
+  // },
   {
-    label: 'Growth Analytics',
-    icon: TrendingUp,
-    value: 'growth',
-    children: [
-      { label: 'EV Sales Funnel', path: '/admin/growth/sales-funnel' },
-      { label: 'Active Buyer Growth', path: '/admin/growth/buyer-growth' },
-      { label: 'Distributor Expansion Graph', path: '/admin/growth/distributor-expansion' },
-      { label: 'Network Saturation Map', path: '/admin/growth/network-saturation' },
-      { label: 'Revenue Forecast', path: '/admin/growth/revenue-forecast' },
-    ],
-  },
-  {
-    label: 'Sales Monitoring',
+    label: "Sales Monitoring",
     icon: BarChart3,
-    value: 'sales',
+    value: "sales",
     children: [
-      { label: 'Pre-Bookings', path: '/admin/sales/pre-bookings' },
-      { label: 'EMI Orders', path: '/admin/sales/emi-orders' },
-      { label: 'Cancelled Orders', path: '/admin/sales/cancelled' },
-      { label: 'Drop-off Users', path: '/admin/sales/drop-off' },
-      { label: 'Partner Redemptions', path: '/admin/sales/redemptions' },
+      { label: "Pre-Bookings", path: "/admin/sales/pre-bookings" },
+      { label: "EMI Orders", path: "/admin/sales/emi-orders" },
+      { label: "Cancelled Orders", path: "/admin/sales/cancelled" },
+      { label: "Drop-off Users", path: "/admin/sales/drop-off" },
+      { label: "Partner Redemptions", path: "/admin/sales/redemptions" },
     ],
   },
+  // {
+  //   label: "Distributor Intelligence",
+  //   icon: Brain,
+  //   value: "distributor-intel",
+  //   children: [
+  //     {
+  //       label: "Binary Tree Viewer",
+  //       path: "/admin/distributor-intel/binary-tree",
+  //     },
+  //     {
+  //       label: "Weak-Leg Detection",
+  //       path: "/admin/distributor-intel/weak-leg",
+  //     },
+  //     {
+  //       label: "Pair Matching History",
+  //       path: "/admin/distributor-intel/pair-history",
+  //     },
+  //     {
+  //       label: "Ceiling Achievements",
+  //       path: "/admin/distributor-intel/ceiling",
+  //     },
+  //     {
+  //       label: "Top Performers",
+  //       path: "/admin/distributor-intel/top-performers",
+  //     },
+  //     {
+  //       label: "Dormant Distributors",
+  //       path: "/admin/distributor-intel/dormant",
+  //     },
+  //   ],
+  // },
   {
-    label: 'Distributor Intelligence',
-    icon: Brain,
-    value: 'distributor-intel',
-    children: [
-      { label: 'Binary Tree Viewer', path: '/admin/distributor-intel/binary-tree' },
-      { label: 'Weak-Leg Detection', path: '/admin/distributor-intel/weak-leg' },
-      { label: 'Pair Matching History', path: '/admin/distributor-intel/pair-history' },
-      { label: 'Ceiling Achievements', path: '/admin/distributor-intel/ceiling' },
-      { label: 'Top Performers', path: '/admin/distributor-intel/top-performers' },
-      { label: 'Dormant Distributors', path: '/admin/distributor-intel/dormant' },
-    ],
-  },
-  {
-    label: 'Staff Performance',
+    label: "Staff Performance",
     icon: Award,
-    value: 'staff-performance',
+    value: "staff-performance",
     children: [
-      { label: 'Staff Targets', path: '/admin/staff-performance/targets' },
-      { label: 'Incentives Earned', path: '/admin/staff-performance/incentives' },
-      { label: 'Approval Delay Report', path: '/admin/staff-performance/approval-delay' },
-      { label: 'Lead Conversion Rate', path: '/admin/staff-performance/conversion' },
+      { label: "Staff Targets", path: "/admin/staff-performance/targets" },
+      {
+        label: "Incentives Earned",
+        path: "/admin/staff-performance/incentives",
+      },
+      //{ label: 'Approval Delay Report', path: '/admin/staff-performance/approval-delay' },
+      {
+        label: "Lead Conversion Rate",
+        path: "/admin/staff-performance/conversion",
+      },
     ],
   },
   {
-    label: 'Binary Engine Control',
+    label: "Binary Engine Control",
     icon: Settings,
-    value: 'binary-engine',
+    value: "binary-engine",
     children: [
-      { label: 'Pair Rules', path: '/admin/binary-engine/pair-rules' },
-      { label: 'Ceiling Settings', path: '/admin/binary-engine/ceiling' },
-      { label: 'Carry Forward Logic', path: '/admin/binary-engine/carry-forward' },
-      { label: 'Monthly Reset Engine', path: '/admin/binary-engine/reset' },
+      { label: "Pair Rules", path: "/admin/binary-engine/pair-rules" },
+      { label: "Ceiling Settings", path: "/admin/binary-engine/ceiling" },
+      {
+        label: "Carry Forward Logic",
+        path: "/admin/binary-engine/carry-forward",
+      },
+      { label: "Monthly Reset Engine", path: "/admin/binary-engine/reset" },
     ],
   },
   {
-    label: 'EV Inventory',
+    label: "EV Inventory",
     icon: Boxes,
-    value: 'inventory',
+    value: "inventory",
     children: [
-      { label: 'Models', path: '/admin/inventory/models' },
-      { label: 'Stock Level', path: '/admin/inventory/stock' },
-      { label: 'Delivery Pipeline', path: '/admin/inventory/delivery' },
-      { label: 'Pending Allocations', path: '/admin/inventory/allocations' },
+      { label: "Models", path: "/admin/inventory/models" },
+      { label: "Stock Level", path: "/admin/inventory/stock" },
+      { label: "Delivery Pipeline", path: "/admin/inventory/delivery" },
+      //{ label: 'Pending Allocations', path: '/admin/inventory/allocations' },
     ],
   },
+  // {
+  //   label: "Partner Shops",
+  //   icon: Store,
+  //   value: "partners",
+  //   children: [
+  //     { label: "Shop List", path: "/admin/partners/shops" },
+  //     { label: "Product Mapping", path: "/admin/partners/products" },
+  //     { label: "Redemption Load", path: "/admin/partners/redemption" },
+  //     { label: "Commission Ratio", path: "/admin/partners/commission" },
+  //   ],
+  // },
   {
-    label: 'Partner Shops',
-    icon: Store,
-    value: 'partners',
-    children: [
-      { label: 'Shop List', path: '/admin/partners/shops' },
-      { label: 'Product Mapping', path: '/admin/partners/products' },
-      { label: 'Redemption Load', path: '/admin/partners/redemption' },
-      { label: 'Commission Ratio', path: '/admin/partners/commission' },
-    ],
-  },
-  {
-    label: 'Pool Wallet Controller',
+    label: "Reserve Wallet Controller",
     icon: Landmark,
-    value: 'pool-wallet',
+    value: "pool-wallet",
     children: [
-      { label: 'Withdrawal History', path: '/admin/pool-wallet' },
-      { label: 'Active Pool Balances', path: '/admin/pool-wallet/balances' },
-      { label: 'Emergency Withdrawals', path: '/admin/pool-wallet/withdrawals' },
-      { label: 'Nominee Transfers', path: '/admin/pool-wallet/transfers' },
-      { label: 'Pool Utilization', path: '/admin/pool-wallet/utilization' },
+      { label: "Withdrawal History", path: "/admin/pool-wallet" },
+      { label: "Active Reserve Balances", path: "/admin/pool-wallet/balances" },
+      {
+        label: "Emergency Withdrawals",
+        path: "/admin/pool-wallet/withdrawals",
+      },
+      { label: "Nominee Transfers", path: "/admin/pool-wallet/transfers" },
+      { label: "Reserve Utilization", path: "/admin/pool-wallet/utilization" },
     ],
   },
+  // {
+  //   label: "Payout Engine",
+  //   icon: DollarSign,
+  //   value: "payout-engine",
+  //   badge: 12, // Mock pending payouts count
+  //   badgeVariant: "destructive",
+  //   children: [
+  //     {
+  //       label: "Pending Payouts",
+  //       path: "/admin/payout-engine/pending",
+  //       badge: 12,
+  //       badgeVariant: "destructive",
+  //     },
+  //     { label: "Approved Payouts", path: "/admin/payout-engine/approved" },
+  //     { label: "Rejected Payouts", path: "/admin/payout-engine/rejected" },
+  //     {
+  //       label: "Bank Settlement Logs",
+  //       path: "/admin/payout-engine/settlement",
+  //     },
+  //   ],
+  // },
+  // {
+  //   label: 'Pin Management',
+  //   icon: Key,
+  //   value: 'pin-management',
+  //   children: [
+  //     { label: 'All Pins', path: '/admin/pin-management/all' },
+  //     { label: 'User Pins', path: '/admin/pin-management/user' },
+  //     { label: 'Admin Pins', path: '/admin/pin-management/admin' },
+  //     { label: 'Used Pins', path: '/admin/pin-management/used' },
+  //     { label: 'Unused Pins', path: '/admin/pin-management/unused' },
+  //   ],
+  // },
   {
-    label: 'Payout Engine',
-    icon: DollarSign,
-    value: 'payout-engine',
-    badge: 12, // Mock pending payouts count
-    badgeVariant: 'destructive',
-    children: [
-      { label: 'Pending Payouts', path: '/admin/payout-engine/pending', badge: 12, badgeVariant: 'destructive' },
-      { label: 'Approved Payouts', path: '/admin/payout-engine/approved' },
-      { label: 'Rejected Payouts', path: '/admin/payout-engine/rejected' },
-      { label: 'Bank Settlement Logs', path: '/admin/payout-engine/settlement' },
-    ],
-  },
-  {
-    label: 'Pin Management',
-    icon: Key,
-    value: 'pin-management',
-    children: [
-      { label: 'All Pins', path: '/admin/pin-management/all' },
-      { label: 'User Pins', path: '/admin/pin-management/user' },
-      { label: 'Admin Pins', path: '/admin/pin-management/admin' },
-      { label: 'Used Pins', path: '/admin/pin-management/used' },
-      { label: 'Unused Pins', path: '/admin/pin-management/unused' },
-    ],
-  },
-  {
-    label: 'User Management',
+    label: "User Management",
     icon: Users,
-    value: 'users',
+    value: "users",
     badge: 8, // Mock pending KYC count
-    badgeVariant: 'destructive',
+    badgeVariant: "destructive",
     children: [
-      { label: 'Active Users', path: '/admin/users/active' },
-      { label: 'Paid Users', path: '/admin/users/paid' },
-      { label: 'Blocked Users', path: '/admin/users/blocked' },
-      { label: 'Email Unverified', path: '/admin/users/email-unverified' },
-      { label: 'Mobile Unverified', path: '/admin/users/mobile-unverified' },
-      { label: 'KYC Pending', path: '/admin/users/kyc-pending', badge: 8, badgeVariant: 'destructive' },
-      { label: 'KYC Rejected', path: '/admin/users/kyc-rejected' },
-      { label: 'Send Notification', path: '/admin/users/notify' },
+      { label: "Active Users", path: "/admin/users/active" },
+      { label: "Paid Users", path: "/admin/users/paid" },
+      { label: "Blocked Users", path: "/admin/users/blocked" },
+      { label: "Email Unverified", path: "/admin/users/email-unverified" },
+      { label: "Mobile Unverified", path: "/admin/users/mobile-unverified" },
+      {
+        label: "KYC Pending",
+        path: "/admin/users/kyc-pending",
+        badge: 8,
+        badgeVariant: "destructive",
+      },
+      { label: "KYC Rejected", path: "/admin/users/kyc-rejected" },
+      { label: "Send Notification", path: "/admin/users/notify" },
     ],
   },
+  // {
+  //   label: "Support Tickets",
+  //   icon: Ticket,
+  //   value: "tickets",
+  //   badge: 5, // Mock pending tickets count
+  //   badgeVariant: "destructive",
+  //   children: [
+  //     {
+  //       label: "Pending Tickets",
+  //       path: "/admin/tickets/pending",
+  //       badge: 5,
+  //       badgeVariant: "destructive",
+  //     },
+  //     { label: "Closed Tickets", path: "/admin/tickets/closed" },
+  //     { label: "Answered Tickets", path: "/admin/tickets/answered" },
+  //     { label: "All Tickets", path: "/admin/tickets/all" },
+  //   ],
+  // },
   {
-    label: 'Support Tickets',
-    icon: Ticket,
-    value: 'tickets',
-    badge: 5, // Mock pending tickets count
-    badgeVariant: 'destructive',
-    children: [
-      { label: 'Pending Tickets', path: '/admin/tickets/pending', badge: 5, badgeVariant: 'destructive' },
-      { label: 'Closed Tickets', path: '/admin/tickets/closed' },
-      { label: 'Answered Tickets', path: '/admin/tickets/answered' },
-      { label: 'All Tickets', path: '/admin/tickets/all' },
-    ],
-  },
-  {
-    label: 'Reports',
+    label: "Reports",
     icon: FileText,
-    value: 'reports',
+    value: "reports",
     children: [
-      { label: 'Transaction History', path: '/admin/reports/transactions' },
-      { label: 'Investment Logs', path: '/admin/reports/investments' },
-      { label: 'BV Logs', path: '/admin/reports/bv' },
-      { label: 'Referral Commission', path: '/admin/reports/referral' },
-      { label: 'Binary Commission', path: '/admin/reports/binary' },
-      { label: 'Login History', path: '/admin/reports/login' },
-      { label: 'Notification History', path: '/admin/reports/notifications' },
+      { label: "Transaction History", path: "/admin/reports/transactions" },
+      { label: "Investment Logs", path: "/admin/reports/investments" },
+      { label: "BV Logs", path: "/admin/reports/bv" },
+      { label: "Referral Commission", path: "/admin/reports/referral" },
+      { label: "Team Commission", path: "/admin/reports/binary" },
+      { label: "Login History", path: "/admin/reports/login" },
+      { label: "Notification History", path: "/admin/reports/notifications" },
     ],
   },
-  {
-    label: 'Risk & Compliance',
-    icon: Shield,
-    value: 'compliance',
-    children: [
-      { label: 'Duplicate PAN Detection', path: '/admin/compliance/duplicate-pan' },
-      { label: 'Bank Abuse Monitor', path: '/admin/compliance/bank-abuse' },
-      { label: 'Referral Farming Alerts', path: '/admin/compliance/referral-farming' },
-      { label: 'Rapid Growth Suspicion', path: '/admin/compliance/rapid-growth' },
-    ],
-  },
-  {
-    label: 'Audit Logs',
-    icon: ScrollText,
-    value: 'audit',
-    children: [
-      { label: 'Wallet Changes', path: '/admin/audit/wallet' },
-      { label: 'Payout Modifications', path: '/admin/audit/payout' },
-      { label: 'Binary Adjustments', path: '/admin/audit/binary' },
-      { label: 'Admin Activity Logs', path: '/admin/audit/activity' },
-    ],
-  },
+  // {
+  //   label: "Risk & Compliance",
+  //   icon: Shield,
+  //   value: "compliance",
+  //   children: [
+  //     {
+  //       label: "Duplicate PAN Detection",
+  //       path: "/admin/compliance/duplicate-pan",
+  //     },
+  //     { label: "Bank Abuse Monitor", path: "/admin/compliance/bank-abuse" },
+  //     {
+  //       label: "Referral Farming Alerts",
+  //       path: "/admin/compliance/referral-farming",
+  //     },
+  //     {
+  //       label: "Rapid Growth Suspicion",
+  //       path: "/admin/compliance/rapid-growth",
+  //     },
+  //   ],
+  // },
+  // {
+  //   label: "Audit Logs",
+  //   icon: ScrollText,
+  //   value: "audit",
+  //   children: [
+  //     { label: "Wallet Changes", path: "/admin/audit/wallet" },
+  //     { label: "Payout Modifications", path: "/admin/audit/payout" },
+  //     { label: "Binary Adjustments", path: "/admin/audit/binary" },
+  //     { label: "Admin Activity Logs", path: "/admin/audit/activity" },
+  //   ],
+  // },
 ];
 
 export const AdminSidebar = () => {
@@ -250,65 +308,119 @@ export const AdminSidebar = () => {
   const { user } = useAppSelector((state) => state.auth);
   const [collapsed, setCollapsed] = useState(false);
 
+  // Fetch pending KYC count
+  const { data: pendingKYCUsers = [] } = useGetPendingKYCQuery();
+  const pendingKYCCount = pendingKYCUsers.length;
+
+  // Create dynamic menu sections with actual KYC pending count
+  const dynamicMenuSections = useMemo(() => {
+    return adminMenuSections.map((section) => {
+      if (section.value === "users") {
+        return {
+          ...section,
+          badge: pendingKYCCount > 0 ? pendingKYCCount : undefined,
+          children: section.children.map((child) => {
+            if (child.path === "/admin/users/kyc-pending") {
+              return {
+                ...child,
+                badge: pendingKYCCount > 0 ? pendingKYCCount : undefined,
+              };
+            }
+            return child;
+          }),
+        };
+      }
+      return section;
+    });
+  }, [pendingKYCCount]);
+
   // Auto-expand sections based on current route
-  const getActiveSection = () => {
+  const getActiveSection = useCallback(() => {
     const path = location.pathname;
-    for (const section of adminMenuSections) {
-      // Check if current path matches parent path or any child path
-      if ((section.path && section.path === path) || section.children.some((child) => path === child.path || path.startsWith(child.path))) {
+    // Find the best matching section
+    // We'll check all sections and find the most specific match
+    let bestMatch: { section: string; specificity: number } | null = null;
+
+    for (const section of dynamicMenuSections) {
+      // Check if current path matches parent path exactly
+      if (section.path && section.path === path) {
         return section.value;
       }
+      // Check children for matches
+      for (const child of section.children) {
+        // Exact match - highest priority
+        if (path === child.path) {
+          return section.value;
+        }
+        // Sub-path match (path starts with child.path + '/')
+        // Special case: don't match '/admin' as a sub-path of '/admin/*' routes
+        if (child.path !== "/admin" && path.startsWith(child.path + "/")) {
+          // Use path length as specificity (longer = more specific)
+          const specificity = child.path.length;
+          if (!bestMatch || specificity > bestMatch.specificity) {
+            bestMatch = { section: section.value, specificity };
+          }
+        }
+      }
     }
-    return 'dashboard'; // Default to dashboard
-  };
+
+    // Return the best sub-path match, or default to dashboard
+    return bestMatch?.section || "dashboard";
+  }, [location.pathname, dynamicMenuSections]);
 
   // Initialize open sections with active section
   const [openSections, setOpenSections] = useState<string[]>(() => {
     const activeSection = getActiveSection();
-    return activeSection ? [activeSection] : ['dashboard'];
+    return activeSection ? [activeSection] : ["dashboard"];
   });
 
   // Update open sections when route changes
   useEffect(() => {
     const activeSection = getActiveSection();
     if (activeSection) {
-      setOpenSections((prev) => {
-        if (!prev.includes(activeSection)) {
-          return [...prev, activeSection];
-        }
-        return prev;
-      });
+      setOpenSections([activeSection]);
     }
-  }, [location.pathname]);
+  }, [getActiveSection]);
 
   const isSubMenuActive = (path: string, allChildren: SubMenuItem[]) => {
     const currentPath = location.pathname;
-    
+
     // Exact match
     if (currentPath === path) {
       return true;
     }
-    
+
+    // Special case: /admin is the root path, only match exactly (not as a prefix)
+    if (path === "/admin") {
+      return false;
+    }
+
     // Check if current path starts with this path, but make sure it's not matching a sibling
     // For example, if path is '/admin/pool-wallet' and currentPath is '/admin/pool-wallet/withdrawals',
     // we should only match if there's no other child that matches more specifically
-    if (currentPath.startsWith(path + '/')) {
+    if (currentPath.startsWith(path + "/")) {
       // Check if any other child path is a more specific match
       const moreSpecificMatch = allChildren.find(
-        child => child.path !== path && currentPath.startsWith(child.path)
+        (child) => child.path !== path && currentPath.startsWith(child.path)
       );
       // Only match if no more specific child path exists
       return !moreSpecificMatch;
     }
-    
+
     return false;
   };
 
   const isSectionActive = (section: MenuSection) => {
-    return section.children.some((child) => isSubMenuActive(child.path, section.children));
+    return section.children.some((child) =>
+      isSubMenuActive(child.path, section.children)
+    );
   };
 
-  const renderSubMenuItem = (item: SubMenuItem, sectionValue: string, allChildren: SubMenuItem[]) => {
+  const renderSubMenuItem = (
+    item: SubMenuItem,
+    sectionValue: string,
+    allChildren: SubMenuItem[]
+  ) => {
     const active = isSubMenuActive(item.path, allChildren);
     return (
       <motion.div
@@ -320,18 +432,26 @@ export const AdminSidebar = () => {
         <Link
           to={item.path}
           className={cn(
-            'group relative flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ml-6',
+            "group relative flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ml-6",
             active
-              ? 'bg-primary/10 text-primary'
-              : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
           )}
         >
           <span className="flex items-center gap-2">
-            <span className={cn('h-1.5 w-1.5 rounded-full', active ? 'bg-primary' : 'bg-muted-foreground/30')} />
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                active ? "bg-primary" : "bg-muted-foreground/30"
+              )}
+            />
             {item.label}
           </span>
           {item.badge !== undefined && (
-            <Badge variant={item.badgeVariant || 'default'} className="h-5 min-w-5 px-1.5 text-xs">
+            <Badge
+              variant={item.badgeVariant || "default"}
+              className="h-5 min-w-5 px-1.5 text-xs"
+            >
               {item.badge}
             </Badge>
           )}
@@ -349,30 +469,40 @@ export const AdminSidebar = () => {
   const renderSection = (section: MenuSection) => {
     const Icon = section.icon;
     const sectionActive = isSectionActive(section);
-    const isParentPathActive = section.path && location.pathname === section.path;
+    const isParentPathActive =
+      section.path && location.pathname === section.path;
 
     return (
-      <AccordionItem key={section.value} value={section.value} className="border-none">
+      <AccordionItem
+        key={section.value}
+        value={section.value}
+        className="border-none"
+      >
         <AccordionTrigger
           className={cn(
-            'group relative flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:no-underline',
-            (sectionActive || isParentPathActive)
-              ? 'bg-primary/10 text-primary'
-              : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+            "group relative flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:no-underline",
+            sectionActive || isParentPathActive
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
           )}
         >
           <div className="flex items-center gap-3 flex-1">
             <Icon
               className={cn(
-                'h-5 w-5 shrink-0 transition-colors',
-                (sectionActive || isParentPathActive) ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'
+                "h-5 w-5 shrink-0 transition-colors",
+                sectionActive || isParentPathActive
+                  ? "text-primary"
+                  : "text-muted-foreground group-hover:text-primary"
               )}
             />
             {!collapsed && (
               <span className="truncate flex-1 text-left">{section.label}</span>
             )}
             {!collapsed && section.badge !== undefined && (
-              <Badge variant={section.badgeVariant || 'default'} className="h-5 min-w-5 px-1.5 text-xs">
+              <Badge
+                variant={section.badgeVariant || "default"}
+                className="h-5 min-w-5 px-1.5 text-xs"
+              >
                 {section.badge}
               </Badge>
             )}
@@ -381,12 +511,14 @@ export const AdminSidebar = () => {
         <AccordionContent className="pt-1 pb-2">
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="space-y-1 overflow-hidden"
           >
-            {section.children.map((child) => renderSubMenuItem(child, section.value, section.children))}
+            {section.children.map((child) =>
+              renderSubMenuItem(child, section.value, section.children)
+            )}
           </motion.div>
         </AccordionContent>
       </AccordionItem>
@@ -399,58 +531,69 @@ export const AdminSidebar = () => {
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'relative flex h-screen flex-col border-r border-border transition-all duration-300 glass',
-        collapsed ? 'w-16' : 'w-72'
+        "relative flex flex-col border-r border-border transition-all duration-300 glass",
+        collapsed ? "w-16" : "w-72"
       )}
       style={{
-        background: 'linear-gradient(135deg, hsl(0 0% 100% / 0.95), hsl(210 40% 98% / 0.9))',
-        backdropFilter: 'blur(20px)',
+        height: "100vh",
+        maxHeight: "100vh",
+        background:
+          "linear-gradient(135deg, hsl(0 0% 100% / 0.95), hsl(210 40% 98% / 0.9))",
+        backdropFilter: "blur(20px)",
       }}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-border px-4">
-        <Link
-          to="/admin"
-          className="flex items-center gap-2"
-        >
-          <img src="/logo.png" alt="Zuja Electric" className={collapsed ? "h-8 w-auto" : "h-10 w-auto"} />
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+        <Link to="/admin" className="flex items-center gap-2">
+          <img
+            src="/logo.png"
+            alt="Zuja Electric"
+            className={collapsed ? "h-7 w-auto" : "h-9 w-auto"}
+          />
         </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
         >
-          <ChevronLeft className={cn('h-5 w-5 transition-transform', collapsed && 'rotate-180')} />
+          <ChevronLeft
+            className={cn(
+              "h-4 w-4 transition-transform",
+              collapsed && "rotate-180"
+            )}
+          />
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3">
         {collapsed ? (
           <div className="space-y-2">
-            {adminMenuSections.map((section) => {
+            {dynamicMenuSections.map((section) => {
               const Icon = section.icon;
               const sectionActive = isSectionActive(section);
               return (
                 <Link
                   key={section.value}
-                  to={section.children[0]?.path || '/admin'}
+                  to={section.children[0]?.path || "/admin"}
                   className={cn(
-                    'group relative flex items-center justify-center rounded-lg p-3 text-sm font-medium transition-all duration-200',
+                    "group relative flex items-center justify-center rounded-lg p-3 text-sm font-medium transition-all duration-200",
                     sectionActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
                   title={section.label}
                 >
                   <Icon
                     className={cn(
-                      'h-5 w-5 shrink-0 transition-colors',
-                      sectionActive ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'
+                      "h-5 w-5 shrink-0 transition-colors",
+                      sectionActive
+                        ? "text-primary"
+                        : "text-muted-foreground group-hover:text-primary"
                     )}
                   />
                   {section.badge !== undefined && (
                     <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] flex items-center justify-center text-white">
-                      {section.badge > 9 ? '9+' : section.badge}
+                      {section.badge > 9 ? "9+" : section.badge}
                     </span>
                   )}
                 </Link>
@@ -465,7 +608,7 @@ export const AdminSidebar = () => {
             className="space-y-1"
             defaultValue={[getActiveSection()]}
           >
-            {adminMenuSections.map(renderSection)}
+            {dynamicMenuSections.map(renderSection)}
           </Accordion>
         )}
       </nav>
@@ -475,15 +618,19 @@ export const AdminSidebar = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="border-t border-border p-4"
+          className="shrink-0 border-t border-border p-3"
         >
-          <div className="glass-card flex items-center gap-3 rounded-lg p-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
-              <User className="h-5 w-5 text-primary" />
+          <div className="glass-card flex items-center gap-3 rounded-lg p-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20">
+              <User className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 truncate">
-              <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
-              <p className="truncate text-xs text-muted-foreground capitalize">{user.role}</p>
+              <p className="truncate text-sm font-medium text-foreground">
+                {user.name}
+              </p>
+              <p className="truncate text-xs text-muted-foreground capitalize">
+                {user.role}
+              </p>
             </div>
           </div>
         </motion.div>
@@ -491,4 +638,3 @@ export const AdminSidebar = () => {
     </motion.aside>
   );
 };
-

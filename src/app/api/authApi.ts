@@ -89,7 +89,29 @@ export const authApi = api.injectEndpoints({
         
         // Check if it's a mock user (demo accounts don't require password check)
         if (mockUsers[userType] && email === mockUsers[userType].email) {
-          const user = mockUsers[userType];
+          const user = { ...mockUsers[userType] };
+          
+          // Load KYC status from localStorage for mock users too
+          const KYC_STORAGE_KEY = 'ev_nexus_kyc_data';
+          try {
+            const kycDataStr = localStorage.getItem(KYC_STORAGE_KEY);
+            if (kycDataStr) {
+              const kycData = JSON.parse(kycDataStr);
+              const userKYC = kycData[user.id];
+              if (userKYC) {
+                user.kycStatus = userKYC.kycStatus;
+                user.kycDetails = userKYC.kycDetails;
+              } else {
+                user.kycStatus = 'not_submitted';
+              }
+            } else {
+              user.kycStatus = 'not_submitted';
+            }
+          } catch (error) {
+            console.error('Error loading KYC data:', error);
+            user.kycStatus = 'not_submitted';
+          }
+          
           return {
             data: {
               user,
@@ -105,6 +127,25 @@ export const authApi = api.injectEndpoints({
         );
         
         if (storedUser) {
+          // Load KYC status from localStorage
+          const KYC_STORAGE_KEY = 'ev_nexus_kyc_data';
+          let kycStatus: 'not_submitted' | 'pending' | 'verified' | 'rejected' | undefined = undefined;
+          let kycDetails: any = undefined;
+          
+          try {
+            const kycDataStr = localStorage.getItem(KYC_STORAGE_KEY);
+            if (kycDataStr) {
+              const kycData = JSON.parse(kycDataStr);
+              const userKYC = kycData[storedUser.id];
+              if (userKYC) {
+                kycStatus = userKYC.kycStatus;
+                kycDetails = userKYC.kycDetails;
+              }
+            }
+          } catch (error) {
+            console.error('Error loading KYC data:', error);
+          }
+          
           // Convert stored user to User type
           const user: User = {
             id: storedUser.id,
@@ -114,6 +155,8 @@ export const authApi = api.injectEndpoints({
             isDistributor: false,
             phone: storedUser.phone,
             joinedAt: storedUser.joinedAt,
+            kycStatus: kycStatus || 'not_submitted',
+            kycDetails: kycDetails,
           };
           
           return {

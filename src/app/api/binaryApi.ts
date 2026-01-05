@@ -354,6 +354,79 @@ function addNodeToTree(tree: BinaryNode, newNode: BinaryNode, parentId: string, 
   return addNodeRecursive(tree);
 }
 
+// Find parent node of a given node
+function findParentNode(tree: BinaryNode, nodeId: string, parent: BinaryNode | null = null): { parent: BinaryNode | null; side: 'left' | 'right' | null } | null {
+  if (tree.children.left?.id === nodeId) {
+    return { parent: tree, side: 'left' };
+  }
+  if (tree.children.right?.id === nodeId) {
+    return { parent: tree, side: 'right' };
+  }
+  
+  if (tree.children.left) {
+    const result = findParentNode(tree.children.left, nodeId, tree);
+    if (result) return result;
+  }
+  
+  if (tree.children.right) {
+    const result = findParentNode(tree.children.right, nodeId, tree);
+    if (result) return result;
+  }
+  
+  return null;
+}
+
+// Swap two sibling nodes (same parent, left and right)
+function swapSiblingNodes(tree: BinaryNode, nodeId: string, newParentId: string, newSide: 'left' | 'right'): BinaryNode {
+  // Find the parent and side of the node being moved
+  const sourceParentInfo = findParentNode(tree, nodeId);
+  if (!sourceParentInfo || !sourceParentInfo.parent || !sourceParentInfo.side) {
+    console.error('Source parent not found for node swap');
+    return tree;
+  }
+  
+  const sourceParent = sourceParentInfo.parent;
+  const sourceSide = sourceParentInfo.side;
+  
+  // Check if we're swapping siblings (same parent, opposite sides)
+  if (sourceParent.id !== newParentId) {
+    console.error('Cannot swap: nodes are not siblings');
+    return tree;
+  }
+  
+  // If trying to swap with the same side, no change needed
+  if (sourceSide === newSide) {
+    return tree;
+  }
+  
+  // Perform the swap
+  function swapRecursive(node: BinaryNode): BinaryNode {
+    if (node.id === newParentId) {
+      const leftChild = node.children.left;
+      const rightChild = node.children.right;
+      
+      // Swap the children
+      return {
+        ...node,
+        children: {
+          left: rightChild ? { ...rightChild, position: 'left' } : null,
+          right: leftChild ? { ...leftChild, position: 'right' } : null,
+        },
+      };
+    }
+    
+    return {
+      ...node,
+      children: {
+        left: node.children.left ? swapRecursive(node.children.left) : null,
+        right: node.children.right ? swapRecursive(node.children.right) : null,
+      },
+    };
+  }
+  
+  return swapRecursive(tree);
+}
+
 // Move node in tree (for drag and drop)
 function moveNodeInTree(tree: BinaryNode, nodeId: string, newParentId: string, newSide: 'left' | 'right'): BinaryNode {
   // First, remove the node from its current position
@@ -1132,13 +1205,30 @@ export const binaryApi = api.injectEndpoints({
           };
         }
         
+        // Check if target position is occupied
         if (newParentNode.children[newSide]) {
-          return {
-            error: { status: 'CONFLICT', data: `Position ${newSide} is already occupied` },
-          };
+          // Check if we're swapping siblings (same parent, opposite side)
+          const sourceParentInfo = findParentNode(tree, nodeId);
+          if (sourceParentInfo && sourceParentInfo.parent && sourceParentInfo.parent.id === newParentId) {
+            // This is a sibling swap - swap the nodes
+            const updatedTree = swapSiblingNodes(tree, nodeId, newParentId, newSide);
+            saveBinaryTreeToStorage(distributorId, updatedTree);
+            
+            return {
+              data: {
+                success: true,
+                message: 'Nodes swapped successfully.',
+              },
+            };
+          } else {
+            // Position is occupied by a non-sibling node
+            return {
+              error: { status: 'CONFLICT', data: `Position ${newSide} is already occupied` },
+            };
+          }
         }
         
-        // Move node
+        // Move node to empty position
         const updatedTree = moveNodeInTree(tree, nodeId, newParentId, newSide);
         saveBinaryTreeToStorage(distributorId, updatedTree);
         
@@ -1161,7 +1251,7 @@ export const binaryApi = api.injectEndpoints({
         return { 
           data: { 
             success: true, 
-            message: `Referral added to ${side} side. Binary commission will be calculated automatically.` 
+            message: `Referral added to ${side === 'left' ? 'RSA' : 'RSB'}. Team commission will be calculated automatically.` 
           } 
         };
       },

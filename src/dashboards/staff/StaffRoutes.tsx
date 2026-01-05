@@ -6,6 +6,7 @@ import { StaffTargets } from './StaffTargets';
 import { StaffIncentives } from './StaffIncentives';
 import { BookingApprovals } from './BookingApprovals';
 import { StaffReports } from './StaffReports';
+import { StaffKYCVerification } from './KYCVerification';
 
 export const StaffRoutes = () => {
   return (
@@ -14,6 +15,7 @@ export const StaffRoutes = () => {
       <Route path="dashboard" element={<StaffDashboard />} />
       <Route path="leads" element={<LeadManagement />} />
       <Route path="verification" element={<DistributorVerification />} />
+      <Route path="kyc-verification" element={<StaffKYCVerification />} />
       <Route path="targets" element={<StaffTargets />} />
       <Route path="incentives" element={<StaffIncentives />} />
       <Route path="approvals" element={<BookingApprovals />} />

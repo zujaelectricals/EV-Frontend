@@ -63,7 +63,7 @@ const getStatusBadge = (status: PayoutStatus) => {
 const getTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
     referral: 'Referral Bonus',
-    binary: 'Binary Commission',
+    binary: 'Team Commission',
     pool: 'Pool Money',
     incentive: 'Incentive',
     milestone: 'Milestone Reward',

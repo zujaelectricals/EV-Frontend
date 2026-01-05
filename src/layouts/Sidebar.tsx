@@ -47,11 +47,11 @@ interface MenuItem {
 const userMenuItems: MenuItem[] = [
   { label: 'My Profile', icon: User, path: '/profile' },
   { label: 'Browse Vehicles', icon: Car, path: '/scooters' },
-  { label: 'Become Distributor', icon: UserPlus, path: '/become-distributor' },
+  { label: 'Become Authorized Partner', icon: UserPlus, path: '/become-distributor' },
 ];
 
 const distributorMenuItems: MenuItem[] = [
-  { label: 'Distributor Dashboard', icon: LayoutDashboard, path: '/distributor' },
+  { label: 'Authorized Partner Dashboard', icon: LayoutDashboard, path: '/distributor' },
   { label: 'Referral Link', icon: LinkIcon, path: '/distributor/referral' },
   { label: 'Team Network', icon: GitBranch, path: '/distributor/binary-tree' },
   { label: 'Team Matching History', icon: History, path: '/distributor/pair-history' },
@@ -59,7 +59,7 @@ const distributorMenuItems: MenuItem[] = [
   { label: 'Team Performance', icon: Users, path: '/distributor/team' },
   { label: 'Sales Tracking', icon: TrendingUp, path: '/distributor/sales' },
   { label: 'Order History', icon: Package, path: '/distributor/orders' },
-  { label: 'Pool Wallet', icon: Landmark, path: '/distributor/pool-wallet' },
+  { label: 'Reserve Wallet', icon: Landmark, path: '/distributor/pool-wallet' },
   { label: 'Payout History', icon: ClipboardList, path: '/distributor/payouts' },
   { label: 'Milestone Tracker', icon: Award, path: '/distributor/milestones' },
   { label: 'Nominee Management', icon: UserCheck, path: '/distributor/nominee' },
@@ -67,7 +67,7 @@ const distributorMenuItems: MenuItem[] = [
 
 const staffMenuItems: MenuItem[] = [
   { label: 'Lead Management', icon: ClipboardList, path: '/staff/leads' },
-  { label: 'Distributor Verification', icon: UserCheck, path: '/staff/verification' },
+  { label: 'Authorized Partner Verification', icon: UserCheck, path: '/staff/verification' },
   { label: 'Targets', icon: Target, path: '/staff/targets' },
   { label: 'Incentives', icon: Gift, path: '/staff/incentives' },
   { label: 'Booking Approvals', icon: CheckSquare, path: '/staff/approvals' },
@@ -78,12 +78,12 @@ const adminMenuItems: MenuItem[] = [
   { label: 'Platform Dashboard', icon: LayoutDashboard, path: '/admin' },
   { label: 'Growth Analytics', icon: TrendingUp, path: '/admin/growth' },
   { label: 'Sales Monitoring', icon: BarChart3, path: '/admin/sales' },
-  { label: 'Distributor Intelligence', icon: Brain, path: '/admin/distributor-intel' },
+  { label: 'Authorized Partner Intelligence', icon: Brain, path: '/admin/distributor-intel' },
   { label: 'Staff Performance', icon: Award, path: '/admin/staff-performance' },
   { label: 'Binary Engine Control', icon: Settings, path: '/admin/binary-engine' },
   { label: 'EV Inventory', icon: Boxes, path: '/admin/inventory' },
   { label: 'Partner Shops', icon: Store, path: '/admin/partners' },
-  { label: 'Pool Wallet Controller', icon: Landmark, path: '/admin/pool-wallet' },
+  { label: 'Reserve Wallet Controller', icon: Landmark, path: '/admin/pool-wallet' },
   { label: 'Payout Engine', icon: DollarSign, path: '/admin/payout-engine' },
   { label: 'Risk & Compliance', icon: Shield, path: '/admin/compliance' },
   { label: 'Audit Logs', icon: ScrollText, path: '/admin/audit' },

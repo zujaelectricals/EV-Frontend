@@ -16,6 +16,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+// Add styles for hover states
+const profileSwitcherStyles = `
+  button[data-highlighted] .profile-switcher-text,
+  [role="menuitem"][data-highlighted] .profile-switcher-text {
+    color: hsl(var(--accent-foreground)) !important;
+  }
+  button[data-highlighted] .profile-switcher-text-muted,
+  [role="menuitem"][data-highlighted] .profile-switcher-text-muted {
+    color: hsl(var(--accent-foreground) / 0.85) !important;
+  }
+`;
+
 const STORAGE_KEY = 'ev_nexus_multiple_accounts';
 
 interface StoredAccount {
@@ -128,6 +140,35 @@ export const ProfileSwitcher = () => {
         console.warn('Could not reload from stored accounts:', e);
       }
       
+      // Load KYC status from localStorage
+      try {
+        const KYC_STORAGE_KEY = 'ev_nexus_kyc_data';
+        const kycDataStr = localStorage.getItem(KYC_STORAGE_KEY);
+        if (kycDataStr) {
+          const kycData = JSON.parse(kycDataStr);
+          const userKYC = kycData[updatedUser.id];
+          if (userKYC) {
+            updatedUser = {
+              ...updatedUser,
+              kycStatus: userKYC.kycStatus,
+              kycDetails: userKYC.kycDetails,
+            };
+          } else {
+            updatedUser = {
+              ...updatedUser,
+              kycStatus: 'not_submitted',
+            };
+          }
+        } else {
+          updatedUser = {
+            ...updatedUser,
+            kycStatus: 'not_submitted',
+          };
+        }
+      } catch (e) {
+        console.warn('Could not load KYC status:', e);
+      }
+      
       // Also check current auth storage as a fallback
       try {
         const authDataStr = localStorage.getItem('ev_nexus_auth_data');
@@ -138,9 +179,17 @@ export const ProfileSwitcher = () => {
               authData.user.email === account.user.email ||
               account.user.id?.startsWith(authData.user.id) ||
               authData.user.id?.startsWith(account.user.id))) {
+            // Merge KYC status and distributor info from auth storage
+            if (authData.user.kycStatus) {
+              updatedUser = {
+                ...updatedUser,
+                kycStatus: authData.user.kycStatus,
+                kycDetails: authData.user.kycDetails,
+              };
+            }
             // Only use this if it's more recent or has distributor info we don't have
             if (!updatedUser.distributorInfo?.isVerified && authData.user.distributorInfo?.isVerified) {
-              updatedUser = authData.user; // Use the latest user data
+              updatedUser = { ...updatedUser, ...authData.user }; // Merge all user data
               updatedToken = authData.token || account.token;
             }
           }
@@ -217,14 +266,16 @@ export const ProfileSwitcher = () => {
   const otherAccounts = accounts.filter(acc => acc.user.id !== user?.id);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Users className="h-4 w-4" />
-          <span className="hidden md:inline">Switch Profile</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+    <>
+      <style>{profileSwitcherStyles}</style>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden md:inline">Switch Profile</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel>Switch Profile</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
@@ -262,13 +313,13 @@ export const ProfileSwitcher = () => {
               >
                 <div className="flex items-center gap-2 w-full">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary">
-                    <span className="text-xs font-medium">
+                    <span className="text-xs font-medium profile-switcher-text">
                       {account.user.name?.charAt(0) || 'U'}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{account.user.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{account.user.email}</p>
+                    <p className="text-sm font-medium truncate profile-switcher-text">{account.user.name}</p>
+                    <p className="text-xs text-muted-foreground truncate profile-switcher-text-muted">{account.user.email}</p>
                   </div>
                   {getRoleBadge(account.user.role, account.user.isDistributor || false)}
                 </div>
@@ -283,6 +334,7 @@ export const ProfileSwitcher = () => {
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+    </>
   );
 };
 

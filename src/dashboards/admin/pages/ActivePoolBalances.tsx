@@ -181,8 +181,8 @@ export const ActivePoolBalances = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Active Pool Balances</h1>
-          <p className="text-muted-foreground mt-1">View and manage all distributor pool money balances</p>
+          <h1 className="text-3xl font-bold text-foreground">Active Reserve Balances</h1>
+          <p className="text-muted-foreground mt-1">View and manage all authorized partner reserve wallet balances</p>
         </div>
         <Button onClick={handleExport} variant="outline">
           <Download className="h-4 w-4 mr-2" />
@@ -198,14 +198,14 @@ export const ActivePoolBalances = () => {
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Pool Money</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Reserve Wallet</CardTitle>
               <Landmark className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 ₹{summaryStats.totalPoolMoney.toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Across all distributors</p>
+              <p className="text-xs text-muted-foreground mt-1">Across all authorized partners</p>
             </CardContent>
           </Card>
         </motion.div>

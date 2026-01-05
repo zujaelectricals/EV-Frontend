@@ -170,7 +170,7 @@ export const NomineeTransfers = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Nominee Transfers</h1>
-        <p className="text-muted-foreground mt-1">Manage pool money transfers to nominees upon distributor demise</p>
+        <p className="text-muted-foreground mt-1">Manage reserve wallet transfers to nominees upon authorized partner demise</p>
       </div>
 
       {/* Summary Cards */}
@@ -251,7 +251,7 @@ export const NomineeTransfers = () => {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <CardTitle>Nominee Transfer Requests</CardTitle>
-              <CardDescription>Review and process pool money transfers to nominees</CardDescription>
+              <CardDescription>Review and process reserve wallet transfers to nominees</CardDescription>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative">
@@ -469,9 +469,9 @@ export const NomineeTransfers = () => {
       <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Approve & Transfer Pool Money</DialogTitle>
+            <DialogTitle>Approve & Transfer Reserve Wallet</DialogTitle>
             <DialogDescription>
-              Complete the transfer of pool money to the nominee
+              Complete the transfer of reserve wallet to the nominee
             </DialogDescription>
           </DialogHeader>
           {selectedTransfer && (

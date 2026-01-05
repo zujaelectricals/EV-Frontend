@@ -49,6 +49,21 @@ export interface PreBookingInfo {
   wantsToJoinDistributor?: boolean; // User opted to join distributor program during pre-booking
 }
 
+export interface KYCDetails {
+  aadharNumber?: string;
+  panNumber?: string;
+  submittedAt?: string;
+  verifiedAt?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+  verifiedBy?: string; // Admin/Staff name who verified
+  documents?: {
+    aadhar?: string; // File URL or base64
+    pan?: string;
+    bankStatement?: string;
+  };
+}
+
 export interface User {
   id: string;
   name: string;
@@ -60,6 +75,8 @@ export interface User {
   joinedAt: string;
   distributorInfo?: DistributorInfo;
   preBookingInfo?: PreBookingInfo;
+  kycStatus?: 'not_submitted' | 'pending' | 'verified' | 'rejected';
+  kycDetails?: KYCDetails;
 }
 
 // Helper functions for localStorage
@@ -173,10 +190,22 @@ const authSlice = createSlice({
         }
       }
     },
+    updateKYCStatus: (state, action: PayloadAction<{ kycStatus: 'not_submitted' | 'pending' | 'verified' | 'rejected'; kycDetails?: Partial<KYCDetails> }>) => {
+      if (state.user) {
+        state.user.kycStatus = action.payload.kycStatus;
+        if (action.payload.kycDetails) {
+          state.user.kycDetails = { ...state.user.kycDetails, ...action.payload.kycDetails };
+        }
+        // Update localStorage when KYC status is updated
+        if (state.token) {
+          setStoredAuth(state.user, state.token);
+        }
+      }
+    },
   },
 });
 
-export const { setCredentials, logout, setLoading, updateUser, updatePreBooking, updateDistributorInfo } = authSlice.actions;
+export const { setCredentials, logout, setLoading, updateUser, updatePreBooking, updateDistributorInfo, updateKYCStatus } = authSlice.actions;
 
 // Export helper function to check authentication (checks both Redux state and localStorage)
 export const isUserAuthenticated = (): boolean => {
