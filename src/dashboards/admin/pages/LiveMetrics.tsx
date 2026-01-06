@@ -31,14 +31,14 @@ const realTimeData = [
   { time: '11:00', users: 520, transactions: 245, revenue: 610000 },
 ];
 
-const systemMetrics = [
-  { label: 'API Response Time', value: '45ms', status: 'good', trend: '+2ms' },
-  { label: 'Database Queries', value: '1,245/min', status: 'good', trend: '+12' },
-  { label: 'Active Connections', value: '2,850', status: 'warning', trend: '+150' },
-  { label: 'Server CPU', value: '68%', status: 'good', trend: '-5%' },
-  { label: 'Memory Usage', value: '4.2GB / 8GB', status: 'good', trend: 'Stable' },
-  { label: 'Cache Hit Rate', value: '94.5%', status: 'excellent', trend: '+1.2%' },
-];
+// const systemMetrics = [
+//   { label: 'API Response Time', value: '45ms', status: 'good', trend: '+2ms' },
+//   { label: 'Database Queries', value: '1,245/min', status: 'good', trend: '+12' },
+//   { label: 'Active Connections', value: '2,850', status: 'warning', trend: '+150' },
+//   { label: 'Server CPU', value: '68%', status: 'good', trend: '-5%' },
+//   { label: 'Memory Usage', value: '4.2GB / 8GB', status: 'good', trend: 'Stable' },
+//   { label: 'Cache Hit Rate', value: '94.5%', status: 'excellent', trend: '+1.2%' },
+// ];
 
 export const LiveMetrics = () => {
   return (
@@ -185,7 +185,7 @@ export const LiveMetrics = () => {
       </motion.div>
 
       {/* System Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {systemMetrics.map((metric, index) => (
           <motion.div
             key={metric.label}
@@ -219,7 +219,7 @@ export const LiveMetrics = () => {
             </Card>
           </motion.div>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 };

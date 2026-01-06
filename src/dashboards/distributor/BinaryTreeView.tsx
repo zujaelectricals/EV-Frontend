@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   Activity,
   User,
+  Network,
 } from "lucide-react";
 import {
   Card,
@@ -56,6 +57,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { BinaryTreeNode } from "@/binary/components/BinaryTreeNode";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TeamMember {
   id: string;
@@ -151,8 +154,7 @@ function countDescendants(node: BinaryNode | null): number {
   if (!node) return 0;
   let count = 0;
   if (node.children.left) count += 1 + countDescendants(node.children.left);
-  if (node.children.right)
-    count += 1 + countDescendants(node.children.right);
+  if (node.children.right) count += 1 + countDescendants(node.children.right);
   return count;
 }
 
@@ -171,19 +173,26 @@ export const BinaryTreeView = () => {
   const { data: pendingNodes = [], isLoading: pendingLoading } =
     useGetPendingNodesQuery(distributorId, { skip: !distributorId });
   const [positionPendingNode] = usePositionPendingNodeMutation();
-  
+
   // Table state
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterPosition, setFilterPosition] = useState<"all" | "left" | "right">("all");
-  const [sortBy, setSortBy] = useState<"name" | "joinedAt" | "pv" | "referrals" | "level">("level");
+  const [filterPosition, setFilterPosition] = useState<
+    "all" | "left" | "right"
+  >("all");
+  const [sortBy, setSortBy] = useState<
+    "name" | "joinedAt" | "pv" | "referrals" | "level"
+  >("level");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  
+
   // Pending node positioning state
   const [selectedPendingNode, setSelectedPendingNode] =
     useState<PendingNode | null>(null);
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string>("");
   const [selectedSide, setSelectedSide] = useState<"left" | "right">("left");
+
+  // Referral tree dialog state
+  const [referralTreeDialogOpen, setReferralTreeDialogOpen] = useState(false);
 
   // Extract team members from binary tree
   const teamMembers = useMemo(() => {
@@ -193,7 +202,7 @@ export const BinaryTreeView = () => {
 
   // Filter and sort team members
   const filteredMembers = useMemo(() => {
-    let filtered = teamMembers.filter((member) => {
+    const filtered = teamMembers.filter((member) => {
       const matchesSearch =
         member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         member.parentName?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -294,15 +303,15 @@ export const BinaryTreeView = () => {
   const availableParents = useMemo(() => {
     if (!binaryTree) return [];
     const parents: { id: string; name: string }[] = [];
-    
+
     // Include root node
     parents.push({ id: binaryTree.id, name: binaryTree.name });
-    
+
     // Include all team members as potential parents
     teamMembers.forEach((member) => {
       parents.push({ id: member.id, name: member.name });
     });
-    
+
     return parents;
   }, [binaryTree, teamMembers]);
 
@@ -476,8 +485,8 @@ export const BinaryTreeView = () => {
           <DialogHeader>
             <DialogTitle>Position {selectedPendingNode?.name}</DialogTitle>
             <DialogDescription>
-              Select a parent node and position (RSA or RSB) to position
-              this team member in your network.
+              Select a parent node and position (RSA or RSB) to position this
+              team member in your network.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -542,10 +551,24 @@ export const BinaryTreeView = () => {
       {/* Team Network Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Team Network Structure</CardTitle>
-          <CardDescription>
-            View and manage your referral network in a structured table format
-          </CardDescription>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <CardTitle>Team Network Structure</CardTitle>
+              <CardDescription>
+                View and manage your referral network in a structured table
+                format
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setReferralTreeDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Network className="h-4 w-4" />
+              Referral Tree
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {/* Filters and Search */}
@@ -679,14 +702,11 @@ export const BinaryTreeView = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {new Date(member.joinedAt).toLocaleDateString(
-                          "en-IN",
-                          {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )}
+                        {new Date(member.joinedAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -720,6 +740,33 @@ export const BinaryTreeView = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Referral Tree Dialog */}
+      <Dialog
+        open={referralTreeDialogOpen}
+        onOpenChange={setReferralTreeDialogOpen}
+      >
+        <DialogContent className="max-w-6xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Referral Tree Structure</DialogTitle>
+            <DialogDescription>
+              Visual representation of your MLM referral network structure
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[70vh] w-full">
+            <div className="flex justify-center items-start p-8 overflow-auto">
+              {binaryTree ? (
+                <BinaryTreeNode node={binaryTree} depth={0} />
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <GitBranch className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No referral tree data available</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* Pair Matching Info */}
       <Card>

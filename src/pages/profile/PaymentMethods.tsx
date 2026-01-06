@@ -54,42 +54,42 @@ export function PaymentMethods() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-end mb-4">
-        <Button onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
+        <Button onClick={() => setShowAddModal(true)} size="sm" className="text-xs sm:text-sm">
+          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
           Add Payment Method
         </Button>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {methods.map((method) => (
           <Card key={method.id} className={method.isDefault ? 'border-primary' : ''}>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-primary/10 rounded-lg">
-                    <CreditCard className="w-5 h-5 text-primary" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                  <div className="p-2 sm:p-3 bg-primary/10 rounded-lg flex-shrink-0">
+                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{method.name}</h3>
-                    <p className="text-sm text-muted-foreground">{method.details}</p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm sm:text-base font-semibold text-foreground truncate">{method.name}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{method.details}</p>
                   </div>
                 </div>
                 {method.isDefault && (
-                  <Badge className="bg-success text-success-foreground">
-                    <Check className="w-3 h-3 mr-1" />
+                  <Badge className="bg-success text-success-foreground text-[10px] sm:text-xs flex-shrink-0">
+                    <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />
                     Default
                   </Badge>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 {!method.isDefault && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleSetDefault(method.id)}
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm"
                   >
                     Set as Default
                   </Button>
@@ -98,9 +98,9 @@ export function PaymentMethods() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleRemove(method.id)}
-                  className="flex-1"
+                  className="flex-1 text-xs sm:text-sm"
                 >
-                  <Trash2 className="w-4 h-4 mr-1" />
+                  <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                   Remove
                 </Button>
               </div>
@@ -111,12 +111,12 @@ export function PaymentMethods() {
 
       {/* Add Payment Method Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Payment Method</DialogTitle>
-            <DialogDescription>Add a new payment method for faster checkout</DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Add Payment Method</DialogTitle>
+            <DialogDescription className="text-sm">Add a new payment method for faster checkout</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto">
             <RadioGroup value={newMethodType} onValueChange={(v) => setNewMethodType(v as any)}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="card" id="card" />
@@ -151,23 +151,25 @@ export function PaymentMethods() {
                     onChange={(e) => setCardName(e.target.value)}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
-                    <Label>Expiry</Label>
+                    <Label className="text-sm">Expiry</Label>
                     <Input
                       placeholder="MM/YY"
                       value={expiry}
                       onChange={(e) => setExpiry(e.target.value)}
                       maxLength={5}
+                      className="text-sm sm:text-base"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>CVV</Label>
+                    <Label className="text-sm">CVV</Label>
                     <Input
                       placeholder="123"
                       value={cvv}
                       onChange={(e) => setCvv(e.target.value)}
                       maxLength={3}
+                      className="text-sm sm:text-base"
                     />
                   </div>
                 </div>

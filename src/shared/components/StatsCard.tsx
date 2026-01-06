@@ -41,7 +41,7 @@ export const StatsCard = ({
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       className={cn(
-        'glass-card relative overflow-hidden rounded-xl border p-6 transition-all',
+        'glass-card relative overflow-hidden rounded-xl border p-6 transition-all h-full',
         variants[variant]
       )}
     >

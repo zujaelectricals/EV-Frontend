@@ -56,8 +56,8 @@ const adminMenuSections: MenuSection[] = [
     value: "dashboard",
     children: [
       { label: "Overview", path: "/admin" },
-      { label: "Live Metrics", path: "/admin/dashboard/metrics" },
-      { label: "Alerts Center", path: "/admin/dashboard/alerts" },
+      //{ label: "Live Metrics", path: "/admin/dashboard/metrics" },
+      //{ label: "Alerts Center", path: "/admin/dashboard/alerts" },
     ],
   },
   // {
@@ -168,21 +168,21 @@ const adminMenuSections: MenuSection[] = [
   //     { label: "Commission Ratio", path: "/admin/partners/commission" },
   //   ],
   // },
-  {
-    label: "Reserve Wallet Controller",
-    icon: Landmark,
-    value: "pool-wallet",
-    children: [
-      { label: "Withdrawal History", path: "/admin/pool-wallet" },
-      { label: "Active Reserve Balances", path: "/admin/pool-wallet/balances" },
-      {
-        label: "Emergency Withdrawals",
-        path: "/admin/pool-wallet/withdrawals",
-      },
-      { label: "Nominee Transfers", path: "/admin/pool-wallet/transfers" },
-      { label: "Reserve Utilization", path: "/admin/pool-wallet/utilization" },
-    ],
-  },
+  // {
+  //   label: "Reserve Wallet Controller",
+  //   icon: Landmark,
+  //   value: "pool-wallet",
+  //   children: [
+  //     { label: "Withdrawal History", path: "/admin/pool-wallet" },
+  //     { label: "Active Reserve Balances", path: "/admin/pool-wallet/balances" },
+  //     {
+  //       label: "Emergency Withdrawals",
+  //       path: "/admin/pool-wallet/withdrawals",
+  //     },
+  //     { label: "Nominee Transfers", path: "/admin/pool-wallet/transfers" },
+  //     { label: "Reserve Utilization", path: "/admin/pool-wallet/utilization" },
+  //   ],
+  // },
   // {
   //   label: "Payout Engine",
   //   icon: DollarSign,
@@ -234,6 +234,7 @@ const adminMenuSections: MenuSection[] = [
         badge: 8,
         badgeVariant: "destructive",
       },
+      { label: "KYC Verified", path: "/admin/users/kyc-verified" },
       { label: "KYC Rejected", path: "/admin/users/kyc-rejected" },
       { label: "Send Notification", path: "/admin/users/notify" },
     ],

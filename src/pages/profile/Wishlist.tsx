@@ -23,26 +23,26 @@ export function Wishlist() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-end mb-4">
         <Link to="/scooters">
-          <Button>Continue Shopping</Button>
+          <Button size="sm" className="text-xs sm:text-sm">Continue Shopping</Button>
         </Link>
       </div>
 
       {wishlistItems.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <Heart className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Your wishlist is empty</h3>
-            <p className="text-muted-foreground mb-4">Add vehicles you like to your wishlist</p>
+          <CardContent className="py-8 sm:py-12 text-center">
+            <Heart className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-muted-foreground" />
+            <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">Your wishlist is empty</h3>
+            <p className="text-sm sm:text-base text-muted-foreground mb-4">Add vehicles you like to your wishlist</p>
             <Link to="/scooters">
-              <Button>Browse Vehicles</Button>
+              <Button size="sm" className="text-xs sm:text-sm">Browse Vehicles</Button>
             </Link>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {wishlistItems.map((item, index) => (
             <motion.div
               key={item.id}
@@ -55,31 +55,31 @@ export function Wishlist() {
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="w-full h-48 object-cover rounded-t-lg"
+                    className="w-full h-40 sm:h-48 object-cover rounded-t-lg"
                   />
                   <button
                     onClick={() => handleRemove(item.id)}
-                    className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 p-1.5 sm:p-2 bg-white rounded-full shadow-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                   >
-                    <Trash2 className="w-4 h-4 text-destructive" />
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-destructive" />
                   </button>
                   {item.isNew && (
-                    <Badge className="absolute top-2 left-2">NEW</Badge>
+                    <Badge className="absolute top-2 left-2 text-[10px] sm:text-xs">NEW</Badge>
                   )}
                 </div>
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="mb-2">
-                    <p className="text-xs text-muted-foreground uppercase">{item.brand}</p>
-                    <h3 className="font-semibold text-foreground">{item.name}</h3>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">{item.brand}</p>
+                    <h3 className="text-sm sm:text-base font-semibold text-foreground">{item.name}</h3>
                   </div>
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <div>
                       {item.originalPrice && (
-                        <p className="text-xs text-muted-foreground line-through">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground line-through">
                           {formatPrice(item.originalPrice)}
                         </p>
                       )}
-                      <p className="text-lg font-bold text-primary">
+                      <p className="text-base sm:text-lg font-bold text-primary">
                         {formatPrice(item.price)}
                       </p>
                     </div>
@@ -87,14 +87,14 @@ export function Wishlist() {
                   <div className="flex gap-2">
                     <Link to={`/scooters/${item.id}`} className="flex-1">
                       <Button variant="outline" className="w-full" size="sm">
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
+                        <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+                        <span className="text-xs sm:text-sm">View</span>
                       </Button>
                     </Link>
                     <Link to={`/scooters/${item.id}`} className="flex-1">
                       <Button className="w-full" size="sm">
-                        <ShoppingCart className="w-4 h-4 mr-1" />
-                        Pre-Book
+                        <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
+                        <span className="text-xs sm:text-sm">Pre-Book</span>
                       </Button>
                     </Link>
                   </div>

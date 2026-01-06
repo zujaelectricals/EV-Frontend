@@ -36,6 +36,8 @@ import {
 import { useAppSelector } from '@/app/hooks';
 import { cn } from '@/lib/utils';
 import { AdminSidebar } from './AdminSidebar';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MenuItem {
   label: string;
@@ -71,7 +73,7 @@ const staffMenuItems: MenuItem[] = [
   { label: 'Targets', icon: Target, path: '/staff/targets' },
   { label: 'Incentives', icon: Gift, path: '/staff/incentives' },
   { label: 'Booking Approvals', icon: CheckSquare, path: '/staff/approvals' },
-  { label: 'Reports', icon: FileText, path: '/staff/reports' },
+  //{ label: 'Reports', icon: FileText, path: '/staff/reports' },
 ];
 
 const adminMenuItems: MenuItem[] = [
@@ -89,11 +91,17 @@ const adminMenuItems: MenuItem[] = [
   { label: 'Audit Logs', icon: ScrollText, path: '/admin/audit' },
 ];
 
-export const Sidebar = () => {
+interface SidebarProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
   const location = useLocation();
   const { user } = useAppSelector((state) => state.auth);
   const { bookings } = useAppSelector((state) => state.booking);
   const [collapsed, setCollapsed] = useState(false);
+  const isMobile = useIsMobile();
 
   // Render AdminSidebar for admin users
   if (user?.role === 'admin') {
@@ -183,36 +191,38 @@ export const Sidebar = () => {
     }
   };
 
-  return (
-    <motion.aside
-      initial={{ x: -100, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className={cn(
-        'relative flex h-screen flex-col border-r border-border bg-sidebar transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64'
-      )}
-    >
+  const sidebarContent = (
+    <>
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
         <Link 
-          to={user?.role === 'admin' ? '/admin' : user?.role === 'staff' ? '/staff/leads' : '/'} 
+          to={user?.role === 'staff' ? '/staff/leads' : '/'} 
           className="flex items-center gap-2"
+          onClick={() => isMobile && onOpenChange?.(false)}
         >
           <img src="/logo.png" alt="Zuja Electric" className={collapsed ? "h-8 w-auto" : "h-10 w-auto"} />
         </Link>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-        >
-          <ChevronLeft className={cn('h-5 w-5 transition-transform', collapsed && 'rotate-180')} />
-        </button>
+        {!isMobile && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          >
+            <ChevronLeft className={cn('h-5 w-5 transition-transform', collapsed && 'rotate-180')} />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4">
         <div className="space-y-1">
-          {getMenuItems().map(renderMenuItem)}
+          {getMenuItems().map((item) => {
+            const menuItem = renderMenuItem(item);
+            return isMobile ? (
+              <div key={item.path} onClick={() => onOpenChange?.(false)}>
+                {menuItem}
+              </div>
+            ) : menuItem;
+          })}
         </div>
       </nav>
 
@@ -230,6 +240,37 @@ export const Sidebar = () => {
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="left" className="w-64 p-0">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex h-full flex-col bg-sidebar"
+          >
+            {sidebarContent}
+          </motion.div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <motion.aside
+      initial={{ x: -100, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className={cn(
+        'relative flex h-screen flex-col border-r border-border bg-sidebar transition-all duration-300',
+        collapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      {sidebarContent}
     </motion.aside>
   );
 };

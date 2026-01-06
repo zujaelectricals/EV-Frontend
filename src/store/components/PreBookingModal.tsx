@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, AlertCircle, CheckCircle, Info, Calendar, Wallet, Users, Shield, Lock } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, Info, Calendar, Wallet, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,6 @@ import { updatePreBooking } from '@/app/slices/authSlice';
 import { addPayout } from '@/app/slices/payoutSlice';
 import { useAddReferralNodeMutation } from '@/app/api/binaryApi';
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
 import { Scooter } from '../ScooterCard';
 import { PaymentGateway } from './PaymentGateway';
 
@@ -78,25 +77,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
 
     if (!user) {
       toast.error('Please login to pre-book');
-      return;
-    }
-
-    // Check KYC verification status
-    const kycStatus = user.kycStatus || 'not_submitted';
-    if (kycStatus !== 'verified') {
-      if (kycStatus === 'not_submitted') {
-        toast.error('KYC verification required. Please complete your KYC verification to pre-book vehicles.', {
-          duration: 5000,
-        });
-      } else if (kycStatus === 'pending') {
-        toast.error('Your KYC verification is pending. Please wait for approval before pre-booking.', {
-          duration: 5000,
-        });
-      } else if (kycStatus === 'rejected') {
-        toast.error('Your KYC verification was rejected. Please resubmit your documents to pre-book vehicles.', {
-          duration: 5000,
-        });
-      }
       return;
     }
 
@@ -263,37 +243,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
           </DialogHeader>
 
         <div className="space-y-6">
-          {/* KYC Verification Alert */}
-          {user && (user.kycStatus !== 'verified') && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg"
-            >
-              <div className="flex items-start gap-3">
-                <Lock className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground mb-1">
-                    KYC Verification Required
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    {user.kycStatus === 'not_submitted' && 'Please complete your KYC verification to pre-book vehicles.'}
-                    {user.kycStatus === 'pending' && 'Your KYC verification is under review. You will be able to pre-book once it\'s approved.'}
-                    {user.kycStatus === 'rejected' && 'Your KYC verification was rejected. Please resubmit your documents.'}
-                  </p>
-                  <Link to="/profile?tab=kyc">
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                      <Shield className="w-4 h-4 mr-2" />
-                      {user.kycStatus === 'not_submitted' && 'Complete KYC Verification'}
-                      {user.kycStatus === 'pending' && 'View KYC Status'}
-                      {user.kycStatus === 'rejected' && 'Resubmit KYC Documents'}
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
           {/* Info Alert */}
           <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
             <div className="flex items-start gap-3">
@@ -646,16 +595,9 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode }: PreB
             <Button 
               onClick={handlePreBook} 
               className="flex-1" 
-              disabled={preBookingAmount < MIN_PRE_BOOKING || (user && user.kycStatus !== 'verified')}
+              disabled={preBookingAmount < MIN_PRE_BOOKING}
             >
-              {user && user.kycStatus !== 'verified' ? (
-                <>
-                  <Lock className="w-4 h-4 mr-2" />
-                  KYC Required
-                </>
-              ) : (
-                'Pre-Book Now'
-              )}
+              Pre-Book Now
             </Button>
           </div>
         </div>

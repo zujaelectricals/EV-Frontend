@@ -247,29 +247,29 @@ export function KYCVerification() {
   const canEdit = kycStatus === 'not_submitted' || kycStatus === 'rejected';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className="w-6 h-6 text-primary" />
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
               <div>
-                <CardTitle>KYC Verification</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
+                <CardTitle className="text-lg sm:text-xl">KYC Verification</CardTitle>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   Upload your identity documents for verification
                 </p>
               </div>
             </div>
-            {getStatusBadge()}
+            <div className="flex-shrink-0">{getStatusBadge()}</div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
           {/* Status Messages */}
           {kycStatus === 'verified' && (
             <Alert className="bg-green-50 border-green-200">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Your KYC has been verified. You can now pre-book vehicles.
+                Your KYC has been verified. You can now apply to become a Distributor.
                 {kycDetails?.verifiedAt && (
                   <span className="block text-sm mt-1">
                     Verified on: {new Date(kycDetails.verifiedAt).toLocaleDateString()}
@@ -316,16 +316,16 @@ export function KYCVerification() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Complete your KYC verification to pre-book vehicles. Please upload your PAN and Aadhar documents.
+                Complete your KYC verification to become a Distributor. Please upload your PAN and Aadhar documents.
               </AlertDescription>
             </Alert>
           )}
 
           {/* Form */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* PAN Card */}
-            <div className="space-y-3">
-              <Label htmlFor="panNumber" className="text-base font-semibold">
+            <div className="space-y-2 sm:space-y-3">
+              <Label htmlFor="panNumber" className="text-sm sm:text-base font-semibold">
                 PAN Card Number <span className="text-destructive">*</span>
               </Label>
               <Input
@@ -335,17 +335,17 @@ export function KYCVerification() {
                 onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
                 disabled={!canEdit}
                 maxLength={10}
-                className="uppercase"
+                className="uppercase text-sm sm:text-base"
               />
               <p className="text-xs text-muted-foreground">
                 Format: 5 letters, 4 digits, 1 letter (e.g., ABCDE1234F)
               </p>
 
               <div className="space-y-2">
-                <Label htmlFor="panFile" className="text-sm font-medium">
+                <Label htmlFor="panFile" className="text-xs sm:text-sm font-medium">
                   PAN Card Document <span className="text-destructive">*</span>
                 </Label>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
                   <Input
                     id="panFile"
                     type="file"
@@ -359,7 +359,7 @@ export function KYCVerification() {
                       )
                     }
                     disabled={!canEdit}
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm"
                   />
                 </div>
                 {panPreview && (
@@ -367,7 +367,7 @@ export function KYCVerification() {
                     <img
                       src={panPreview}
                       alt="PAN Preview"
-                      className="max-h-32 object-contain"
+                      className="max-h-24 sm:max-h-32 object-contain w-full"
                     />
                   </div>
                 )}
@@ -375,8 +375,8 @@ export function KYCVerification() {
             </div>
 
             {/* Aadhar Card */}
-            <div className="space-y-3">
-              <Label htmlFor="aadharNumber" className="text-base font-semibold">
+            <div className="space-y-2 sm:space-y-3">
+              <Label htmlFor="aadharNumber" className="text-sm sm:text-base font-semibold">
                 Aadhar Card Number <span className="text-destructive">*</span>
               </Label>
               <Input
@@ -390,16 +390,17 @@ export function KYCVerification() {
                 }}
                 disabled={!canEdit}
                 maxLength={14} // 12 digits + 2 spaces
+                className="text-sm sm:text-base"
               />
               <p className="text-xs text-muted-foreground">
                 12-digit Aadhar number
               </p>
 
               <div className="space-y-2">
-                <Label htmlFor="aadharFile" className="text-sm font-medium">
+                <Label htmlFor="aadharFile" className="text-xs sm:text-sm font-medium">
                   Aadhar Card Document <span className="text-destructive">*</span>
                 </Label>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
                   <Input
                     id="aadharFile"
                     type="file"
@@ -413,7 +414,7 @@ export function KYCVerification() {
                       )
                     }
                     disabled={!canEdit}
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm"
                   />
                 </div>
                 {aadharPreview && (
@@ -421,7 +422,7 @@ export function KYCVerification() {
                     <img
                       src={aadharPreview}
                       alt="Aadhar Preview"
-                      className="max-h-32 object-contain"
+                      className="max-h-24 sm:max-h-32 object-contain w-full"
                     />
                   </div>
                 )}
@@ -429,11 +430,11 @@ export function KYCVerification() {
             </div>
 
             {/* Bank Statement (Optional) */}
-            <div className="space-y-3">
-              <Label htmlFor="bankStatementFile" className="text-sm font-medium">
+            <div className="space-y-2 sm:space-y-3">
+              <Label htmlFor="bankStatementFile" className="text-xs sm:text-sm font-medium">
                 Bank Statement (Optional)
               </Label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <Input
                   id="bankStatementFile"
                   type="file"
@@ -447,7 +448,7 @@ export function KYCVerification() {
                     )
                   }
                   disabled={!canEdit}
-                  className="flex-1"
+                  className="flex-1 text-xs sm:text-sm"
                 />
               </div>
               {bankStatementPreview && (
@@ -455,7 +456,7 @@ export function KYCVerification() {
                   <img
                     src={bankStatementPreview}
                     alt="Bank Statement Preview"
-                    className="max-h-32 object-contain"
+                    className="max-h-24 sm:max-h-32 object-contain w-full"
                   />
                 </div>
               )}

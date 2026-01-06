@@ -121,37 +121,41 @@ export const AdminDashboard = () => {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+        className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between"
       >
         <div>
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            <span className="text-sm font-medium text-primary">
+            <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+            <span className="text-xs sm:text-sm font-medium text-primary">
               Admin Control Center
             </span>
           </div>
-          <h1 className="mt-1 font-display text-3xl font-bold text-foreground">
+          <h1 className="mt-1 font-display text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
             Growth Intelligence Dashboard
           </h1>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto text-xs sm:text-sm"
+          >
             Export Report
           </Button>
-          <Button size="sm">
-            <Zap className="mr-2 h-4 w-4" />
+          <Button size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
+            <Zap className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             Live Mode
           </Button>
         </div>
       </motion.div>
 
       {/* KPA Cards */}
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-5">
+      <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -159,19 +163,19 @@ export const AdminDashboard = () => {
           className="relative"
         >
           <Card className="glass-card overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Active Buyers
               </CardTitle>
-              <Users className="h-4 w-4 text-success" />
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-success flex-shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="text-xl sm:text-2xl font-bold text-foreground">
                 {mockMetrics.activeBuyers.value.toLocaleString()}
               </div>
               <div className="flex items-center gap-1 mt-1">
-                <ArrowUpRight className="h-3 w-3 text-success" />
-                <span className="text-xs text-success">
+                <ArrowUpRight className="h-3 w-3 text-success flex-shrink-0" />
+                <span className="text-[10px] sm:text-xs text-success">
                   {mockMetrics.activeBuyers.change}% vs last month
                 </span>
               </div>
@@ -186,17 +190,19 @@ export const AdminDashboard = () => {
           className="relative"
         >
           <Card className="glass-card overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 Total Visitors
               </CardTitle>
-              <Users className="h-4 w-4 text-primary" />
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">10,000</div>
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="text-xl sm:text-2xl font-bold text-foreground">
+                10,000
+              </div>
               <div className="flex items-center gap-1 mt-1">
-                <TrendingUp className="h-3 w-3 text-success" />
-                <span className="text-xs text-success">
+                <TrendingUp className="h-3 w-3 text-success flex-shrink-0" />
+                <span className="text-[10px] sm:text-xs text-success">
                   +8.2% from last month
                 </span>
               </div>
@@ -211,13 +217,17 @@ export const AdminDashboard = () => {
           className="relative"
         >
           <Card className="glass-card overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pre-Booked</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-warning" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">
+                Pre-Booked
+              </CardTitle>
+              <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-warning flex-shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">1,250</div>
-              <div className="text-xs text-muted-foreground mt-1">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="text-xl sm:text-2xl font-bold text-foreground">
+                1,250
+              </div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                 12.5% conversion
               </div>
             </CardContent>
@@ -231,13 +241,17 @@ export const AdminDashboard = () => {
           className="relative"
         >
           <Card className="glass-card overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Paid Orders</CardTitle>
-              <CheckCircle className="h-4 w-4 text-success" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">
+                Paid Orders
+              </CardTitle>
+              <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-success flex-shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">850</div>
-              <div className="text-xs text-muted-foreground mt-1">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="text-xl sm:text-2xl font-bold text-foreground">
+                850
+              </div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                 68% conversion
               </div>
             </CardContent>
@@ -251,13 +265,17 @@ export const AdminDashboard = () => {
           className="relative"
         >
           <Card className="glass-card overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Delivered</CardTitle>
-              <CheckCircle className="h-4 w-4 text-info" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">
+                Delivered
+              </CardTitle>
+              <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-info flex-shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">720</div>
-              <div className="text-xs text-muted-foreground mt-1">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="text-xl sm:text-2xl font-bold text-foreground">
+                720
+              </div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                 84.7% conversion
               </div>
             </CardContent>
@@ -266,7 +284,7 @@ export const AdminDashboard = () => {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid gap-6 lg:grid-cols-3 items-stretch">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3 items-stretch">
         {/* Booking Trends */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -274,30 +292,30 @@ export const AdminDashboard = () => {
           transition={{ delay: 0.2 }}
           className="h-full"
         >
-          <Card className="p-6 h-full flex flex-col">
-            <div className="mb-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-primary/20 p-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
+          <Card className="p-4 sm:p-6 h-full flex flex-col">
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="rounded-lg bg-primary/20 p-1.5 sm:p-2 flex-shrink-0">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">
+                  <h3 className="text-sm sm:text-base font-semibold text-foreground">
                     EV Booking Trends
                   </h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     Monthly booking growth
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-sm text-success">
-                  <ArrowUpRight className="h-4 w-4" />
+                <span className="flex items-center gap-1 text-xs sm:text-sm text-success">
+                  <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4" />
                   15.2%
                 </span>
               </div>
             </div>
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height={300}>
+            <div className="flex-1 min-h-[250px] sm:min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={bookingTrendsData}>
                   <defs>
                     <linearGradient
@@ -362,20 +380,22 @@ export const AdminDashboard = () => {
           transition={{ delay: 0.3 }}
           className="h-full"
         >
-          <Card className="p-6 h-full flex flex-col">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-lg bg-info/20 p-2">
-                <PieChart className="h-5 w-5 text-info" />
+          <Card className="p-4 sm:p-6 h-full flex flex-col">
+            <div className="mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+              <div className="rounded-lg bg-info/20 p-1.5 sm:p-2 flex-shrink-0">
+                <PieChart className="h-4 w-4 sm:h-5 sm:w-5 text-info" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">
+                <h3 className="text-sm sm:text-base font-semibold text-foreground">
                   Payment Distribution
                 </h3>
-                <p className="text-xs text-muted-foreground">By payment type</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  By payment type
+                </p>
               </div>
             </div>
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height={300}>
+            <div className="flex-1 min-h-[250px] sm:min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <RePieChart>
                   <Pie
                     data={paymentTypes}
@@ -404,14 +424,14 @@ export const AdminDashboard = () => {
                 </RePieChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
               {paymentTypes?.map((item, index) => (
                 <div key={item.name} className="flex items-center gap-2">
                   <div
-                    className="h-3 w-3 rounded-full"
+                    className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-[10px] sm:text-xs text-muted-foreground truncate">
                     {item.name}
                   </span>
                 </div>
@@ -427,22 +447,22 @@ export const AdminDashboard = () => {
           transition={{ delay: 0.4 }}
           className="h-full"
         >
-          <Card className="p-6 h-full flex flex-col">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-lg bg-warning/20 p-2">
-                <BarChart3 className="h-5 w-5 text-warning" />
+          <Card className="p-4 sm:p-6 h-full flex flex-col">
+            <div className="mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+              <div className="rounded-lg bg-warning/20 p-1.5 sm:p-2 flex-shrink-0">
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">
+                <h3 className="text-sm sm:text-base font-semibold text-foreground">
                   Staff Performance
                 </h3>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   Target achievement %
                 </p>
               </div>
             </div>
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height={300}>
+            <div className="flex-1 min-h-[250px] sm:min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={staffPerformance}>
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -475,24 +495,24 @@ export const AdminDashboard = () => {
       </div>
 
       {/* Buyer Growth Trend and Buyer Segments */}
-      <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 items-stretch">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
           className="h-full"
         >
-          <Card className="p-6 h-full flex flex-col">
-            <div className="mb-6">
-              <h3 className="font-semibold text-foreground">
+          <Card className="p-4 sm:p-6 h-full flex flex-col">
+            <div className="mb-4 sm:mb-6">
+              <h3 className="text-sm sm:text-base font-semibold text-foreground">
                 Buyer Growth Trend
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 Monthly buyer acquisition trends
               </p>
             </div>
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height={300}>
+            <div className="flex-1 min-h-[250px] sm:min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={buyerGrowthData}>
                   <defs>
                     <linearGradient
@@ -581,15 +601,17 @@ export const AdminDashboard = () => {
           transition={{ delay: 0.7 }}
           className="h-full"
         >
-          <Card className="p-6 h-full flex flex-col">
-            <div className="mb-6">
-              <h3 className="font-semibold text-foreground">Buyer Segments</h3>
-              <p className="text-xs text-muted-foreground">
+          <Card className="p-4 sm:p-6 h-full flex flex-col">
+            <div className="mb-4 sm:mb-6">
+              <h3 className="text-sm sm:text-base font-semibold text-foreground">
+                Buyer Segments
+              </h3>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 Distribution of buyer categories
               </p>
             </div>
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height={300}>
+            <div className="flex-1 min-h-[250px] sm:min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <RePieChart>
                   <Pie
                     data={buyerSegments}
@@ -619,21 +641,21 @@ export const AdminDashboard = () => {
                 </RePieChart>
               </ResponsiveContainer>
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2 mt-3 sm:mt-4">
               {buyerSegments.map((item, index) => (
                 <div key={item.name} className="flex items-center gap-2">
                   <div
-                    className="h-3 w-3 rounded-full"
+                    className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full flex-shrink-0"
                     style={{
                       backgroundColor:
                         buyerSegmentColors[index % buyerSegmentColors.length],
                     }}
                   />
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-foreground">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] sm:text-xs font-medium text-foreground truncate">
                       {item.name}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       {item.value.toLocaleString()}
                     </p>
                   </div>
@@ -645,29 +667,29 @@ export const AdminDashboard = () => {
       </div>
 
       {/* Sales Funnel Visualization and Conversion Rates */}
-      <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 items-stretch">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
           className="h-full"
         >
-          <Card className="p-6 h-full flex flex-col">
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
+          <Card className="p-4 sm:p-6 h-full flex flex-col">
+            <div className="mb-4 sm:mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:mb-2">
                 <div>
-                  <h3 className="font-semibold text-foreground">
+                  <h3 className="text-sm sm:text-base font-semibold text-foreground">
                     Sales Funnel Visualization
                   </h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     Customer journey through sales pipeline
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">
+                <div className="text-left sm:text-right">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     Total Visitors
                   </p>
-                  <p className="text-sm font-bold text-foreground">
+                  <p className="text-xs sm:text-sm font-bold text-foreground">
                     {funnelData[0].value.toLocaleString()}
                   </p>
                 </div>
@@ -684,27 +706,27 @@ export const AdminDashboard = () => {
                     : 0;
                 return (
                   <div key={item.name} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
+                        <span className="text-xs sm:text-sm font-medium text-foreground truncate">
                           {item.name}
                         </span>
                         {index > 0 && dropOff > 0 && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground">
                             ({dropOff.toFixed(1)}% drop-off)
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <span className="text-[10px] sm:text-xs text-muted-foreground">
                           {percentage.toFixed(1)}%
                         </span>
-                        <span className="text-sm font-bold text-foreground">
+                        <span className="text-xs sm:text-sm font-bold text-foreground">
                           {item.value.toLocaleString()}
                         </span>
                       </div>
                     </div>
-                    <div className="relative h-10 bg-secondary rounded-lg overflow-hidden">
+                    <div className="relative h-8 sm:h-10 bg-secondary rounded-lg overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${percentage}%` }}
@@ -713,14 +735,14 @@ export const AdminDashboard = () => {
                         style={{ backgroundColor: item.fill }}
                       >
                         {percentage > 15 && (
-                          <span className="text-xs font-semibold text-white ml-3">
+                          <span className="text-[10px] sm:text-xs font-semibold text-white ml-2 sm:ml-3">
                             {percentage.toFixed(1)}%
                           </span>
                         )}
                       </motion.div>
                       {percentage <= 15 && (
                         <div className="absolute inset-0 flex items-center">
-                          <span className="text-xs font-semibold text-foreground ml-3">
+                          <span className="text-[10px] sm:text-xs font-semibold text-foreground ml-2 sm:ml-3">
                             {percentage.toFixed(1)}%
                           </span>
                         </div>
@@ -734,13 +756,13 @@ export const AdminDashboard = () => {
                   </div>
                 );
               })}
-              <div className="mt-4 pt-4 border-t border-border">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-                    <p className="text-xs text-muted-foreground mb-1">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="p-2 sm:p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">
                       Overall Conversion
                     </p>
-                    <p className="text-lg font-bold text-primary">
+                    <p className="text-base sm:text-lg font-bold text-primary">
                       {(
                         (funnelData[funnelData.length - 1].value /
                           funnelData[0].value) *
@@ -748,16 +770,16 @@ export const AdminDashboard = () => {
                       ).toFixed(1)}
                       %
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                       {funnelData[funnelData.length - 1].value.toLocaleString()}{" "}
                       of {funnelData[0].value.toLocaleString()}
                     </p>
                   </div>
-                  <div className="p-3 rounded-lg bg-info/5 border border-info/20">
-                    <p className="text-xs text-muted-foreground mb-1">
+                  <div className="p-2 sm:p-3 rounded-lg bg-info/5 border border-info/20">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">
                       Biggest Drop
                     </p>
-                    <p className="text-lg font-bold text-info">
+                    <p className="text-base sm:text-lg font-bold text-info">
                       {(() => {
                         const dropOffs = funnelData.map((item, idx) =>
                           idx > 0
@@ -770,7 +792,7 @@ export const AdminDashboard = () => {
                       })()}
                       %
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                       {(() => {
                         const dropOffs = funnelData.map((item, idx) =>
                           idx > 0
@@ -800,21 +822,23 @@ export const AdminDashboard = () => {
           transition={{ delay: 0.7 }}
           className="h-full"
         >
-          <Card className="p-6 h-full flex flex-col">
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
+          <Card className="p-4 sm:p-6 h-full flex flex-col">
+            <div className="mb-4 sm:mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:mb-2">
                 <div>
-                  <h3 className="font-semibold text-foreground">
+                  <h3 className="text-sm sm:text-base font-semibold text-foreground">
                     Conversion Rates
                   </h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     Stage-to-stage conversion efficiency
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Avg. Rate</p>
-                    <p className="text-sm font-bold text-foreground">
+                  <div className="text-left sm:text-right">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
+                      Avg. Rate
+                    </p>
+                    <p className="text-xs sm:text-sm font-bold text-foreground">
                       {(
                         conversionRates.reduce(
                           (sum, item) => sum + item.rate,
@@ -833,31 +857,31 @@ export const AdminDashboard = () => {
                 const TrendIcon = isPositive ? ArrowUpRight : ArrowDownRight;
                 return (
                   <div key={index} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium text-foreground">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                          <span className="text-xs sm:text-sm font-medium text-foreground truncate">
                             {item.stage}
                           </span>
                           <div
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
+                            className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
                               isPositive
                                 ? "bg-success/10 text-success"
                                 : "bg-destructive/10 text-destructive"
                             }`}
                           >
-                            <TrendIcon className="h-3 w-3" />
+                            <TrendIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                             <span>
                               {isPositive ? "+" : ""}
                               {item.change}%
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-2xl font-bold text-foreground">
+                        <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
+                          <span className="text-xl sm:text-2xl font-bold text-foreground">
                             {item.rate}%
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground">
                             {index === 0 &&
                               `${(
                                 (item.rate / 100) *
@@ -900,19 +924,19 @@ export const AdminDashboard = () => {
                   </div>
                 );
               })}
-              <div className="mt-4 pt-4 border-t border-border">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 rounded-lg bg-success/5 border border-success/20">
-                    <p className="text-xs text-muted-foreground mb-1">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="p-2 sm:p-3 rounded-lg bg-success/5 border border-success/20">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">
                       Best Rate
                     </p>
-                    <p className="text-lg font-bold text-success">
+                    <p className="text-base sm:text-lg font-bold text-success">
                       {Math.max(...conversionRates.map((r) => r.rate)).toFixed(
                         1
                       )}
                       %
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
                       {
                         conversionRates.find(
                           (r) =>
@@ -922,17 +946,17 @@ export const AdminDashboard = () => {
                       }
                     </p>
                   </div>
-                  <div className="p-3 rounded-lg bg-warning/5 border border-warning/20">
-                    <p className="text-xs text-muted-foreground mb-1">
+                  <div className="p-2 sm:p-3 rounded-lg bg-warning/5 border border-warning/20">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">
                       Needs Focus
                     </p>
-                    <p className="text-lg font-bold text-warning">
+                    <p className="text-base sm:text-lg font-bold text-warning">
                       {Math.min(...conversionRates.map((r) => r.rate)).toFixed(
                         1
                       )}
                       %
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
                       {
                         conversionRates.find(
                           (r) =>

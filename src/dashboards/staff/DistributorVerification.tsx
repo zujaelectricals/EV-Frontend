@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
-import { UserCheck, CheckCircle, XCircle, Clock, Eye, Search } from 'lucide-react';
+import { UserCheck, CheckCircle, XCircle, Clock, Eye, Search, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   useGetAllDistributorApplicationsQuery, 
   useApproveDistributorApplicationMutation, 
@@ -65,6 +65,18 @@ export const DistributorVerification = () => {
   });
 
   const pendingApplications = filteredApplications.filter(app => app.status === 'pending');
+
+  // Get last 5 recently approved/verified applications
+  const recentlyApproved = useMemo(() => {
+    return applications
+      .filter(app => app.status === 'approved')
+      .sort((a, b) => {
+        const dateA = a.reviewedAt ? new Date(a.reviewedAt).getTime() : new Date(a.submittedAt).getTime();
+        const dateB = b.reviewedAt ? new Date(b.reviewedAt).getTime() : new Date(b.submittedAt).getTime();
+        return dateB - dateA; // Most recent first
+      })
+      .slice(0, 5);
+  }, [applications]);
 
   const handleApprove = async (applicationId: string) => {
     try {
@@ -190,6 +202,65 @@ export const DistributorVerification = () => {
         </CardContent>
       </Card>
 
+      {/* Recently Approved/Verified Section */}
+      {recentlyApproved.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-success" />
+              Recently Approved/Verified (Last 5)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentlyApproved.map((app) => (
+                <motion.div
+                  key={app.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-green-100 bg-green-50/50 border-green-200/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-semibold text-foreground">{app.applicationData.applicantName}</h3>
+                      {getStatusBadge(app.status)}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {app.applicationData.distributorId} • {app.applicationData.mobileNumber}
+                    </p>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                      <span>
+                        Submitted: {new Date(app.submittedAt).toLocaleDateString()}
+                      </span>
+                      {app.reviewedAt && (
+                        <span>
+                          Approved: {new Date(app.reviewedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                      {app.reviewedBy && (
+                        <span>
+                          By: {app.reviewedBy}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => openViewDialog(app)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* View Details Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -227,6 +298,58 @@ export const DistributorVerification = () => {
                   <p className="font-medium">{selectedApplication.applicationData.bookingOrderNo}</p>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Payment Mode</Label>
+                  <p className="font-medium capitalize">{selectedApplication.applicationData.paymentMode || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label>Advance Paid</Label>
+                  <p className="font-medium">₹{selectedApplication.applicationData.advancePaid || '0'}</p>
+                </div>
+                {selectedApplication.applicationData.paymentMode === 'installment' && (
+                  <>
+                    <div>
+                      <Label>Installment Mode</Label>
+                      <p className="font-medium capitalize">{selectedApplication.applicationData.installmentMode || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label>Installment Amount</Label>
+                      <p className="font-medium">₹{selectedApplication.applicationData.installmentAmount || '0'}</p>
+                    </div>
+                  </>
+                )}
+                <div>
+                  <Label>Balance Amount</Label>
+                  <p className="font-medium">₹{selectedApplication.applicationData.balanceAmount || '0'}</p>
+                </div>
+                <div>
+                  <Label>Submitted Date</Label>
+                  <p className="font-medium">{new Date(selectedApplication.submittedAt).toLocaleString()}</p>
+                </div>
+              </div>
+              {selectedApplication.status === 'approved' && selectedApplication.reviewedAt && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Reviewed Date</Label>
+                      <p className="font-medium">{new Date(selectedApplication.reviewedAt).toLocaleString()}</p>
+                    </div>
+                    {selectedApplication.reviewedBy && (
+                      <div>
+                        <Label>Reviewed By</Label>
+                        <p className="font-medium">{selectedApplication.reviewedBy}</p>
+                      </div>
+                    )}
+                  </div>
+                  {selectedApplication.comments && (
+                    <div className="mt-4">
+                      <Label>Review Comments</Label>
+                      <p className="font-medium mt-1">{selectedApplication.comments}</p>
+                    </div>
+                  )}
+                </div>
+              )}
               {selectedApplication.applicationData.vehicleImage && (
                 <div>
                   <Label>Vehicle Image</Label>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Menu, X, ShoppingCart, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut } from 'lucide-react';
+import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { logout, isUserAuthenticated } from '@/app/slices/authSlice';
@@ -76,13 +76,6 @@ export function StoreNavbar() {
 
           {/* Actions */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="relative">
-              <ShoppingCart className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
-                0
-              </span>
-            </Button>
-            
             {authenticated && <ProfileSwitcher />}
             
             {authenticated ? (

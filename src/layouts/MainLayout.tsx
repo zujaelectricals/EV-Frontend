@@ -1,9 +1,10 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sidebar } from './Sidebar';
 import { TopNav } from './TopNav';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { loadBookingsForUser } from '@/app/slices/bookingSlice';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -12,6 +13,8 @@ interface MainLayoutProps {
 export const MainLayout = ({ children }: MainLayoutProps) => {
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Load bookings when user is available, clear when user logs out
   useEffect(() => {
@@ -25,14 +28,14 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      <Sidebar />
-      <div className="flex flex-1 flex-col">
-        <TopNav />
+      <Sidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
+      <div className="flex flex-1 flex-col w-full">
+        <TopNav onMenuClick={() => setSidebarOpen(true)} />
         <motion.main
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex-1 overflow-auto p-6"
+          className="flex-1 overflow-auto p-3 sm:p-6"
         >
           {children}
         </motion.main>

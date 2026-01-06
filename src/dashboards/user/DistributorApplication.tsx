@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload, FileText, CheckCircle, XCircle, AlertCircle, User, Mail, Phone, MapPin, CreditCard, Image as ImageIcon, Car, DollarSign, FileCheck } from 'lucide-react';
+import { Upload, FileText, CheckCircle, XCircle, AlertCircle, User, Mail, Phone, MapPin, CreditCard, Image as ImageIcon, Car, DollarSign, FileCheck, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,7 @@ import { Booking } from '@/app/slices/bookingSlice';
 
 export function DistributorApplication() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
   const { bookings } = useAppSelector((state) => state.booking);
   const [formData, setFormData] = useState({
@@ -164,6 +166,10 @@ export function DistributorApplication() {
   // Check if already a distributor
   const isDistributor = user?.isDistributor;
   const verificationStatus = user?.distributorInfo?.verificationStatus || existingApplication?.status;
+  
+  // Check KYC verification status
+  const kycStatus = user?.kycStatus || 'not_submitted';
+  const isKYCVerified = kycStatus === 'verified';
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => {
@@ -197,10 +203,18 @@ export function DistributorApplication() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Validate eligibility: total paid must be at least ₹5000
+    // Validate eligibility FIRST: total paid must be at least ₹5000
     if (!isEligible || userTotalPaid < 5000) {
-      toast.error(`You need to pay a total of at least ₹5,000 to submit the distributor application. Your current total paid is ₹${userTotalPaid.toLocaleString()}.`);
+      toast.error(`You need to pre-book at least one vehicle with ₹5,000 to submit the distributor application. Your current total paid is ₹${userTotalPaid.toLocaleString()}.`);
       setIsSubmitting(false);
+      return;
+    }
+
+    // Validate KYC verification SECOND
+    if (!isKYCVerified) {
+      toast.error('KYC verification is required to submit the distributor application. Please complete your KYC verification first.');
+      setIsSubmitting(false);
+      navigate('/profile?tab=kyc');
       return;
     }
 
@@ -338,22 +352,31 @@ export function DistributorApplication() {
   const isVerifiedDistributor = isDistributor && (verificationStatus === 'approved' || user?.distributorInfo?.isVerified);
   if (isVerifiedDistributor) {
     return (
-      <div className="space-y-6">
-        <Card className="min-h-[300px] flex flex-col">
-          <CardHeader className="pb-6">
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-success" />
-              Authorized Partner Status: Active
+      <div className="space-y-4 sm:space-y-6">
+        <Card className="min-h-[250px] sm:min-h-[300px] flex flex-col">
+          <CardHeader className="pb-4 sm:pb-6 p-4 sm:p-6">
+            <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-lg sm:text-xl">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-success flex-shrink-0" />
+                <span className="break-words">Authorized Partner Status: Active</span>
+              </div>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm sm:text-base mt-2">
               Your authorized partner account is active. Visit your profile to access authorized partner options and manage your authorized partner account.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex gap-4 mt-auto pb-6">
-            <Button onClick={() => window.location.href = '/profile?tab=distributor'} className="w-1/2">
+          <CardContent className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-auto p-4 sm:p-6 pt-0">
+            <Button 
+              onClick={() => window.location.href = '/profile?tab=distributor'} 
+              className="w-full sm:w-1/2 text-sm sm:text-base"
+            >
               Go to Authorized Partner Profile
             </Button>
-            <Button onClick={() => window.location.href = '/distributor'} variant="outline" className="w-1/2">
+            <Button 
+              onClick={() => window.location.href = '/distributor'} 
+              variant="outline" 
+              className="w-full sm:w-1/2 text-sm sm:text-base"
+            >
               Go to Authorized Partner Dashboard
             </Button>
           </CardContent>
@@ -362,21 +385,30 @@ export function DistributorApplication() {
     );
   }
 
+  // Check pre-booking eligibility FIRST (at least ₹5000) - show warning if not eligible
   if (!isEligible) {
     return (
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Distributor Program</CardTitle>
-            <CardDescription>Join our distributor program and earn commissions</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Car className="h-5 w-5 text-warning" />
+              Pre-Booking Required
+            </CardTitle>
+            <CardDescription>
+              Pre-book a vehicle with at least ₹5,000 to become eligible for the Distributor Program
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Alert>
+            <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                You need to pay a total of at least ₹5,000 for your vehicle booking to become eligible for the Distributor Program.
+                <p className="font-semibold mb-2">Pre-booking at least ₹5,000 is the first requirement to become a Distributor.</p>
+                <p className="mb-3">
+                  You need to pre-book at least one vehicle with a minimum payment of ₹5,000 before you can apply for the Distributor Program.
+                </p>
                 {user?.preBookingInfo?.hasPreBooked && (
-                  <p className="mt-2 text-sm">
+                  <p className="mb-3 text-sm">
                     Your current total amount paid is ₹{(user.preBookingInfo.totalPaid || user.preBookingInfo.preBookingAmount || 0).toLocaleString()}. 
                     You need to pay a total of ₹5,000 to be eligible. 
                     {userTotalPaid < 5000 && (
@@ -387,21 +419,77 @@ export function DistributorApplication() {
                   </p>
                 )}
                 {bookings.length > 0 && !hasEligibleBooking && (
-                  <p className="mt-2 text-sm">
+                  <p className="mb-3 text-sm">
                     You have bookings, but none with a total paid amount of ₹5,000 or more. 
                     Please make additional payments to reach ₹5,000 total to be eligible.
                   </p>
                 )}
                 <div className="mt-4 flex gap-2">
-                  <Button onClick={() => window.location.href = '/scooters'}>
+                  <Button onClick={() => window.location.href = '/scooters'} size="lg">
+                    <Car className="w-4 h-4 mr-2" />
                     Browse Vehicles
                   </Button>
                   {user?.preBookingInfo?.hasPreBooked && userTotalPaid < 5000 && (
-                    <Button onClick={() => window.location.href = '/profile?tab=orders'} variant="outline">
+                    <Button onClick={() => window.location.href = '/profile?tab=orders'} variant="outline" size="lg">
                       Make Payment
                     </Button>
                   )}
                 </div>
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check KYC verification SECOND - show warning if not verified
+  if (!isKYCVerified) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-warning" />
+              KYC Verification Required
+            </CardTitle>
+            <CardDescription>
+              Complete your KYC verification to apply for the Distributor Program
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <p className="font-semibold mb-2">KYC verification is required to become a Distributor.</p>
+                <p className="mb-3 text-sm">
+                  You have completed the pre-booking requirement (₹5,000+). Now you need to complete your KYC verification to proceed with the distributor application.
+                </p>
+                {kycStatus === 'not_submitted' && (
+                  <p className="mb-3 text-sm">
+                    Please upload your PAN and Aadhar documents for verification.
+                  </p>
+                )}
+                {kycStatus === 'pending' && (
+                  <p className="mb-3 text-sm">
+                    Your KYC verification is currently under review. Please wait for approval before submitting the distributor application.
+                  </p>
+                )}
+                {kycStatus === 'rejected' && (
+                  <p className="mb-3 text-sm">
+                    Your KYC verification was rejected. Please resubmit your documents with correct information.
+                  </p>
+                )}
+                <Button 
+                  onClick={() => navigate('/profile?tab=kyc')} 
+                  className="mt-2"
+                  size="lg"
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  {kycStatus === 'not_submitted' && 'Complete KYC Verification'}
+                  {kycStatus === 'pending' && 'View KYC Status'}
+                  {kycStatus === 'rejected' && 'Resubmit KYC Documents'}
+                </Button>
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -998,25 +1086,37 @@ export function DistributorApplication() {
               type="submit" 
               className="w-full" 
               size="lg" 
-              disabled={isSubmitting || !conditionsAccepted.otpVerified || !isEligible || userTotalPaid < 5000}
+              disabled={isSubmitting || !conditionsAccepted.otpVerified || !isEligible || userTotalPaid < 5000 || !isKYCVerified}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </Button>
+            {(!isEligible || userTotalPaid < 5000) && (
+              <p className="text-sm text-destructive text-center">
+                Pre-booking at least ₹5,000 is required. Current total paid: ₹{userTotalPaid.toLocaleString()}. 
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-destructive underline ml-1"
+                  onClick={() => window.location.href = '/scooters'}
+                >
+                  Browse Vehicles
+                </Button>
+              </p>
+            )}
+            {isEligible && userTotalPaid >= 5000 && !isKYCVerified && (
+              <p className="text-sm text-destructive text-center">
+                KYC verification is required. Please complete your KYC verification to submit the application.
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-destructive underline ml-1"
+                  onClick={() => navigate('/profile?tab=kyc')}
+                >
+                  Complete KYC
+                </Button>
+              </p>
+            )}
             {!conditionsAccepted.otpVerified && (
               <p className="text-sm text-muted-foreground text-center">
                 Please accept Terms & Conditions and verify OTP to submit
-              </p>
-            )}
-            {isEligible && userTotalPaid < 5000 && (
-              <p className="text-sm text-warning text-center">
-                You need to pay a total of ₹5,000 to submit the application. Current total paid: ₹{userTotalPaid.toLocaleString()}. 
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto text-warning underline ml-1"
-                  onClick={() => window.location.href = '/profile?tab=orders'}
-                >
-                  Make Payment
-                </Button>
               </p>
             )}
           </form>
