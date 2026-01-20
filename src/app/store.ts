@@ -4,7 +4,7 @@ import { api } from './api/baseApi';
 import authReducer from './slices/authSlice';
 import walletReducer from './slices/walletSlice';
 import binaryReducer from './slices/binarySlice';
-import bookingReducer, { addBooking, updateBooking, setBookings } from './slices/bookingSlice';
+import bookingReducer from './slices/bookingSlice';
 import payoutReducer from './slices/payoutSlice';
 import growthReducer from './slices/growthSlice';
 import staffReducer from './slices/staffSlice';
@@ -12,35 +12,8 @@ import complianceReducer from './slices/complianceSlice';
 import redemptionReducer from './slices/redemptionSlice';
 import wishlistReducer from './slices/wishlistSlice';
 
-// Helper function to save bookings to localStorage
-const saveBookingsToStorage = (userId: string | null, bookings: any[]): void => {
-  if (typeof window === 'undefined') return;
-  try {
-    const storageKey = `ev_nexus_bookings_${userId || 'guest'}`;
-    localStorage.setItem(storageKey, JSON.stringify(bookings));
-  } catch (error) {
-    console.error('Error saving bookings to localStorage:', error);
-  }
-};
-
-// Middleware to persist bookings to localStorage
-const bookingPersistenceMiddleware: Middleware = (store) => (next) => (action) => {
-  const result = next(action);
-  
-  // After the action is processed, check if bookings changed
-  if (addBooking.match(action) || updateBooking.match(action) || setBookings.match(action)) {
-    const state = store.getState() as ReturnType<typeof store.getState>;
-    const userId = state.auth.user?.id || null;
-    const bookings = state.booking.bookings;
-    
-    // Always save to localStorage if we have a user ID
-    if (userId && bookings.length >= 0) {
-      saveBookingsToStorage(userId, bookings);
-    }
-  }
-  
-  return result;
-};
+// Note: Bookings are managed by the backend API, not stored in localStorage
+// Removed booking persistence middleware as bookings should come from the API
 
 export const store = configureStore({
   reducer: {
@@ -57,7 +30,7 @@ export const store = configureStore({
     wishlist: wishlistReducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(api.middleware, bookingPersistenceMiddleware),
+    getDefaultMiddleware().concat(api.middleware),
 });
 
 setupListeners(store.dispatch);

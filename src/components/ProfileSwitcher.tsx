@@ -42,64 +42,16 @@ export const ProfileSwitcher = () => {
   const { user, token } = useAppSelector((state) => state.auth);
   const [accounts, setAccounts] = useState<StoredAccount[]>([]);
 
-  // Load accounts from localStorage
-  const loadAccounts = () => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setAccounts(parsed);
-      }
-    } catch (error) {
-      console.error('Error loading accounts:', error);
-    }
-  };
-
+  // Note: Multiple accounts feature removed - accounts are managed in Redux state only
   useEffect(() => {
-    loadAccounts();
-    // Refresh accounts periodically to catch updates from other tabs/sessions
-    const interval = setInterval(loadAccounts, 2000);
-    return () => clearInterval(interval);
+    // Clear any old multiple accounts data from localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+    }
   }, []);
 
-  // Save current account to the list
-  useEffect(() => {
-    if (user && token) {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        let accountsList: StoredAccount[] = stored ? JSON.parse(stored) : [];
-        
-        // Check if current account already exists
-        const existingIndex = accountsList.findIndex(
-          acc => acc.user.id === user.id && acc.user.email === user.email
-        );
-
-        const currentAccount: StoredAccount = {
-          user,
-          token,
-          lastUsed: new Date().toISOString(),
-        };
-
-        if (existingIndex >= 0) {
-          // Update existing account
-          accountsList[existingIndex] = currentAccount;
-        } else {
-          // Add new account (keep max 5 accounts)
-          accountsList = [currentAccount, ...accountsList].slice(0, 5);
-        }
-
-        // Sort by last used (most recent first)
-        accountsList.sort((a, b) => 
-          new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime()
-        );
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(accountsList));
-        setAccounts(accountsList);
-      } catch (error) {
-        console.error('Error saving account:', error);
-      }
-    }
-  }, [user, token]);
+  // Note: Multiple accounts feature removed - only tokens are stored in localStorage
+  // User data is managed in Redux state only
 
   const switchAccount = (account: StoredAccount) => {
     try {

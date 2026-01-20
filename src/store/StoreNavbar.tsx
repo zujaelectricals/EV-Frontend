@@ -5,6 +5,9 @@ import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Awar
 import { Button } from '@/components/ui/button';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { logout, isUserAuthenticated } from '@/app/slices/authSlice';
+import { useLogoutMutation } from '@/app/api/authApi';
+import { getAuthTokens } from '@/app/api/baseApi';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,9 +32,31 @@ export function StoreNavbar() {
   const authenticated = isAuthenticated || isUserAuthenticated();
   const isDistributor = user?.isDistributor && user?.distributorInfo?.isVerified;
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/');
+  const [logoutMutation, { isLoading: isLoggingOut }] = useLogoutMutation();
+
+  const handleLogout = async () => {
+    try {
+      const { refreshToken } = getAuthTokens();
+      
+      if (refreshToken) {
+        console.log('🔵 [LOGOUT HANDLER] Calling logout API with refresh token');
+        await logoutMutation({ refresh: refreshToken }).unwrap();
+        console.log('🟢 [LOGOUT HANDLER] Logout API call successful');
+      } else {
+        console.log('⚠️ [LOGOUT HANDLER] No refresh token found, clearing local data only');
+      }
+      
+      // Clear Redux state and localStorage
+      dispatch(logout());
+      toast.success('Successfully logged out');
+      navigate('/');
+    } catch (error) {
+      // Even if API call fails, clear local data
+      console.error('🔴 [LOGOUT HANDLER] Logout error:', error);
+      dispatch(logout());
+      toast.success('Logged out');
+      navigate('/');
+    }
   };
 
   const navLinks = [

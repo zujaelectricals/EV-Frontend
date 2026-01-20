@@ -3,8 +3,10 @@ import { store } from './app/store';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { MainLayout } from './layouts/MainLayout';
 import { LoginPage } from './auth/LoginPage';
+import { AdminLoginPage } from './auth/AdminLoginPage';
 import { UserDashboard } from './dashboards/user/UserDashboard';
 import { DistributorDashboard } from './dashboards/distributor/DistributorDashboard';
 import { AdminRoutes } from './dashboards/admin/AdminRoutes';
@@ -41,8 +43,9 @@ import { Earnings } from './dashboards/distributor/Earnings';
 import { PayoutHistory } from './dashboards/distributor/PayoutHistory';
 import { OrderHistory } from './dashboards/distributor/OrderHistory';
 import { RoleProtectedRoute } from './components/routes/RoleProtectedRoute';
-import { useAppSelector } from './app/hooks';
-import { isUserAuthenticated } from './app/slices/authSlice';
+import { useAppSelector, useAppDispatch } from './app/hooks';
+import { isUserAuthenticated, setCredentials } from './app/slices/authSlice';
+import { useGetCurrentUserQuery } from './app/api/authApi';
 import NotFound from './pages/NotFound';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -59,6 +62,42 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <MainLayout>{children}</MainLayout>;
 };
 
+// Component to clean up old localStorage keys
+const AuthInitializer = () => {
+  // Clean up old localStorage keys on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Remove ev_nexus_multiple_accounts if it exists
+      localStorage.removeItem('ev_nexus_multiple_accounts');
+      
+      // Ensure ev_nexus_auth_data only contains tokens + minimal user info
+      const authData = localStorage.getItem('ev_nexus_auth_data');
+      if (authData) {
+        try {
+          const parsed = JSON.parse(authData);
+          // Keep only tokens + minimal user info (id, email, name, role)
+          const cleaned = {
+            accessToken: parsed.accessToken || parsed.token,
+            token: parsed.accessToken || parsed.token,
+            refreshToken: parsed.refreshToken,
+            user: parsed.user ? {
+              id: parsed.user.id,
+              email: parsed.user.email,
+              name: parsed.user.name,
+              role: parsed.user.role,
+            } : undefined,
+          };
+          localStorage.setItem('ev_nexus_auth_data', JSON.stringify(cleaned));
+        } catch (e) {
+          console.error('Error cleaning auth data:', e);
+        }
+      }
+    }
+  }, []);
+
+  return null;
+};
+
 const AppRoutes = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   
@@ -73,6 +112,7 @@ const AppRoutes = () => {
       
       {/* Auth */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/admin/login" element={<AdminLoginPage />} />
       
       {/* Protected Routes - User/Distributor */}
       <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
@@ -109,6 +149,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <BrowserRouter>
+        <AuthInitializer />
         <AppRoutes />
       </BrowserRouter>
     </TooltipProvider>

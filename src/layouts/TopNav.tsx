@@ -15,7 +15,10 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { logout } from "@/app/slices/authSlice";
+import { useLogoutMutation } from "@/app/api/authApi";
+import { getAuthTokens } from "@/app/api/baseApi";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -94,10 +97,31 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
   ]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const [logoutMutation] = useLogoutMutation();
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      const { refreshToken } = getAuthTokens();
+      
+      if (refreshToken) {
+        console.log('🔵 [ADMIN LOGOUT HANDLER] Calling logout API with refresh token');
+        await logoutMutation({ refresh: refreshToken }).unwrap();
+        console.log('🟢 [ADMIN LOGOUT HANDLER] Logout API call successful');
+      } else {
+        console.log('⚠️ [ADMIN LOGOUT HANDLER] No refresh token found, clearing local data only');
+      }
+      
+      // Clear Redux state and localStorage
+      dispatch(logout());
+      toast.success('Successfully logged out');
+      navigate("/login");
+    } catch (error) {
+      // Even if API call fails, clear local data
+      console.error('🔴 [ADMIN LOGOUT HANDLER] Logout error:', error);
+      dispatch(logout());
+      toast.success('Logged out');
+      navigate("/login");
+    }
   };
 
   const handleNotificationClick = (notification: Notification) => {

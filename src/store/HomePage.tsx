@@ -14,9 +14,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ScooterCard } from "./ScooterCard";
-import { scooters } from "./data/scooters";
 import { StoreNavbar } from "./StoreNavbar";
 import { Footer } from "@/components/Footer";
+import { useGetVehiclesQuery } from "@/app/api/inventoryApi";
+import { mapVehicleGroupsToScooters } from "./utils/vehicleMapper";
 
 // HomePage component
 export function HomePage() {
@@ -27,9 +28,17 @@ export function HomePage() {
     });
   }, []);
 
-  const featuredScooters = scooters
-    .filter((s) => s.isBestseller || s.isNew)
-    .slice(0, 4);
+  // Fetch featured vehicles from API (limit to 4, status available)
+  const { data: inventoryData, isLoading, error } = useGetVehiclesQuery({
+    page: 1,
+    page_size: 4,
+    status: 'available',
+  });
+
+  // Map API response to Scooter format
+  const featuredScooters = inventoryData?.results 
+    ? mapVehicleGroupsToScooters(inventoryData.results)
+    : [];
 
   const benefits = [
     {
@@ -582,11 +591,27 @@ export function HomePage() {
             </Link>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredScooters.map((scooter, i) => (
-              <ScooterCard key={scooter.id} scooter={scooter} index={i} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-96 bg-card border border-border/80 rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Failed to load featured scooters. Please try again later.</p>
+            </div>
+          ) : featuredScooters.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredScooters.map((scooter, i) => (
+                <ScooterCard key={scooter.id} scooter={scooter} index={i} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No featured scooters available at the moment.</p>
+            </div>
+          )}
 
           <div className="mt-8 text-center md:hidden">
             <Link to="/scooters">

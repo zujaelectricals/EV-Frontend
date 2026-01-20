@@ -1,15 +1,8 @@
 import { api } from './baseApi';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'staff' | 'user';
-  isDistributor: boolean;
-  avatar?: string;
-  phone?: string;
-  joinedAt: string;
-}
+import { getAuthTokens } from './baseApi';
+import { getApiBaseUrl } from '../../lib/config';
+import type { User, KYCDetails } from '../slices/authSlice';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
 export interface LoginRequest {
   email: string;
@@ -21,18 +14,87 @@ export interface LoginResponse {
   token: string;
 }
 
-const STORAGE_KEY = 'ev_nexus_users';
+export interface SignupRequest {
+  first_name: string;
+  last_name: string;
+  email: string;
+  mobile: string;
+  gender: string;
+  date_of_birth: string;
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country?: string;
+}
 
-// Helper function to get users from localStorage
-function getStoredUsers(): Array<{ id: string; name: string; email: string; password: string; phone?: string; dateOfBirth?: string; aadhar?: string; joinedAt: string }> {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    console.error('Error reading users from localStorage:', error);
-    return [];
-  }
+export interface SignupResponse {
+  message: string;
+  signup_token: string;
+}
+
+export interface VerifySignupOTPRequest {
+  signup_token: string;
+  otp_code: string;
+}
+
+export interface VerifySignupOTPResponse {
+  user: {
+    id: number;
+    username: string;
+    email: string;
+    mobile: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+    is_active_buyer: boolean;
+    is_distributor: boolean;
+  };
+  tokens: {
+    refresh: string;
+    access: string;
+  };
+}
+
+export interface SendOTPRequest {
+  identifier: string;
+  otp_type: 'email' | 'mobile';
+}
+
+export interface SendOTPResponse {
+  message: string;
+  sent_to: string[];
+}
+
+export interface VerifyOTPRequest {
+  identifier: string;
+  otp_code: string;
+  otp_type: 'email' | 'mobile';
+}
+
+export interface VerifyOTPResponse {
+  user: {
+    id: number;
+    username: string;
+    email: string;
+    mobile: string;
+    role: string;
+    is_active_buyer: boolean;
+    is_distributor: boolean;
+  };
+  tokens: {
+    refresh: string;
+    access: string;
+  };
+}
+
+export interface LogoutRequest {
+  refresh: string;
+}
+
+export interface LogoutResponse {
+  message: string;
 }
 
 // Mock user data (for admin, staff, distributor demo accounts)
@@ -77,8 +139,117 @@ const mockUsers: Record<string, User> = {
 
 export const authApi = api.injectEndpoints({
   endpoints: (builder) => ({
+    signup: builder.mutation<SignupResponse, SignupRequest>({
+      query: (body) => {
+        console.log('🔵 [SIGNUP API] Request Body:', JSON.stringify(body, null, 2));
+        return {
+          url: 'auth/signup/',
+          method: 'POST',
+          body,
+        };
+      },
+      transformResponse: (response: SignupResponse) => {
+        console.log('🟢 [SIGNUP API] Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+      transformErrorResponse: (response: { status?: number; data?: unknown; error?: string } | unknown) => {
+        console.log('🔴 [SIGNUP API] Error Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+    }),
+    verifySignupOTP: builder.mutation<VerifySignupOTPResponse, VerifySignupOTPRequest>({
+      query: (body) => {
+        console.log('🔵 [VERIFY SIGNUP OTP API] Request Body:', JSON.stringify(body, null, 2));
+        return {
+          url: 'auth/verify-signup-otp/',
+          method: 'POST',
+          body,
+        };
+      },
+      transformResponse: (response: VerifySignupOTPResponse) => {
+        console.log('🟢 [VERIFY SIGNUP OTP API] Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+      transformErrorResponse: (response: { status?: number; data?: unknown; error?: string } | unknown) => {
+        console.log('🔴 [VERIFY SIGNUP OTP API] Error Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+    }),
+    sendOTP: builder.mutation<SendOTPResponse, SendOTPRequest>({
+      query: (body) => {
+        console.log('🔵 [SEND OTP API] Request Body:', JSON.stringify(body, null, 2));
+        return {
+          url: 'auth/send-otp/',
+          method: 'POST',
+          body,
+        };
+      },
+      transformResponse: (response: SendOTPResponse) => {
+        console.log('🟢 [SEND OTP API] Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+      transformErrorResponse: (response: { status?: number; data?: unknown; error?: string } | unknown) => {
+        console.log('🔴 [SEND OTP API] Error Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+    }),
+    verifyOTP: builder.mutation<VerifyOTPResponse, VerifyOTPRequest>({
+      query: (body) => {
+        console.log('🔵 [VERIFY OTP API] Request Body:', JSON.stringify(body, null, 2));
+        return {
+          url: 'auth/verify-otp/',
+          method: 'POST',
+          body,
+        };
+      },
+      transformResponse: (response: VerifyOTPResponse) => {
+        console.log('🟢 [VERIFY OTP API] Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+      transformErrorResponse: (response: { status?: number; data?: unknown; error?: string } | unknown) => {
+        console.log('🔴 [VERIFY OTP API] Error Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+    }),
+    sendAdminOTP: builder.mutation<SendOTPResponse, SendOTPRequest>({
+      query: (body) => {
+        console.log('🔵 [SEND ADMIN OTP API] Request Body:', JSON.stringify(body, null, 2));
+        return {
+          url: 'auth/send-admin-otp/',
+          method: 'POST',
+          body,
+        };
+      },
+      transformResponse: (response: SendOTPResponse) => {
+        console.log('🟢 [SEND ADMIN OTP API] Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+      transformErrorResponse: (response: { status?: number; data?: unknown; error?: string } | unknown) => {
+        console.log('🔴 [SEND ADMIN OTP API] Error Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+    }),
+    verifyAdminOTP: builder.mutation<VerifyOTPResponse, VerifyOTPRequest>({
+      query: (body) => {
+        console.log('🔵 [VERIFY ADMIN OTP API] Request Body:', JSON.stringify(body, null, 2));
+        return {
+          url: 'auth/verify-admin-otp/',
+          method: 'POST',
+          body,
+        };
+      },
+      transformResponse: (response: VerifyOTPResponse) => {
+        console.log('🟢 [VERIFY ADMIN OTP API] Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+      transformErrorResponse: (response: { status?: number; data?: unknown; error?: string } | unknown) => {
+        console.log('🔴 [VERIFY ADMIN OTP API] Error Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+    }),
     login: builder.mutation<LoginResponse, LoginRequest>({
       queryFn: async ({ email, password }) => {
+        console.log('🔵 [LOGIN API] Request Body:', JSON.stringify({ email, password: '***' }, null, 2));
         await new Promise((resolve) => setTimeout(resolve, 500));
         
         // First check mock users (for demo accounts)
@@ -90,106 +261,86 @@ export const authApi = api.injectEndpoints({
         // Check if it's a mock user (demo accounts don't require password check)
         if (mockUsers[userType] && email === mockUsers[userType].email) {
           const user = { ...mockUsers[userType] };
+          // Set default KYC status for mock users (not stored in localStorage)
+          user.kycStatus = 'not_submitted';
           
-          // Load KYC status from localStorage for mock users too
-          const KYC_STORAGE_KEY = 'ev_nexus_kyc_data';
-          try {
-            const kycDataStr = localStorage.getItem(KYC_STORAGE_KEY);
-            if (kycDataStr) {
-              const kycData = JSON.parse(kycDataStr);
-              const userKYC = kycData[user.id];
-              if (userKYC) {
-                user.kycStatus = userKYC.kycStatus;
-                user.kycDetails = userKYC.kycDetails;
-              } else {
-                user.kycStatus = 'not_submitted';
-              }
-            } else {
-              user.kycStatus = 'not_submitted';
-            }
-          } catch (error) {
-            console.error('Error loading KYC data:', error);
-            user.kycStatus = 'not_submitted';
-          }
-          
-          return {
-            data: {
-              user,
-              token: 'mock-jwt-token-' + user.id,
-            },
+          const response: LoginResponse = {
+            user,
+            token: 'mock-jwt-token-' + user.id,
           };
-        }
-        
-        // Check registered users from localStorage
-        const storedUsers = getStoredUsers();
-        const storedUser = storedUsers.find(
-          (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        );
-        
-        if (storedUser) {
-          // Load KYC status from localStorage
-          const KYC_STORAGE_KEY = 'ev_nexus_kyc_data';
-          let kycStatus: 'not_submitted' | 'pending' | 'verified' | 'rejected' | undefined = undefined;
-          let kycDetails: any = undefined;
-          
-          try {
-            const kycDataStr = localStorage.getItem(KYC_STORAGE_KEY);
-            if (kycDataStr) {
-              const kycData = JSON.parse(kycDataStr);
-              const userKYC = kycData[storedUser.id];
-              if (userKYC) {
-                kycStatus = userKYC.kycStatus;
-                kycDetails = userKYC.kycDetails;
-              }
-            }
-          } catch (error) {
-            console.error('Error loading KYC data:', error);
-          }
-          
-          // Convert stored user to User type
-          const user: User = {
-            id: storedUser.id,
-            name: storedUser.name,
-            email: storedUser.email,
-            role: 'user',
-            isDistributor: false,
-            phone: storedUser.phone,
-            joinedAt: storedUser.joinedAt,
-            kycStatus: kycStatus || 'not_submitted',
-            kycDetails: kycDetails,
-          };
-          
-          return {
-            data: {
-              user,
-              token: 'mock-jwt-token-' + user.id,
-            },
-          };
+          console.log('🟢 [LOGIN API] Response (Mock User):', JSON.stringify(response, null, 2));
+          return { data: response };
         }
         
         // User not found or invalid credentials
-        return {
-          error: {
-            status: 'UNAUTHORIZED',
-            data: 'Invalid email or password',
-          },
+        // Note: Real user authentication should be handled by the backend API
+        const errorResponse: FetchBaseQueryError = {
+          status: 'CUSTOM_ERROR' as const,
+          error: 'Invalid email or password',
         };
+        console.log('🔴 [LOGIN API] Error Response:', JSON.stringify(errorResponse, null, 2));
+        return { error: errorResponse };
       },
     }),
-    logout: builder.mutation<void, void>({
-      queryFn: async () => {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        return { data: undefined };
+    logout: builder.mutation<LogoutResponse, LogoutRequest>({
+      queryFn: async (body) => {
+        // Get tokens from localStorage for the request
+        const { accessToken } = getAuthTokens();
+        console.log('🔵 [LOGOUT API] Request Body:', JSON.stringify(body, null, 2));
+        
+        try {
+          const response = await fetch(`${getApiBaseUrl()}auth/logout/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+            },
+            body: JSON.stringify(body),
+          });
+
+          const data = await response.json();
+          
+          if (!response.ok) {
+            console.log('🔴 [LOGOUT API] Error Response:', JSON.stringify(data, null, 2));
+            return {
+              error: {
+                status: response.status,
+                data: data,
+              },
+            };
+          }
+
+          console.log('🟢 [LOGOUT API] Response:', JSON.stringify(data, null, 2));
+          return { data };
+        } catch (error) {
+          console.log('🔴 [LOGOUT API] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
       },
     }),
     getCurrentUser: builder.query<User, void>({
-      queryFn: async () => {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        return { data: mockUsers.distributor };
-      },
+      query: () => ({
+        url: 'auth/me/',
+        method: 'GET',
+      }),
       providesTags: ['User'],
     }),
   }),
 });
 
-export const { useLoginMutation, useLogoutMutation, useGetCurrentUserQuery } = authApi;
+export const { 
+  useSignupMutation, 
+  useVerifySignupOTPMutation,
+  useSendOTPMutation,
+  useVerifyOTPMutation,
+  useSendAdminOTPMutation,
+  useVerifyAdminOTPMutation,
+  useLoginMutation, 
+  useLogoutMutation, 
+  useGetCurrentUserQuery 
+} = authApi;

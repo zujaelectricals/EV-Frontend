@@ -42,6 +42,9 @@ export interface Scooter {
   isComingSoon?: boolean;
   description?: string;
   category?: "scooter" | "loader";
+  specifications?: Record<string, string>;
+  vehicleGroup?: any;
+  variant?: any;
 }
 
 interface ScooterCardProps {

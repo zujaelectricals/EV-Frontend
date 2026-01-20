@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Package,
@@ -9,6 +9,7 @@ import {
   Clock,
   XCircle,
   Wallet,
+  RefreshCw,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,8 +30,11 @@ import { Link } from "react-router-dom";
 import { PaymentGateway } from "@/store/components/PaymentGateway";
 import { toast } from "sonner";
 import { useAddReferralNodeMutation } from "@/app/api/binaryApi";
+import { useGetBookingsQuery } from "@/app/api/bookingApi";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
 import { Booking } from "@/app/slices/bookingSlice";
+import { setBookings } from "@/app/slices/bookingSlice";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const DISTRIBUTOR_ELIGIBILITY_AMOUNT = 5000;
 
@@ -47,6 +51,74 @@ export function MyOrders() {
   const [maxPaymentAmount, setMaxPaymentAmount] = useState<number>(0);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Map API status to query parameter
+  const getApiStatus = (localStatus: string): string | undefined => {
+    const statusMap: Record<string, string> = {
+      "all": "",
+      "pending": "pending",
+      "pre-booked": "pending",
+      "active": "active",
+      "confirmed": "active",
+      "completed": "completed",
+      "delivered": "completed",
+      "cancelled": "cancelled",
+      "expired": "expired",
+    };
+    return statusMap[localStatus] || undefined;
+  };
+
+  // Get bookings with status filter - use cached data if available, refetch only when filter changes
+  const { data: bookingsData, isLoading: isLoadingBookings, error: bookingsError, refetch } = useGetBookingsQuery(
+    statusFilter === "all" ? undefined : { status: getApiStatus(statusFilter) },
+    {
+      refetchOnMountOrArgChange: false, // Don't refetch on mount if cached data exists
+      refetchOnFocus: false, // Don't refetch on window focus
+      refetchOnReconnect: true, // Refetch when reconnecting to network
+      // Cache behavior:
+      // - Data is cached in memory (Redux store) during the browser session
+      // - Cache persists when navigating away and coming back (same session)
+      // - Cache is cleared when: page refresh, browser close, or after 60 seconds of being unused
+    }
+  );
+
+  // Map API bookings to local booking format (memoized to prevent unnecessary recalculations)
+  const mappedBookings = useMemo(() => {
+    if (!bookingsData?.results) return [];
+    return bookingsData.results.map((apiBooking) => ({
+      id: apiBooking.id.toString(),
+      vehicleId: apiBooking.vehicle_model.toString(),
+      vehicleName: apiBooking.vehicle_details.name,
+      status: apiBooking.status === 'pending' ? 'pre-booked' : apiBooking.status,
+      preBookingAmount: parseFloat(apiBooking.booking_amount) || 0,
+      totalAmount: parseFloat(apiBooking.total_amount) || 0,
+      remainingAmount: parseFloat(apiBooking.remaining_amount) || 0,
+      totalPaid: parseFloat(apiBooking.total_paid) || 0,
+      paymentMethod: apiBooking.payment_option === 'full_payment' ? 'full' : 
+                    apiBooking.payment_option === 'emi' ? 'emi' : 'flexible',
+      paymentDueDate: apiBooking.expires_at,
+      paymentStatus: parseFloat(apiBooking.remaining_amount) === 0 ? 'completed' : 
+                    parseFloat(apiBooking.total_paid) > 0 ? 'partial' : 'pending',
+      isActiveBuyer: true,
+      redemptionPoints: 0,
+      redemptionEligible: false,
+      bookedAt: apiBooking.created_at,
+      referredBy: apiBooking.referred_by || undefined,
+      addedToTeamNetwork: false,
+    }));
+  }, [bookingsData]);
+
+  // Update Redux store when bookings data changes
+  useEffect(() => {
+    dispatch(setBookings(mappedBookings));
+  }, [mappedBookings, dispatch]);
+
+  // Use query data directly, fallback to Redux state
+  const displayBookings = mappedBookings.length > 0 ? mappedBookings : bookings;
+
+  // Note: Console logs for API calls are in bookingApi.ts
+  // They only appear when actual API calls are made, not when using cached data
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -237,13 +309,54 @@ export function MyOrders() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end mb-4">
-        <Link to="/scooters">
-          <Button size="sm" className="text-xs sm:text-sm">Browse Vehicles</Button>
-        </Link>
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
+            <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
+            <TabsTrigger value="pending" className="text-xs sm:text-sm">Pending</TabsTrigger>
+            <TabsTrigger value="active" className="text-xs sm:text-sm">Active</TabsTrigger>
+            <TabsTrigger value="completed" className="text-xs sm:text-sm">Completed</TabsTrigger>
+            <TabsTrigger value="cancelled" className="text-xs sm:text-sm">Cancelled</TabsTrigger>
+            <TabsTrigger value="expired" className="text-xs sm:text-sm">Expired</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="flex items-center gap-2">
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isLoadingBookings}
+            className="text-xs sm:text-sm"
+            title="Refresh orders"
+          >
+            <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${isLoadingBookings ? 'animate-spin' : ''}`} />
+          </Button>
+          <Link to="/scooters">
+            <Button size="sm" className="text-xs sm:text-sm">Browse Vehicles</Button>
+          </Link>
+        </div>
       </div>
 
-      {bookings.length === 0 ? (
+      {isLoadingBookings ? (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
+            <p className="text-muted-foreground text-sm">Loading orders...</p>
+          </CardContent>
+        </Card>
+      ) : bookingsError ? (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <Package className="w-10 h-10 mx-auto mb-3 text-destructive" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Error loading orders
+            </h3>
+            <p className="text-muted-foreground mb-4 text-sm">
+              Failed to load your orders. Please try again.
+            </p>
+          </CardContent>
+        </Card>
+      ) : displayBookings.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">
             <Package className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
@@ -251,7 +364,9 @@ export function MyOrders() {
               No orders yet
             </h3>
             <p className="text-muted-foreground mb-4 text-sm">
-              Start shopping to see your orders here
+              {statusFilter !== "all" 
+                ? `No ${statusFilter} orders found. Try selecting a different filter.`
+                : "Start shopping to see your orders here"}
             </p>
             <Link to="/scooters">
               <Button size="sm">Browse Vehicles</Button>
@@ -260,7 +375,7 @@ export function MyOrders() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {bookings.map((booking, index) => (
+          {displayBookings.map((booking, index) => (
             <motion.div
               key={booking.id}
               initial={{ opacity: 0, y: 20 }}
@@ -312,7 +427,7 @@ export function MyOrders() {
                             Total Amount
                           </p>
                           <p className="text-xs sm:text-sm font-medium truncate">
-                            ₹{booking.totalAmount.toLocaleString()}
+                            ₹{(booking.totalAmount || 0).toLocaleString()}
                           </p>
                         </div>
                       </div>
@@ -365,7 +480,7 @@ export function MyOrders() {
                           <p className="text-sm sm:text-base font-semibold text-foreground">
                             ₹
                             {(
-                              booking.totalPaid || booking.preBookingAmount
+                              booking.totalPaid || booking.preBookingAmount || 0
                             ).toLocaleString()}
                           </p>
                         </div>
@@ -374,7 +489,7 @@ export function MyOrders() {
                             Balance to Pay
                           </p>
                           <p className="text-sm sm:text-base font-semibold text-warning">
-                            ₹{booking.remainingAmount.toLocaleString()}
+                            ₹{(booking.remainingAmount || 0).toLocaleString()}
                           </p>
                         </div>
                       </div>
@@ -384,7 +499,7 @@ export function MyOrders() {
                             Total Amount
                           </span>
                           <span className="font-medium text-foreground">
-                            ₹{booking.totalAmount.toLocaleString()}
+                            ₹{(booking.totalAmount || 0).toLocaleString()}
                           </span>
                         </div>
                       </div>

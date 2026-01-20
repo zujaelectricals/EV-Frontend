@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
@@ -27,13 +27,14 @@ interface PaymentGatewayProps {
   isOpen: boolean;
   onClose: () => void;
   amount: number;
-  onSuccess: () => void;
+  onSuccess: (paymentGatewayRef?: string) => void;
+  onFailure?: () => void;
   vehicleName?: string;
 }
 
 type PaymentMethod = 'card' | 'upi' | 'netbanking' | 'wallet';
 
-export function PaymentGateway({ isOpen, onClose, amount, onSuccess, vehicleName }: PaymentGatewayProps) {
+export function PaymentGateway({ isOpen, onClose, amount, onSuccess, onFailure, vehicleName }: PaymentGatewayProps) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -179,9 +180,12 @@ export function PaymentGateway({ isOpen, onClose, amount, onSuccess, vehicleName
     setIsProcessing(false);
     setIsSuccess(true);
     
+    // Generate payment gateway reference
+    const paymentGatewayRef = `TXN${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    
     // Wait a bit then call success callback
     setTimeout(() => {
-      onSuccess();
+      onSuccess(paymentGatewayRef);
       onClose();
     }, 2000);
   };
@@ -231,6 +235,9 @@ export function PaymentGateway({ isOpen, onClose, amount, onSuccess, vehicleName
                   <div className="flex items-center justify-between">
                     <div>
                       <DialogTitle className="text-2xl font-bold">Secure Payment</DialogTitle>
+                      <DialogDescription className="sr-only">
+                        Secure payment gateway for {vehicleName || 'your purchase'}. Complete your payment using your preferred method.
+                      </DialogDescription>
                       <p className="text-sm text-muted-foreground mt-1">
                         {vehicleName && `Payment for ${vehicleName}`}
                       </p>

@@ -42,34 +42,7 @@ interface BookingState {
   currentUserId: string | null; // Track current user to load their bookings
 }
 
-// Helper functions for localStorage
-const getBookingsStorageKey = (userId: string | null): string => {
-  return `ev_nexus_bookings_${userId || 'guest'}`;
-};
-
-const getStoredBookings = (userId: string | null): Booking[] => {
-  if (typeof window === 'undefined') return [];
-  try {
-    const storageKey = getBookingsStorageKey(userId);
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error('Error reading bookings from localStorage:', error);
-  }
-  return [];
-};
-
-const saveBookingsToStorage = (userId: string | null, bookings: Booking[]): void => {
-  if (typeof window === 'undefined') return;
-  try {
-    const storageKey = getBookingsStorageKey(userId);
-    localStorage.setItem(storageKey, JSON.stringify(bookings));
-  } catch (error) {
-    console.error('Error saving bookings to localStorage:', error);
-  }
-};
+// Note: Bookings should be handled by the backend API, not stored in localStorage
 
 const initialState: BookingState = {
   bookings: [],
@@ -89,26 +62,15 @@ const bookingSlice = createSlice({
   reducers: {
     setBookings: (state, action: PayloadAction<Booking[]>) => {
       state.bookings = action.payload;
-      // Save to localStorage whenever bookings are set
-      if (state.currentUserId) {
-        saveBookingsToStorage(state.currentUserId, action.payload);
-      }
+      // Bookings are managed by the backend API, not localStorage
     },
     loadBookingsForUser: (state, action: PayloadAction<string | null>) => {
       const userId = action.payload;
       state.currentUserId = userId;
-      const storedBookings = getStoredBookings(userId);
-      state.bookings = storedBookings;
+      // Bookings should be loaded from the backend API
+      state.bookings = [];
     },
     addBooking: (state, action: PayloadAction<Booking>) => {
-      // If currentUserId is set but bookings array is empty, try to load from localStorage first
-      if (state.currentUserId && state.bookings.length === 0) {
-        const storedBookings = getStoredBookings(state.currentUserId);
-        if (storedBookings.length > 0) {
-          state.bookings = storedBookings;
-        }
-      }
-      
       // Check if booking already exists (by id) to avoid duplicates
       const existingIndex = state.bookings.findIndex(b => b.id === action.payload.id);
       if (existingIndex === -1) {
@@ -117,22 +79,14 @@ const bookingSlice = createSlice({
         // Update existing booking if it already exists
         state.bookings[existingIndex] = action.payload;
       }
-      
-      // Save to localStorage whenever a booking is added
-      // Note: Middleware also handles this, but we do it here too for redundancy
-      if (state.currentUserId) {
-        saveBookingsToStorage(state.currentUserId, state.bookings);
-      }
+      // Bookings are managed by the backend API, not localStorage
     },
     updateBooking: (state, action: PayloadAction<{ id: string; updates: Partial<Booking> }>) => {
       const index = state.bookings.findIndex(b => b.id === action.payload.id);
       if (index !== -1) {
         state.bookings[index] = { ...state.bookings[index], ...action.payload.updates };
-        // Save to localStorage whenever a booking is updated
-        if (state.currentUserId) {
-          saveBookingsToStorage(state.currentUserId, state.bookings);
-        }
       }
+      // Bookings are managed by the backend API, not localStorage
     },
     selectBooking: (state, action: PayloadAction<string>) => {
       state.selectedBooking = action.payload;

@@ -1,79 +1,86 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Mail, Lock, Eye, EyeOff, User, Calendar, Phone, CreditCard,
-  ArrowLeft, Sparkles
+  Mail, Lock, Eye, EyeOff, User, Calendar, Phone,
+  ArrowLeft, Sparkles, MapPin, Building, Hash, Shield
 } from "lucide-react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { setCredentials, isUserAuthenticated } from "@/app/slices/authSlice";
+import { clearNonAuthStorage, updateAuthTokens } from "@/app/api/baseApi";
 import { loadBookingsForUser } from "@/app/slices/bookingSlice";
-import { useLoginMutation } from "@/app/api/authApi";
+import { useSignupMutation, useVerifySignupOTPMutation, useSendOTPMutation, useVerifyOTPMutation } from "@/app/api/authApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 interface SignupFormData {
-  name: string;
-  dateOfBirth: string;
-  phone: string;
-  aadhar: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  password: string;
-  confirmPassword: string;
+  mobile: string;
+  gender: string;
+  date_of_birth: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
 }
 
-const STORAGE_KEY = 'ev_nexus_users';
-
-// Store user data in localStorage
-function storeUser(userData: Omit<SignupFormData, 'confirmPassword'> & { id: string; joinedAt: string }): void {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    const existingUsers = localStorage.getItem(STORAGE_KEY);
-    const users = existingUsers ? JSON.parse(existingUsers) : [];
-    
-    if (users.some((u: any) => u.email === userData.email)) {
-      throw new Error('Email already registered');
-    }
-    
-    users.push(userData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-  } catch (error) {
-    console.error('Error storing user:', error);
-    throw error;
-  }
-}
 
 export const LoginPage = () => {
   const [isSignupMode, setIsSignupMode] = useState(false);
   
   // Login state
+  const [loginMethod, setLoginMethod] = useState<'email' | 'mobile'>('email');
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [mobile, setMobile] = useState("");
+  const [showOTPInput, setShowOTPInput] = useState(false);
+  const [loginOtpCode, setLoginOtpCode] = useState("");
+  const [loginOtpError, setLoginOtpError] = useState("");
   
   // Signup state
   const [signupData, setSignupData] = useState<SignupFormData>({
-    name: '',
-    dateOfBirth: '',
-    phone: '',
-    aadhar: '',
+    first_name: '',
+    last_name: '',
     email: '',
-    password: '',
-    confirmPassword: '',
+    mobile: '',
+    gender: '',
+    date_of_birth: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    pincode: '',
+    country: 'India',
   });
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signupErrors, setSignupErrors] = useState<Partial<Record<keyof SignupFormData, string>>>({});
+  
+  // OTP verification state
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [signupToken, setSignupToken] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState<string>("");
+  const [otpError, setOtpError] = useState<string>("");
   
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
-  const [login, { isLoading }] = useLoginMutation();
+  const [signup, { isLoading: isSigningUp }] = useSignupMutation();
+  const [verifySignupOTP, { isLoading: isVerifyingSignupOTP }] = useVerifySignupOTPMutation();
+  const [sendOTP, { isLoading: isSendingOTP }] = useSendOTPMutation();
+  const [verifyOTP, { isLoading: isVerifyingOTP }] = useVerifyOTPMutation();
 
   const from =
     (location.state as { from?: { pathname?: string } })?.from?.pathname || "/";
@@ -94,39 +101,153 @@ export const LoginPage = () => {
     return <Navigate to={redirectPath} replace />;
   }
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const result = await login({ email, password }).unwrap();
-      dispatch(setCredentials({ user: result.user, token: result.token }));
-      dispatch(loadBookingsForUser(result.user.id));
-      toast.success("Welcome back!");
+    
+    const identifier = loginMethod === 'mobile' ? mobile.trim().replace(/\D/g, '') : email.trim().toLowerCase();
+    
+    if (!identifier) {
+      toast.error(`Please enter your ${loginMethod === 'mobile' ? 'mobile number' : 'email address'}`);
+      return;
+    }
 
-      if (result.user.role === "admin") {
+    if (loginMethod === 'mobile' && identifier.length < 10) {
+      toast.error('Please enter a valid mobile number');
+      return;
+    }
+
+    if (loginMethod === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      const payload = {
+        identifier,
+        otp_type: loginMethod,
+      };
+      
+      console.log('🔵 [SEND OTP] Request Body:', JSON.stringify(payload, null, 2));
+      const result = await sendOTP(payload).unwrap();
+      console.log('🟢 [SEND OTP] Response:', JSON.stringify(result, null, 2));
+      setShowOTPInput(true);
+      toast.success(result.message || 'OTP sent successfully');
+    } catch (err: unknown) {
+      console.log('🔴 [SEND OTP] Error Response:', JSON.stringify(err, null, 2));
+      let errorMessage = 'Failed to send OTP. Please try again.';
+      if (err && typeof err === 'object' && 'data' in err) {
+        const error = err as { data?: { message?: string; detail?: string; error?: string } | string | string[] };
+        // Handle array response (e.g., ["User does not have admin/staff privileges"])
+        if (Array.isArray(error.data)) {
+          errorMessage = error.data[0] || errorMessage;
+        } else if (typeof error.data === 'string') {
+          errorMessage = error.data;
+        } else if (error.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error.data?.detail) {
+          errorMessage = error.data.detail;
+        } else if (error.data?.error) {
+          errorMessage = error.data.error;
+        }
+      } else if (err && typeof err === 'object' && 'error' in err) {
+        errorMessage = (err as { error: string }).error;
+      }
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleVerifyLoginOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const identifier = loginMethod === 'mobile' ? mobile.trim().replace(/\D/g, '') : email.trim().toLowerCase();
+    
+    if (!identifier) {
+      toast.error('Please send OTP first');
+      return;
+    }
+
+    if (!loginOtpCode || loginOtpCode.length !== 6) {
+      setLoginOtpError('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    setLoginOtpError("");
+
+    try {
+      const payload = {
+        identifier,
+        otp_code: loginOtpCode,
+        otp_type: loginMethod,
+      };
+
+      console.log('🔵 [VERIFY LOGIN OTP] Request Body:', JSON.stringify(payload, null, 2));
+      const result = await verifyOTP(payload).unwrap();
+      console.log('🟢 [VERIFY LOGIN OTP] Response:', JSON.stringify(result, null, 2));
+
+      // Clear all non-auth data from localStorage before login
+      clearNonAuthStorage();
+
+      // Convert API user to app User format
+      const user = {
+        id: result.user.id.toString(),
+        name: result.user.username || result.user.email,
+        email: result.user.email,
+        role: result.user.role as 'admin' | 'staff' | 'user',
+        isDistributor: result.user.is_distributor || false,
+        phone: result.user.mobile,
+        joinedAt: new Date().toISOString(),
+      };
+
+      dispatch(setCredentials({
+        user,
+        accessToken: result.tokens.access,
+        refreshToken: result.tokens.refresh,
+      }));
+      
+      // Update tokens in localStorage with user info
+      updateAuthTokens(result.tokens.access, result.tokens.refresh, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      });
+
+      dispatch(loadBookingsForUser(user.id));
+      toast.success('Welcome back!');
+
+      // Redirect based on user role from API response
+      const userRole = result.user.role?.toLowerCase();
+      if (userRole === "admin") {
         navigate("/admin", { replace: true });
-      } else if (result.user.role === "staff") {
+      } else if (userRole === "staff") {
         navigate("/staff/leads", { replace: true });
-      } else if (result.user.isDistributor) {
+      } else if (result.user.is_distributor || user.isDistributor) {
         navigate("/distributor", { replace: true });
       } else {
+        // Regular user - redirect to profile or original destination
         navigate(from !== "/login" ? from : "/", { replace: true });
       }
     } catch (err: unknown) {
-      let errorMessage = "Invalid email or password";
-      if (err && typeof err === "object") {
-        const error = err as {
-          data?: { data?: string; message?: string } | string;
-          error?: string;
-          message?: string;
-        };
-        errorMessage =
-          (typeof error.data === "object" &&
-            (error.data?.data || error.data?.message)) ||
-          (typeof error.data === "string" ? error.data : undefined) ||
-          error.error ||
-          error.message ||
-          errorMessage;
+      console.log('🔴 [VERIFY LOGIN OTP] Error Response:', JSON.stringify(err, null, 2));
+      let errorMessage = 'Invalid OTP. Please try again.';
+      if (err && typeof err === 'object' && 'data' in err) {
+        const error = err as { data?: { message?: string; detail?: string; error?: string } | string | string[] };
+        // Handle array response (e.g., ["User does not have admin/staff privileges"])
+        if (Array.isArray(error.data)) {
+          errorMessage = error.data[0] || errorMessage;
+        } else if (typeof error.data === 'string') {
+          errorMessage = error.data;
+        } else if (error.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error.data?.detail) {
+          errorMessage = error.data.detail;
+        } else if (error.data?.error) {
+          errorMessage = error.data.error;
+        }
+      } else if (err && typeof err === 'object' && 'error' in err) {
+        errorMessage = (err as { error: string }).error;
       }
+      setLoginOtpError(errorMessage);
       toast.error(errorMessage);
     }
   };
@@ -134,31 +255,12 @@ export const LoginPage = () => {
   const validateSignupForm = (): boolean => {
     const newErrors: Partial<Record<keyof SignupFormData, string>> = {};
 
-    if (!signupData.name.trim()) {
-      newErrors.name = 'Name is required';
+    if (!signupData.first_name.trim()) {
+      newErrors.first_name = 'First name is required';
     }
 
-    if (!signupData.dateOfBirth) {
-      newErrors.dateOfBirth = 'Date of Birth is required';
-    } else {
-      const dob = new Date(signupData.dateOfBirth);
-      const today = new Date();
-      const age = today.getFullYear() - dob.getFullYear();
-      if (age < 18) {
-        newErrors.dateOfBirth = 'You must be at least 18 years old';
-      }
-    }
-
-    if (!signupData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^[0-9]{10}$/.test(signupData.phone)) {
-      newErrors.phone = 'Phone number must be 10 digits';
-    }
-
-    if (!signupData.aadhar.trim()) {
-      newErrors.aadhar = 'Aadhar number is required';
-    } else if (!/^[0-9]{12}$/.test(signupData.aadhar)) {
-      newErrors.aadhar = 'Aadhar number must be 12 digits';
+    if (!signupData.last_name.trim()) {
+      newErrors.last_name = 'Last name is required';
     }
 
     if (!signupData.email.trim()) {
@@ -167,16 +269,43 @@ export const LoginPage = () => {
       newErrors.email = 'Invalid email format';
     }
 
-    if (!signupData.password) {
-      newErrors.password = 'Password is required';
-    } else if (signupData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    if (!signupData.mobile.trim()) {
+      newErrors.mobile = 'Mobile number is required';
+    } else if (!/^[0-9]{10,12}$/.test(signupData.mobile)) {
+      newErrors.mobile = 'Mobile number must be 10-12 digits';
     }
 
-    if (!signupData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (signupData.password !== signupData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+    if (!signupData.gender) {
+      newErrors.gender = 'Gender is required';
+    }
+
+    if (!signupData.date_of_birth) {
+      newErrors.date_of_birth = 'Date of Birth is required';
+    } else {
+      const dob = new Date(signupData.date_of_birth);
+      const today = new Date();
+      const age = today.getFullYear() - dob.getFullYear();
+      if (age < 18) {
+        newErrors.date_of_birth = 'You must be at least 18 years old';
+      }
+    }
+
+    if (!signupData.address_line1.trim()) {
+      newErrors.address_line1 = 'Address line 1 is required';
+    }
+
+    if (!signupData.city.trim()) {
+      newErrors.city = 'City is required';
+    }
+
+    if (!signupData.state.trim()) {
+      newErrors.state = 'State is required';
+    }
+
+    if (!signupData.pincode.trim()) {
+      newErrors.pincode = 'Pincode is required';
+    } else if (!/^[0-9]{6}$/.test(signupData.pincode)) {
+      newErrors.pincode = 'Pincode must be 6 digits';
     }
 
     setSignupErrors(newErrors);
@@ -191,49 +320,146 @@ export const LoginPage = () => {
     }
 
     setIsSubmitting(true);
+    setSignupErrors({});
 
     try {
-      const existingUsers = localStorage.getItem(STORAGE_KEY);
-      const users = existingUsers ? JSON.parse(existingUsers) : [];
-      
-      if (users.some((u: any) => u.email === signupData.email)) {
-        toast.error('Email already registered. Please use a different email or login.');
-        setSignupErrors({ email: 'Email already registered' });
-        setIsSubmitting(false);
-        return;
-      }
-
-      const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const userData = {
-        id: userId,
-        name: signupData.name.trim(),
-        dateOfBirth: signupData.dateOfBirth,
-        phone: signupData.phone.trim(),
-        aadhar: signupData.aadhar.trim(),
+      const signupPayload = {
+        first_name: signupData.first_name.trim(),
+        last_name: signupData.last_name.trim(),
         email: signupData.email.trim().toLowerCase(),
-        password: signupData.password,
+        mobile: signupData.mobile.trim(),
+        gender: signupData.gender,
+        date_of_birth: signupData.date_of_birth,
+        address_line1: signupData.address_line1.trim(),
+        address_line2: signupData.address_line2.trim() || undefined,
+        city: signupData.city.trim(),
+        state: signupData.state.trim(),
+        pincode: signupData.pincode.trim(),
+        country: signupData.country || 'India',
+      };
+
+      console.log('🔵 [SIGNUP] Request Body:', JSON.stringify(signupPayload, null, 2));
+      const result = await signup(signupPayload).unwrap();
+      console.log('🟢 [SIGNUP] Response:', JSON.stringify(result, null, 2));
+      
+      setSignupToken(result.signup_token);
+      setShowOTPVerification(true);
+      toast.success(result.message || 'OTP sent to both email and mobile');
+    } catch (err: unknown) {
+      console.log('🔴 [SIGNUP] Error Response:', JSON.stringify(err, null, 2));
+      let errorMessage = 'Failed to create account. Please try again.';
+      if (err && typeof err === 'object' && 'data' in err) {
+        const error = err as { data?: { message?: string; detail?: string; error?: string } | string | string[] };
+        // Handle array response (e.g., ["User does not have admin/staff privileges"])
+        if (Array.isArray(error.data)) {
+          errorMessage = error.data[0] || errorMessage;
+        } else if (typeof error.data === 'string') {
+          errorMessage = error.data;
+        } else if (error.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error.data?.detail) {
+          errorMessage = error.data.detail;
+        } else if (error.data?.error) {
+          errorMessage = error.data.error;
+        }
+      } else if (err && typeof err === 'object' && 'error' in err) {
+        errorMessage = (err as { error: string }).error;
+      }
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOTPVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!signupToken) {
+      toast.error('Signup token is missing. Please try signing up again.');
+      return;
+    }
+
+    if (!otpCode || otpCode.length !== 6) {
+      setOtpError('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    setOtpError("");
+
+    try {
+      const otpPayload = {
+        signup_token: signupToken,
+        otp_code: otpCode,
+      };
+      console.log('🔵 [VERIFY OTP] Request Body:', JSON.stringify(otpPayload, null, 2));
+      const result = await verifySignupOTP(otpPayload).unwrap();
+      console.log('🟢 [VERIFY OTP] Response:', JSON.stringify(result, null, 2));
+
+      // Clear all non-auth data from localStorage before signup completion
+      clearNonAuthStorage();
+
+      // Convert API user to app User format
+      const user = {
+        id: result.user.id.toString(),
+        name: `${result.user.first_name} ${result.user.last_name}`,
+        email: result.user.email,
+        role: result.user.role as 'admin' | 'staff' | 'user',
+        isDistributor: result.user.is_distributor || false,
+        phone: result.user.mobile,
         joinedAt: new Date().toISOString(),
       };
 
-      storeUser(userData);
-
-      toast.success('Account created successfully! You can now login.');
+      dispatch(setCredentials({
+        user,
+        accessToken: result.tokens.access,
+        refreshToken: result.tokens.refresh,
+      }));
       
-      setSignupData({
-        name: '',
-        dateOfBirth: '',
-        phone: '',
-        aadhar: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
+      // Update tokens in localStorage with user info
+      updateAuthTokens(result.tokens.access, result.tokens.refresh, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
       });
-      setSignupErrors({});
-      setIsSignupMode(false);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create account. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+
+      dispatch(loadBookingsForUser(user.id));
+      toast.success('Account created successfully! Welcome!');
+
+      // Redirect based on user role from API response
+      const userRole = result.user.role?.toLowerCase();
+      if (userRole === "admin") {
+        navigate("/admin", { replace: true });
+      } else if (userRole === "staff") {
+        navigate("/staff/leads", { replace: true });
+      } else if (result.user.is_distributor || user.isDistributor) {
+        navigate("/distributor", { replace: true });
+      } else {
+        // Regular user - redirect to home
+        navigate("/", { replace: true });
+      }
+    } catch (err: unknown) {
+      console.log('🔴 [VERIFY OTP] Error Response:', JSON.stringify(err, null, 2));
+      let errorMessage = 'Invalid OTP. Please try again.';
+      if (err && typeof err === 'object' && 'data' in err) {
+        const error = err as { data?: { message?: string; detail?: string; error?: string } | string | string[] };
+        // Handle array response (e.g., ["User does not have admin/staff privileges"])
+        if (Array.isArray(error.data)) {
+          errorMessage = error.data[0] || errorMessage;
+        } else if (typeof error.data === 'string') {
+          errorMessage = error.data;
+        } else if (error.data?.message) {
+          errorMessage = error.data.message;
+        } else if (error.data?.detail) {
+          errorMessage = error.data.detail;
+        } else if (error.data?.error) {
+          errorMessage = error.data.error;
+        }
+      } else if (err && typeof err === 'object' && 'error' in err) {
+        errorMessage = (err as { error: string }).error;
+      }
+      setOtpError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -244,15 +470,8 @@ export const LoginPage = () => {
     }
   };
 
-  const quickLogin = (type: string) => {
-    const emails: Record<string, string> = {
-      admin: "admin@zuja.com",
-      staff: "staff@zuja.com",
-      distributor: "distributor@zuja.com",
-      user: "user@zuja.com",
-    };
-    setEmail(emails[type]);
-    setPassword("demo123");
+  const handleSelectChange = (field: keyof SignupFormData, value: string) => {
+    handleSignupInputChange(field, value);
   };
 
   const imageVariants = {
@@ -333,53 +552,154 @@ export const LoginPage = () => {
                   </p>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-5">
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      type="email"
-                      placeholder="Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 h-12 border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
-                      required
-                    />
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10 h-12 border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
+                {!showOTPInput ? (
+                  <div className="space-y-5">
+                    {/* Login Method Selection Tabs */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        type="button"
+                        variant={loginMethod === 'email' ? 'default' : 'outline'}
+                        onClick={() => {
+                          setLoginMethod('email');
+                          setShowOTPInput(false);
+                          setLoginOtpCode("");
+                          setLoginOtpError("");
+                        }}
+                        className={`h-12 flex flex-col items-center justify-center gap-1 ${
+                          loginMethod === 'email' 
+                            ? 'bg-gray-900 hover:bg-gray-800 text-white' 
+                            : 'border-gray-300 hover:bg-gray-50 text-gray-900'
+                        } transition-all`}
+                      >
+                        <Mail className="h-5 w-5" />
+                        <span className="text-sm font-medium">Email</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={loginMethod === 'mobile' ? 'default' : 'outline'}
+                        onClick={() => {
+                          setLoginMethod('mobile');
+                          setShowOTPInput(false);
+                          setLoginOtpCode("");
+                          setLoginOtpError("");
+                        }}
+                        className={`h-12 flex flex-col items-center justify-center gap-1 ${
+                          loginMethod === 'mobile' 
+                            ? 'bg-gray-900 hover:bg-gray-800 text-white' 
+                            : 'border-gray-300 hover:bg-gray-50 text-gray-900'
+                        } transition-all`}
+                      >
+                        <Phone className="h-5 w-5" />
+                        <span className="text-sm font-medium">Phone</span>
+                      </Button>
+                    </div>
+
+                    <form onSubmit={handleSendOTP} className="space-y-4">
+                      {loginMethod === 'email' ? (
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                            <Input
+                              type="email"
+                              placeholder="yourname@example.com"
+                              value={email}
+                              onChange={(e) => {
+                                setEmail(e.target.value);
+                                setShowOTPInput(false);
+                              }}
+                              className="pl-10 h-12 border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
+                              required
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <span>Use your registered email address</span>
+                          </p>
+                        </div>
                       ) : (
-                        <Eye className="h-5 w-5" />
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                            <Input
+                              type="tel"
+                              placeholder="1234567890"
+                              value={mobile}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+                                setMobile(value);
+                                setShowOTPInput(false);
+                              }}
+                              className="pl-10 h-12 border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
+                              required
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <span>Enter your registered mobile number</span>
+                          </p>
+                        </div>
                       )}
-                    </button>
+                      <Button
+                        type="submit"
+                        className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
+                        disabled={isSendingOTP || (loginMethod === 'email' ? !email.trim() : !mobile.trim())}
+                      >
+                        {isSendingOTP ? "Sending OTP..." : "Send OTP"}
+                      </Button>
+                    </form>
                   </div>
-                  <div className="text-right">
-                    <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                      Forgot password?
-                    </a>
+                ) : (
+                  <div className="space-y-5">
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-sm text-gray-600 mb-1">
+                        OTP sent to: <span className="font-medium text-gray-900">
+                          {loginMethod === 'mobile' ? mobile : email}
+                        </span>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowOTPInput(false);
+                          setLoginOtpCode("");
+                          setLoginOtpError("");
+                        }}
+                        className="text-xs text-gray-600 hover:text-gray-900 underline"
+                      >
+                        Change {loginMethod === 'mobile' ? 'mobile number' : 'email'}
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleVerifyLoginOTP} className="space-y-5">
+                      <div className="space-y-2">
+                        <Label htmlFor="loginOtp" className="text-sm font-medium">Enter OTP *</Label>
+                        <div className="relative">
+                          <Shield className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                          <Input
+                            id="loginOtp"
+                            type="text"
+                            placeholder="Enter 6-digit OTP"
+                            value={loginOtpCode}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                              setLoginOtpCode(value);
+                              if (loginOtpError) setLoginOtpError("");
+                            }}
+                            maxLength={6}
+                            className={`pl-10 h-12 text-center text-2xl tracking-widest font-mono ${loginOtpError ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                            autoFocus
+                            required
+                          />
+                        </div>
+                        {loginOtpError && <p className="text-xs text-red-500">{loginOtpError}</p>}
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
+                        disabled={isVerifyingOTP || !loginOtpCode || loginOtpCode.length !== 6}
+                      >
+                        {isVerifyingOTP ? "Verifying..." : "Sign In"}
+                      </Button>
+                    </form>
                   </div>
-                  <Button
-                    type="submit"
-                    className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
+                )}
 
                 <div className="mt-6">
                   <div className="relative">
@@ -399,25 +719,6 @@ export const LoginPage = () => {
                     >
                       Create New Account
                     </Button>
-                  </div>
-                </div>
-
-                <div className="mt-8">
-                  <p className="mb-4 text-center text-sm text-gray-600">
-                    Quick login as:
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {["admin", "staff", "user"].map((type) => (
-                      <Button
-                        key={type}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => quickLogin(type)}
-                        className="capitalize border-gray-300 hover:bg-gray-50 hover:text-gray-900 text-gray-900 transition-all"
-                      >
-                        {type}
-                      </Button>
-                    ))}
                   </div>
                 </div>
               </motion.div>
@@ -464,70 +765,38 @@ export const LoginPage = () => {
                 </div>
 
                 <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium">Name *</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                      <Input
-                        id="name"
-                        type="text"
-                        placeholder="Enter your full name"
-                        value={signupData.name}
-                        onChange={(e) => handleSignupInputChange('name', e.target.value)}
-                        className={`pl-10 h-11 ${signupErrors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                      />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name" className="text-sm font-medium">First Name *</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                        <Input
+                          id="first_name"
+                          type="text"
+                          placeholder="Enter first name"
+                          value={signupData.first_name}
+                          onChange={(e) => handleSignupInputChange('first_name', e.target.value)}
+                          className={`pl-10 h-11 ${signupErrors.first_name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                        />
+                      </div>
+                      {signupErrors.first_name && <p className="text-xs text-red-500">{signupErrors.first_name}</p>}
                     </div>
-                    {signupErrors.name && <p className="text-xs text-red-500">{signupErrors.name}</p>}
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth" className="text-sm font-medium">Date of Birth *</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                      <Input
-                        id="dateOfBirth"
-                        type="date"
-                        value={signupData.dateOfBirth}
-                        onChange={(e) => handleSignupInputChange('dateOfBirth', e.target.value)}
-                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                        className={`pl-10 h-11 ${signupErrors.dateOfBirth ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                      />
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name" className="text-sm font-medium">Last Name *</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                        <Input
+                          id="last_name"
+                          type="text"
+                          placeholder="Enter last name"
+                          value={signupData.last_name}
+                          onChange={(e) => handleSignupInputChange('last_name', e.target.value)}
+                          className={`pl-10 h-11 ${signupErrors.last_name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                        />
+                      </div>
+                      {signupErrors.last_name && <p className="text-xs text-red-500">{signupErrors.last_name}</p>}
                     </div>
-                    {signupErrors.dateOfBirth && <p className="text-xs text-red-500">{signupErrors.dateOfBirth}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm font-medium">Phone Number *</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="Enter 10-digit phone number"
-                        value={signupData.phone}
-                        onChange={(e) => handleSignupInputChange('phone', e.target.value.replace(/\D/g, ''))}
-                        maxLength={10}
-                        className={`pl-10 h-11 ${signupErrors.phone ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                      />
-                    </div>
-                    {signupErrors.phone && <p className="text-xs text-red-500">{signupErrors.phone}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="aadhar" className="text-sm font-medium">Aadhar Number *</Label>
-                    <div className="relative">
-                      <CreditCard className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                      <Input
-                        id="aadhar"
-                        type="text"
-                        placeholder="Enter 12-digit Aadhar number"
-                        value={signupData.aadhar}
-                        onChange={(e) => handleSignupInputChange('aadhar', e.target.value.replace(/\D/g, ''))}
-                        maxLength={12}
-                        className={`pl-10 h-11 ${signupErrors.aadhar ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                      />
-                    </div>
-                    {signupErrors.aadhar && <p className="text-xs text-red-500">{signupErrors.aadhar}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -547,59 +816,231 @@ export const LoginPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium">Password *</Label>
+                    <Label htmlFor="mobile" className="text-sm font-medium">Mobile *</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                      <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                       <Input
-                        id="password"
-                        type={showSignupPassword ? 'text' : 'password'}
-                        placeholder="Enter password (min 6 characters)"
-                        value={signupData.password}
-                        onChange={(e) => handleSignupInputChange('password', e.target.value)}
-                        className={`pl-10 pr-10 h-11 ${signupErrors.password ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                        id="mobile"
+                        type="tel"
+                        placeholder="Enter mobile number"
+                        value={signupData.mobile}
+                        onChange={(e) => handleSignupInputChange('mobile', e.target.value.replace(/\D/g, ''))}
+                        maxLength={12}
+                        className={`pl-10 h-11 ${signupErrors.mobile ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowSignupPassword(!showSignupPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        {showSignupPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
                     </div>
-                    {signupErrors.password && <p className="text-xs text-red-500">{signupErrors.password}</p>}
+                    {signupErrors.mobile && <p className="text-xs text-red-500">{signupErrors.mobile}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password *</Label>
+                    <Label htmlFor="gender" className="text-sm font-medium">Gender *</Label>
+                    <Select
+                      value={signupData.gender}
+                      onValueChange={(value) => handleSelectChange('gender', value)}
+                    >
+                      <SelectTrigger className={`h-11 ${signupErrors.gender ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'}`}>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {signupErrors.gender && <p className="text-xs text-red-500">{signupErrors.gender}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="date_of_birth" className="text-sm font-medium">Date of Birth *</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                      <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="Confirm your password"
-                        value={signupData.confirmPassword}
-                        onChange={(e) => handleSignupInputChange('confirmPassword', e.target.value)}
-                        className={`pl-10 pr-10 h-11 ${signupErrors.confirmPassword ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                        id="date_of_birth"
+                        type="date"
+                        value={signupData.date_of_birth}
+                        onChange={(e) => handleSignupInputChange('date_of_birth', e.target.value)}
+                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                        className={`pl-10 h-11 ${signupErrors.date_of_birth ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
                     </div>
-                    {signupErrors.confirmPassword && <p className="text-xs text-red-500">{signupErrors.confirmPassword}</p>}
+                    {signupErrors.date_of_birth && <p className="text-xs text-red-500">{signupErrors.date_of_birth}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address_line1" className="text-sm font-medium">Address Line 1 *</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                      <Input
+                        id="address_line1"
+                        type="text"
+                        placeholder="Enter address line 1"
+                        value={signupData.address_line1}
+                        onChange={(e) => handleSignupInputChange('address_line1', e.target.value)}
+                        className={`pl-10 h-11 ${signupErrors.address_line1 ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                      />
+                    </div>
+                    {signupErrors.address_line1 && <p className="text-xs text-red-500">{signupErrors.address_line1}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address_line2" className="text-sm font-medium">Address Line 2</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                      <Input
+                        id="address_line2"
+                        type="text"
+                        placeholder="Enter address line 2 (Optional)"
+                        value={signupData.address_line2}
+                        onChange={(e) => handleSignupInputChange('address_line2', e.target.value)}
+                        className="pl-10 h-11 border-gray-300 focus:border-gray-900 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city" className="text-sm font-medium">City *</Label>
+                      <div className="relative">
+                        <Building className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                        <Input
+                          id="city"
+                          type="text"
+                          placeholder="Enter city"
+                          value={signupData.city}
+                          onChange={(e) => handleSignupInputChange('city', e.target.value)}
+                          className={`pl-10 h-11 ${signupErrors.city ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                        />
+                      </div>
+                      {signupErrors.city && <p className="text-xs text-red-500">{signupErrors.city}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="state" className="text-sm font-medium">State *</Label>
+                      <div className="relative">
+                        <Building className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                        <Input
+                          id="state"
+                          type="text"
+                          placeholder="Enter state"
+                          value={signupData.state}
+                          onChange={(e) => handleSignupInputChange('state', e.target.value)}
+                          className={`pl-10 h-11 ${signupErrors.state ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                        />
+                      </div>
+                      {signupErrors.state && <p className="text-xs text-red-500">{signupErrors.state}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="pincode" className="text-sm font-medium">Pincode *</Label>
+                      <div className="relative">
+                        <Hash className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                        <Input
+                          id="pincode"
+                          type="text"
+                          placeholder="Enter 6-digit pincode"
+                          value={signupData.pincode}
+                          onChange={(e) => handleSignupInputChange('pincode', e.target.value.replace(/\D/g, ''))}
+                          maxLength={6}
+                          className={`pl-10 h-11 ${signupErrors.pincode ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                        />
+                      </div>
+                      {signupErrors.pincode && <p className="text-xs text-red-500">{signupErrors.pincode}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="country" className="text-sm font-medium">Country</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                        <Input
+                          id="country"
+                          type="text"
+                          placeholder="Enter country"
+                          value={signupData.country}
+                          onChange={(e) => handleSignupInputChange('country', e.target.value)}
+                          className="pl-10 h-11 border-gray-300 focus:border-gray-900 transition-all"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <Button
                     type="submit"
                     className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl mt-6"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isSigningUp}
                   >
-                    {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                    {isSubmitting || isSigningUp ? 'Creating Account...' : 'Create Account'}
                   </Button>
                 </form>
+
+                {/* OTP Verification Section */}
+                {showOTPVerification && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-6 pt-6 border-t border-gray-200"
+                  >
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shield className="h-5 w-5 text-gray-900" />
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          Verify Your Account
+                        </h3>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Enter the 6-digit OTP sent to your email and mobile number
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleOTPVerification} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="otp" className="text-sm font-medium">OTP Code *</Label>
+                        <div className="relative">
+                          <Shield className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                          <Input
+                            id="otp"
+                            type="text"
+                            placeholder="Enter 6-digit OTP"
+                            value={otpCode}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                              setOtpCode(value);
+                              if (otpError) setOtpError("");
+                            }}
+                            maxLength={6}
+                            className={`pl-10 h-12 text-center text-2xl tracking-widest font-mono ${otpError ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                            autoFocus
+                          />
+                        </div>
+                        {otpError && <p className="text-xs text-red-500">{otpError}</p>}
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
+                        disabled={isVerifyingOTP || !otpCode || otpCode.length !== 6}
+                      >
+                        {isVerifyingOTP ? 'Verifying...' : 'Verify OTP'}
+                      </Button>
+
+                      <div className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowOTPVerification(false);
+                            setSignupToken(null);
+                            setOtpCode("");
+                            setOtpError("");
+                          }}
+                          className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                          Go back to signup form
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
               </motion.div>
             </motion.div>
 
@@ -642,3 +1083,4 @@ export const LoginPage = () => {
     </div>
   );
 };
+

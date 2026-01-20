@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,109 +11,105 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScooterCard } from "./ScooterCard";
-import {
-  scooters,
-  brands,
-  priceRanges,
-  mileageRanges,
-  categories,
-} from "./data/scooters";
 import { StoreNavbar } from "./StoreNavbar";
 import { Footer } from "@/components/Footer";
+import { useGetVehiclesQuery } from "@/app/api/inventoryApi";
+import { mapVehicleGroupsToScooters } from "./utils/vehicleMapper";
 
 export function ScootersPage() {
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedSort, setSelectedSort] = useState("Featured");
+  const [selectedStatus, setSelectedStatus] = useState<"All" | "available" | "out_of_stock" | "discontinued">("All");
+  const [selectedColor, setSelectedColor] = useState("All");
+  const [selectedBattery, setSelectedBattery] = useState("All");
   const [selectedPriceRange, setSelectedPriceRange] = useState("All Prices");
-  const [selectedBrand, setSelectedBrand] = useState("All");
-  const [selectedMileageRange, setSelectedMileageRange] =
-    useState("All Ranges");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const filteredScooters = useMemo(() => {
-    let result = [...scooters];
+  // Build query parameters for API
+  const queryParams = useMemo(() => {
+    const params: any = {
+      page: currentPage,
+      page_size: pageSize,
+    };
 
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.name.toLowerCase().includes(searchLower) ||
-          s.brand.toLowerCase().includes(searchLower)
-      );
+    // Search query
+    if (search.trim()) {
+      params.search = search.trim();
     }
 
-    // Brand filter
-    if (selectedBrand !== "All") {
-      result = result.filter(
-        (s) => s.brand.toUpperCase() === selectedBrand.toUpperCase()
-      );
+    // Status filter
+    if (selectedStatus !== "All") {
+      params.status = selectedStatus;
     }
 
-    // Category filter
-    if (selectedCategory !== "All") {
-      result = result.filter(
-        (s) => s.category?.toLowerCase() === selectedCategory.toLowerCase()
-      );
+    // Color filter
+    if (selectedColor !== "All") {
+      params.color = selectedColor;
+    }
+
+    // Battery filter
+    if (selectedBattery !== "All") {
+      params.battery = selectedBattery;
     }
 
     // Price range filter
-    const priceRange = priceRanges.find(
-      (pr) => pr.label === selectedPriceRange
-    );
-    if (priceRange && selectedPriceRange !== "All Prices") {
-      result = result.filter(
-        (s) => s.price >= priceRange.min && s.price <= priceRange.max
-      );
+    if (selectedPriceRange !== "All Prices") {
+      const priceRanges = [
+        { label: 'All Prices', min: 0, max: Infinity },
+        { label: 'Under ₹90,000', min: 0, max: 90000 },
+        { label: '₹90,000 - ₹1,10,000', min: 90000, max: 110000 },
+        { label: '₹1,10,000 - ₹1,30,000', min: 110000, max: 130000 },
+        { label: 'Above ₹1,30,000', min: 130000, max: Infinity },
+      ];
+      const priceRange = priceRanges.find(pr => pr.label === selectedPriceRange);
+      if (priceRange) {
+        params.min_price = priceRange.min;
+        // Only set max_price if it's not Infinity
+        if (priceRange.max !== Infinity) {
+          params.max_price = priceRange.max;
+        }
+      }
     }
 
-    // Mileage range filter
-    const mileageRange = mileageRanges.find(
-      (mr) => mr.label === selectedMileageRange
-    );
-    if (mileageRange && selectedMileageRange !== "All Ranges") {
-      result = result.filter(
-        (s) => s.range >= mileageRange.min && s.range <= mileageRange.max
-      );
-    }
+    return params;
+  }, [search, selectedStatus, selectedColor, selectedBattery, selectedPriceRange, currentPage]);
 
-    // Sorting
-    switch (selectedSort) {
-      case "Price: Low to High":
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case "Price: High to Low":
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case "Best Range":
-        result.sort((a, b) => b.range - a.range);
-        break;
-      case "Top Speed":
-        result.sort((a, b) => b.topSpeed - a.topSpeed);
-        break;
-      default:
-        // Featured - bestsellers and new first
-        result.sort((a, b) => {
-          const aScore = (a.isBestseller ? 2 : 0) + (a.isNew ? 1 : 0);
-          const bScore = (b.isBestseller ? 2 : 0) + (b.isNew ? 1 : 0);
-          return bScore - aScore;
-        });
-    }
+  // Fetch vehicles from API
+  const { data: inventoryData, isLoading, error } = useGetVehiclesQuery(queryParams);
 
-    return result;
-  }, [
-    search,
-    selectedBrand,
-    selectedCategory,
-    selectedPriceRange,
-    selectedMileageRange,
-    selectedSort,
-  ]);
+  // Map API response to Scooter format
+  const scooters = useMemo(() => {
+    return inventoryData?.results 
+      ? mapVehicleGroupsToScooters(inventoryData.results)
+      : [];
+  }, [inventoryData]);
+
+  // Extract available colors and batteries for filter options
+  const availableColors = useMemo(() => {
+    const colors = new Set<string>();
+    inventoryData?.results.forEach(vehicle => {
+      vehicle.colors_available.forEach(color => colors.add(color));
+    });
+    return Array.from(colors).sort();
+  }, [inventoryData]);
+
+  const availableBatteries = useMemo(() => {
+    const batteries = new Set<string>();
+    inventoryData?.results.forEach(vehicle => {
+      vehicle.battery_capacities_available.forEach(battery => batteries.add(battery));
+    });
+    return Array.from(batteries).sort();
+  }, [inventoryData]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedStatus, selectedColor, selectedBattery, selectedPriceRange]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -132,7 +128,7 @@ export function ScootersPage() {
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
               Discover premium electric scooters from Zuja Electric. Choose from
-              our collection of {scooters.length} high-performance models
+              our collection of {inventoryData?.count || 0} high-performance models
             </p>
           </motion.div>
 
@@ -172,33 +168,48 @@ export function ScootersPage() {
             </div>
 
             {/* Filter Dropdowns - Grid Layout on Mobile, Row Layout on Desktop */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-4">
-              {/* Category Dropdown */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-4">
+              {/* Status Dropdown */}
               <Select
-                value={selectedCategory}
-                onValueChange={setSelectedCategory}
+                value={selectedStatus}
+                onValueChange={(value) => setSelectedStatus(value as any)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Category" />
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  <SelectItem value="All">All Status</SelectItem>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                  <SelectItem value="discontinued">Discontinued</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Color Dropdown */}
+              <Select value={selectedColor} onValueChange={setSelectedColor}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Color" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Colors</SelectItem>
+                  {availableColors.map((color) => (
+                    <SelectItem key={color} value={color}>
+                      {color.charAt(0).toUpperCase() + color.slice(1)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              {/* Brand Dropdown */}
-              <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+              {/* Battery Dropdown */}
+              <Select value={selectedBattery} onValueChange={setSelectedBattery}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Brand" />
+                  <SelectValue placeholder="Battery" />
                 </SelectTrigger>
                 <SelectContent>
-                  {brands.map((brand) => (
-                    <SelectItem key={brand} value={brand}>
-                      {brand}
+                  <SelectItem value="All">All Batteries</SelectItem>
+                  {availableBatteries.map((battery) => (
+                    <SelectItem key={battery} value={battery}>
+                      {battery}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -213,46 +224,11 @@ export function ScootersPage() {
                   <SelectValue placeholder="Price Range" />
                 </SelectTrigger>
                 <SelectContent>
-                  {priceRanges.map((range) => (
-                    <SelectItem key={range.label} value={range.label}>
-                      {range.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Mileage Range Dropdown */}
-              <Select
-                value={selectedMileageRange}
-                onValueChange={setSelectedMileageRange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Mileage Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mileageRanges.map((range) => (
-                    <SelectItem key={range.label} value={range.label}>
-                      {range.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Sort Dropdown */}
-              <Select value={selectedSort} onValueChange={setSelectedSort}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Sort By" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Featured">Featured</SelectItem>
-                  <SelectItem value="Price: Low to High">
-                    Price: Low to High
-                  </SelectItem>
-                  <SelectItem value="Price: High to Low">
-                    Price: High to Low
-                  </SelectItem>
-                  <SelectItem value="Best Range">Best Range</SelectItem>
-                  <SelectItem value="Top Speed">Top Speed</SelectItem>
+                  <SelectItem value="All Prices">All Prices</SelectItem>
+                  <SelectItem value="Under ₹90,000">Under ₹90,000</SelectItem>
+                  <SelectItem value="₹90,000 - ₹1,10,000">₹90,000 - ₹1,10,000</SelectItem>
+                  <SelectItem value="₹1,10,000 - ₹1,30,000">₹1,10,000 - ₹1,30,000</SelectItem>
+                  <SelectItem value="Above ₹1,30,000">Above ₹1,30,000</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -260,16 +236,96 @@ export function ScootersPage() {
 
           {/* Results Count */}
           <div className="mb-6 text-sm text-muted-foreground">
-            Showing {filteredScooters.length} of {scooters.length} scooters
+            {isLoading ? (
+              "Loading..."
+            ) : (
+              <>
+                Showing {scooters.length} of {inventoryData?.count || 0} scooters
+                {inventoryData && inventoryData.total_pages > 1 && (
+                  <span className="ml-2">
+                    (Page {inventoryData.current_page} of {inventoryData.total_pages})
+                  </span>
+                )}
+              </>
+            )}
           </div>
 
           {/* Scooters Grid */}
-          {filteredScooters.length > 0 ? (
+          {isLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-              {filteredScooters.map((scooter, i) => (
-                <ScooterCard key={scooter.id} scooter={scooter} index={i} />
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="h-96 bg-card border border-border/80 rounded-2xl animate-pulse" />
               ))}
             </div>
+          ) : error ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-20"
+            >
+              <p className="text-xl text-muted-foreground mb-4">
+                Failed to load scooters. Please try again later.
+              </p>
+            </motion.div>
+          ) : scooters.length > 0 ? (
+            <>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                {scooters.map((scooter, i) => (
+                  <ScooterCard key={scooter.id} scooter={scooter} index={i} />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {inventoryData && inventoryData.total_pages > 1 && (
+                <div className="mt-12 flex items-center justify-center gap-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={!inventoryData.previous || currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: Math.min(5, inventoryData.total_pages) }, (_, i) => {
+                      let pageNum: number;
+                      if (inventoryData.total_pages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= inventoryData.total_pages - 2) {
+                        pageNum = inventoryData.total_pages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(inventoryData.total_pages, prev + 1))}
+                    disabled={!inventoryData.next || currentPage === inventoryData.total_pages}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
@@ -282,11 +338,11 @@ export function ScootersPage() {
               <button
                 onClick={() => {
                   setSearch("");
-                  setSelectedBrand("All");
-                  setSelectedCategory("All");
+                  setSelectedStatus("All");
+                  setSelectedColor("All");
+                  setSelectedBattery("All");
                   setSelectedPriceRange("All Prices");
-                  setSelectedMileageRange("All Ranges");
-                  setSelectedSort("Featured");
+                  setCurrentPage(1);
                 }}
                 className="text-primary hover:underline"
               >

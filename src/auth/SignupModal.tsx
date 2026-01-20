@@ -23,28 +23,7 @@ interface SignupFormData {
   confirmPassword: string;
 }
 
-const STORAGE_KEY = 'ev_nexus_users';
-
-// Store user data in localStorage
-function storeUser(userData: Omit<SignupFormData, 'confirmPassword'> & { id: string; joinedAt: string }): void {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    const existingUsers = localStorage.getItem(STORAGE_KEY);
-    const users = existingUsers ? JSON.parse(existingUsers) : [];
-    
-    // Check if email already exists
-    if (users.some((u: any) => u.email === userData.email)) {
-      throw new Error('Email already registered');
-    }
-    
-    users.push(userData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-  } catch (error) {
-    console.error('Error storing user:', error);
-    throw error;
-  }
-}
+// Note: User data is now handled by the backend API, not stored in localStorage
 
 export function SignupModal({ isOpen, onClose, onSignupSuccess }: SignupModalProps) {
   const [formData, setFormData] = useState<SignupFormData>({
@@ -123,34 +102,9 @@ export function SignupModal({ isOpen, onClose, onSignupSuccess }: SignupModalPro
     setIsSubmitting(true);
 
     try {
-      // Check if email already exists
-      const existingUsers = localStorage.getItem(STORAGE_KEY);
-      const users = existingUsers ? JSON.parse(existingUsers) : [];
-      
-      if (users.some((u: any) => u.email === formData.email)) {
-        toast.error('Email already registered. Please use a different email or login.');
-        setErrors({ email: 'Email already registered' });
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Create user object
-      const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const userData = {
-        id: userId,
-        name: formData.name.trim(),
-        dateOfBirth: formData.dateOfBirth,
-        phone: formData.phone.trim(),
-        aadhar: formData.aadhar.trim(),
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password, // In production, this should be hashed
-        joinedAt: new Date().toISOString(),
-      };
-
-      // Store user
-      storeUser(userData);
-
-      toast.success('Account created successfully! You can now login.');
+      // Note: User registration should be handled by the backend API
+      // This is a legacy signup modal - consider using the main signup flow in LoginPage.tsx
+      toast.error('Please use the signup flow on the login page.');
       
       // Reset form
       setFormData({
@@ -164,7 +118,6 @@ export function SignupModal({ isOpen, onClose, onSignupSuccess }: SignupModalPro
       });
       setErrors({});
 
-      onSignupSuccess();
       onClose();
     } catch (error: any) {
       toast.error(error.message || 'Failed to create account. Please try again.');
