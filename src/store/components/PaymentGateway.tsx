@@ -27,7 +27,7 @@ interface PaymentGatewayProps {
   isOpen: boolean;
   onClose: () => void;
   amount: number;
-  onSuccess: (paymentGatewayRef?: string) => void;
+  onSuccess: (paymentGatewayRef?: string, paymentMethod?: 'online' | 'bank_transfer' | 'cash' | 'wallet') => void;
   onFailure?: () => void;
   vehicleName?: string;
 }
@@ -183,9 +183,17 @@ export function PaymentGateway({ isOpen, onClose, amount, onSuccess, onFailure, 
     // Generate payment gateway reference
     const paymentGatewayRef = `TXN${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     
+    // Map PaymentGateway payment methods to API payment methods
+    let apiPaymentMethod: 'online' | 'bank_transfer' | 'cash' | 'wallet' = 'online';
+    if (paymentMethod === 'wallet') {
+      apiPaymentMethod = 'wallet';
+    } else if (paymentMethod === 'card' || paymentMethod === 'upi' || paymentMethod === 'netbanking') {
+      apiPaymentMethod = 'online';
+    }
+    
     // Wait a bit then call success callback
     setTimeout(() => {
-      onSuccess(paymentGatewayRef);
+      onSuccess(paymentGatewayRef, apiPaymentMethod);
       onClose();
     }, 2000);
   };

@@ -247,6 +247,42 @@ export const authApi = api.injectEndpoints({
         return response;
       },
     }),
+    sendUniversalOTP: builder.mutation<SendOTPResponse, SendOTPRequest>({
+      query: (body) => {
+        console.log('🔵 [SEND UNIVERSAL OTP API] Request Body:', JSON.stringify(body, null, 2));
+        return {
+          url: 'auth/send-universal-otp/',
+          method: 'POST',
+          body,
+        };
+      },
+      transformResponse: (response: SendOTPResponse) => {
+        console.log('🟢 [SEND UNIVERSAL OTP API] Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+      transformErrorResponse: (response: { status?: number; data?: unknown; error?: string } | unknown) => {
+        console.log('🔴 [SEND UNIVERSAL OTP API] Error Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+    }),
+    verifyUniversalOTP: builder.mutation<VerifyOTPResponse, VerifyOTPRequest>({
+      query: (body) => {
+        console.log('🔵 [VERIFY UNIVERSAL OTP API] Request Body:', JSON.stringify(body, null, 2));
+        return {
+          url: 'auth/verify-universal-otp/',
+          method: 'POST',
+          body,
+        };
+      },
+      transformResponse: (response: VerifyOTPResponse) => {
+        console.log('🟢 [VERIFY UNIVERSAL OTP API] Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+      transformErrorResponse: (response: { status?: number; data?: unknown; error?: string } | unknown) => {
+        console.log('🔴 [VERIFY UNIVERSAL OTP API] Error Response:', JSON.stringify(response, null, 2));
+        return response;
+      },
+    }),
     login: builder.mutation<LoginResponse, LoginRequest>({
       queryFn: async ({ email, password }) => {
         console.log('🔵 [LOGIN API] Request Body:', JSON.stringify({ email, password: '***' }, null, 2));
@@ -324,10 +360,63 @@ export const authApi = api.injectEndpoints({
       },
     }),
     getCurrentUser: builder.query<User, void>({
-      query: () => ({
-        url: 'auth/me/',
-        method: 'GET',
-      }),
+      queryFn: async () => {
+        // Use users/profile/ instead of auth/me/
+        const { accessToken } = getAuthTokens();
+        
+        if (!accessToken) {
+          return {
+            error: {
+              status: 'UNAUTHORIZED' as const,
+              error: 'No access token found',
+            },
+          };
+        }
+
+        try {
+          const response = await fetch(`${getApiBaseUrl()}users/profile/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to fetch profile' }));
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              },
+            };
+          }
+
+          const data = await response.json();
+          console.log('📥 [AUTH API - getCurrentUser] Raw response:', data);
+          // Transform the response to match User interface
+          const transformedUser: User = {
+            id: String(data.id),
+            name: `${data.first_name} ${data.last_name}`.trim() || data.username,
+            email: data.email,
+            role: data.role as 'admin' | 'staff' | 'user',
+            isDistributor: data.is_distributor,
+            phone: data.mobile,
+            joinedAt: data.date_joined,
+            kycStatus: data.kyc_status || 'not_submitted',
+          };
+          console.log('🔄 [AUTH API - getCurrentUser] Transformed user:', transformedUser);
+          
+          return { data: transformedUser };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            },
+          };
+        }
+      },
       providesTags: ['User'],
     }),
   }),
@@ -340,6 +429,8 @@ export const {
   useVerifyOTPMutation,
   useSendAdminOTPMutation,
   useVerifyAdminOTPMutation,
+  useSendUniversalOTPMutation,
+  useVerifyUniversalOTPMutation,
   useLoginMutation, 
   useLogoutMutation, 
   useGetCurrentUserQuery 

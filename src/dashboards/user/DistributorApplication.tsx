@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload, FileText, CheckCircle, XCircle, AlertCircle, User, Mail, Phone, MapPin, CreditCard, Image as ImageIcon, Car, DollarSign, FileCheck, Shield } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, User, Mail, Phone, FileCheck, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,21 +13,48 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { updateDistributorInfo, updateUser } from '@/app/slices/authSlice';
+import { updateDistributorInfo, updateUser, setCredentials } from '@/app/slices/authSlice';
 import { toast } from 'sonner';
-import { scooters } from '@/store/data/scooters';
 import { 
+  useSubmitDistributorApplicationNewMutation,
   useSubmitDistributorApplicationMutation, 
   useGetDistributorApplicationQuery 
 } from '@/app/api/distributorApi';
-import { ConditionsDialog } from './ConditionsDialog';
 import { Booking } from '@/app/slices/bookingSlice';
+import { KYCModal } from '@/components/KYCModal';
+import { useGetBookingsQuery } from '@/app/api/bookingApi';
+import { useSendUniversalOTPMutation, useVerifyUniversalOTPMutation } from '@/app/api/authApi';
+import { useGetUserProfileQuery } from '@/app/api/userApi';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 export function DistributorApplication() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
-  const { bookings } = useAppSelector((state) => state.booking);
+  const { bookings: reduxBookings } = useAppSelector((state) => state.booking);
+  
+  // Fetch user profile to ensure KYC status is up-to-date on page refresh
+  const { data: profileData, refetch: refetchUserProfile } = useGetUserProfileQuery();
+  
+  // Use profileData if available (from API), otherwise fallback to Redux user state
+  // This ensures we have the latest KYC status even on page refresh
+  const currentUser = profileData || user;
+  
+  // Update Redux state when profile data is fetched
+  useEffect(() => {
+    if (profileData) {
+      console.log('📋 [DISTRIBUTOR APPLICATION] Profile data received, updating Redux state:', profileData);
+      dispatch(setCredentials({ user: profileData }));
+    }
+  }, [profileData, dispatch]);
+  
+  // Fetch bookings from API instead of relying on Redux state
+  const { data: bookingsData } = useGetBookingsQuery(undefined, {
+    refetchOnMountOrArgChange: false,
+    refetchOnFocus: false,
+  });
+  
+  const [isKYCModalOpen, setIsKYCModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     // Vehicle Selection Details
     vehicleImage: null as File | null,
@@ -68,7 +95,6 @@ export function DistributorApplication() {
     bankStatement: null as File | null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isConditionsDialogOpen, setIsConditionsDialogOpen] = useState(false);
   const [conditionsAccepted, setConditionsAccepted] = useState({
     incentiveConsent: false,
     declarationAccepted: false,
@@ -76,100 +102,201 @@ export function DistributorApplication() {
     otpVerified: false,
   });
   const [submitApplication] = useSubmitDistributorApplicationMutation();
-  const { data: existingApplication } = useGetDistributorApplicationQuery(user?.id || '', {
-    skip: !user?.id,
+  const [submitApplicationNew] = useSubmitDistributorApplicationNewMutation();
+  const { data: existingApplication } = useGetDistributorApplicationQuery(currentUser?.id || '', {
+    skip: !currentUser?.id,
   });
-  const [vehicleImagePreview, setVehicleImagePreview] = useState<string | null>(null);
   const [userOrders, setUserOrders] = useState<Booking[]>([]);
+  
+  // Terms & Conditions and OTP state
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [isSendingOTP, setIsSendingOTP] = useState(false);
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  const [sendUniversalOTP] = useSendUniversalOTPMutation();
+  const [verifyUniversalOTP] = useVerifyUniversalOTPMutation();
+  
+  // Determine identifier (email or mobile) and OTP type
+  const getIdentifier = () => {
+    if (user?.email) return user.email;
+    if (user?.phone) return user.phone.replace(/\D/g, '');
+    return '';
+  };
+  
+  const getOtpType = (): 'email' | 'mobile' => {
+    const identifier = getIdentifier();
+    // Check if it's an email (contains @) or mobile (only digits)
+    return identifier.includes('@') ? 'email' : 'mobile';
+  };
 
-  // Auto-fill applicant details from user profile
+  // Auto-fill applicant details from user profile (uneditable)
   useEffect(() => {
-    if (user) {
+    if (currentUser) {
       setFormData(prev => ({
         ...prev,
-        applicantName: user.name || prev.applicantName,
-        mobileNumber: user.phone || user.email?.replace(/[^0-9]/g, '').slice(-10) || prev.mobileNumber,
-        place: user.address || user.city || prev.place,
+        applicantName: currentUser.name || '',
+        mobileNumber: currentUser.phone || currentUser.email?.replace(/[^0-9]/g, '').slice(-10) || '',
+        date: new Date().toISOString().split('T')[0],
+        place: currentUser.address || currentUser.city || '',
       }));
     }
-  }, [user]);
-
-  // Sync bookings to local storage and load user orders
-  useEffect(() => {
-    const storageKey = `user_orders_${user?.id || 'guest'}`;
+  }, [currentUser]);
+  
+  // Handle Terms & Conditions checkbox change
+  const handleTermsCheckboxChange = async (checked: boolean) => {
+    setTermsAccepted(checked);
     
-    // Save bookings to local storage whenever bookings change
-    if (bookings.length > 0) {
+    if (checked) {
+      // Send OTP when checkbox is checked
+      const identifier = getIdentifier();
+      const otpType = getOtpType();
+      
+      if (!identifier) {
+        toast.error('Email or mobile number not found in profile');
+        setTermsAccepted(false);
+        return;
+      }
+      
+      setIsSendingOTP(true);
       try {
-        localStorage.setItem(storageKey, JSON.stringify(bookings));
-        setUserOrders(bookings);
-      } catch (error) {
-        console.error('Error saving orders to local storage:', error);
+        await sendUniversalOTP({
+          identifier,
+          otp_type: otpType,
+        }).unwrap();
+        setOtpSent(true);
+        toast.success(`OTP sent to your ${otpType === 'email' ? 'email' : 'mobile number'}`);
+      } catch (error: any) {
+        toast.error(error?.data?.message || 'Failed to send OTP');
+        setTermsAccepted(false);
+      } finally {
+        setIsSendingOTP(false);
       }
     } else {
-      // Try to load from local storage if no bookings in Redux
-      try {
-        const storedOrders = localStorage.getItem(storageKey);
-        if (storedOrders) {
-          const parsedOrders = JSON.parse(storedOrders);
-          setUserOrders(parsedOrders);
-        }
-      } catch (error) {
-        console.error('Error loading orders from local storage:', error);
-      }
+      // Reset OTP state when unchecked
+      setOtpSent(false);
+      setOtpVerified(false);
+      setOtpCode('');
+      setConditionsAccepted(prev => ({ ...prev, otpVerified: false }));
     }
-  }, [bookings, user?.id]);
-
-  // Function to convert image URL to File
-  const urlToFile = async (url: string, filename: string): Promise<File | null> => {
+  };
+  
+  // Handle OTP verification
+  const handleVerifyOTP = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
+    
+    const identifier = getIdentifier();
+    const otpType = getOtpType();
+    
+    if (!identifier) {
+      toast.error('Email or mobile number not found in profile');
+      return;
+    }
+    
+    setIsVerifyingOTP(true);
     try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const file = new File([blob], filename, { type: blob.type });
-      return file;
-    } catch (error) {
-      console.error('Error converting image URL to File:', error);
-      return null;
+      await verifyUniversalOTP({
+        identifier,
+        otp_code: otpCode,
+        otp_type: otpType,
+      }).unwrap();
+      setOtpVerified(true);
+      setConditionsAccepted(prev => ({ ...prev, otpVerified: true }));
+      toast.success('OTP verified successfully!');
+    } catch (error: any) {
+      toast.error(error?.data?.message || 'Invalid OTP. Please try again.');
+    } finally {
+      setIsVerifyingOTP(false);
     }
   };
 
-  // Check if user is eligible (has paid at least ₹5000 in total)
-  // Use totalPaid if available, otherwise fallback to preBookingAmount for backward compatibility
-  const userTotalPaid = user?.preBookingInfo?.totalPaid || user?.preBookingInfo?.preBookingAmount || 0;
-  const hasEligiblePreBooking = user?.preBookingInfo?.hasPreBooked && 
-                                 (user.preBookingInfo.isDistributorEligible || 
-                                  userTotalPaid >= 5000);
+  // Use API bookings data, fallback to Redux bookings
+  // Bookings should come from the backend API, not localStorage
+  const apiBookings = bookingsData?.results || [];
+  const bookings = reduxBookings.length > 0 ? reduxBookings : apiBookings;
   
-  // Fallback: Check bookings if preBookingInfo is not available or doesn't show eligibility
-  // Use totalPaid if available, otherwise fallback to preBookingAmount
-  const hasEligibleBooking = bookings.some(booking => {
-    const bookingTotalPaid = booking.totalPaid || booking.preBookingAmount || 0;
-    return bookingTotalPaid >= 5000;
-  });
+  // Map API bookings to local booking format (same as MyOrders.tsx)
+  useEffect(() => {
+    if (!bookingsData?.results) {
+      setUserOrders([]);
+      return;
+    }
+    
+    const mappedBookings = bookingsData.results.map((apiBooking) => {
+      // Map API status to display status
+      let displayStatus: Booking['status'] = 'pending';
+      if (apiBooking.status === 'pending') {
+        displayStatus = 'pre-booked';
+      } else if (apiBooking.status === 'active' || apiBooking.status === 'confirmed') {
+        displayStatus = 'confirmed';
+      } else if (apiBooking.status === 'delivered') {
+        displayStatus = 'delivered';
+      } else if (apiBooking.status === 'cancelled') {
+        displayStatus = 'cancelled';
+      }
+      
+      return {
+        id: apiBooking.id.toString(),
+        vehicleId: `vehicle-${apiBooking.vehicle_details.name?.toLowerCase().replace(/\s+/g, '-') || 'vehicle'}-${apiBooking.vehicle_model}`,
+        vehicleName: apiBooking.vehicle_details.name,
+        modelCode: apiBooking.model_code,
+        status: displayStatus,
+        preBookingAmount: parseFloat(apiBooking.booking_amount) || 0,
+        totalAmount: parseFloat(apiBooking.total_amount) || 0,
+        remainingAmount: parseFloat(apiBooking.remaining_amount) || 0,
+        totalPaid: parseFloat(apiBooking.total_paid) || 0,
+        paymentMethod: (apiBooking.payment_option === 'full_payment' ? 'full' : 
+                      apiBooking.payment_option === 'emi' ? 'emi' : 'flexible') as Booking['paymentMethod'],
+        paymentDueDate: apiBooking.expires_at,
+        paymentStatus: (parseFloat(apiBooking.remaining_amount) === 0 ? 'completed' : 
+                      parseFloat(apiBooking.total_paid) > 0 ? 'partial' : 'pending') as Booking['paymentStatus'],
+        isActiveBuyer: true,
+        redemptionPoints: 0,
+        redemptionEligible: false,
+        bookedAt: apiBooking.created_at,
+        referredBy: apiBooking.referred_by || undefined,
+        addedToTeamNetwork: false,
+        bookingNumber: apiBooking.booking_number,
+        vehicleColor: apiBooking.vehicle_color,
+        batteryVariant: apiBooking.battery_variant,
+      };
+    });
+    
+    // Deduplicate bookings by ID
+    const deduplicatedBookings = mappedBookings.filter((booking, index, self) => 
+      index === self.findIndex(b => b.id === booking.id)
+    );
+    
+    setUserOrders(deduplicatedBookings);
+  }, [bookingsData]);
+
+
+  // Eligibility check: No ₹5000 requirement, no active buyer requirement
+  // Anyone can become a distributor (KYC verification is still required)
+  const isEligible = true; // Always eligible - no pre-booking or payment requirements
   
-  const isEligible = hasEligiblePreBooking || hasEligibleBooking;
+  // Check KYC verification status
+  // If kyc_status is null from API, treat it as 'not_submitted'
+  // Handle both 'verified' and 'approved' as verified states
+  const kycStatus = currentUser?.kycStatus === null ? 'not_submitted' : (currentUser?.kycStatus || 'not_submitted');
+  const isKYCVerified = kycStatus === 'verified' || kycStatus === 'approved';
   
   // Debug: Log eligibility status
   console.log('Distributor Eligibility Check:', {
-    hasPreBooked: user?.preBookingInfo?.hasPreBooked,
-    preBookingAmount: user?.preBookingInfo?.preBookingAmount,
-    totalPaid: user?.preBookingInfo?.totalPaid,
-    userTotalPaid,
-    isDistributorEligible: user?.preBookingInfo?.isDistributorEligible,
-    hasEligiblePreBooking,
-    hasEligibleBooking,
     bookingsCount: bookings.length,
-    bookingsTotalPaid: bookings.map(b => b.totalPaid || b.preBookingAmount),
+    apiBookingsCount: apiBookings.length,
+    reduxBookingsCount: reduxBookings.length,
     isEligible,
+    kycStatus: currentUser?.kycStatus,
   });
 
   // Check if already a distributor
-  const isDistributor = user?.isDistributor;
-  const verificationStatus = user?.distributorInfo?.verificationStatus || existingApplication?.status;
-  
-  // Check KYC verification status
-  const kycStatus = user?.kycStatus || 'not_submitted';
-  const isKYCVerified = kycStatus === 'verified';
+  const isDistributor = currentUser?.isDistributor;
+  const verificationStatus = currentUser?.distributorInfo?.verificationStatus || existingApplication?.status;
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => {
@@ -203,14 +330,7 @@ export function DistributorApplication() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Validate eligibility FIRST: total paid must be at least ₹5000
-    if (!isEligible || userTotalPaid < 5000) {
-      toast.error(`You need to pre-book at least one vehicle with ₹5,000 to submit the distributor application. Your current total paid is ₹${userTotalPaid.toLocaleString()}.`);
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Validate KYC verification SECOND
+    // Validate KYC verification
     if (!isKYCVerified) {
       toast.error('KYC verification is required to submit the distributor application. Please complete your KYC verification first.');
       setIsSubmitting(false);
@@ -218,50 +338,15 @@ export function DistributorApplication() {
       return;
     }
 
-    // Validate required fields
-    if (!formData.vehicleModel || !formData.vehicleMRP || !formData.bookingOrderNo) {
-      toast.error('Please fill all vehicle selection details');
+    // Validate terms acceptance and OTP verification
+    if (!termsAccepted) {
+      toast.error('Please accept Terms & Conditions');
       setIsSubmitting(false);
       return;
     }
-
-    // Validate that the selected model matches the booking order's vehicle
-    const selectedOrder = userOrders.find(order => order.id === formData.bookingOrderNo);
-    if (selectedOrder) {
-      if (selectedOrder.vehicleId !== formData.vehicleModel) {
-        const selectedScooter = scooters.find(s => s.id === formData.vehicleModel);
-        const orderScooter = scooters.find(s => s.id === selectedOrder.vehicleId);
-        toast.error(
-          `Model mismatch: Selected model "${selectedScooter?.name || formData.vehicleModel}" does not match the booking order vehicle "${selectedOrder.vehicleName || orderScooter?.name || selectedOrder.vehicleId}". Please select the correct model or booking order.`
-        );
-        setIsSubmitting(false);
-        return;
-      }
-    }
-
-    if (!formData.vehicleImage) {
-      toast.error('Please upload vehicle image');
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (formData.paymentMode === 'installment') {
-      if (!formData.advancePaid || !formData.balanceAmount || !formData.installmentAmount) {
-        toast.error('Please fill all payment details for installment mode');
-        setIsSubmitting(false);
-        return;
-      }
-    }
-
-    // Validate conditions acceptance
-    if (!conditionsAccepted.otpVerified) {
-      toast.error('Please accept terms & conditions and verify OTP');
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!conditionsAccepted.declarationAccepted && !conditionsAccepted.refundPolicyAccepted) {
-      toast.error('Please accept at least the declaration or refund policy in terms & conditions');
+    
+    if (!otpVerified) {
+      toast.error('Please verify OTP before submitting');
       setIsSubmitting(false);
       return;
     }
@@ -273,83 +358,112 @@ export function DistributorApplication() {
     }
 
     try {
-      // Submit application using API with userId
-      const result = await submitApplication({
-        ...formData,
-        incentiveConsent: conditionsAccepted.incentiveConsent,
-        declarationAccepted: conditionsAccepted.declarationAccepted,
-        refundPolicyAccepted: conditionsAccepted.refundPolicyAccepted,
-        userId: user?.id || `user-${Date.now()}`,
+      // Submit application using new API endpoint
+      const result = await submitApplicationNew({
+        is_distributor_terms_and_conditions_accepted: termsAccepted,
       }).unwrap();
       
-      if (result.success) {
-        // Generate referral code
-        const referralCode = `REF${user?.id.slice(0, 6).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-
-        // Update user with distributor application status
-        dispatch(updateDistributorInfo({
-          isDistributor: false, // Will be true after verification
-          isVerified: false,
-          verificationStatus: 'pending',
-          referralCode: user?.distributorInfo?.referralCode || referralCode,
-          leftCount: user?.distributorInfo?.leftCount || 0,
-          rightCount: user?.distributorInfo?.rightCount || 0,
-          totalReferrals: user?.distributorInfo?.totalReferrals || 0,
-          binaryActivated: user?.distributorInfo?.binaryActivated || false,
-          poolMoney: user?.distributorInfo?.poolMoney || 0,
-          joinedAt: user?.distributorInfo?.joinedAt || new Date().toISOString(),
-        }));
-
-        dispatch(updateUser({
-          isDistributor: false, // Will be true after verification
-        }));
-
-        toast.success('Application submitted successfully! Your application is under review.');
+      console.log('📥 [DISTRIBUTOR APPLICATION] API Response:', result);
+      
+      // Check if application was approved
+      if (result.status === 'approved') {
+        toast.success('Congratulations! Your distributor application has been approved!');
         
-        // Reset form
-        setFormData({
-          vehicleImage: null,
-          vehicleModel: '',
-          vehicleMRP: '',
-          bookingOrderNo: '',
-          paymentMode: 'full',
-          advancePaid: '',
-          balanceAmount: '',
-          installmentMode: 'monthly',
-          installmentAmount: '',
-          applicantName: user?.name || '',
-          mobileNumber: user?.phone || user?.email?.replace(/[^0-9]/g, '').slice(-10) || '',
-          date: new Date().toISOString().split('T')[0],
-          place: user?.address || user?.city || '',
-          aadharNumber: '',
-          panNumber: '',
-          bankAccountNumber: '',
-          ifscCode: '',
-          bankName: '',
-          address: '',
-          city: '',
-          state: '',
-          pincode: '',
-        });
-        setVehicleImagePreview(null);
-        setConditionsAccepted({
-          incentiveConsent: false,
-          declarationAccepted: false,
-          refundPolicyAccepted: false,
-          otpVerified: false,
-        });
-        setDocuments({ aadhar: null, pan: null, bankStatement: null });
+        // Fetch user profile again to get updated distributor status
+        try {
+          const profileResult = await refetchUserProfile();
+          const updatedProfile = profileResult.data;
+          
+          if (!updatedProfile) {
+            throw new Error('Failed to fetch updated profile');
+          }
+          
+          console.log('📥 [DISTRIBUTOR APPLICATION] Updated profile after approval:', updatedProfile);
+          
+          // Update Redux state with new profile data
+          dispatch(setCredentials({ user: updatedProfile }));
+          
+          // Check if user is now a distributor
+          if (updatedProfile.isDistributor) {
+            toast.success('Distributor privileges have been activated! You now have access to distributor features.');
+            
+            // Update distributor info in Redux
+            dispatch(updateDistributorInfo({
+              isDistributor: true,
+              isVerified: true,
+              verificationStatus: 'approved',
+              referralCode: currentUser?.distributorInfo?.referralCode || '',
+              leftCount: currentUser?.distributorInfo?.leftCount || 0,
+              rightCount: currentUser?.distributorInfo?.rightCount || 0,
+              totalReferrals: currentUser?.distributorInfo?.totalReferrals || 0,
+              binaryActivated: currentUser?.distributorInfo?.binaryActivated || false,
+              poolMoney: currentUser?.distributorInfo?.poolMoney || 0,
+              joinedAt: currentUser?.distributorInfo?.joinedAt || new Date().toISOString(),
+            }));
+
+            dispatch(updateUser({
+              isDistributor: true,
+            }));
+          }
+        } catch (profileError) {
+          console.error('Error fetching updated profile:', profileError);
+          toast.warning('Application approved, but failed to fetch updated profile. Please refresh the page.');
+        }
+      } else if (result.status === 'pending') {
+        toast.success('Application submitted successfully! Your application is under review.');
+      } else if (result.status === 'rejected') {
+        toast.error(`Application rejected: ${result.rejection_reason || 'Please contact support for more information.'}`);
       }
+      
+      // Reset form
+      setFormData({
+        vehicleImage: null,
+        vehicleModel: '',
+        vehicleMRP: '',
+        bookingOrderNo: '',
+        paymentMode: 'full',
+        advancePaid: '',
+        balanceAmount: '',
+        installmentMode: 'monthly',
+        installmentAmount: '',
+        applicantName: currentUser?.name || '',
+        mobileNumber: currentUser?.phone || currentUser?.email?.replace(/[^0-9]/g, '').slice(-10) || '',
+        date: new Date().toISOString().split('T')[0],
+        place: currentUser?.address || currentUser?.city || '',
+        aadharNumber: '',
+        panNumber: '',
+        bankAccountNumber: '',
+        ifscCode: '',
+        bankName: '',
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+      });
+      setConditionsAccepted({
+        incentiveConsent: false,
+        declarationAccepted: false,
+        refundPolicyAccepted: false,
+        otpVerified: false,
+      });
+      setDocuments({ aadhar: null, pan: null, bankStatement: null });
+      setTermsAccepted(false);
+      setOtpCode('');
+      setOtpSent(false);
+      setOtpVerified(false);
     } catch (error: any) {
       console.error('Submission error:', error);
-      toast.error(error?.data?.message || 'Failed to submit application. Please try again.');
+      toast.error(error?.data?.message || error?.data?.detail || 'Failed to submit application. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   // Redirect to profile if already a distributor (verified or approved)
-  const isVerifiedDistributor = isDistributor && (verificationStatus === 'approved' || user?.distributorInfo?.isVerified);
+  // If isDistributor is true from the API, that's sufficient - the API has already verified them
+  const isVerifiedDistributor = isDistributor === true || 
+                                (verificationStatus === 'approved') || 
+                                (currentUser?.distributorInfo?.isVerified);
   if (isVerifiedDistributor) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -385,66 +499,10 @@ export function DistributorApplication() {
     );
   }
 
-  // Check pre-booking eligibility FIRST (at least ₹5000) - show warning if not eligible
-  if (!isEligible) {
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Car className="h-5 w-5 text-warning" />
-              Pre-Booking Required
-            </CardTitle>
-            <CardDescription>
-              Pre-book a vehicle with at least ₹5,000 to become eligible for the Distributor Program
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <p className="font-semibold mb-2">Pre-booking at least ₹5,000 is the first requirement to become a Distributor.</p>
-                <p className="mb-3">
-                  You need to pre-book at least one vehicle with a minimum payment of ₹5,000 before you can apply for the Distributor Program.
-                </p>
-                {user?.preBookingInfo?.hasPreBooked && (
-                  <p className="mb-3 text-sm">
-                    Your current total amount paid is ₹{(user.preBookingInfo.totalPaid || user.preBookingInfo.preBookingAmount || 0).toLocaleString()}. 
-                    You need to pay a total of ₹5,000 to be eligible. 
-                    {userTotalPaid < 5000 && (
-                      <span className="block mt-1">
-                        You need to pay ₹{(5000 - userTotalPaid).toLocaleString()} more to become eligible.
-                      </span>
-                    )}
-                  </p>
-                )}
-                {bookings.length > 0 && !hasEligibleBooking && (
-                  <p className="mb-3 text-sm">
-                    You have bookings, but none with a total paid amount of ₹5,000 or more. 
-                    Please make additional payments to reach ₹5,000 total to be eligible.
-                  </p>
-                )}
-                <div className="mt-4 flex gap-2">
-                  <Button onClick={() => window.location.href = '/scooters'} size="lg">
-                    <Car className="w-4 h-4 mr-2" />
-                    Browse Vehicles
-                  </Button>
-                  {user?.preBookingInfo?.hasPreBooked && userTotalPaid < 5000 && (
-                    <Button onClick={() => window.location.href = '/profile?tab=orders'} variant="outline" size="lg">
-                      Make Payment
-                    </Button>
-                  )}
-                </div>
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Check KYC verification SECOND - show warning if not verified
-  if (!isKYCVerified) {
+  // Check KYC verification - show warning if not verified or approved
+  // Only show KYC button if status is not_submitted, pending, rejected, or verified
+  // If status is 'approved', skip KYC requirement and show distributor form directly
+  if (!isKYCVerified && kycStatus !== 'approved') {
     return (
       <div className="space-y-6">
         <Card>
@@ -463,7 +521,7 @@ export function DistributorApplication() {
               <AlertDescription>
                 <p className="font-semibold mb-2">KYC verification is required to become a Distributor.</p>
                 <p className="mb-3 text-sm">
-                  You have completed the pre-booking requirement (₹5,000+). Now you need to complete your KYC verification to proceed with the distributor application.
+                  You need to complete your KYC verification to proceed with the distributor application.
                 </p>
                 {kycStatus === 'not_submitted' && (
                   <p className="mb-3 text-sm">
@@ -480,20 +538,33 @@ export function DistributorApplication() {
                     Your KYC verification was rejected. Please resubmit your documents with correct information.
                   </p>
                 )}
-                <Button 
-                  onClick={() => navigate('/profile?tab=kyc')} 
-                  className="mt-2"
-                  size="lg"
-                >
-                  <Shield className="w-4 h-4 mr-2" />
-                  {kycStatus === 'not_submitted' && 'Complete KYC Verification'}
-                  {kycStatus === 'pending' && 'View KYC Status'}
-                  {kycStatus === 'rejected' && 'Resubmit KYC Documents'}
-                </Button>
+                <div className="mt-4 flex gap-2">
+                  <Button 
+                    onClick={() => {
+                      console.log('🔵 [KYC BUTTON] Clicked, opening modal...');
+                      setIsKYCModalOpen(true);
+                      console.log('🟢 [KYC BUTTON] Modal state set to true');
+                    }} 
+                    className="mt-2"
+                    size="lg"
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    {kycStatus === 'not_submitted' && 'Complete KYC Verification'}
+                    {kycStatus === 'pending' && 'View KYC Status'}
+                    {kycStatus === 'rejected' && 'Resubmit KYC Documents'}
+                    {kycStatus === 'verified' && 'Update KYC Verification'}
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           </CardContent>
         </Card>
+
+        {/* KYC Modal */}
+        <KYCModal
+          isOpen={isKYCModalOpen}
+          onClose={() => setIsKYCModalOpen(false)}
+        />
       </div>
     );
   }
@@ -571,10 +642,6 @@ export function DistributorApplication() {
     );
   }
 
-  // Check for model mismatch
-  const selectedOrder = formData.bookingOrderNo ? userOrders.find(order => order.id === formData.bookingOrderNo) : null;
-  const selectedScooter = formData.vehicleModel ? scooters.find(s => s.id === formData.vehicleModel) : null;
-  const isModelMismatch = selectedOrder && selectedScooter && selectedOrder.vehicleId !== formData.vehicleModel;
 
   return (
     <div className="space-y-6">
@@ -587,243 +654,161 @@ export function DistributorApplication() {
         </CardHeader>
         <CardContent>
           {/* Eligibility Status Banner */}
-          {isEligible && userTotalPaid >= 5000 ? (
+          {isEligible && isKYCVerified ? (
             <div className="mb-6 p-4 bg-success/10 border border-success/30 rounded-lg">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-success" />
                 <div>
                   <p className="font-semibold text-success">You are eligible to apply!</p>
                   <p className="text-sm text-muted-foreground">
-                    Total amount paid: ₹{userTotalPaid.toLocaleString()} (Minimum required: ₹5,000)
+                    KYC verification is complete. You can proceed with your distributor application.
                   </p>
                 </div>
               </div>
             </div>
-          ) : (
+          ) : !isKYCVerified ? (
             <div className="mb-6 p-4 bg-warning/10 border border-warning/30 rounded-lg">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-5 h-5 text-warning" />
                 <div className="flex-1">
-                  <p className="font-semibold text-warning">Not yet eligible</p>
+                  <p className="font-semibold text-warning">KYC Verification Required</p>
                   <p className="text-sm text-muted-foreground">
-                    Current total paid: ₹{userTotalPaid.toLocaleString()}. You need to pay ₹{(5000 - userTotalPaid).toLocaleString()} more to be eligible.
+                    Please complete your KYC verification to proceed with the distributor application.
                   </p>
                   <Button 
                     variant="outline" 
                     size="sm" 
                     className="mt-2"
-                    onClick={() => window.location.href = '/profile?tab=orders'}
+                    onClick={() => setIsKYCModalOpen(true)}
                   >
-                    Make Payment
+                    Complete KYC Verification
                   </Button>
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* 🛵 Vehicle Selection Details */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-              <h3 className="font-semibold text-lg text-foreground flex items-center gap-2">
-                <Car className="w-5 h-5" />
-                🛵 Vehicle Selection Details
-              </h3>
+            {/* Terms & Conditions Section */}
+            <div className="space-y-4 p-4 border-2 border-primary rounded-lg bg-primary/5">
+              <div className="flex items-center gap-2 mb-4">
+                <FileCheck className="w-5 h-5" />
+                <h3 className="font-semibold text-lg text-foreground">
+                  Terms & Conditions
+                </h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Please read and accept the terms & conditions to proceed
+              </p>
               
-              {/* Vehicle Image Upload */}
-              <div className="space-y-2">
-                <Label>Vehicle Image *</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                  {(formData.vehicleImage || vehicleImagePreview) ? (
-                    <div className="space-y-2">
-                      <img 
-                        src={formData.vehicleImage ? URL.createObjectURL(formData.vehicleImage) : vehicleImagePreview || ''} 
-                        alt="Vehicle" 
-                        className="max-h-48 mx-auto rounded-lg"
-                      />
-                      {formData.vehicleImage && (
-                        <p className="text-sm text-muted-foreground">{formData.vehicleImage.name}</p>
-                      )}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setFormData(prev => ({ ...prev, vehicleImage: null }));
-                          setVehicleImagePreview(null);
-                        }}
-                      >
-                        Remove Image
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <ImageIcon className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          if (file) {
-                            setFormData(prev => ({ ...prev, vehicleImage: file }));
-                            setVehicleImagePreview(null);
-                          }
-                        }}
-                        className="hidden"
-                        id="vehicle-image-upload"
-                      />
-                      <label htmlFor="vehicle-image-upload" className="cursor-pointer">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            document.getElementById('vehicle-image-upload')?.click();
-                          }}
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Upload Vehicle Image
-                        </Button>
-                      </label>
-                    </>
-                  )}
-                </div>
+              {/* Terms & Conditions Checkbox */}
+              <div className="flex items-start space-x-3 p-4 border rounded-lg">
+                <Checkbox
+                  id="terms-checkbox"
+                  checked={termsAccepted}
+                  onCheckedChange={handleTermsCheckboxChange}
+                  disabled={isSendingOTP}
+                />
+                <label htmlFor="terms-checkbox" className="cursor-pointer flex-1 text-sm">
+                  I understand and accept the Terms & Conditions *
+                </label>
               </div>
+              
+              {/* OTP Verification Section */}
+              {otpSent && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="space-y-4 p-4 border-2 border-primary rounded-lg bg-primary/5 mt-4"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <Shield className="w-5 h-5 text-primary" />
+                    <h4 className="font-semibold text-base">OTP Verification</h4>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {/* Gentle message instead of input box */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.1, duration: 0.3 }}
+                      className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                    >
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          OTP has been sent to your registered Mobile and Email
+                        </p>
+                      </div>
+                    </motion.div>
 
-              {/* Vehicle Model Selection */}
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="vehicleModel">Model Name *</Label>
-                  <Select
-                    value={formData.vehicleModel}
-                    onValueChange={async (value) => {
-                      const selectedScooter = scooters.find(s => s.id === value);
-                      if (selectedScooter) {
-                        // Auto-fill price and calculate balance if in installment mode
-                        setFormData(prev => {
-                          const updates: any = {
-                            vehicleModel: value,
-                            vehicleMRP: selectedScooter.price.toString()
-                          };
-                          
-                          // Auto-calculate balance amount if in installment mode
-                          if (prev.paymentMode === 'installment' && prev.advancePaid) {
-                            const mrp = selectedScooter.price;
-                            const advance = parseFloat(prev.advancePaid);
-                            if (!isNaN(advance) && mrp >= advance) {
-                              updates.balanceAmount = (mrp - advance).toString();
-                            } else if (!isNaN(advance) && advance > mrp) {
-                              updates.balanceAmount = '0';
-                            }
-                          }
-                          
-                          return { ...prev, ...updates };
-                        });
-                        
-                        // Auto-fill image - convert URL to File and set preview
-                        if (selectedScooter.image) {
-                          setVehicleImagePreview(selectedScooter.image);
-                          const imageFile = await urlToFile(selectedScooter.image, `${selectedScooter.name.toLowerCase().replace(/\s+/g, '-')}.jpg`);
-                          if (imageFile) {
-                            setFormData(prev => ({
-                              ...prev,
-                              vehicleImage: imageFile
-                            }));
-                          }
-                        }
-                      }
-                    }}
-                    required
-                  >
-                    <SelectTrigger id="vehicleModel">
-                      <SelectValue placeholder="Select Vehicle Model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {scooters.map((scooter) => (
-                        <SelectItem key={scooter.id} value={scooter.id}>
-                          {scooter.name} - ₹{scooter.price.toLocaleString()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vehicleMRP">MRP (₹) *</Label>
-                  <Input
-                    id="vehicleMRP"
-                    type="number"
-                    value={formData.vehicleMRP}
-                    onChange={(e) => handleInputChange('vehicleMRP', e.target.value)}
-                    placeholder="Enter MRP"
-                    required
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="bookingOrderNo">Booking / Purchase Order No *</Label>
-                  <Select
-                    value={formData.bookingOrderNo}
-                    onValueChange={(value) => {
-                      const selectedOrder = userOrders.find(order => order.id === value);
-                      setFormData(prev => {
-                        const updates: any = { bookingOrderNo: value };
-                        
-                        // Auto-fill advance paid amount if installment mode is selected
-                        if (prev.paymentMode === 'installment' && selectedOrder && selectedOrder.preBookingAmount) {
-                          updates.advancePaid = selectedOrder.preBookingAmount.toString();
-                          
-                          // Auto-calculate balance amount
-                          const mrp = parseFloat(prev.vehicleMRP);
-                          const advance = selectedOrder.preBookingAmount;
-                          if (!isNaN(mrp) && mrp >= advance) {
-                            updates.balanceAmount = (mrp - advance).toString();
-                          } else if (!isNaN(mrp) && advance > mrp) {
-                            updates.balanceAmount = '0';
-                          }
-                        }
-                        
-                        return { ...prev, ...updates };
-                      });
-                    }}
-                    required
-                  >
-                    <SelectTrigger id="bookingOrderNo">
-                      <SelectValue placeholder="Select Booking/Purchase Order Number" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {userOrders.length > 0 ? (
-                        userOrders.map((order) => (
-                          <SelectItem key={order.id} value={order.id}>
-                            {order.id} - {order.vehicleName} (₹{order.totalAmount.toLocaleString()})
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-orders" disabled>
-                          No orders found. Please create a booking first.
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {userOrders.length === 0 && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      No orders available. Please make a booking first.
-                    </p>
-                  )}
-                  {isModelMismatch && (
-                    <Alert variant="destructive" className="mt-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>Model Mismatch Warning:</strong> The selected model "{selectedScooter?.name || formData.vehicleModel}" does not match the booking order vehicle "{selectedOrder?.vehicleName}". Please select the correct model or booking order to proceed.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              </div>
+                    {otpVerified ? (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+                          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <AlertDescription className="text-green-700 dark:text-green-300">
+                            OTP verified successfully!
+                          </AlertDescription>
+                        </Alert>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
+                        className="space-y-4"
+                      >
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Enter OTP *</Label>
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                            <InputOTP
+                              maxLength={6}
+                              value={otpCode}
+                              onChange={(value) => {
+                                const cleaned = value.replace(/\D/g, '').slice(0, 6);
+                                setOtpCode(cleaned);
+                              }}
+                              disabled={otpVerified}
+                            >
+                              <InputOTPGroup>
+                                <InputOTPSlot index={0} />
+                                <InputOTPSlot index={1} />
+                                <InputOTPSlot index={2} />
+                                <InputOTPSlot index={3} />
+                                <InputOTPSlot index={4} />
+                                <InputOTPSlot index={5} />
+                              </InputOTPGroup>
+                            </InputOTP>
+                          </div>
+                        </div>
+
+                        <Button
+                          type="button"
+                          onClick={handleVerifyOTP}
+                          disabled={otpCode.length !== 6 || isVerifyingOTP}
+                          className="w-full"
+                        >
+                          {isVerifyingOTP ? 'Verifying...' : 'Verify OTP'}
+                        </Button>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+              
+              {termsAccepted && !otpSent && isSendingOTP && (
+                <p className="text-sm text-muted-foreground mt-2">Sending OTP...</p>
+              )}
             </div>
 
-            {/* 🔹 Payment Mode Selection */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+            {/* 🔹 Payment Mode Selection - COMMENTED OUT */}
+            {/* <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
               <h3 className="font-semibold text-lg text-foreground flex items-center gap-2">
                 <DollarSign className="w-5 h-5" />
                 🔹 Payment Mode Selection (✔ tick applicable option)
@@ -882,129 +867,7 @@ export function DistributorApplication() {
                   </div>
                 </div>
               </RadioGroup>
-            </div>
-
-            {/* 💰 Payment Details */}
-            {formData.paymentMode === 'installment' && (
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                <h3 className="font-semibold text-lg text-foreground flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  💰 Payment Details
-                </h3>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="advancePaid">Advance Paid (₹) *</Label>
-                    <Input
-                      id="advancePaid"
-                      type="number"
-                      value={formData.advancePaid}
-                      onChange={(e) => handleInputChange('advancePaid', e.target.value)}
-                      placeholder="Enter advance amount"
-                      required={formData.paymentMode === 'installment'}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="balanceAmount">Balance Amount (₹) *</Label>
-                    <Input
-                      id="balanceAmount"
-                      type="number"
-                      value={formData.balanceAmount}
-                      onChange={(e) => handleInputChange('balanceAmount', e.target.value)}
-                      placeholder="Auto-calculated"
-                      required={formData.paymentMode === 'installment'}
-                      readOnly
-                      className="bg-muted"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Calculated as: MRP - Advance Paid
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="installmentMode">Installment Mode *</Label>
-                    <Select
-                      value={formData.installmentMode}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, installmentMode: value as 'monthly' | 'weekly' }))}
-                      required={formData.paymentMode === 'installment'}
-                    >
-                      <SelectTrigger id="installmentMode">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="installmentAmount">Installment Amount (₹) *</Label>
-                    <Input
-                      id="installmentAmount"
-                      type="number"
-                      value={formData.installmentAmount}
-                      onChange={(e) => handleInputChange('installmentAmount', e.target.value)}
-                      placeholder="Enter installment amount"
-                      required={formData.paymentMode === 'installment'}
-                    />
-                  </div>
-                </div>
-                
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>Note:</strong> വാഹനത്തിന്റെ മൊത്തം തുക പൂർണ്ണമായതിനു ശേഷം മാത്രമേ വാഹനം ഡെലിവറി ചെയ്യുകയുള്ളൂ.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-
-            {/* Terms & Conditions Section */}
-            <div className="space-y-4 p-4 border-2 border-primary rounded-lg bg-primary/5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-lg text-foreground flex items-center gap-2">
-                    <FileCheck className="w-5 h-5" />
-                    Terms & Conditions
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Please read and accept the terms & conditions to proceed
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant={conditionsAccepted.otpVerified ? "outline" : "default"}
-                  onClick={() => setIsConditionsDialogOpen(true)}
-                >
-                  {conditionsAccepted.otpVerified ? (
-                    <>
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Conditions Accepted
-                    </>
-                  ) : (
-                    <>
-                      <FileCheck className="w-4 h-4 mr-2" />
-                      Accept Terms & Conditions
-                    </>
-                  )}
-                </Button>
-              </div>
-              
-              {conditionsAccepted.otpVerified && (
-                <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
-                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <AlertDescription className="text-green-700 dark:text-green-300">
-                    <strong>✓ Terms & Conditions Accepted</strong>
-                    <br />
-                    <span className="text-xs">
-                      Incentive Consent: {conditionsAccepted.incentiveConsent ? 'Yes' : 'No'} | 
-                      Declaration: {conditionsAccepted.declarationAccepted ? 'Accepted' : 'Not Accepted'} | 
-                      Refund Policy: {conditionsAccepted.refundPolicyAccepted ? 'Accepted' : 'Not Accepted'} | 
-                      OTP: Verified
-                    </span>
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
+            </div> */}
 
             {/* 🖊 Applicant Details */}
             <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
@@ -1019,8 +882,8 @@ export function DistributorApplication() {
                   <Input
                     id="applicantName"
                     value={formData.applicantName}
-                    onChange={(e) => handleInputChange('applicantName', e.target.value)}
-                    placeholder="Enter your full name"
+                    readOnly
+                    className="bg-muted"
                     required
                   />
                 </div>
@@ -1030,9 +893,8 @@ export function DistributorApplication() {
                     id="mobileNumber"
                     type="tel"
                     value={formData.mobileNumber}
-                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
-                    placeholder="Enter mobile number"
-                    maxLength={10}
+                    readOnly
+                    className="bg-muted"
                     required
                   />
                 </div>
@@ -1042,7 +904,8 @@ export function DistributorApplication() {
                     id="date"
                     type="date"
                     value={formData.date}
-                    onChange={(e) => handleInputChange('date', e.target.value)}
+                    readOnly
+                    className="bg-muted"
                     required
                   />
                 </div>
@@ -1057,28 +920,6 @@ export function DistributorApplication() {
                   />
                 </div>
               </div>
-
-              {/* ✍ Applicant Confirmation */}
-              <div className="mt-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/5">
-                <h4 className="font-semibold text-base mb-4">✍ Applicant Confirmation</h4>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Date</Label>
-                    <div className="p-3 border rounded-lg bg-background text-sm min-h-[40px] flex items-center">
-                      {formData.date || 'Not set'}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Place</Label>
-                    <div className="p-3 border rounded-lg bg-background text-sm min-h-[40px] flex items-center">
-                      {formData.place || 'Not set'}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  By submitting this application, I confirm that all information provided is true and accurate.
-                </p>
-              </div>
             </div>
 
             {/* Submit Button */}
@@ -1086,23 +927,11 @@ export function DistributorApplication() {
               type="submit" 
               className="w-full" 
               size="lg" 
-              disabled={isSubmitting || !conditionsAccepted.otpVerified || !isEligible || userTotalPaid < 5000 || !isKYCVerified}
+              disabled={isSubmitting || !termsAccepted || !otpVerified || (!isKYCVerified && kycStatus !== 'approved')}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </Button>
-            {(!isEligible || userTotalPaid < 5000) && (
-              <p className="text-sm text-destructive text-center">
-                Pre-booking at least ₹5,000 is required. Current total paid: ₹{userTotalPaid.toLocaleString()}. 
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto text-destructive underline ml-1"
-                  onClick={() => window.location.href = '/scooters'}
-                >
-                  Browse Vehicles
-                </Button>
-              </p>
-            )}
-            {isEligible && userTotalPaid >= 5000 && !isKYCVerified && (
+            {!isKYCVerified && kycStatus !== 'approved' && (
               <p className="text-sm text-destructive text-center">
                 KYC verification is required. Please complete your KYC verification to submit the application.
                 <Button 
@@ -1114,23 +943,25 @@ export function DistributorApplication() {
                 </Button>
               </p>
             )}
-            {!conditionsAccepted.otpVerified && (
+            {!termsAccepted && (
               <p className="text-sm text-muted-foreground text-center">
-                Please accept Terms & Conditions and verify OTP to submit
+                Please accept Terms & Conditions to proceed
+              </p>
+            )}
+            {termsAccepted && !otpVerified && (
+              <p className="text-sm text-muted-foreground text-center">
+                Please verify OTP to submit
               </p>
             )}
           </form>
         </CardContent>
       </Card>
 
-      {/* Conditions Dialog */}
-      <ConditionsDialog
-        isOpen={isConditionsDialogOpen}
-        onClose={() => setIsConditionsDialogOpen(false)}
-        onAccept={(data) => {
-          setConditionsAccepted(data);
-          toast.success('Terms & Conditions accepted and OTP verified!');
-        }}
+
+      {/* KYC Modal */}
+      <KYCModal
+        isOpen={isKYCModalOpen}
+        onClose={() => setIsKYCModalOpen(false)}
       />
     </div>
   );

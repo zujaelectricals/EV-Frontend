@@ -95,7 +95,8 @@ export const LoginPage = () => {
     } else if (user?.isDistributor) {
       redirectPath = "/distributor";
     } else {
-      redirectPath = from && from !== "/login" ? from : "/profile";
+      // Regular user - always redirect to homepage
+      redirectPath = "/";
     }
 
     return <Navigate to={redirectPath} replace />;
@@ -184,8 +185,14 @@ export const LoginPage = () => {
       const result = await verifyOTP(payload).unwrap();
       console.log('🟢 [VERIFY LOGIN OTP] Response:', JSON.stringify(result, null, 2));
 
-      // Clear all non-auth data from localStorage before login
-      clearNonAuthStorage();
+      // Validate tokens exist in response
+      if (!result.tokens || !result.tokens.access || !result.tokens.refresh) {
+        console.error('❌ [LOGIN] Tokens missing in API response:', result);
+        toast.error('Login failed: No tokens received from server');
+        return;
+      }
+
+      console.log('🔵 [LOGIN] Tokens received - Access:', result.tokens.access?.substring(0, 20) + '...', 'Refresh:', result.tokens.refresh?.substring(0, 20) + '...');
 
       // Convert API user to app User format
       const user = {
@@ -198,19 +205,102 @@ export const LoginPage = () => {
         joinedAt: new Date().toISOString(),
       };
 
-      dispatch(setCredentials({
-        user,
-        accessToken: result.tokens.access,
-        refreshToken: result.tokens.refresh,
-      }));
-      
-      // Update tokens in localStorage with user info
+      // Store tokens with user info - this should persist in localStorage
       updateAuthTokens(result.tokens.access, result.tokens.refresh, {
         id: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
       });
+
+      // Verify tokens were stored
+      const stored = localStorage.getItem('ev_nexus_auth_data');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        console.log('✅ [LOGIN] Tokens stored in localStorage:', {
+          hasAccessToken: !!parsed.accessToken,
+          hasRefreshToken: !!parsed.refreshToken,
+          hasUser: !!parsed.user,
+        });
+      } else {
+        console.error('❌ [LOGIN] Failed to store tokens in localStorage');
+      }
+
+      // Don't call clearNonAuthStorage during login - we just stored fresh tokens
+      // It will be called on app initialization if needed
+
+      // Ensure tokens are stored before dispatching setCredentials
+      // Sometimes setCredentials might not persist correctly, so we ensure it's stored first
+      const tokensAreStored = localStorage.getItem('ev_nexus_auth_data');
+      if (!tokensAreStored) {
+        console.warn('⚠️ [LOGIN] Tokens not in localStorage before setCredentials, storing again...');
+        updateAuthTokens(result.tokens.access, result.tokens.refresh, {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        });
+      }
+
+      // Dispatch credentials to update Redux state (this also stores tokens via setStoredAuth)
+      dispatch(setCredentials({
+        user,
+        accessToken: result.tokens.access,
+        refreshToken: result.tokens.refresh,
+      }));
+
+      // Force store tokens again after setCredentials to ensure they persist
+      // This is a safety measure in case setStoredAuth fails or doesn't execute
+      updateAuthTokens(result.tokens.access, result.tokens.refresh, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      });
+
+      // Immediate check after dispatch
+      const immediateCheck = localStorage.getItem('ev_nexus_auth_data');
+      if (immediateCheck) {
+        const parsed = JSON.parse(immediateCheck);
+        console.log('✅ [LOGIN] Immediate check after setCredentials - Tokens in localStorage:', {
+          hasAccessToken: !!parsed.accessToken,
+          hasRefreshToken: !!parsed.refreshToken,
+          hasUser: !!parsed.user,
+        });
+      } else {
+        console.error('❌ [LOGIN] Immediate check after setCredentials - localStorage is EMPTY!');
+        // Final emergency restore attempt
+        console.log('🔄 [LOGIN] Final emergency restore attempt...');
+        updateAuthTokens(result.tokens.access, result.tokens.refresh, {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        });
+      }
+
+      // Final verification after setCredentials (with delay)
+      setTimeout(() => {
+        const finalCheck = localStorage.getItem('ev_nexus_auth_data');
+        if (finalCheck) {
+          const parsed = JSON.parse(finalCheck);
+          console.log('✅ [LOGIN] Final check (after delay) - Tokens still in localStorage:', {
+            hasAccessToken: !!parsed.accessToken,
+            hasRefreshToken: !!parsed.refreshToken,
+            hasUser: !!parsed.user,
+          });
+        } else {
+          console.error('❌ [LOGIN] Final check (after delay) - localStorage is EMPTY!');
+          // Emergency restore if still empty
+          console.log('🔄 [LOGIN] Attempting emergency restore again...');
+          updateAuthTokens(result.tokens.access, result.tokens.refresh, {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          });
+        }
+      }, 500);
 
       dispatch(loadBookingsForUser(user.id));
       toast.success('Welcome back!');
@@ -224,8 +314,8 @@ export const LoginPage = () => {
       } else if (result.user.is_distributor || user.isDistributor) {
         navigate("/distributor", { replace: true });
       } else {
-        // Regular user - redirect to profile or original destination
-        navigate(from !== "/login" ? from : "/", { replace: true });
+        // Regular user - redirect to homepage
+        navigate("/", { replace: true });
       }
     } catch (err: unknown) {
       console.log('🔴 [VERIFY LOGIN OTP] Error Response:', JSON.stringify(err, null, 2));
@@ -395,8 +485,14 @@ export const LoginPage = () => {
       const result = await verifySignupOTP(otpPayload).unwrap();
       console.log('🟢 [VERIFY OTP] Response:', JSON.stringify(result, null, 2));
 
-      // Clear all non-auth data from localStorage before signup completion
-      clearNonAuthStorage();
+      // Validate tokens exist in response
+      if (!result.tokens || !result.tokens.access || !result.tokens.refresh) {
+        console.error('❌ [SIGNUP] Tokens missing in API response:', result);
+        toast.error('Signup failed: No tokens received from server');
+        return;
+      }
+
+      console.log('🔵 [SIGNUP] Tokens received - Access:', result.tokens.access?.substring(0, 20) + '...', 'Refresh:', result.tokens.refresh?.substring(0, 20) + '...');
 
       // Convert API user to app User format
       const user = {
@@ -409,19 +505,36 @@ export const LoginPage = () => {
         joinedAt: new Date().toISOString(),
       };
 
-      dispatch(setCredentials({
-        user,
-        accessToken: result.tokens.access,
-        refreshToken: result.tokens.refresh,
-      }));
-      
-      // Update tokens in localStorage with user info
+      // Store tokens with user info - this should persist in localStorage
       updateAuthTokens(result.tokens.access, result.tokens.refresh, {
         id: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
       });
+
+      // Verify tokens were stored
+      const stored = localStorage.getItem('ev_nexus_auth_data');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        console.log('✅ [SIGNUP] Tokens stored in localStorage:', {
+          hasAccessToken: !!parsed.accessToken,
+          hasRefreshToken: !!parsed.refreshToken,
+          hasUser: !!parsed.user,
+        });
+      } else {
+        console.error('❌ [SIGNUP] Failed to store tokens in localStorage');
+      }
+
+      // Don't call clearNonAuthStorage during signup - we just stored fresh tokens
+      // It will be called on app initialization if needed
+
+      // Dispatch credentials to update Redux state (this also stores tokens via setStoredAuth)
+      dispatch(setCredentials({
+        user,
+        accessToken: result.tokens.access,
+        refreshToken: result.tokens.refresh,
+      }));
 
       dispatch(loadBookingsForUser(user.id));
       toast.success('Account created successfully! Welcome!');

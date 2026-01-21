@@ -45,7 +45,7 @@ import { OrderHistory } from './dashboards/distributor/OrderHistory';
 import { RoleProtectedRoute } from './components/routes/RoleProtectedRoute';
 import { useAppSelector, useAppDispatch } from './app/hooks';
 import { isUserAuthenticated, setCredentials } from './app/slices/authSlice';
-import { useGetCurrentUserQuery } from './app/api/authApi';
+import { useGetUserProfileQuery } from './app/api/userApi';
 import NotFound from './pages/NotFound';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -72,25 +72,54 @@ const AuthInitializer = () => {
       
       // Ensure ev_nexus_auth_data only contains tokens + minimal user info
       const authData = localStorage.getItem('ev_nexus_auth_data');
+      console.log('🔵 [AUTH INITIALIZER] Checking auth data on mount...');
+      
       if (authData) {
         try {
           const parsed = JSON.parse(authData);
-          // Keep only tokens + minimal user info (id, email, name, role)
-          const cleaned = {
-            accessToken: parsed.accessToken || parsed.token,
-            token: parsed.accessToken || parsed.token,
-            refreshToken: parsed.refreshToken,
-            user: parsed.user ? {
-              id: parsed.user.id,
-              email: parsed.user.email,
-              name: parsed.user.name,
-              role: parsed.user.role,
-            } : undefined,
-          };
-          localStorage.setItem('ev_nexus_auth_data', JSON.stringify(cleaned));
+          const accessToken = parsed.accessToken || parsed.token;
+          const refreshToken = parsed.refreshToken;
+          
+          console.log('🔵 [AUTH INITIALIZER] Found auth data:', {
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            hasUser: !!parsed.user,
+          });
+          
+          // Only proceed if we have at least an access token
+          if (accessToken) {
+            // Keep tokens + essential user info needed for UI (including distributor status)
+            const cleaned = {
+              accessToken,
+              token: accessToken, // Keep for backward compatibility
+              ...(refreshToken ? { refreshToken } : {}), // Only include if exists
+              ...(parsed.user ? {
+                user: {
+                  id: parsed.user.id,
+                  email: parsed.user.email,
+                  name: parsed.user.name,
+                  role: parsed.user.role,
+                  // Preserve distributor-related fields for sidebar menu display
+                  isDistributor: parsed.user.isDistributor,
+                  distributorInfo: parsed.user.distributorInfo,
+                  phone: parsed.user.phone,
+                  joinedAt: parsed.user.joinedAt,
+                  kycStatus: parsed.user.kycStatus,
+                }
+              } : {}),
+            };
+            localStorage.setItem('ev_nexus_auth_data', JSON.stringify(cleaned));
+            console.log('✅ [AUTH INITIALIZER] Preserved tokens and user data in localStorage');
+          } else {
+            console.warn('⚠️ [AUTH INITIALIZER] No access token found, skipping cleanup');
+          }
+          // If no access token, don't overwrite - might be in the middle of a refresh
         } catch (e) {
-          console.error('Error cleaning auth data:', e);
+          console.error('❌ [AUTH INITIALIZER] Error parsing auth data:', e);
+          // Don't overwrite if parsing fails - preserve existing data
         }
+      } else {
+        console.log('ℹ️ [AUTH INITIALIZER] No auth data found in localStorage');
       }
     }
   }, []);
@@ -99,7 +128,29 @@ const AuthInitializer = () => {
 };
 
 const AppRoutes = () => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
+  
+  // Fetch user profile if authenticated but:
+  // 1. User is null (not loaded yet)
+  // 2. User data is incomplete (missing isDistributor or distributorInfo)
+  const shouldFetchProfile = isAuthenticated && (
+    !user || 
+    user.isDistributor === undefined || 
+    (user.isDistributor === true && !user.distributorInfo)
+  );
+  const { data: profileData } = useGetUserProfileQuery(undefined, {
+    skip: !shouldFetchProfile,
+  });
+
+  // Update Redux state when user profile is fetched
+  useEffect(() => {
+    if (profileData && isAuthenticated) {
+      // Update Redux state with complete user data
+      dispatch(setCredentials({ user: profileData }));
+      console.log('✅ [APP ROUTES] User profile loaded and Redux state updated');
+    }
+  }, [profileData, isAuthenticated, dispatch]);
   
   return (
     <Routes>

@@ -1,121 +1,92 @@
-import { motion } from 'framer-motion';
-import { Link as LinkIcon, Copy, Share2, QrCode, Mail, MessageSquare, MessageCircle, Share } from 'lucide-react';
+import { useEffect } from 'react';
+import { Link as LinkIcon, Copy, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAppSelector } from '@/app/hooks';
+import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useGetUserProfileQuery } from '@/app/api/userApi';
+import { setCredentials } from '@/app/slices/authSlice';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const ReferralLink = () => {
+  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const distributorInfo = user?.distributorInfo;
   
-  const referralCode = distributorInfo?.referralCode || user?.id?.slice(0, 8).toUpperCase() || 'N/A';
-  const referralLink = `${window.location.origin}/register?ref=${referralCode}`;
-  const referralMessage = `Join Zuja Electric and get amazing deals on electric vehicles! Use my referral code: ${referralCode}. Register here: ${referralLink}`;
-
-  const copyReferralLink = () => {
-    navigator.clipboard.writeText(referralLink);
-    toast.success('Referral link copied to clipboard!');
-  };
+  // Fetch user profile to get referral_code from API
+  const { data: profileData, isLoading, refetch } = useGetUserProfileQuery();
+  
+  // Update Redux state when profile data is fetched
+  useEffect(() => {
+    if (profileData) {
+      console.log('📋 [REFERRAL LINK] Profile data received, updating Redux:', profileData);
+      dispatch(setCredentials({ user: profileData }));
+    }
+  }, [profileData, dispatch]);
+  
+  // Use profileData if available, otherwise fallback to Redux user
+  const currentUser = profileData || user;
+  const distributorInfo = currentUser?.distributorInfo;
+  
+  // Get referral code from distributorInfo (populated from API's referral_code field)
+  const referralCode = distributorInfo?.referralCode || 'N/A';
 
   const copyReferralCode = () => {
-    navigator.clipboard.writeText(referralCode);
-    toast.success('Referral code copied to clipboard!');
-  };
-
-  const shareViaWhatsApp = () => {
-    const url = `https://wa.me/?text=${encodeURIComponent(referralMessage)}`;
-    window.open(url, '_blank');
-  };
-
-  const shareViaEmail = () => {
-    const subject = 'Join Zuja Electric - Referral Invitation';
-    const body = referralMessage;
-    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  };
-
-  const shareViaFacebook = () => {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`;
-    window.open(url, '_blank', 'width=600,height=400');
-  };
-
-  const shareViaTwitter = () => {
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(referralMessage)}&url=${encodeURIComponent(referralLink)}`;
-    window.open(url, '_blank', 'width=600,height=400');
+    if (referralCode !== 'N/A') {
+      navigator.clipboard.writeText(referralCode);
+      toast.success('Referral code copied to clipboard!');
+    }
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Referral Link</h1>
-        <p className="text-muted-foreground mt-1">Share your referral link and earn commissions</p>
+      <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Referral Code</h1>
+          <p className="text-muted-foreground mt-1">Share your referral code and earn commissions</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => refetch()}
+          disabled={isLoading}
+          className="h-8 w-8"
+          title="Refresh"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+        </Button>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Referral Link Card */}
+        {/* Referral Code Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <LinkIcon className="h-5 w-5 text-primary" />
-              Your Referral Link
+              Your Referral Code
             </CardTitle>
             <CardDescription>
-              Share this link with friends and family to earn referral bonuses
+              Share this code with friends and family to earn referral bonuses
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Referral Link</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={referralLink}
-                  readOnly
-                  className="font-mono text-sm"
-                />
-                <Button onClick={copyReferralLink} size="icon" variant="outline">
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
               <Label>Referral Code</Label>
               <div className="flex gap-2">
-                <Input
-                  value={referralCode}
-                  readOnly
-                  className="font-mono text-lg font-bold text-center"
-                />
-                <Button onClick={copyReferralCode} size="icon" variant="outline">
+                {isLoading ? (
+                  <Skeleton className="h-10 flex-1" />
+                ) : (
+                  <Input
+                    value={referralCode}
+                    readOnly
+                    className="font-mono text-xl font-bold text-center tracking-wider"
+                  />
+                )}
+                <Button onClick={copyReferralCode} size="icon" variant="outline" disabled={referralCode === 'N/A' || isLoading}>
                   <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <Label>Share Via</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button onClick={shareViaWhatsApp} variant="outline" className="w-full">
-                  <MessageCircle className="h-4 w-4 mr-2 text-green-600" />
-                  WhatsApp
-                </Button>
-                <Button onClick={shareViaEmail} variant="outline" className="w-full">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Email
-                </Button>
-                <Button onClick={shareViaFacebook} variant="outline" className="w-full">
-                  <Share className="h-4 w-4 mr-2 text-blue-600" />
-                  Facebook
-                </Button>
-                <Button onClick={shareViaTwitter} variant="outline" className="w-full">
-                  <Share className="h-4 w-4 mr-2 text-blue-400" />
-                  Twitter
                 </Button>
               </div>
             </div>
@@ -183,9 +154,9 @@ export const ReferralLink = () => {
                 1
               </div>
               <div>
-                <h4 className="font-semibold">Share Your Link</h4>
+                <h4 className="font-semibold">Share Your Code</h4>
                 <p className="text-sm text-muted-foreground">
-                  Share your referral link or code with friends and family
+                  Share your referral code with friends and family
                 </p>
               </div>
             </div>

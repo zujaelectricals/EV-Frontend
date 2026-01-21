@@ -19,9 +19,59 @@ export interface PendingNode {
   id: string;
   userId: string;
   name: string;
+  email?: string; // User email from API
+  username?: string; // User username from API
   pv: number;
   joinedAt: string;
   referredBy: string; // Referral code of the distributor
+}
+
+// API response structure for tree structure node
+export interface TreeNodeResponse {
+  node_id: number;
+  user_id: number;
+  user_email: string;
+  user_username: string;
+  user_full_name: string;
+  user_mobile: string;
+  user_first_name: string;
+  user_last_name: string;
+  user_city: string;
+  user_state: string;
+  is_distributor: boolean;
+  is_active_buyer: boolean;
+  referral_code: string;
+  date_joined: string;
+  wallet_balance: string;
+  total_bookings: number;
+  total_binary_pairs: number;
+  total_earnings: string;
+  total_referrals: number;
+  total_amount: string;
+  tds_current: string;
+  net_amount_total: string;
+  parent: number | null;
+  side: 'left' | 'right' | null;
+  level: number;
+  left_count: number;
+  right_count: number;
+  binary_commission_activated: boolean;
+  activation_timestamp: string | null;
+  left_child: TreeNodeResponse | null;
+  right_child: TreeNodeResponse | null;
+  left_side_members: any[];
+  right_side_members: any[];
+  created_at: string;
+  updated_at: string;
+  pending_users?: Array<{
+    user_id: number;
+    user_email: string;
+    user_username: string;
+    user_full_name: string;
+    has_node: boolean;
+    node_id: number | null;
+    in_tree: boolean;
+  }>;
 }
 
 export interface PairMatch {
@@ -619,60 +669,92 @@ const mockStats: BinaryStats = {
   totalReferrals: totalReferrals,
 };
 
+// Helper function to transform API TreeNodeResponse to BinaryNode
+function transformTreeNodeToBinaryNode(node: TreeNodeResponse | null, position: 'left' | 'right' | 'root' = 'root'): BinaryNode | null {
+  if (!node) {
+    console.log(`transformTreeNodeToBinaryNode: Node is null for position ${position}`);
+    return null;
+  }
+
+  console.log(`transformTreeNodeToBinaryNode: Transforming node ${node.node_id} (${node.user_full_name}), position: ${position}`);
+  console.log(`transformTreeNodeToBinaryNode: Left child exists: ${!!node.left_child}, Right child exists: ${!!node.right_child}`);
+
+  const transformed: BinaryNode = {
+    id: `node-${node.node_id}`,
+    name: node.user_full_name || node.user_username || node.user_email,
+    position: position,
+    pv: parseFloat(node.total_amount) || 0,
+    joinedAt: node.date_joined,
+    isActive: node.is_active_buyer,
+    userId: node.user_id.toString(),
+    children: {
+      left: transformTreeNodeToBinaryNode(node.left_child, 'left'),
+      right: transformTreeNodeToBinaryNode(node.right_child, 'right'),
+    },
+  };
+
+  console.log(`transformTreeNodeToBinaryNode: Transformed node ${node.node_id}:`, transformed);
+  return transformed;
+}
+
 export const binaryApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getBinaryTree: builder.query<BinaryNode, string>({
-      queryFn: async (distributorId: string) => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        const trees = getBinaryTreesFromStorage();
-        let tree = trees[distributorId];
+      query: () => ({
+        url: 'binary/nodes/tree_structure/',
+        method: 'GET',
+      }),
+      transformResponse: (response: TreeNodeResponse): BinaryNode => {
+        // Log the API response
+        console.log('Tree Structure API Response:', response);
+        console.log('Tree Structure API Response - left_child:', response.left_child);
+        console.log('Tree Structure API Response - right_child:', response.right_child);
         
-        if (tree) {
-          return { data: tree };
-        }
+        // Transform the root node
+        const leftChild = transformTreeNodeToBinaryNode(response.left_child, 'left');
+        const rightChild = transformTreeNodeToBinaryNode(response.right_child, 'right');
         
-        // Initialize tree if it doesn't exist (use current user as root or mock data)
-        try {
-          const authData = localStorage.getItem('ev_nexus_auth_data');
-          if (authData) {
-            const parsed = JSON.parse(authData);
-            const user = parsed.user;
-            if (user && user.id === distributorId) {
-              // Create tree with user as root
-              tree = {
-                id: `root-${distributorId}`,
-                name: user.name || 'You',
-                position: 'root',
-                pv: user.preBookingInfo?.preBookingAmount || 5000,
-                joinedAt: user.joinedAt || new Date().toISOString(),
-                isActive: true,
-                userId: user.id,
-                children: { left: null, right: null },
-              };
-              // Save to storage
-              saveBinaryTreeToStorage(distributorId, tree);
-              return { data: tree };
-            }
-          }
-        } catch (e) {
-          console.error('Error initializing tree from user data:', e);
-        }
+        console.log('Transformed left child:', leftChild);
+        console.log('Transformed right child:', rightChild);
         
-        // Fallback to mock tree and save it
-        tree = {
-          ...mockBinaryTree,
-          id: `root-${distributorId}`,
+        const rootNode: BinaryNode = {
+          id: `node-${response.node_id}`,
+          name: response.user_full_name || response.user_username || response.user_email,
+          position: 'root',
+          pv: parseFloat(response.total_amount) || 0,
+          joinedAt: response.date_joined,
+          isActive: response.is_active_buyer,
+          userId: response.user_id.toString(),
+          children: {
+            left: leftChild,
+            right: rightChild,
+          },
         };
-        saveBinaryTreeToStorage(distributorId, tree);
-        return { data: tree };
+        
+        console.log('Final root node:', rootNode);
+        return rootNode;
       },
       providesTags: (result, error, distributorId) => [{ type: 'Binary', id: distributorId }],
     }),
     getPendingNodes: builder.query<PendingNode[], string>({
-      queryFn: async (distributorId: string) => {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        const pendingNodes = getPendingNodesFromStorage();
-        return { data: pendingNodes[distributorId] || [] };
+      query: () => ({
+        url: 'binary/nodes/tree_structure/',
+        method: 'GET',
+      }),
+      transformResponse: (response: TreeNodeResponse): PendingNode[] => {
+        // Extract pending_users from the response
+        const pendingUsers = response.pending_users || [];
+        // Transform API response to PendingNode format
+        return pendingUsers.map((user) => ({
+          id: `pending-${user.user_id}`,
+          userId: user.user_id.toString(),
+          name: user.user_full_name || user.user_username || user.user_email,
+          email: user.user_email,
+          username: user.user_username,
+          pv: 0, // PV not provided in API response, defaulting to 0
+          joinedAt: new Date().toISOString(), // Joined date not provided in API response
+          referredBy: '', // Referral code not provided in API response
+        }));
       },
       providesTags: (result, error, distributorId) => [{ type: 'PendingNodes', id: distributorId }],
     }),
@@ -683,247 +765,56 @@ export const binaryApi = api.injectEndpoints({
       },
     }),
     getBinaryStats: builder.query<BinaryStats, string>({
-      queryFn: async (distributorId: string) => {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        const trees = getBinaryTreesFromStorage();
-        let tree = trees[distributorId];
+      query: () => ({
+        url: 'binary/nodes/tree_structure/',
+        method: 'GET',
+      }),
+      transformResponse: (response: TreeNodeResponse): BinaryStats => {
+        // Use actual data from API response
+        const leftCount = response.left_count || 0;
+        const rightCount = response.right_count || 0;
+        const totalReferrals = response.total_referrals || 0;
+        const totalPairs = response.total_binary_pairs || 0;
+        const binaryActivated = response.binary_commission_activated || false;
+        const totalEarnings = parseFloat(response.total_earnings) || 0;
+        const tdsDeducted = parseFloat(response.tds_current) || 0;
+        const netAmountTotal = parseFloat(response.net_amount_total) || 0;
         
-        // If tree doesn't exist, try to get it the same way getBinaryTree does
-        if (!tree) {
-          try {
-            const authData = localStorage.getItem('ev_nexus_auth_data');
-            if (authData) {
-              const parsed = JSON.parse(authData);
-              const user = parsed.user;
-              if (user && user.id === distributorId) {
-                tree = {
-                  id: `root-${distributorId}`,
-                  name: user.name || 'You',
-                  position: 'root',
-                  pv: user.preBookingInfo?.preBookingAmount || 5000,
-                  joinedAt: user.joinedAt || new Date().toISOString(),
-                  isActive: true,
-                  userId: user.id,
-                  children: { left: null, right: null },
-                };
-              }
-            }
-          } catch (e) {
-            console.error('Error getting tree for stats:', e);
-          }
-          
-          if (!tree) {
-            tree = {
-              ...mockBinaryTree,
-              id: `root-${distributorId}`,
-            };
-          }
-        }
-        
-        // Calculate stats from the actual tree
-        const referrals = countReferrals(tree);
-        const leftCount = referrals.left;
-        const rightCount = referrals.right;
-        const totalReferrals = referrals.total;
-        
-        // Binary activates when 3 users (not pairs) are added
-        const binaryActivated = totalReferrals >= BINARY_ACTIVATION_REQUIREMENT;
-        
-        // Calculate total pairs (minimum of left and right)
-        const totalPairs = Math.min(leftCount, rightCount);
-        
-        // Get distributor info to check activation status and track commission
-        let distributorInfo: any = null;
-        try {
-          const authDataStr = localStorage.getItem('ev_nexus_auth_data');
-          if (authDataStr) {
-            const authData = JSON.parse(authDataStr);
-            if (authData.user && authData.user.distributorInfo && 
-                (authData.user.id === distributorId || 
-                 authData.user.id?.startsWith(distributorId) || 
-                 distributorId.startsWith(authData.user.id))) {
-              distributorInfo = authData.user.distributorInfo;
-            }
-          }
-        } catch (e) {
-          console.warn('Could not get distributor info:', e);
-        }
-        
-        const wasActivatedBefore = distributorInfo?.binaryActivated || false;
-        const isActivated = wasActivatedBefore || binaryActivated;
-        const previousCommissionEarned = distributorInfo?.totalCommissionEarned || 0;
-        let pairsAtActivation = distributorInfo?.pairsAtActivation || 0;
-        
-        console.log('Before Setting pairsAtActivation:', {
-          binaryActivated,
-          wasActivatedBefore,
-          totalPairs,
-          currentPairsAtActivation: pairsAtActivation,
-          distributorInfoPairsAtActivation: distributorInfo?.pairsAtActivation,
-        });
-        
-        // Set pairsAtActivation ONLY when binary FIRST activates (transition from not activated to activated)
-        // This must be done BEFORE calculating pair commission
-        if (binaryActivated && !wasActivatedBefore) {
-          // Binary just activated - set pairsAtActivation to current pair count
-          if (pairsAtActivation === 0) {
-            pairsAtActivation = totalPairs;
-            console.log('Setting pairsAtActivation to:', totalPairs);
-            // Update it immediately so subsequent calculations use the correct value
-            updateDistributorInfoInStorage(distributorId, {
-              pairsAtActivation: totalPairs,
-              binaryActivated: true,
-            });
-          }
-          // Credit activation bonus
-          creditActivationBonus(distributorId);
-        }
-        
-        // Fix for existing accounts: If pairsAtActivation is incorrectly set
-        // When binary first activates (at 3rd referral), there can only be 1 pair maximum
-        // (min of left and right counts when 3rd referral is added)
-        // If pairsAtActivation > 1, it means it was incorrectly set when all referrals were already added
-        if (isActivated && pairsAtActivation > 1) {
-          // Check if this account was activated with 3 referrals
-          // If pairsAtActivation equals totalPairs and totalPairs > 1, it's likely incorrect
-          // The correct value should be 1 (the pair count when 3rd referral was added)
-          if (pairsAtActivation === totalPairs && totalPairs > 1) {
-            console.log('Fixing incorrect pairsAtActivation:', pairsAtActivation, '-> 1 (should be pair count at activation, not current total)');
-            pairsAtActivation = 1;
-            updateDistributorInfoInStorage(distributorId, {
-              pairsAtActivation: 1,
-            });
-          }
-        }
-        
-        console.log('After Setting pairsAtActivation:', {
-          pairsAtActivation,
-          totalPairs,
-          expectedPairsAfterActivation: totalPairs - pairsAtActivation,
-        });
-        
-        // Calculate referral commission (₹1,000 per referral, only for first 3 referrals before activation)
-        const referralCommissionEarned = Math.min(totalReferrals, BINARY_ACTIVATION_REQUIREMENT) * REFERRAL_COMMISSION;
-        
-        // Calculate pair commission (only for pairs added AFTER activation)
-        let pairCommissionEarned = 0;
-        let pairsEarningCommission = 0;
-        let pairsBeyondLimit = 0;
-        
-        if (isActivated) {
-          // Pairs that were formed at or before activation don't earn commission
-          // Only pairs added AFTER activation earn commission
-          const pairsAfterActivation = Math.max(0, totalPairs - pairsAtActivation);
-          
-          console.log('Pair Commission Calculation Debug:', {
-            totalPairs,
-            pairsAtActivation,
-            calculatedPairsAfterActivation: pairsAfterActivation,
-            expectedPairsAfterActivation: totalPairs - pairsAtActivation,
-          });
-          
-          // Calculate how many pairs can earn commission (up to 10 pairs or ₹20,000)
-          const maxCommissionPairs = Math.floor(MAX_COMMISSION / COMMISSION_PER_PAIR); // 10 pairs
-          
-          // Pairs earning commission = pairs after activation (capped at max)
-          pairsEarningCommission = Math.min(pairsAfterActivation, maxCommissionPairs);
-          
-          // Calculate commission based on pairs after activation ONLY
-          // Always recalculate from current state, don't use previous stored values
-          pairCommissionEarned = pairsEarningCommission * COMMISSION_PER_PAIR;
-          
-          // Track pairs beyond limit (for carry forward) - only count pairs after activation
-          pairsBeyondLimit = Math.max(0, pairsAfterActivation - maxCommissionPairs);
-          
-          // Total commission = referral commission + pair commission
-          const totalCommissionEarned = referralCommissionEarned + pairCommissionEarned;
-          
-          // Update distributor info with new commission and pair counts
-          updateDistributorInfoInStorage(distributorId, {
-            leftCount,
-            rightCount,
-            totalReferrals,
-            binaryActivated: isActivated,
-            totalCommissionEarned: totalCommissionEarned,
-            pairsBeyondLimit,
-            pairsAtActivation, // Ensure it's persisted
-          });
-          
-          // Update pool money when reaching limit (based on pair commission only)
-          updatePoolMoneyAtLimit(distributorId, pairCommissionEarned, pairsEarningCommission);
-        } else {
-          // Before activation: only referral commission
-          const totalCommissionEarned = referralCommissionEarned;
-          
-          // Update distributor info with new commission and pair counts
-          updateDistributorInfoInStorage(distributorId, {
-            leftCount,
-            rightCount,
-            totalReferrals,
-            binaryActivated: false,
-            totalCommissionEarned: totalCommissionEarned,
-          });
-        }
-        
-        // Calculate TDS on total commission (referral + pair)
-        const totalCommissionEarned = referralCommissionEarned + pairCommissionEarned;
-        const tdsDeducted = totalCommissionEarned * TDS_RATE;
-        
-        // Get actual pool money (₹4000 when limit is reached, otherwise 0)
-        let actualPoolMoney = 0;
-        try {
-          const authDataStr = localStorage.getItem('ev_nexus_auth_data');
-          if (authDataStr) {
-            const authData = JSON.parse(authDataStr);
-            if (authData.user && authData.user.distributorInfo && 
-                (authData.user.id === distributorId || 
-                 authData.user.id?.startsWith(distributorId) || 
-                 distributorId.startsWith(authData.user.id))) {
-              actualPoolMoney = authData.user.distributorInfo.poolMoney || 0;
-            }
-          }
-        } catch (e) {
-          console.warn('Could not get actual pool money:', e);
-        }
-        
-        const netEarnings = totalCommissionEarned - tdsDeducted - actualPoolMoney;
-        
-        // Calculate total PV for left and right sides
-        function calculateTotalPV(node: BinaryNode | null): number {
+        // Calculate total PV for left and right sides from tree structure
+        function calculateTotalPV(node: TreeNodeResponse | null): number {
           if (!node) return 0;
-          let total = node.pv || 0;
-          if (node.children.left) {
-            total += calculateTotalPV(node.children.left);
+          let total = parseFloat(node.total_amount) || 0;
+          if (node.left_child) {
+            total += calculateTotalPV(node.left_child);
           }
-          if (node.children.right) {
-            total += calculateTotalPV(node.children.right);
+          if (node.right_child) {
+            total += calculateTotalPV(node.right_child);
           }
           return total;
         }
         
-        const totalLeftPV = tree.children.left ? calculateTotalPV(tree.children.left) : 0;
-        const totalRightPV = tree.children.right ? calculateTotalPV(tree.children.right) : 0;
+        const totalLeftPV = response.left_child ? calculateTotalPV(response.left_child) : 0;
+        const totalRightPV = response.right_child ? calculateTotalPV(response.right_child) : 0;
         
-        // Get activation bonus status
-        const activationBonusCredited = distributorInfo?.activationBonusCredited || false;
-        const activationBonus = activationBonusCredited && isActivated ? ACTIVATION_BONUS : 0;
+        // Calculate pairs beyond limit (if total pairs > 10)
+        const pairsBeyondLimit = Math.max(0, totalPairs - MAX_PAIRS);
         
-        // Total earnings = referral commission (first 3) + activation bonus + pair commission
-        const totalEarningsWithBonus = referralCommissionEarned + activationBonus + pairCommissionEarned;
+        // Activation bonus (if activated and has activation timestamp)
+        const activationBonus = binaryActivated && response.activation_timestamp ? ACTIVATION_BONUS : 0;
         
         const stats: BinaryStats = {
           totalLeftPV: totalLeftPV,
           totalRightPV: totalRightPV,
-          totalPairs: pairsEarningCommission, // Only show pairs earning commission
+          totalPairs: Math.min(totalPairs, MAX_PAIRS), // Cap at max pairs
           maxPairs: MAX_PAIRS,
-          monthlyEarnings: netEarnings,
-          totalEarnings: totalEarningsWithBonus, // Referral commission + activation bonus + pair commission
+          monthlyEarnings: netAmountTotal,
+          totalEarnings: totalEarnings,
           tdsDeducted: tdsDeducted,
-          poolMoney: actualPoolMoney,
-          ceilingAmount: 0, // Not used in new system
+          poolMoney: 0, // Pool money calculation may need separate endpoint
+          ceilingAmount: 0,
           ceilingUsed: 0,
           ceilingLimit: MAX_COMMISSION,
-          binaryActivated: isActivated,
+          binaryActivated: binaryActivated,
           leftCount: leftCount,
           rightCount: rightCount,
           totalReferrals: totalReferrals,
@@ -931,26 +822,9 @@ export const binaryApi = api.injectEndpoints({
           pairsBeyondLimit: pairsBeyondLimit,
         };
         
-        console.log('Binary Stats Calculated:', {
-          treeId: tree.id,
-          leftCount,
-          rightCount,
-          totalPairs,
-          pairsAtActivation,
-          pairsAfterActivation: totalPairs - pairsAtActivation,
-          pairsEarningCommission,
-          pairsBeyondLimit,
-          referralCommissionEarned,
-          pairCommissionEarned,
-          activationBonus,
-          totalEarnings: totalEarningsWithBonus,
-          totalLeftPV,
-          totalRightPV,
-          isActivated,
-          wasActivatedBefore,
-        });
+        console.log('Binary Stats from API:', stats);
         
-        return { data: stats };
+        return stats;
       },
       providesTags: (result, error, distributorId) => [{ type: 'BinaryStats', id: distributorId }],
     }),
@@ -1033,133 +907,74 @@ export const binaryApi = api.injectEndpoints({
       { success: boolean; message: string },
       { distributorId: string; userId: string; parentId: string; side: 'left' | 'right' }
     >({
-      queryFn: async ({ distributorId, userId, parentId, side }) => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      query: ({ userId, parentId, side }) => {
+        // Extract numeric IDs from string IDs
+        // parentId format: "node-101" (from transformTreeNodeToBinaryNode)
+        // userId format: string number
+        const targetUserId = parseInt(userId, 10);
+        let parentNodeId: number;
         
-        // Get pending node
-        const pendingNodes = getPendingNodesFromStorage();
-        const pendingNode = pendingNodes[distributorId]?.find(n => n.userId === userId);
-        
-        if (!pendingNode) {
-          return {
-            error: { status: 'NOT_FOUND', data: 'Pending node not found' },
-          };
-        }
-        
-        // Get tree from storage - it should exist from getBinaryTree
-        const trees = getBinaryTreesFromStorage();
-        let tree = trees[distributorId];
-        
-        // If tree doesn't exist, try to get it from getBinaryTree query result
-        // This ensures we're working with the same tree structure that's displayed
-        if (!tree) {
-          // Try to initialize from user data first
-          try {
-            const authData = localStorage.getItem('ev_nexus_auth_data');
-            if (authData) {
-              const parsed = JSON.parse(authData);
-              const user = parsed.user;
-              if (user && user.id === distributorId) {
-                tree = {
-                  id: `root-${distributorId}`,
-                  name: user.name || 'You',
-                  position: 'root',
-                  pv: user.preBookingInfo?.preBookingAmount || 5000,
-                  joinedAt: user.joinedAt || new Date().toISOString(),
-                  isActive: true,
-                  userId: user.id,
-                  children: { left: null, right: null },
-                };
-                saveBinaryTreeToStorage(distributorId, tree);
-              }
-            }
-          } catch (e) {
-            console.error('Error initializing tree:', e);
+        // Extract numeric node_id from parentId string
+        // Format is "node-{numeric_id}" based on transformTreeNodeToBinaryNode
+        if (parentId.startsWith('node-')) {
+          const numericPart = parentId.replace('node-', '');
+          parentNodeId = parseInt(numericPart, 10);
+          if (isNaN(parentNodeId)) {
+            console.error('❌ [PLACE_USER API] Failed to extract parent_node_id from:', parentId);
+            parentNodeId = 0;
           }
-          
-          // Fallback to mock tree if still no tree
-          if (!tree) {
-            tree = {
-              ...mockBinaryTree,
-              id: `root-${distributorId}`,
-            };
-            saveBinaryTreeToStorage(distributorId, tree);
+        } else {
+          // Try to parse as number directly (fallback)
+          parentNodeId = parseInt(parentId, 10);
+          if (isNaN(parentNodeId)) {
+            console.error('❌ [PLACE_USER API] Invalid parentId format:', parentId);
+            parentNodeId = 0;
           }
         }
         
-        // Create binary node from pending node
-        const newNode: BinaryNode = {
-          id: `node-${userId}`,
-          name: pendingNode.name,
-          position: side,
-          pv: pendingNode.pv,
-          joinedAt: pendingNode.joinedAt,
-          isActive: true,
-          userId: pendingNode.userId,
-          children: { left: null, right: null },
+        // Prepare request body matching the API specification
+        const body = {
+          target_user_id: targetUserId,
+          parent_node_id: parentNodeId,
+          side: side, // "left" or "right"
+          // allow_replacement: false // Optional, default: false (commented out as per API spec)
         };
         
-        // Check if parent position is available
-        function findNodeById(node: BinaryNode, id: string): BinaryNode | null {
-          if (node.id === id) return node;
-          if (node.children.left) {
-            const found = findNodeById(node.children.left, id);
-            if (found) return found;
-          }
-          if (node.children.right) {
-            const found = findNodeById(node.children.right, id);
-            if (found) return found;
-          }
-          return null;
-        }
-        
-        // Debug: Log tree structure and available node IDs
-        function getAllNodeIds(node: BinaryNode): string[] {
-          const ids = [node.id];
-          if (node.children.left) {
-            ids.push(...getAllNodeIds(node.children.left));
-          }
-          if (node.children.right) {
-            ids.push(...getAllNodeIds(node.children.right));
-          }
-          return ids;
-        }
-        
-        const allNodeIds = getAllNodeIds(tree);
-        console.log('Available node IDs in tree:', allNodeIds);
-        console.log('Looking for parent ID:', parentId);
-        
-        const parentNode = findNodeById(tree, parentId);
-        if (!parentNode) {
-          return {
-            error: { 
-              status: 'NOT_FOUND', 
-              data: `Parent node with ID "${parentId}" not found. Available nodes: ${allNodeIds.join(', ')}. Please refresh the page and try again.` 
-            },
-          };
-        }
-        
-        if (parentNode.children[side]) {
-          return {
-            error: { 
-              status: 'CONFLICT', 
-              data: `The ${side} position is already occupied by "${parentNode.children[side]?.name}". Please select a different position.` 
-            },
-          };
-        }
-        
-        // Add node to tree
-        tree = addNodeToTree(tree, newNode, parentId, side);
-        saveBinaryTreeToStorage(distributorId, tree);
-        
-        // Remove from pending nodes
-        removePendingNode(distributorId, userId);
+        // Console log the request body
+        console.log('🔵 [PLACE_USER API] Request Body:', JSON.stringify(body, null, 2));
+        console.log('🔵 [PLACE_USER API] Extracted IDs:', {
+          targetUserId,
+          parentNodeId,
+          originalParentId: parentId,
+          side,
+        });
         
         return {
-          data: {
-            success: true,
-            message: `Node positioned on ${side} side successfully.`,
-          },
+          url: 'binary/nodes/place_user/',
+          method: 'POST',
+          body: body,
+        };
+      },
+      transformResponse: (response: any) => {
+        // Console log the response
+        console.log('🟢 [PLACE_USER API] Response:', JSON.stringify(response, null, 2));
+        console.log('🟢 [PLACE_USER API] Response Type:', typeof response);
+        console.log('🟢 [PLACE_USER API] Response Keys:', Object.keys(response || {}));
+        
+        return {
+          success: true,
+          message: response.message || response.detail || 'User positioned successfully',
+        };
+      },
+      transformErrorResponse: (response: any) => {
+        // Console log the error response
+        console.log('🔴 [PLACE_USER API] Error Response:', JSON.stringify(response, null, 2));
+        console.log('🔴 [PLACE_USER API] Error Status:', response.status);
+        console.log('🔴 [PLACE_USER API] Error Data:', response.data);
+        
+        return {
+          status: response.status || 'ERROR',
+          data: response.data || response.message || response.detail || 'Failed to position user',
         };
       },
       invalidatesTags: (result, error, { distributorId }) => [
@@ -1257,6 +1072,27 @@ export const binaryApi = api.injectEndpoints({
       },
       invalidatesTags: (result, error, { userId }) => ['Binary', 'BinaryStats'],
     }),
+    autoPlacePending: builder.mutation<any, void>({
+      query: () => ({
+        url: 'binary/nodes/auto_place_pending/',
+        method: 'POST',
+      }),
+      invalidatesTags: (result, error) => [
+        { type: 'PendingNodes' },
+        { type: 'Binary' },
+        { type: 'BinaryStats' },
+      ],
+    }),
+    checkPairs: builder.mutation<any, void>({
+      query: () => ({
+        url: 'binary/pairs/check_pairs/',
+        method: 'POST',
+      }),
+      invalidatesTags: (result, error) => [
+        { type: 'Binary' },
+        { type: 'BinaryStats' },
+      ],
+    }),
   }),
 });
 
@@ -1269,4 +1105,6 @@ export const {
   useAddReferralNodeMutation,
   usePositionPendingNodeMutation,
   useMoveNodeMutation,
+  useAutoPlacePendingMutation,
+  useCheckPairsMutation,
 } = binaryApi;

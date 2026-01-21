@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { logout, isUserAuthenticated } from '@/app/slices/authSlice';
 import { useLogoutMutation } from '@/app/api/authApi';
-import { getAuthTokens } from '@/app/api/baseApi';
+import { getAuthTokens, api } from '@/app/api/baseApi';
+import { clearBookings } from '@/app/slices/bookingSlice';
+import { clearWishlist } from '@/app/slices/wishlistSlice';
+import { clearWallets } from '@/app/slices/walletSlice';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -17,7 +20,6 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { ProfileSwitcher } from '@/components/ProfileSwitcher';
 
 export function StoreNavbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -46,14 +48,32 @@ export function StoreNavbar() {
         console.log('⚠️ [LOGOUT HANDLER] No refresh token found, clearing local data only');
       }
       
-      // Clear Redux state and localStorage
+      // Clear all user-specific Redux state
       dispatch(logout());
+      dispatch(clearBookings());
+      dispatch(clearWishlist());
+      dispatch(clearWallets());
+      
+      // Clear RTK Query cache to remove previous user's cached data
+      dispatch(api.util.resetApiState());
+      
+      console.log('✅ [LOGOUT HANDLER] All user data cleared from Redux and RTK Query cache');
       toast.success('Successfully logged out');
       navigate('/');
     } catch (error) {
       // Even if API call fails, clear local data
       console.error('🔴 [LOGOUT HANDLER] Logout error:', error);
+      
+      // Clear all user-specific Redux state
       dispatch(logout());
+      dispatch(clearBookings());
+      dispatch(clearWishlist());
+      dispatch(clearWallets());
+      
+      // Clear RTK Query cache
+      dispatch(api.util.resetApiState());
+      
+      console.log('✅ [LOGOUT HANDLER] All user data cleared from Redux and RTK Query cache (after error)');
       toast.success('Logged out');
       navigate('/');
     }
@@ -101,8 +121,6 @@ export function StoreNavbar() {
 
           {/* Actions */}
           <div className="hidden md:flex items-center gap-3">
-            {authenticated && <ProfileSwitcher />}
-            
             {authenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -161,7 +179,7 @@ export function StoreNavbar() {
                   
                   <DropdownMenuItem onClick={() => navigate('/profile?tab=settings')}>
                     <Settings className="mr-2 h-4 w-4" />
-                    <span>Account Settings</span>
+                    <span>Edit Profile</span>
                   </DropdownMenuItem>
                   
                   {isDistributor && (
@@ -231,7 +249,7 @@ export function StoreNavbar() {
                     Wishlist
                   </Link>
                   <Link to="/profile?tab=settings" onClick={() => setIsOpen(false)} className="block py-2 text-sm">
-                    Account Settings
+                    Edit Profile
                   </Link>
                   <Button onClick={handleLogout} variant="outline" className="w-full mt-2" size="sm">
                     Logout

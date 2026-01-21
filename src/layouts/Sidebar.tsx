@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -99,7 +99,6 @@ interface SidebarProps {
 export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
   const location = useLocation();
   const { user } = useAppSelector((state) => state.auth);
-  const { bookings } = useAppSelector((state) => state.booking);
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
 
@@ -108,27 +107,16 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
     return <AdminSidebar />;
   }
 
-  // Check if user is eligible for distributor program (total paid must be at least ₹5000)
-  // Use totalPaid if available, otherwise fallback to preBookingAmount for backward compatibility
-  const userTotalPaid = user?.preBookingInfo?.totalPaid || user?.preBookingInfo?.preBookingAmount || 0;
-  const hasEligiblePreBooking = user?.preBookingInfo?.hasPreBooked && 
-    (user.preBookingInfo.isDistributorEligible || userTotalPaid >= 5000);
-  
-  // Fallback: Check bookings if preBookingInfo is not available or doesn't show eligibility
-  // Use totalPaid if available, otherwise fallback to preBookingAmount
-  const hasEligibleBooking = bookings.some(booking => {
-    const bookingTotalPaid = booking.totalPaid || booking.preBookingAmount || 0;
-    return bookingTotalPaid >= 5000;
-  });
-  
-  const isDistributorEligible = hasEligiblePreBooking || hasEligibleBooking;
+  // All users are eligible for becoming a Distributor (static eligibility)
+  // Only exclude users who are already distributors
+  const isDistributorEligible = !user?.isDistributor;
 
   const renderMenuItem = (item: MenuItem) => {
     const isActive = location.pathname === item.path;
     const Icon = item.icon;
     const isBecomeDistributor = item.path === '/become-distributor';
-    const showEligibleBadge = isBecomeDistributor && isDistributorEligible && !user?.isDistributor;
-    const showNotEligibleBadge = isBecomeDistributor && !isDistributorEligible && user?.preBookingInfo?.hasPreBooked;
+    const showEligibleBadge = isBecomeDistributor && isDistributorEligible;
+    const showNotEligibleBadge = false; // Removed - all users are eligible
 
     return (
       <Link
@@ -177,15 +165,46 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
   };
 
   // Check if user is a verified distributor
-  const isVerifiedDistributor = (user?.isDistributor && user?.distributorInfo?.isVerified) || 
-                                (user?.distributorInfo && user.distributorInfo.verificationStatus === 'approved');
+  // Only show distributor options if:
+  // 1. isDistributor is explicitly true from the API, OR
+  // 2. distributorInfo.isDistributor is true, OR
+  // 3. distributorInfo.isVerified is true, OR
+  // 4. verificationStatus is 'approved'
+  // IMPORTANT: If distributorInfo.isDistributor is explicitly false, do NOT show distributor options
+  // Note: Having a referralCode does NOT make someone a distributor - it just means they were referred
+  const isVerifiedDistributor = (user?.isDistributor === true) || 
+                                (user?.distributorInfo?.isDistributor === true) ||
+                                (user?.distributorInfo?.isVerified === true) || 
+                                (user?.distributorInfo?.verificationStatus === 'approved');
+  
+  // Explicitly exclude if distributorInfo says they're NOT a distributor
+  const isExplicitlyNotDistributor = user?.distributorInfo?.isDistributor === false;
+
+  // Debug logging (remove in production if needed)
+  useEffect(() => {
+    if (user) {
+      console.log('🔍 [SIDEBAR] User distributor status check:', {
+        isDistributor: user.isDistributor,
+        hasDistributorInfo: !!user.distributorInfo,
+        distributorInfoIsDistributor: user.distributorInfo?.isDistributor,
+        distributorInfoIsVerified: user.distributorInfo?.isVerified,
+        verificationStatus: user.distributorInfo?.verificationStatus,
+        hasReferralCode: !!(user.distributorInfo?.referralCode),
+        isExplicitlyNotDistributor,
+        isVerifiedDistributor,
+        finalResult: isVerifiedDistributor && !isExplicitlyNotDistributor,
+      });
+    }
+  }, [user, isVerifiedDistributor, isExplicitlyNotDistributor]);
 
   // Get menu items based on user role
   const getMenuItems = (): MenuItem[] => {
     if (user?.role === 'staff') {
       return staffMenuItems;
-    } else if (isVerifiedDistributor) {
-      return [...userMenuItems, ...distributorMenuItems];
+    } else if (isVerifiedDistributor && !isExplicitlyNotDistributor) {
+      // Filter out "Become Authorized Partner" for verified distributors
+      const filteredUserMenuItems = userMenuItems.filter(item => item.path !== '/become-distributor');
+      return [...filteredUserMenuItems, ...distributorMenuItems];
     } else {
       return userMenuItems;
     }

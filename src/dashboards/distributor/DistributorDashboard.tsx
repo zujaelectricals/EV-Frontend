@@ -57,7 +57,8 @@ export const DistributorDashboard = () => {
     toast.success('Referral link copied to clipboard!');
   };
 
-  const isVerified = user?.distributorInfo?.isVerified;
+  // Check if user is a verified distributor - isDistributor from API is sufficient
+  const isVerified = user?.isDistributor === true || user?.distributorInfo?.isVerified;
 
   if (!isVerified) {
     return (
@@ -196,14 +197,14 @@ export const DistributorDashboard = () => {
       </div>
 
       {/* CTA */}
-      <div className="glass-card rounded-xl p-6 text-center">
+      {/* <div className="glass-card rounded-xl p-6 text-center">
         <p className="text-muted-foreground mb-4">
           For detailed options and management, visit your profile
         </p>
         <Button onClick={() => navigate('/profile?tab=distributor')}>
           Go to Profile <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
-      </div>
+      </div> */}
     </div>
   );
 };

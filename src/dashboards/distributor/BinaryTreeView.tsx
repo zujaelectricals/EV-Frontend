@@ -12,6 +12,7 @@ import {
   Activity,
   User,
   Network,
+  Link2,
 } from "lucide-react";
 import {
   Card,
@@ -26,6 +27,8 @@ import {
   useGetBinaryStatsQuery,
   useGetPendingNodesQuery,
   usePositionPendingNodeMutation,
+  useAutoPlacePendingMutation,
+  useCheckPairsMutation,
   type BinaryNode,
   type PendingNode,
 } from "@/app/api/binaryApi";
@@ -161,7 +164,7 @@ function countDescendants(node: BinaryNode | null): number {
 export const BinaryTreeView = () => {
   const { user } = useAppSelector((state) => state.auth);
   const distributorId = user?.id || "";
-  const { data: binaryTree, isLoading: treeLoading } = useGetBinaryTreeQuery(
+  const { data: binaryTree, isLoading: treeLoading, refetch: refetchTree } = useGetBinaryTreeQuery(
     distributorId,
     { skip: !distributorId }
   );
@@ -173,6 +176,8 @@ export const BinaryTreeView = () => {
   const { data: pendingNodes = [], isLoading: pendingLoading } =
     useGetPendingNodesQuery(distributorId, { skip: !distributorId });
   const [positionPendingNode] = usePositionPendingNodeMutation();
+  const [autoPlacePending, { isLoading: isAutoPlacing }] = useAutoPlacePendingMutation();
+  const [checkPairs, { isLoading: isCheckingPairs }] = useCheckPairsMutation();
 
   // Table state
   const [searchQuery, setSearchQuery] = useState("");
@@ -196,8 +201,16 @@ export const BinaryTreeView = () => {
 
   // Extract team members from binary tree
   const teamMembers = useMemo(() => {
-    if (!binaryTree) return [];
-    return extractTeamMembers(binaryTree);
+    if (!binaryTree) {
+      console.log('BinaryTreeView: No binary tree data');
+      return [];
+    }
+    console.log('BinaryTreeView: Binary tree data:', binaryTree);
+    console.log('BinaryTreeView: Left child:', binaryTree.children.left);
+    console.log('BinaryTreeView: Right child:', binaryTree.children.right);
+    const members = extractTeamMembers(binaryTree);
+    console.log('BinaryTreeView: Extracted team members:', members);
+    return members;
   }, [binaryTree]);
 
   // Filter and sort team members
@@ -254,6 +267,32 @@ export const BinaryTreeView = () => {
       return;
     }
 
+    // Extract numeric IDs for logging
+    const targetUserId = parseInt(selectedPendingNode.userId, 10);
+    let parentNodeId: number;
+    if (selectedParentId.startsWith('node-')) {
+      parentNodeId = parseInt(selectedParentId.replace('node-', ''), 10);
+    } else {
+      parentNodeId = parseInt(selectedParentId, 10);
+    }
+
+    // Prepare request body for logging
+    const requestBody = {
+      target_user_id: targetUserId,
+      parent_node_id: parentNodeId,
+      side: selectedSide, // "left" or "right"
+    };
+
+    // Console log the request body
+    console.log('🔵 [Position Member] Request Body:', JSON.stringify(requestBody, null, 2));
+    console.log('🔵 [Position Member] Request Details:', {
+      selectedPendingNode: selectedPendingNode.name,
+      userId: selectedPendingNode.userId,
+      parentId: selectedParentId,
+      side: selectedSide,
+      extractedParentNodeId: parentNodeId,
+    });
+
     try {
       const result = await positionPendingNode({
         distributorId,
@@ -262,17 +301,31 @@ export const BinaryTreeView = () => {
         side: selectedSide,
       }).unwrap();
 
+      // Console log the response
+      console.log('🟢 [Position Member] Response:', JSON.stringify(result, null, 2));
+      console.log('🟢 [Position Member] Response Success:', result.success);
+      console.log('🟢 [Position Member] Response Message:', result.message);
+
       if (result.success) {
         toast.success(`${selectedPendingNode.name} positioned successfully!`);
         setSelectedPendingNode(null);
         setPositionDialogOpen(false);
         setSelectedParentId("");
         setSelectedSide("left");
+        // Refetch tree structure after positioning
+        await refetchTree();
       } else {
         toast.error(result.message || "Failed to position node");
       }
     } catch (error: unknown) {
-      console.error("Position node error:", error);
+      // Console log the error
+      console.error("🔴 [Position Member] Error:", error);
+      console.error("🔴 [Position Member] Error Type:", typeof error);
+      if (error && typeof error === "object") {
+        console.error("🔴 [Position Member] Error Keys:", Object.keys(error));
+        console.error("🔴 [Position Member] Error Stringified:", JSON.stringify(error, null, 2));
+      }
+
       let errorMessage = "Failed to position node. Please try again.";
       if (error && typeof error === "object") {
         if ("data" in error && error.data && typeof error.data === "object") {
@@ -297,6 +350,72 @@ export const BinaryTreeView = () => {
   const handlePendingNodeSelect = (pendingNode: PendingNode) => {
     setSelectedPendingNode(pendingNode);
     setPositionDialogOpen(true);
+  };
+
+  const handleAutoPosition = async () => {
+    try {
+      const result = await autoPlacePending().unwrap();
+      console.log('Auto Place Pending Response:', result);
+      toast.success('Pending users have been auto-positioned successfully!');
+      setPositionDialogOpen(false);
+      setSelectedPendingNode(null);
+      setSelectedParentId("");
+      setSelectedSide("left");
+      // Refetch tree structure after auto placing
+      await refetchTree();
+    } catch (error: unknown) {
+      console.error('Auto place pending error:', error);
+      let errorMessage = "Failed to auto-position pending users. Please try again.";
+      if (error && typeof error === "object") {
+        if ("data" in error && error.data && typeof error.data === "object") {
+          const errorData = error.data as {
+            data?: string;
+            error?: { data?: string };
+            message?: string;
+          };
+          errorMessage =
+            errorData.data ||
+            errorData.error?.data ||
+            errorData.message ||
+            errorMessage;
+        } else if ("message" in error && typeof error.message === "string") {
+          errorMessage = error.message;
+        }
+      }
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleMatchPairs = async () => {
+    try {
+      const result = await checkPairs().unwrap();
+      console.log('Check Pairs Response:', result);
+      toast.success('Pairs matched successfully!');
+      // Refetch tree structure after matching pairs
+      await refetchTree();
+      // Also refetch stats
+      await refetchStats();
+    } catch (error: unknown) {
+      console.error('Check pairs error:', error);
+      let errorMessage = "Failed to match pairs. Please try again.";
+      if (error && typeof error === "object") {
+        if ("data" in error && error.data && typeof error.data === "object") {
+          const errorData = error.data as {
+            data?: string;
+            error?: { data?: string };
+            message?: string;
+          };
+          errorMessage =
+            errorData.data ||
+            errorData.error?.data ||
+            errorData.message ||
+            errorMessage;
+        } else if ("message" in error && typeof error.message === "string") {
+          errorMessage = error.message;
+        }
+      }
+      toast.error(errorMessage);
+    }
   };
 
   // Get available parent nodes for positioning
@@ -459,12 +578,22 @@ export const BinaryTreeView = () => {
                           <User className="h-4 w-4 text-muted-foreground" />
                           <p className="font-semibold">{pendingNode.name}</p>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          PV: ₹{pendingNode.pv.toLocaleString()}
-                        </p>
+                        {pendingNode.email && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {pendingNode.email}
+                          </p>
+                        )}
+                        {pendingNode.pv > 0 ? (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            PV: ₹{pendingNode.pv.toLocaleString()}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            PV: N/A
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">
-                          Joined:{" "}
-                          {new Date(pendingNode.joinedAt).toLocaleDateString()}
+                          User ID: {pendingNode.userId}
                         </p>
                       </div>
                       <Badge variant="outline" className="ml-2">
@@ -528,14 +657,10 @@ export const BinaryTreeView = () => {
             <div className="flex justify-end gap-2 pt-4">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setPositionDialogOpen(false);
-                  setSelectedPendingNode(null);
-                  setSelectedParentId("");
-                  setSelectedSide("left");
-                }}
+                onClick={handleAutoPosition}
+                disabled={isAutoPlacing}
               >
-                Cancel
+                {isAutoPlacing ? "Positioning..." : "Auto Position"}
               </Button>
               <Button
                 onClick={handlePositionPendingNode}
@@ -559,15 +684,27 @@ export const BinaryTreeView = () => {
                 format
               </CardDescription>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setReferralTreeDialogOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <Network className="h-4 w-4" />
-              Referral Tree
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleMatchPairs}
+                disabled={isCheckingPairs}
+                className="flex items-center gap-2"
+              >
+                <Link2 className="h-4 w-4" />
+                {isCheckingPairs ? "Matching..." : "Match Pairs"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReferralTreeDialogOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Network className="h-4 w-4" />
+                Referral Tree
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

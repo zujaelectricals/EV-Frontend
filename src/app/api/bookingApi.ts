@@ -43,6 +43,9 @@ export interface BookingsListResponse {
   count: number;
   next: string | null;
   previous: string | null;
+  page_size?: number;
+  current_page?: number;
+  total_pages?: number;
   results: BookingResponse[];
 }
 
@@ -184,7 +187,13 @@ export const bookingApi = api.injectEndpoints({
           };
         }
       },
-      invalidatesTags: ['Booking'],
+      invalidatesTags: [
+        'Booking',
+        { type: 'Booking', id: 'LIST' },
+        { type: 'Booking', id: 'LIST-all' },
+        { type: 'Booking', id: 'LIST-pending' },
+        { type: 'Booking', id: 'LIST-active' },
+      ],
     }),
     makePayment: builder.mutation<MakePaymentResponse, { bookingId: number; paymentData: MakePaymentRequest }>({
       queryFn: async ({ bookingId, paymentData }) => {
@@ -274,7 +283,16 @@ export const bookingApi = api.injectEndpoints({
           };
         }
       },
-      invalidatesTags: ['Booking'],
+      invalidatesTags: [
+        'Booking',
+        { type: 'Booking', id: 'LIST' },
+        { type: 'Booking', id: 'LIST-all' },
+        { type: 'Booking', id: 'LIST-pending' },
+        { type: 'Booking', id: 'LIST-active' },
+        { type: 'Booking', id: 'LIST-completed' },
+        { type: 'Booking', id: 'LIST-cancelled' },
+        { type: 'Booking', id: 'LIST-expired' },
+      ],
     }),
     getBookings: builder.query<BookingsListResponse, { page?: number; status?: string } | void>({
       queryFn: async (params) => {
@@ -369,11 +387,143 @@ export const bookingApi = api.injectEndpoints({
           };
         }
       },
-      providesTags: ['Booking'],
+      // Serialize query params for proper caching - each status gets its own cache entry
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        const status = queryArgs?.status || 'all';
+        const page = queryArgs?.page || 1;
+        return `${endpointName}(${JSON.stringify({ status, page })})`;
+      },
+      // Provide cache tags based on status and individual booking IDs
+      providesTags: (result, error, queryArgs) => {
+        const status = queryArgs?.status || 'all';
+        const tags: Array<{ type: 'Booking'; id: string | number }> = [
+          { type: 'Booking', id: 'LIST' },
+          { type: 'Booking', id: `LIST-${status}` },
+        ];
+        
+        // Add individual booking tags if results exist
+        if (result?.results) {
+          tags.push(
+            ...result.results.map((booking) => ({
+              type: 'Booking' as const,
+              id: booking.id,
+            }))
+          );
+        }
+        
+        return tags;
+      },
+      // Merge function for pagination - only merge on initial pagination, not on refetch
+      // When refetch is called, we want to replace the data entirely, not merge
+      merge: (currentCache, newItems, { arg }) => {
+        if (!newItems?.results) return currentCache;
+        
+        // If this is a refetch (no page arg or page is 1), replace entirely
+        // Only merge when actually paginating (page > 1)
+        if (arg && typeof arg === 'object' && arg.page && arg.page > 1) {
+          // For pagination, merge results
+          if (currentCache && currentCache.results) {
+            return {
+              ...newItems,
+              results: [...currentCache.results, ...newItems.results],
+            };
+          }
+        }
+        
+        // For refetch or first page, replace entirely
+        return newItems;
+      },
+      // Force refetch when status changes
+      forceRefetch: ({ currentArg, previousArg }) => {
+        return currentArg?.status !== previousArg?.status;
+      },
+    }),
+    getBookingDetail: builder.query<BookingResponse, number>({
+      queryFn: async (bookingId) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          const url = `${baseUrl}booking/bookings/${bookingId}/`;
+          
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          console.log('📤 [BOOKING DETAIL API] Request URL:', url);
+          console.log('📤 [BOOKING DETAIL API] Booking ID:', bookingId);
+          console.log('📤 [BOOKING DETAIL API] Request Headers:', headers);
+          
+          let response = await fetch(url, {
+            method: 'GET',
+            headers,
+          });
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [BOOKING DETAIL API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                console.log('🔄 [BOOKING DETAIL API] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'GET',
+                  headers,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [BOOKING DETAIL API] Error Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              data: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+          
+          const data = await response.json();
+          console.log('📥 [BOOKING DETAIL API] Success Response:', JSON.stringify(data, null, 2));
+          
+          return { data };
+        } catch (error) {
+          console.error('❌ [BOOKING DETAIL API] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      providesTags: (result, error, bookingId) => [{ type: 'Booking', id: bookingId }],
     }),
   }),
   overrideExisting: false,
 });
 
-export const { useCreateBookingMutation, useMakePaymentMutation, useGetBookingsQuery } = bookingApi;
+export const { useCreateBookingMutation, useMakePaymentMutation, useGetBookingsQuery, useGetBookingDetailQuery } = bookingApi;
 

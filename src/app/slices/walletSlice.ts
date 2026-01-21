@@ -33,8 +33,12 @@ const walletSlice = createSlice({
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
+    clearWallets: (state) => {
+      state.wallets = [];
+      state.selectedWallet = null;
+    },
   },
 });
 
-export const { setWallets, selectWallet, setLoading } = walletSlice.actions;
+export const { setWallets, selectWallet, setLoading, clearWallets } = walletSlice.actions;
 export default walletSlice.reducer;

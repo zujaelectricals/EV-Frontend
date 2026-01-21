@@ -100,12 +100,21 @@ const getStoredAuth = (): { token: string | null; accessToken?: string | null; r
   return { token: null };
 };
 
-const setStoredAuth = (accessToken: string | null, refreshToken?: string | null, user?: User | null): void => {
-  if (typeof window === 'undefined') return;
+const setStoredAuth = (accessToken: string | null, refreshToken?: string | null, user?: User | null, forceRemove: boolean = false): void => {
+  if (typeof window === 'undefined') {
+    console.warn('⚠️ [setStoredAuth] window is undefined');
+    return;
+  }
+  
   try {
     if (accessToken) {
       // Store tokens + minimal user info (id, email, name, role) needed for UI
-      const authData: any = { 
+      const authData: { 
+        accessToken: string; 
+        token: string; 
+        refreshToken?: string; 
+        user?: Partial<User>;
+      } = { 
         accessToken,
         token: accessToken, // Keep for backward compatibility
       };
@@ -118,15 +127,44 @@ const setStoredAuth = (accessToken: string | null, refreshToken?: string | null,
           email: user.email,
           name: user.name,
           role: user.role,
+          isDistributor: user.isDistributor,
+          kycStatus: user.kycStatus,
+          phone: user.phone,
+          distributorInfo: user.distributorInfo,
         };
       }
       
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+      
+      // Verify it was stored
+      const verify = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (verify) {
+        const parsed = JSON.parse(verify);
+        console.log('✅ [setStoredAuth] Successfully stored tokens:', {
+          key: AUTH_STORAGE_KEY,
+          hasAccessToken: !!parsed.accessToken,
+          hasRefreshToken: !!parsed.refreshToken,
+          hasUser: !!parsed.user,
+        });
+      } else {
+        console.error('❌ [setStoredAuth] Failed to verify storage - localStorage.getItem returned null!');
+      }
     } else {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
+      // Only remove if explicitly forced (logout) or if there's no existing auth data
+      const existingAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (forceRemove) {
+        console.log('🔵 [setStoredAuth] Force removing auth data (logout)');
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      } else if (!existingAuth) {
+        console.log('🔵 [setStoredAuth] No existing auth data, nothing to remove');
+      } else {
+        // Don't clear existing valid tokens if accessToken is null but we already have tokens
+        console.warn('⚠️ [setStoredAuth] accessToken is null but existing auth data found. Preserving existing tokens.');
+        console.warn('⚠️ [setStoredAuth] This might indicate an issue - tokens should not be null during normal operations.');
+      }
     }
   } catch (error) {
-    console.error('Error saving auth data to localStorage:', error);
+    console.error('❌ [setStoredAuth] Error saving auth data to localStorage:', error);
   }
 };
 
@@ -210,12 +248,28 @@ const authSlice = createSlice({
         state.refreshToken = action.payload.refreshToken;
       }
       state.isAuthenticated = true;
+      
       // Store tokens + minimal user info in localStorage
-      setStoredAuth(
-        action.payload.accessToken || action.payload.token || null,
-        action.payload.refreshToken || null,
-        action.payload.user
-      );
+      const accessTokenToStore = action.payload.accessToken || action.payload.token || state.accessToken;
+      if (accessTokenToStore) {
+        setStoredAuth(
+          accessTokenToStore,
+          action.payload.refreshToken || state.refreshToken || null,
+          action.payload.user
+        );
+      } else {
+        // If no new tokens but we have existing tokens, still update user data in localStorage
+        const existingAuth = getStoredAuth();
+        if (existingAuth.accessToken || existingAuth.token) {
+          setStoredAuth(
+            existingAuth.accessToken || existingAuth.token || '',
+            existingAuth.refreshToken || null,
+            action.payload.user
+          );
+        } else {
+          console.warn('⚠️ [setCredentials] No tokens available to store!');
+        }
+      }
     },
     logout: (state) => {
       state.user = null;
@@ -223,7 +277,8 @@ const authSlice = createSlice({
       state.accessToken = null;
       state.refreshToken = null;
       state.isAuthenticated = false;
-      setStoredAuth(null);
+      // Force remove on logout
+      setStoredAuth(null, null, null, true);
       // Clear auth tokens from localStorage
       if (typeof window !== 'undefined') {
         localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -235,7 +290,15 @@ const authSlice = createSlice({
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
-        // Don't update localStorage - user data is not stored there, only tokens
+        // Update localStorage with new user data
+        const existingAuth = getStoredAuth();
+        if (existingAuth.accessToken || existingAuth.token) {
+          setStoredAuth(
+            existingAuth.accessToken || existingAuth.token || '',
+            existingAuth.refreshToken || null,
+            state.user
+          );
+        }
       }
     },
     updatePreBooking: (state, action: PayloadAction<PreBookingInfo>) => {
@@ -264,7 +327,21 @@ const authSlice = createSlice({
           };
         }
         state.user.distributorInfo = { ...state.user.distributorInfo, ...action.payload };
-        // Don't update localStorage - user data is not stored there, only tokens
+        
+        // Update isDistributor based on distributorInfo
+        if (action.payload.isDistributor !== undefined) {
+          state.user.isDistributor = action.payload.isDistributor;
+        }
+        
+        // Update localStorage with new user data
+        const existingAuth = getStoredAuth();
+        if (existingAuth.accessToken || existingAuth.token) {
+          setStoredAuth(
+            existingAuth.accessToken || existingAuth.token || '',
+            existingAuth.refreshToken || null,
+            state.user
+          );
+        }
       }
     },
     updateKYCStatus: (state, action: PayloadAction<{ kycStatus: 'not_submitted' | 'pending' | 'verified' | 'rejected'; kycDetails?: Partial<KYCDetails> }>) => {

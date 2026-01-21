@@ -30,11 +30,12 @@ import { Link } from "react-router-dom";
 import { PaymentGateway } from "@/store/components/PaymentGateway";
 import { toast } from "sonner";
 import { useAddReferralNodeMutation } from "@/app/api/binaryApi";
-import { useGetBookingsQuery } from "@/app/api/bookingApi";
+import { useGetBookingsQuery, useMakePaymentMutation } from "@/app/api/bookingApi";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
-import { Booking } from "@/app/slices/bookingSlice";
+import { Booking, PaymentMethod } from "@/app/slices/bookingSlice";
 import { setBookings } from "@/app/slices/bookingSlice";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { api } from "@/app/api/baseApi";
 
 const DISTRIBUTOR_ELIGIBILITY_AMOUNT = 5000;
 
@@ -43,6 +44,7 @@ export function MyOrders() {
   const { bookings } = useAppSelector((state) => state.booking);
   const { user } = useAppSelector((state) => state.auth);
   const [addReferralNode] = useAddReferralNodeMutation();
+  const [makePayment, { isLoading: isMakingPayment }] = useMakePaymentMutation();
   const [showPaymentGateway, setShowPaymentGateway] = useState(false);
   const [showPaymentAmountDialog, setShowPaymentAmountDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null);
@@ -52,6 +54,7 @@ export function MyOrders() {
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [refreshKey, setRefreshKey] = useState(0); // Force re-render key
 
   // Map API status to query parameter
   const getApiStatus = (localStatus: string): string | undefined => {
@@ -69,53 +72,163 @@ export function MyOrders() {
     return statusMap[localStatus] || undefined;
   };
 
-  // Get bookings with status filter - use cached data if available, refetch only when filter changes
-  const { data: bookingsData, isLoading: isLoadingBookings, error: bookingsError, refetch } = useGetBookingsQuery(
-    statusFilter === "all" ? undefined : { status: getApiStatus(statusFilter) },
+  // Get bookings with status filter - uses RTK Query caching
+  // Each status filter creates a separate cache entry
+  const apiStatus = statusFilter === "all" ? undefined : getApiStatus(statusFilter);
+  const queryParams = apiStatus ? { status: apiStatus } : undefined;
+  
+  const { 
+    data: bookingsData, 
+    isLoading: isLoadingBookings, 
+    error: bookingsError, 
+    refetch,
+    isFetching,
+    currentData // Use currentData to ensure we get the latest from cache
+  } = useGetBookingsQuery(
+    queryParams,
     {
-      refetchOnMountOrArgChange: false, // Don't refetch on mount if cached data exists
-      refetchOnFocus: false, // Don't refetch on window focus
+      // Refetch when status changes (forceRefetch handles this in the query definition)
+      refetchOnMountOrArgChange: true, // Refetch if status changed
+      refetchOnFocus: false, // Don't refetch on window focus (use cache)
       refetchOnReconnect: true, // Refetch when reconnecting to network
-      // Cache behavior:
-      // - Data is cached in memory (Redux store) during the browser session
-      // - Cache persists when navigating away and coming back (same session)
-      // - Cache is cleared when: page refresh, browser close, or after 60 seconds of being unused
+      // RTK Query caching:
+      // - Each status filter (all, pending, active, completed, cancelled, expired) gets its own cache
+      // - Cache persists during browser session
+      // - Switching between tabs uses cached data if available
+      // - Manual refresh (refetch) will update the cache
     }
   );
 
+  // Use currentData if available, otherwise fallback to data
+  // currentData is the most up-to-date data in the cache
+  const activeBookingsData = currentData ?? bookingsData;
+
+  // Handle refresh button click - force fresh data fetch
+  const handleRefresh = async () => {
+    try {
+      // Invalidate cache tags to ensure fresh data is fetched
+      // This forces RTK Query to discard cached data and fetch fresh from server
+      const status = apiStatus || 'all';
+      dispatch(
+        api.util.invalidateTags([
+          { type: 'Booking', id: 'LIST' },
+          { type: 'Booking', id: `LIST-${status}` },
+        ])
+      );
+      
+      // Force refetch - this bypasses cache and fetches fresh data
+      const result = await refetch();
+      if (result.data) {
+        console.log("✅ [REFRESH] Bookings refreshed, data:", result.data);
+        console.log("✅ [REFRESH] First booking total_paid:", result.data.results?.[0]?.total_paid);
+        console.log("✅ [REFRESH] First booking remaining_amount:", result.data.results?.[0]?.remaining_amount);
+        
+        // Force component re-render by updating refresh key
+        // This ensures React detects the change even if bookingsData reference is the same
+        setRefreshKey(prev => prev + 1);
+        
+        toast.success("Orders refreshed successfully");
+      } else if (result.error) {
+        console.error("❌ [REFRESH] Error in response:", result.error);
+        toast.error("Failed to refresh orders");
+      }
+    } catch (error) {
+      console.error("❌ [REFRESH] Error refreshing orders:", error);
+      toast.error("Failed to refresh orders");
+    }
+  };
+
   // Map API bookings to local booking format (memoized to prevent unnecessary recalculations)
+  // Include refreshKey to force recalculation when refresh is triggered
+  // Use activeBookingsData to ensure we have the latest cached data
   const mappedBookings = useMemo(() => {
-    if (!bookingsData?.results) return [];
-    return bookingsData.results.map((apiBooking) => ({
-      id: apiBooking.id.toString(),
-      vehicleId: apiBooking.vehicle_model.toString(),
-      vehicleName: apiBooking.vehicle_details.name,
-      status: apiBooking.status === 'pending' ? 'pre-booked' : apiBooking.status,
-      preBookingAmount: parseFloat(apiBooking.booking_amount) || 0,
-      totalAmount: parseFloat(apiBooking.total_amount) || 0,
-      remainingAmount: parseFloat(apiBooking.remaining_amount) || 0,
-      totalPaid: parseFloat(apiBooking.total_paid) || 0,
-      paymentMethod: apiBooking.payment_option === 'full_payment' ? 'full' : 
-                    apiBooking.payment_option === 'emi' ? 'emi' : 'flexible',
-      paymentDueDate: apiBooking.expires_at,
-      paymentStatus: parseFloat(apiBooking.remaining_amount) === 0 ? 'completed' : 
-                    parseFloat(apiBooking.total_paid) > 0 ? 'partial' : 'pending',
-      isActiveBuyer: true,
-      redemptionPoints: 0,
-      redemptionEligible: false,
-      bookedAt: apiBooking.created_at,
-      referredBy: apiBooking.referred_by || undefined,
-      addedToTeamNetwork: false,
-    }));
-  }, [bookingsData]);
+    if (!activeBookingsData?.results) return [];
+    
+    console.log("🔄 [MAPPED BOOKINGS] Recalculating with refreshKey:", refreshKey);
+    console.log("🔄 [MAPPED BOOKINGS] First booking total_paid:", activeBookingsData.results[0]?.total_paid);
+    console.log("🔄 [MAPPED BOOKINGS] First booking remaining_amount:", activeBookingsData.results[0]?.remaining_amount);
+    
+    return activeBookingsData.results.map((apiBooking) => {
+      // Map API status to display status
+      let displayStatus: Booking['status'] = 'pending';
+      if (apiBooking.status === 'pending') {
+        displayStatus = 'pre-booked';
+      } else if (apiBooking.status === 'active') {
+        displayStatus = 'confirmed';
+      } else if (apiBooking.status === 'confirmed') {
+        displayStatus = 'confirmed';
+      } else if (apiBooking.status === 'delivered') {
+        displayStatus = 'delivered';
+      } else if (apiBooking.status === 'cancelled') {
+        displayStatus = 'cancelled';
+      } else if (apiBooking.status === 'refunded') {
+        displayStatus = 'refunded';
+      }
+      
+      return {
+        id: apiBooking.id.toString(),
+        vehicleId: `vehicle-${apiBooking.vehicle_details.name?.toLowerCase().replace(/\s+/g, '-') || 'vehicle'}-${apiBooking.vehicle_model}`,
+        vehicleName: apiBooking.vehicle_details.name,
+        modelCode: apiBooking.model_code,
+        status: displayStatus,
+        preBookingAmount: parseFloat(apiBooking.booking_amount) || 0,
+        totalAmount: parseFloat(apiBooking.total_amount) || 0,
+        remainingAmount: parseFloat(apiBooking.remaining_amount) || 0,
+        totalPaid: parseFloat(apiBooking.total_paid) || 0,
+        paymentMethod: (apiBooking.payment_option === 'full_payment' ? 'full' : 
+                      apiBooking.payment_option === 'emi' ? 'emi' : 'flexible') as PaymentMethod,
+        paymentDueDate: apiBooking.expires_at,
+        paymentStatus: (parseFloat(apiBooking.remaining_amount) === 0 ? 'completed' : 
+                      parseFloat(apiBooking.total_paid) > 0 ? 'partial' : 'pending') as Booking['paymentStatus'],
+        isActiveBuyer: true,
+        redemptionPoints: 0,
+        redemptionEligible: false,
+        bookedAt: apiBooking.created_at,
+        referredBy: apiBooking.referred_by || undefined,
+        addedToTeamNetwork: false,
+        bookingNumber: apiBooking.booking_number,
+        vehicleColor: apiBooking.vehicle_color,
+        batteryVariant: apiBooking.battery_variant,
+      };
+    });
+  }, [activeBookingsData, refreshKey]); // Use activeBookingsData instead of bookingsData
 
-  // Update Redux store when bookings data changes
+  // Log when activeBookingsData changes to debug refresh issues
   useEffect(() => {
-    dispatch(setBookings(mappedBookings));
-  }, [mappedBookings, dispatch]);
+    if (activeBookingsData) {
+      console.log("🔄 [BOOKINGS DATA CHANGED] New activeBookingsData received:", activeBookingsData);
+      console.log("🔄 [BOOKINGS DATA CHANGED] First booking total_paid:", activeBookingsData.results?.[0]?.total_paid);
+      console.log("🔄 [BOOKINGS DATA CHANGED] First booking remaining_amount:", activeBookingsData.results?.[0]?.remaining_amount);
+      console.log("🔄 [BOOKINGS DATA CHANGED] bookingsData reference:", bookingsData === activeBookingsData);
+    }
+  }, [activeBookingsData, bookingsData]);
 
-  // Use query data directly, fallback to Redux state
-  const displayBookings = mappedBookings.length > 0 ? mappedBookings : bookings;
+  // Update Redux store when bookings data changes - this ensures Redux is always in sync with API data
+  useEffect(() => {
+    if (mappedBookings.length > 0 || activeBookingsData) {
+      // Always sync Redux with the latest API data
+      console.log("🔄 [REDUX SYNC] Updating Redux with mappedBookings:", mappedBookings.length);
+      dispatch(setBookings(mappedBookings));
+    }
+  }, [mappedBookings, dispatch, activeBookingsData]);
+
+  // Always use API data when available - never fallback to Redux for display
+  // This ensures we always show the latest data from the API after refresh
+  // Deduplicate bookings by ID to prevent duplicate displays
+  const displayBookings = useMemo(() => {
+    // If we have API data (even if empty), use it - don't use Redux fallback
+    // This ensures refresh always shows fresh data from the server
+    const source = activeBookingsData !== undefined ? mappedBookings : bookings;
+    // Remove duplicates by ID, keeping the first occurrence
+    const seen = new Set<string>();
+    return source.filter((booking) => {
+      if (seen.has(booking.id)) {
+        return false;
+      }
+      seen.add(booking.id);
+      return true;
+    });
+  }, [mappedBookings, bookings, activeBookingsData]);
 
   // Note: Console logs for API calls are in bookingApi.ts
   // They only appear when actual API calls are made, not when using cached data
@@ -174,29 +287,50 @@ export function MyOrders() {
     setShowPaymentGateway(true);
   };
 
-  const handleAdditionalPaymentSuccess = async () => {
+  const handleAdditionalPaymentSuccess = async (paymentGatewayRef?: string, paymentMethod: 'online' | 'bank_transfer' | 'cash' | 'wallet' = 'online') => {
     if (!selectedBooking) return;
 
     const booking = bookings.find((b) => b.id === selectedBooking);
     if (!booking) return;
 
-    const previousTotalPaid = booking.totalPaid || booking.preBookingAmount;
-    const newTotalPaid = previousTotalPaid + paymentAmount;
-    const newRemainingAmount = Math.max(0, booking.totalAmount - newTotalPaid);
-    const newPaymentStatus = newRemainingAmount === 0 ? "completed" : "partial";
+    try {
+      // Call the make payment API
+      const bookingId = parseInt(selectedBooking, 10);
+      if (isNaN(bookingId)) {
+        toast.error("Invalid booking ID");
+        return;
+      }
 
-    // Check if user should be added to distributor's team network
-    // Conditions:
-    // 1. User has a referral code in the booking
-    // 2. Previous total paid was < 5000
-    // 3. New total paid >= 5000
-    // 4. User hasn't been added to team network yet
-    const shouldAddToTeamNetwork =
-      booking.referredBy &&
-      booking.referredBy.trim() &&
-      previousTotalPaid < DISTRIBUTOR_ELIGIBILITY_AMOUNT &&
-      newTotalPaid >= DISTRIBUTOR_ELIGIBILITY_AMOUNT &&
-      !booking.addedToTeamNetwork;
+      const paymentResponse = await makePayment({
+        bookingId,
+        paymentData: {
+          amount: paymentAmount,
+          payment_method: paymentMethod,
+        },
+      }).unwrap();
+
+      console.log("✅ [PAYMENT] Payment API response:", paymentResponse);
+
+      // Update local state with API response
+      const newTotalPaid = parseFloat(paymentResponse.total_paid) || 0;
+      const newRemainingAmount = parseFloat(paymentResponse.remaining_amount) || 0;
+      const newPaymentStatus = newRemainingAmount === 0 ? "completed" : "partial";
+
+      // Get previous total paid for distributor eligibility check
+      const previousTotalPaid = booking.totalPaid || booking.preBookingAmount || 0;
+
+      // Check if user should be added to distributor's team network
+      // Conditions:
+      // 1. User has a referral code in the booking
+      // 2. Previous total paid was < 5000
+      // 3. New total paid >= 5000
+      // 4. User hasn't been added to team network yet
+      const shouldAddToTeamNetwork =
+        booking.referredBy &&
+        booking.referredBy.trim() &&
+        previousTotalPaid < DISTRIBUTOR_ELIGIBILITY_AMOUNT &&
+        newTotalPaid >= DISTRIBUTOR_ELIGIBILITY_AMOUNT &&
+        !booking.addedToTeamNetwork;
 
     let addedToTeamNetwork = booking.addedToTeamNetwork || false;
 
@@ -299,12 +433,24 @@ export function MyOrders() {
       );
     }
 
-    toast.success(
-      `Payment of ₹${paymentAmount.toLocaleString()} processed successfully!`
-    );
-    setShowPaymentGateway(false);
-    setSelectedBooking(null);
-    setPaymentAmount(0);
+      toast.success(
+        `Payment of ₹${paymentAmount.toLocaleString()} processed successfully!`
+      );
+      setShowPaymentGateway(false);
+      setSelectedBooking(null);
+      setPaymentAmount(0);
+      
+      // Refetch bookings to get updated data from server
+      await refetch();
+    } catch (error) {
+      console.error("❌ [PAYMENT] Error making payment:", error);
+      const errorData = error && typeof error === 'object' && 'data' in error 
+        ? (error as { data?: { message?: string; detail?: string } }).data 
+        : undefined;
+      const errorMessage = errorData?.message || errorData?.detail || "Failed to process payment. Please try again.";
+      toast.error(errorMessage);
+      // Don't close the payment gateway on error so user can retry
+    }
   };
 
   return (
@@ -312,7 +458,12 @@ export function MyOrders() {
       <div className="flex items-center justify-between mb-4 gap-2">
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1">
           <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
-            <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
+            <TabsTrigger value="all" className="text-xs sm:text-sm">
+              All
+              {activeBookingsData?.count !== undefined && (
+                <span className="ml-1 text-[10px]">({activeBookingsData.count})</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="pending" className="text-xs sm:text-sm">Pending</TabsTrigger>
             <TabsTrigger value="active" className="text-xs sm:text-sm">Active</TabsTrigger>
             <TabsTrigger value="completed" className="text-xs sm:text-sm">Completed</TabsTrigger>
@@ -324,12 +475,12 @@ export function MyOrders() {
           <Button 
             size="sm" 
             variant="outline"
-            onClick={() => refetch()}
-            disabled={isLoadingBookings}
+            onClick={handleRefresh}
+            disabled={isLoadingBookings || isFetching}
             className="text-xs sm:text-sm"
             title="Refresh orders"
           >
-            <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${isLoadingBookings ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${(isLoadingBookings || isFetching) ? 'animate-spin' : ''}`} />
           </Button>
           <Link to="/scooters">
             <Button size="sm" className="text-xs sm:text-sm">Browse Vehicles</Button>
@@ -361,11 +512,11 @@ export function MyOrders() {
           <CardContent className="py-8 text-center">
             <Package className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              No orders yet
+              No orders found
             </h3>
             <p className="text-muted-foreground mb-4 text-sm">
               {statusFilter !== "all" 
-                ? `No ${statusFilter} orders found. Try selecting a different filter.`
+                ? `No ${statusFilter.replace(/-/g, ' ')} orders found. Try selecting a different filter.`
                 : "Start shopping to see your orders here"}
             </p>
             <Link to="/scooters">
@@ -374,10 +525,23 @@ export function MyOrders() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {displayBookings.map((booking, index) => (
+        <>
+          {/* Results Count */}
+          {activeBookingsData?.count !== undefined && (
+            <div className="text-sm text-muted-foreground mb-2">
+              Showing {displayBookings.length} of {activeBookingsData.count} orders
+              {activeBookingsData.total_pages && activeBookingsData.total_pages > 1 && (
+                <span className="ml-2">
+                  (Page {activeBookingsData.current_page || 1} of {activeBookingsData.total_pages})
+                </span>
+              )}
+            </div>
+          )}
+          
+          <div className="space-y-3">
+            {displayBookings.map((booking, index) => (
             <motion.div
-              key={booking.id}
+              key={`booking-${booking.id}-${index}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
@@ -546,8 +710,9 @@ export function MyOrders() {
                 </CardContent>
               </Card>
             </motion.div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Payment Amount Dialog */}
@@ -624,7 +789,9 @@ export function MyOrders() {
             setMaxPaymentAmount(0);
           }}
           amount={paymentAmount}
-          onSuccess={handleAdditionalPaymentSuccess}
+          onSuccess={(paymentGatewayRef, paymentMethod) => 
+            handleAdditionalPaymentSuccess(paymentGatewayRef, paymentMethod)
+          }
           vehicleName={
             bookings.find((b) => b.id === selectedBooking)?.vehicleName
           }
@@ -636,6 +803,7 @@ export function MyOrders() {
         open={showOrderDetails}
         onOpenChange={setShowOrderDetails}
         booking={selectedBookingForDetails}
+        bookingId={selectedBookingForDetails?.id ? parseInt(selectedBookingForDetails.id, 10) : null}
       />
     </div>
   );

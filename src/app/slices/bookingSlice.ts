@@ -97,8 +97,14 @@ const bookingSlice = createSlice({
     setEMIPlans: (state, action: PayloadAction<EMIPlan[]>) => {
       state.emiPlans = action.payload;
     },
+    clearBookings: (state) => {
+      state.bookings = [];
+      state.selectedBooking = null;
+      state.currentUserId = null;
+      // Keep emiPlans as they're not user-specific
+    },
   },
 });
 
-export const { setBookings, loadBookingsForUser, addBooking, updateBooking, selectBooking, setLoading, setEMIPlans } = bookingSlice.actions;
+export const { setBookings, loadBookingsForUser, addBooking, updateBooking, selectBooking, setLoading, setEMIPlans, clearBookings } = bookingSlice.actions;
 export default bookingSlice.reducer;

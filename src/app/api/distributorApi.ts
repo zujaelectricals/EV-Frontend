@@ -1,5 +1,8 @@
 import { api } from './baseApi';
+import { getAuthTokens } from './baseApi';
+import { getApiBaseUrl } from '../../lib/config';
 import { User, DistributorInfo } from '../slices/authSlice';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
 export interface DistributorApplicationData {
   // Vehicle Selection Details
@@ -47,11 +50,94 @@ export interface DistributorApplication {
   comments?: string;
 }
 
+// New API response format from users/distributor-application/
+export interface DistributorApplicationResponse {
+  id: number;
+  user_email: string;
+  user_username: string;
+  user_full_name: string;
+  reviewed_by: number | null;
+  is_distributor_terms_and_conditions_accepted: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  company_name: string | null;
+  business_registration_number: string | null;
+  tax_id: string | null;
+  years_in_business: number | null;
+  previous_distribution_experience: string | null;
+  product_interest: string | null;
+  reference_name: string | null;
+  reference_contact: string | null;
+  reference_relationship: string | null;
+  business_license: string | null;
+  tax_documents: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  rejection_reason: string;
+  user: number;
+}
+
 // Mock storage for applications (in real app, this would be in a database)
 let mockApplications: DistributorApplication[] = [];
 
 export const distributorApi = api.injectEndpoints({
   endpoints: (builder) => ({
+    // New API endpoint: POST users/distributor-application/
+    submitDistributorApplicationNew: builder.mutation<
+      DistributorApplicationResponse,
+      { is_distributor_terms_and_conditions_accepted: boolean }
+    >({
+      queryFn: async (body) => {
+        const { accessToken } = getAuthTokens();
+        
+        if (!accessToken) {
+          return {
+            error: {
+              status: 'UNAUTHORIZED' as const,
+              error: 'No access token found',
+            },
+          };
+        }
+
+        try {
+          // Create FormData for multipart/form-data
+          const formData = new FormData();
+          formData.append('is_distributor_terms_and_conditions_accepted', 
+            body.is_distributor_terms_and_conditions_accepted.toString()
+          );
+
+          const response = await fetch(`${getApiBaseUrl()}users/distributor-application/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              // Don't set Content-Type - browser will set it with boundary for multipart/form-data
+            },
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to submit distributor application' }));
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data: DistributorApplicationResponse = await response.json();
+          return { data };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      invalidatesTags: ['User', 'DistributorApplication'],
+    }),
+
     submitDistributorApplication: builder.mutation<
       { success: boolean; application: DistributorApplication },
       DistributorApplicationData
@@ -466,6 +552,7 @@ function safeLocalStorageSet(key: string, value: string): { success: boolean; er
 }
 
 export const {
+  useSubmitDistributorApplicationNewMutation,
   useSubmitDistributorApplicationMutation,
   useGetDistributorApplicationQuery,
   useGetAllDistributorApplicationsQuery,

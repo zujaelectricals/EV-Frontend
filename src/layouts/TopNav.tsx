@@ -16,7 +16,10 @@ import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { logout } from "@/app/slices/authSlice";
 import { useLogoutMutation } from "@/app/api/authApi";
-import { getAuthTokens } from "@/app/api/baseApi";
+import { getAuthTokens, api } from "@/app/api/baseApi";
+import { clearBookings } from "@/app/slices/bookingSlice";
+import { clearWishlist } from "@/app/slices/wishlistSlice";
+import { clearWallets } from "@/app/slices/walletSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,7 +36,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -111,14 +113,32 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
         console.log('⚠️ [ADMIN LOGOUT HANDLER] No refresh token found, clearing local data only');
       }
       
-      // Clear Redux state and localStorage
+      // Clear all user-specific Redux state
       dispatch(logout());
+      dispatch(clearBookings());
+      dispatch(clearWishlist());
+      dispatch(clearWallets());
+      
+      // Clear RTK Query cache to remove previous user's cached data
+      dispatch(api.util.resetApiState());
+      
+      console.log('✅ [ADMIN LOGOUT HANDLER] All user data cleared from Redux and RTK Query cache');
       toast.success('Successfully logged out');
       navigate("/login");
     } catch (error) {
       // Even if API call fails, clear local data
       console.error('🔴 [ADMIN LOGOUT HANDLER] Logout error:', error);
+      
+      // Clear all user-specific Redux state
       dispatch(logout());
+      dispatch(clearBookings());
+      dispatch(clearWishlist());
+      dispatch(clearWallets());
+      
+      // Clear RTK Query cache
+      dispatch(api.util.resetApiState());
+      
+      console.log('✅ [ADMIN LOGOUT HANDLER] All user data cleared from Redux and RTK Query cache (after error)');
       toast.success('Logged out');
       navigate("/login");
     }
@@ -189,9 +209,6 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
 
       {/* Actions */}
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* Profile Switcher - Hidden on mobile */}
-        {!isMobile && <ProfileSwitcher />}
-
         {/* Notifications */}
         <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
           <PopoverTrigger asChild>
@@ -324,7 +341,7 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
                   }
                 >
                   <Settings className="h-4 w-4" />
-                  Account Settings
+                  Edit Profile
                 </button>
                 <button
                   className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded-md hover:bg-secondary transition-colors cursor-pointer"

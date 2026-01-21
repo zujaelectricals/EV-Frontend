@@ -23,68 +23,148 @@ import {
   Gauge,
   Zap,
   FileText,
+  Mail,
+  Phone,
+  MapPin,
+  Hash,
 } from "lucide-react";
 import { Booking } from "@/app/slices/bookingSlice";
 import { scooters } from "@/store/data/scooters";
 import { format } from "date-fns";
+import { useGetBookingDetailQuery } from "@/app/api/bookingApi";
+import { BookingResponse } from "@/app/api/bookingApi";
 
 interface OrderDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   booking: Booking | null;
+  bookingId?: number | null;
 }
 
 export function OrderDetailsDialog({
   open,
   onOpenChange,
   booking,
+  bookingId,
 }: OrderDetailsDialogProps) {
-  const vehicleDetails = useMemo(() => {
-    if (!booking) return null;
-    return scooters.find((s) => s.id === booking.vehicleId);
-  }, [booking]);
+  // Fetch detailed booking information from API if bookingId is provided
+  const { data: bookingDetail, isLoading: isLoadingDetail, error: detailError } = useGetBookingDetailQuery(
+    bookingId || 0,
+    { skip: !bookingId || !open }
+  );
 
+  // Use API data if available, otherwise fallback to booking prop
+  const detailedBooking: BookingResponse | null = bookingDetail || null;
+
+  const vehicleDetails = useMemo(() => {
+    if (detailedBooking?.vehicle_details) {
+      // Use vehicle details from API response
+      return {
+        id: detailedBooking.vehicle_details.id.toString(),
+        name: detailedBooking.vehicle_details.name,
+        model_code: detailedBooking.vehicle_details.model_code,
+        colors: detailedBooking.vehicle_details.vehicle_color,
+        battery: detailedBooking.vehicle_details.battery_variant,
+      };
+    }
+    if (booking) {
+      return scooters.find((s) => s.id === booking.vehicleId);
+    }
+    return null;
+  }, [detailedBooking, booking]);
+
+  // Calculate overdue status based on expires_at
   const isOverdue = useMemo(() => {
-    if (!booking?.paymentDueDate) return false;
-    const dueDate = new Date(booking.paymentDueDate);
+    const dueDate = detailedBooking?.expires_at || booking?.paymentDueDate;
+    if (!dueDate) return false;
+    const expiryDate = new Date(dueDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    dueDate.setHours(0, 0, 0, 0);
-    return today > dueDate && booking.remainingAmount > 0;
-  }, [booking]);
+    expiryDate.setHours(0, 0, 0, 0);
+    const remainingAmount = detailedBooking 
+      ? parseFloat(detailedBooking.remaining_amount || '0')
+      : booking?.remainingAmount || 0;
+    return today > expiryDate && remainingAmount > 0;
+  }, [detailedBooking, booking]);
 
   const daysOverdue = useMemo(() => {
-    if (!isOverdue || !booking?.paymentDueDate) return 0;
-    const dueDate = new Date(booking.paymentDueDate);
+    if (!isOverdue) return 0;
+    const dueDate = detailedBooking?.expires_at || booking?.paymentDueDate;
+    if (!dueDate) return 0;
+    const expiryDate = new Date(dueDate);
     const today = new Date();
-    const diffTime = today.getTime() - dueDate.getTime();
+    const diffTime = today.getTime() - expiryDate.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }, [isOverdue, booking]);
+  }, [isOverdue, detailedBooking, booking]);
 
   const lateFeeAmount = useMemo(() => {
-    if (!isOverdue || !booking) return 0;
+    if (!isOverdue) return 0;
+    const remainingAmount = detailedBooking 
+      ? parseFloat(detailedBooking.remaining_amount || '0')
+      : booking?.remainingAmount || 0;
     // Calculate late fee: 2% of remaining amount per week overdue, minimum ₹500
     const weeksOverdue = Math.ceil(daysOverdue / 7);
-    const lateFee = (booking.remainingAmount * 0.02 * weeksOverdue);
+    const lateFee = (remainingAmount * 0.02 * weeksOverdue);
     return Math.max(lateFee, 500);
-  }, [isOverdue, booking, daysOverdue]);
+  }, [isOverdue, detailedBooking, booking, daysOverdue]);
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
+      case "completed":
       case "delivered":
         return "bg-success/10 text-success border-success/30";
+      case "active":
       case "confirmed":
         return "bg-primary/10 text-primary border-primary/30";
+      case "pending":
       case "pre-booked":
         return "bg-warning/10 text-warning border-warning/30";
       case "cancelled":
         return "bg-destructive/10 text-destructive border-destructive/30";
+      case "expired":
+        return "bg-muted/10 text-muted-foreground border-border";
       default:
         return "bg-muted/10 text-muted-foreground border-border";
     }
   };
 
-  if (!booking) return null;
+  // Show loading state
+  if (bookingId && isLoadingDetail) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Order Details</DialogTitle>
+            <DialogDescription>Loading booking information...</DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show error state
+  if (bookingId && detailError) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Order Details</DialogTitle>
+            <DialogDescription>Failed to load booking information</DialogDescription>
+          </DialogHeader>
+          <div className="text-center py-12 text-muted-foreground">
+            <p>Unable to load booking details. Please try again later.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Use detailed booking data or fallback to booking prop
+  const displayBooking = detailedBooking || booking;
+  if (!displayBooking) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,60 +188,100 @@ export function OrderDetailsDialog({
             <CardContent className="space-y-4">
               <div>
                 <Link
-                  to={`/scooters/${booking.vehicleId}`}
+                  to={detailedBooking 
+                    ? `/scooters/vehicle-${detailedBooking.vehicle_details.name?.toLowerCase().replace(/\s+/g, '-') || 'vehicle'}-${detailedBooking.vehicle_details.id}`
+                    : booking?.vehicleId ? `/scooters/${booking.vehicleId}` : '#'}
                   className="text-lg font-semibold text-foreground mb-2 hover:text-primary transition-colors cursor-pointer inline-block"
                 >
-                  {booking.vehicleName}
+                  {detailedBooking?.vehicle_details.name || booking?.vehicleName || 'Unknown Vehicle'}
                 </Link>
                 {vehicleDetails && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    <div className="flex items-center gap-2">
-                      <Battery className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Range</p>
-                        <p className="text-sm font-medium">
-                          {vehicleDetails.range}+ km
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Gauge className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          Top Speed
-                        </p>
-                        <p className="text-sm font-medium">
-                          {vehicleDetails.topSpeed} km/h
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Battery</p>
-                        <p className="text-sm font-medium">
-                          {vehicleDetails.batteryVoltage ||
-                            vehicleDetails.batteryCapacity}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          Charging
-                        </p>
-                        <p className="text-sm font-medium">
-                          {vehicleDetails.chargingTime || "4-5h"}
-                        </p>
-                      </div>
-                    </div>
+                    {detailedBooking ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Hash className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Model Code</p>
+                            <p className="text-sm font-medium">
+                              {detailedBooking.model_code}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Color</p>
+                            <p className="text-sm font-medium capitalize">
+                              {detailedBooking.vehicle_color}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Battery className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Battery</p>
+                            <p className="text-sm font-medium">
+                              {detailedBooking.battery_variant}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Price</p>
+                            <p className="text-sm font-medium">
+                              ₹{parseFloat(detailedBooking.vehicle_details.price || '0').toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Battery className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Range</p>
+                            <p className="text-sm font-medium">
+                              {vehicleDetails.range}+ km
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Gauge className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Top Speed
+                            </p>
+                            <p className="text-sm font-medium">
+                              {vehicleDetails.topSpeed} km/h
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Battery</p>
+                            <p className="text-sm font-medium">
+                              {vehicleDetails.batteryVoltage ||
+                                vehicleDetails.batteryCapacity}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Charging
+                            </p>
+                            <p className="text-sm font-medium">
+                              {vehicleDetails.chargingTime || "4-5h"}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
-                {vehicleDetails?.description && (
-                  <p className="text-sm text-muted-foreground mt-3">
-                    {vehicleDetails.description}
-                  </p>
                 )}
               </div>
             </CardContent>
@@ -181,12 +301,32 @@ export function OrderDetailsDialog({
                   <p className="text-sm text-muted-foreground mb-1">
                     Order ID
                   </p>
-                  <p className="font-semibold text-foreground">{booking.id}</p>
+                  <p className="font-semibold text-foreground">
+                    {detailedBooking?.id || booking?.id}
+                  </p>
                 </div>
+                {detailedBooking?.booking_number && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Booking Number
+                    </p>
+                    <p className="font-semibold text-foreground">
+                      {detailedBooking.booking_number}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Status</p>
-                  <Badge className={getStatusColor(booking.status)}>
-                    {booking.status.replace("-", " ").toUpperCase()}
+                  <Badge className={getStatusColor(detailedBooking?.status || booking?.status || '')}>
+                    {(detailedBooking?.status || booking?.status || '').replace(/_/g, " ").toUpperCase()}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Reservation Status
+                  </p>
+                  <Badge className={getStatusColor(detailedBooking?.reservation_status || '')}>
+                    {detailedBooking?.reservation_status?.replace(/_/g, " ").toUpperCase() || 'N/A'}
                   </Badge>
                 </div>
                 <div>
@@ -194,50 +334,162 @@ export function OrderDetailsDialog({
                     Order Date
                   </p>
                   <p className="font-semibold text-foreground">
-                    {format(new Date(booking.bookedAt), "dd MMM yyyy")}
+                    {detailedBooking?.created_at 
+                      ? format(new Date(detailedBooking.created_at), "dd MMM yyyy HH:mm")
+                      : booking?.bookedAt 
+                        ? format(new Date(booking.bookedAt), "dd MMM yyyy")
+                        : 'N/A'}
                   </p>
                 </div>
+                {detailedBooking?.confirmed_at && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Confirmed At
+                    </p>
+                    <p className="font-semibold text-foreground">
+                      {format(new Date(detailedBooking.confirmed_at), "dd MMM yyyy HH:mm")}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">
-                    Payment Method
+                    Payment Option
                   </p>
                   <p className="font-semibold text-foreground capitalize">
-                    {booking.paymentMethod}
+                    {detailedBooking?.payment_option?.replace(/_/g, " ") || booking?.paymentMethod || 'N/A'}
                   </p>
                 </div>
-                {booking.emiPlan && (
+                {detailedBooking?.emi_duration_months && (
                   <>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        EMI Plan
+                        EMI Duration
                       </p>
                       <p className="font-semibold text-foreground">
-                        {booking.emiPlan.months} months
+                        {detailedBooking.emi_duration_months} months
                       </p>
                     </div>
+                    {detailedBooking.emi_amount && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">
+                          EMI Amount
+                        </p>
+                        <p className="font-semibold text-foreground">
+                          ₹{parseFloat(detailedBooking.emi_amount).toLocaleString()}/month
+                        </p>
+                      </div>
+                    )}
+                    {detailedBooking.emi_start_date && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">
+                          EMI Start Date
+                        </p>
+                        <p className="font-semibold text-foreground">
+                          {format(new Date(detailedBooking.emi_start_date), "dd MMM yyyy")}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        Monthly Amount
+                        EMI Progress
                       </p>
                       <p className="font-semibold text-foreground">
-                        ₹{booking.emiPlan.monthlyAmount.toLocaleString()}
+                        {detailedBooking.emi_paid_count} / {detailedBooking.emi_total_count} payments
                       </p>
                     </div>
                   </>
                 )}
-                {booking.referredBy && (
+                {detailedBooking?.referred_by && (
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">
                       Referred By
                     </p>
                     <p className="font-semibold text-foreground">
-                      {booking.referredBy}
+                      {detailedBooking.referred_by}
                     </p>
+                  </div>
+                )}
+                {detailedBooking?.join_distributor_program && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Distributor Program
+                    </p>
+                    <Badge className="bg-primary/10 text-primary border-primary/30">
+                      Joined
+                    </Badge>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
+
+          {/* User Contact Information */}
+          {detailedBooking && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="w-5 h-5" />
+                  Contact Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email
+                    </p>
+                    <p className="font-semibold text-foreground">
+                      {detailedBooking.user_email}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Mobile
+                    </p>
+                    <p className="font-semibold text-foreground">
+                      {detailedBooking.user_mobile}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Delivery Information */}
+          {detailedBooking && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="w-5 h-5" />
+                  Delivery Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">City</p>
+                    <p className="font-semibold text-foreground">
+                      {detailedBooking.delivery_city}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">State</p>
+                    <p className="font-semibold text-foreground">
+                      {detailedBooking.delivery_state}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">PIN Code</p>
+                    <p className="font-semibold text-foreground">
+                      {detailedBooking.delivery_pin}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Payment & Amount Details Section */}
           <Card>
@@ -254,7 +506,9 @@ export function OrderDetailsDialog({
                     Total Amount
                   </p>
                   <p className="text-lg font-semibold text-foreground">
-                    ₹{booking.totalAmount.toLocaleString()}
+                    ₹{detailedBooking 
+                      ? parseFloat(detailedBooking.total_amount || '0').toLocaleString()
+                      : booking?.totalAmount?.toLocaleString() || '0'}
                   </p>
                 </div>
                 <div>
@@ -262,10 +516,9 @@ export function OrderDetailsDialog({
                     Amount Paid
                   </p>
                   <p className="text-lg font-semibold text-success">
-                    ₹
-                    {(
-                      booking.totalPaid || booking.preBookingAmount
-                    ).toLocaleString()}
+                    ₹{detailedBooking 
+                      ? parseFloat(detailedBooking.total_paid || '0').toLocaleString()
+                      : (booking?.totalPaid || booking?.preBookingAmount || 0).toLocaleString()}
                   </p>
                 </div>
                 <div>
@@ -273,23 +526,27 @@ export function OrderDetailsDialog({
                     Remaining Amount
                   </p>
                   <p className="text-lg font-semibold text-warning">
-                    ₹{booking.remainingAmount.toLocaleString()}
+                    ₹{detailedBooking 
+                      ? parseFloat(detailedBooking.remaining_amount || '0').toLocaleString()
+                      : booking?.remainingAmount?.toLocaleString() || '0'}
                   </p>
                 </div>
               </div>
               <Separator />
               <div>
                 <p className="text-sm text-muted-foreground mb-1">
-                  Pre-booking Amount
+                  Booking Amount
                 </p>
                 <p className="font-semibold text-foreground">
-                  ₹{booking.preBookingAmount.toLocaleString()}
+                  ₹{detailedBooking 
+                    ? parseFloat(detailedBooking.booking_amount || '0').toLocaleString()
+                    : booking?.preBookingAmount?.toLocaleString() || '0'}
                 </p>
               </div>
-              {booking.paymentDueDate && (
+              {(detailedBooking?.expires_at || booking?.paymentDueDate) && (
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">
-                    Payment Due Date
+                    Payment Due Date / Expires At
                   </p>
                   <div className="flex items-center gap-2">
                     <p
@@ -297,10 +554,11 @@ export function OrderDetailsDialog({
                         isOverdue ? "text-destructive" : "text-foreground"
                       }`}
                     >
-                      {format(
-                        new Date(booking.paymentDueDate),
-                        "dd MMM yyyy"
-                      )}
+                      {detailedBooking?.expires_at
+                        ? format(new Date(detailedBooking.expires_at), "dd MMM yyyy HH:mm")
+                        : booking?.paymentDueDate
+                          ? format(new Date(booking.paymentDueDate), "dd MMM yyyy")
+                          : 'N/A'}
                     </p>
                     {isOverdue && (
                       <Badge variant="destructive" className="ml-2">
@@ -311,11 +569,32 @@ export function OrderDetailsDialog({
                   </div>
                 </div>
               )}
+              {detailedBooking?.reservation_expires_at && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Reservation Expires At
+                  </p>
+                  <p className="font-semibold text-foreground">
+                    {format(new Date(detailedBooking.reservation_expires_at), "dd MMM yyyy HH:mm")}
+                  </p>
+                </div>
+              )}
+              {detailedBooking?.payment_gateway_ref && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Payment Gateway Reference
+                  </p>
+                  <p className="font-semibold text-foreground font-mono text-sm">
+                    {detailedBooking.payment_gateway_ref}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* Late Payment Consequences Section */}
-          {booking.paymentDueDate && booking.remainingAmount > 0 && (
+          {(detailedBooking?.expires_at || booking?.paymentDueDate) && 
+           ((detailedBooking ? parseFloat(detailedBooking.remaining_amount || '0') : booking?.remainingAmount || 0) > 0) && (
             <Card
               className={
                 isOverdue
@@ -421,10 +700,11 @@ export function OrderDetailsDialog({
                       </p>
                       <p className="text-sm text-foreground">
                         Your payment is due on{" "}
-                        {format(
-                          new Date(booking.paymentDueDate),
-                          "dd MMM yyyy"
-                        )}
+                        {detailedBooking?.expires_at
+                          ? format(new Date(detailedBooking.expires_at), "dd MMM yyyy")
+                          : booking?.paymentDueDate
+                            ? format(new Date(booking.paymentDueDate), "dd MMM yyyy")
+                            : 'N/A'}
                         . Please ensure payment is made before the due date to
                         avoid late fees.
                       </p>
@@ -480,7 +760,7 @@ export function OrderDetailsDialog({
           )}
 
           {/* Additional Information */}
-          {booking.redemptionPoints > 0 && (
+          {booking && 'redemptionPoints' in booking && booking.redemptionPoints > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -495,7 +775,7 @@ export function OrderDetailsDialog({
                 <p className="text-lg font-semibold text-foreground">
                   {booking.redemptionPoints} points
                 </p>
-                {booking.redemptionEligible && (
+                {'redemptionEligible' in booking && booking.redemptionEligible && (
                   <p className="text-xs text-success mt-1">
                     Eligible for redemption
                   </p>
