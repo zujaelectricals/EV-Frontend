@@ -6,6 +6,8 @@ import {
   Users,
   DollarSign,
   TrendingUp,
+  TrendingDown,
+  Wallet,
   Link as LinkIcon,
   Copy,
   ArrowRight,
@@ -57,6 +59,12 @@ export const DistributorDashboard = () => {
     toast.success('Referral link copied to clipboard!');
   };
 
+  // Calculate earnings breakdown - KPA cards
+  const totalGross = binaryStats?.totalEarnings || 0;
+  const totalTDS = binaryStats?.tdsDeducted || 0;
+  const totalPool = binaryStats?.poolMoney || 0;
+  const totalNet = totalGross - totalTDS - totalPool;
+
   // Check if user is a verified distributor - isDistributor from API is sufficient
   const isVerified = user?.isDistributor === true || user?.distributorInfo?.isVerified;
 
@@ -79,46 +87,12 @@ export const DistributorDashboard = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
+      {/* All KPA Cards Grid */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card relative overflow-hidden rounded-2xl p-8"
+        className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
       >
-        <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-primary" />
-              <span className="text-sm font-medium text-primary">Authorized Channel Partner Dashboard</span>
-            </div>
-            <h1 className="mt-2 font-display text-3xl font-bold text-foreground">
-              Welcome, {user?.name}! 🚀
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              Grow your network and maximize your earnings with our binary system.
-            </p>
-          </div>
-
-          {/* Referral Link Card */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="glass rounded-xl border border-primary/30 p-4"
-          >
-            <p className="mb-2 text-xs font-medium text-muted-foreground">Your Referral Link</p>
-            <div className="flex items-center gap-2">
-              <LinkIcon className="h-4 w-4 text-primary" />
-              <code className="flex-1 truncate text-sm text-foreground">{referralLink}</code>
-              <Button size="sm" variant="outline" onClick={copyReferralLink}>
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      </motion.div>
-
-      {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Referrals"
           value={(binaryStats?.totalReferrals || 0).toLocaleString()}
@@ -132,18 +106,24 @@ export const DistributorDashboard = () => {
           variant="info"
         />
         <StatsCard
-          title="Total Earnings"
-          value={`₹${(binaryStats?.totalEarnings || 0).toLocaleString()}`}
-          icon={DollarSign}
-          variant="success"
-        />
-        <StatsCard
           title="Reserve Wallet"
           value={`₹${(binaryStats?.poolMoney || user?.distributorInfo?.poolMoney || 0).toLocaleString()}`}
           icon={DollarSign}
           variant="warning"
         />
-      </div>
+        <StatsCard
+          title="Total Gross Earnings"
+          value={`₹${totalGross.toLocaleString()}`}
+          icon={DollarSign}
+          variant="primary"
+        />
+        <StatsCard
+          title="Total TDS Deducted"
+          value={`₹${totalTDS.toLocaleString()}`}
+          icon={TrendingDown}
+          variant="warning"
+        />
+      </motion.div>
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

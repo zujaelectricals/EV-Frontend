@@ -1,5 +1,5 @@
 import { api } from './baseApi';
-import { getAuthTokens } from './baseApi';
+import { getAuthTokens, refreshAccessToken } from './baseApi';
 import { getApiBaseUrl } from '../../lib/config';
 import type { User } from '../slices/authSlice';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
@@ -131,7 +131,7 @@ const transformUserProfile = (profile: UserProfileResponse): User => {
     isDistributor: profile.is_distributor,
     phone: profile.mobile,
     joinedAt: profile.date_joined,
-    kycStatus: profile.kyc_status || 'not_submitted',
+    kycStatus: profile.kyc_status === 'approved' ? 'verified' : (profile.kyc_status || 'not_submitted'),
     distributorInfo: shouldIncludeDistributorInfo ? {
       isDistributor: profile.is_distributor,
       isVerified: profile.kyc_status === 'approved' || profile.kyc_status === 'verified',
@@ -160,9 +160,9 @@ export const userApi = api.injectEndpoints({
         if (!accessToken) {
           return {
             error: {
-              status: 'UNAUTHORIZED' as const,
-              error: 'No access token found',
-            },
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
           };
         }
 
@@ -211,9 +211,9 @@ export const userApi = api.injectEndpoints({
         if (!accessToken) {
           return {
             error: {
-              status: 'UNAUTHORIZED' as const,
-              error: 'No access token found',
-            },
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
           };
         }
 
@@ -262,9 +262,9 @@ export const userApi = api.injectEndpoints({
           console.error('❌ [KYC API] No access token found in localStorage');
           return {
             error: {
-              status: 'UNAUTHORIZED' as const,
-              error: 'No access token found',
-            },
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
           };
         }
 
@@ -381,9 +381,9 @@ export const userApi = api.injectEndpoints({
         if (!accessToken) {
           return {
             error: {
-              status: 'UNAUTHORIZED' as const,
-              error: 'No access token found',
-            },
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
           };
         }
 
@@ -435,9 +435,9 @@ export const userApi = api.injectEndpoints({
           console.error('❌ [NOMINEE API] No access token found in localStorage');
           return {
             error: {
-              status: 'UNAUTHORIZED' as const,
-              error: 'No access token found',
-            },
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
           };
         }
 
@@ -576,9 +576,9 @@ export const userApi = api.injectEndpoints({
           console.error('❌ [NOMINEE GET API] No access token found');
           return {
             error: {
-              status: 'UNAUTHORIZED' as const,
-              error: 'No access token found',
-            },
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
           };
         }
 
@@ -642,6 +642,622 @@ export const userApi = api.injectEndpoints({
       },
       providesTags: ['User'],
     }),
+
+    // GET users/normal/ - Get list of normal users (for admin)
+    getNormalUsers: builder.query<{
+      count: number;
+      next: string | null;
+      previous: string | null;
+      results: UserProfileResponse[];
+    }, {
+      page?: number;
+      page_size?: number;
+      is_distributor?: boolean;
+      date_joined_from?: string;
+      date_joined_to?: string;
+      ordering?: string;
+      search?: string;
+    }>({
+      queryFn: async (params = {}) => {
+        const { accessToken } = getAuthTokens();
+        
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          // Build query string
+          const queryParams = new URLSearchParams();
+          if (params.page) queryParams.append('page', params.page.toString());
+          if (params.page_size) queryParams.append('page_size', params.page_size.toString());
+          if (params.is_distributor !== undefined) queryParams.append('is_distributor', params.is_distributor.toString());
+          if (params.date_joined_from) queryParams.append('date_joined_from', params.date_joined_from);
+          if (params.date_joined_to) queryParams.append('date_joined_to', params.date_joined_to);
+          if (params.ordering) queryParams.append('ordering', params.ordering);
+          if (params.search) queryParams.append('search', params.search);
+
+          const queryString = queryParams.toString();
+          const url = `${getApiBaseUrl()}users/normal/${queryString ? `?${queryString}` : ''}`;
+          
+          console.log('📤 [USER API - getNormalUsers] Request URL:', url);
+          console.log('📤 [USER API - getNormalUsers] Query Params:', params);
+
+          let response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - getNormalUsers] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - getNormalUsers] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to fetch users' }));
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data = await response.json();
+          console.log('📥 [USER API - getNormalUsers] Response:', data);
+          
+          return { data };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      // Serialize query args for proper caching - each combination of params gets its own cache entry
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        const { page = 1, page_size = 20, ordering = '-date_joined', is_distributor, search } = queryArgs || {};
+        return `${endpointName}(${JSON.stringify({ page, page_size, ordering, is_distributor, search })})`;
+      },
+      providesTags: ['User'],
+    }),
+
+    // GET users/{id}/ - Get single user by ID (for admin)
+    getUserById: builder.query<UserProfileResponse, number>({
+      queryFn: async (userId) => {
+        const { accessToken } = getAuthTokens();
+        
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          let response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - getUserById] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - getUserById] Retrying request with new token...');
+                response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to fetch user' }));
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data: UserProfileResponse = await response.json();
+          console.log('📥 [USER API - getUserById] Response:', data);
+          
+          return { data };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      providesTags: ['User'],
+    }),
+
+    // PUT users/{id}/ - Update user by ID (for admin)
+    updateUserById: builder.mutation<UserProfileResponse, { userId: number; data: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      mobile: string;
+      gender: string;
+      date_of_birth: string;
+      address_line1: string;
+      address_line2?: string;
+      city: string;
+      state: string;
+      pincode: string;
+      country?: string;
+    } }>({
+      queryFn: async ({ userId, data }) => {
+        const { accessToken } = getAuthTokens();
+        
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          const requestBody = JSON.stringify(data);
+          console.log('📤 [USER API - updateUserById] Request URL:', `${getApiBaseUrl()}users/${userId}/`);
+          console.log('📤 [USER API - updateUserById] Request Body:', requestBody);
+          console.log('📤 [USER API - updateUserById] Request Body (Parsed):', JSON.stringify(data, null, 2));
+
+          let response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: requestBody,
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - updateUserById] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - updateUserById] Retrying request with new token...');
+                response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+                  method: 'PUT',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: requestBody,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to update user' }));
+            console.error('❌ [USER API - updateUserById] Error Response:', error);
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const responseData: UserProfileResponse = await response.json();
+          console.log('✅ [USER API - updateUserById] Response Status:', response.status);
+          console.log('✅ [USER API - updateUserById] Response Data:', JSON.stringify(responseData, null, 2));
+          
+          return { data: responseData };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      invalidatesTags: ['User'],
+    }),
+
+    // DELETE users/{id}/ - Delete user by ID (for admin)
+    deleteUserById: builder.mutation<{ success: boolean; message: string }, number>({
+      queryFn: async (userId) => {
+        const { accessToken } = getAuthTokens();
+        
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          console.log('📤 [USER API - deleteUserById] Request URL:', `${getApiBaseUrl()}users/${userId}/`);
+          console.log('📤 [USER API - deleteUserById] User ID:', userId);
+
+          let response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - deleteUserById] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - deleteUserById] Retrying request with new token...');
+                response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to delete user' }));
+            console.error('❌ [USER API - deleteUserById] Error Response:', error);
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          // DELETE requests typically return 204 No Content or 200 with a message
+          let responseData: { success: boolean; message: string } = { success: true, message: 'User deleted successfully' };
+          if (response.status !== 204) {
+            try {
+              responseData = await response.json();
+            } catch {
+              // If no JSON response, use default
+            }
+          }
+
+          console.log('✅ [USER API - deleteUserById] Response Status:', response.status);
+          console.log('✅ [USER API - deleteUserById] Response Data:', JSON.stringify(responseData, null, 2));
+          
+          return { data: responseData };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      invalidatesTags: ['User'],
+    }),
+
+    // GET users/kyc/list_all/ - List all KYC documents with pagination and filtering (Admin only)
+    getKYCList: builder.query<{
+      count: number;
+      next: string | null;
+      previous: string | null;
+      results: Array<{
+        id: number;
+        reviewed_by: {
+          id: number;
+          fullname: string;
+          email: string;
+        } | null;
+        status: 'pending' | 'approved' | 'rejected';
+        pan_number: string;
+        aadhaar_number: string;
+        address_line1: string;
+        address_line2: string;
+        city: string;
+        state: string;
+        pincode: string;
+        country: string;
+        pan_document: string;
+        aadhaar_front: string;
+        aadhaar_back: string;
+        bank_name: string;
+        account_number: string;
+        ifsc_code: string;
+        account_holder_name: string;
+        bank_passbook: string;
+        submitted_at: string;
+        reviewed_at: string | null;
+        rejection_reason: string;
+        user: number;
+      }>;
+    }, {
+      page?: number;
+      page_size?: number;
+      status?: 'pending' | 'approved' | 'rejected';
+      submitted_date_from?: string;
+      submitted_date_to?: string;
+      reviewed_date_from?: string;
+      reviewed_date_to?: string;
+      user_id?: number;
+      user_role?: 'admin' | 'staff' | 'user';
+      ordering?: string;
+    }>({
+      queryFn: async (params) => {
+        const { accessToken } = getAuthTokens();
+        
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          // Build query string
+          const queryParams = new URLSearchParams();
+          if (params.page) queryParams.append('page', params.page.toString());
+          if (params.page_size) queryParams.append('page_size', params.page_size.toString());
+          if (params.status) queryParams.append('status', params.status);
+          if (params.submitted_date_from) queryParams.append('submitted_date_from', params.submitted_date_from);
+          if (params.submitted_date_to) queryParams.append('submitted_date_to', params.submitted_date_to);
+          if (params.reviewed_date_from) queryParams.append('reviewed_date_from', params.reviewed_date_from);
+          if (params.reviewed_date_to) queryParams.append('reviewed_date_to', params.reviewed_date_to);
+          if (params.user_id) queryParams.append('user_id', params.user_id.toString());
+          if (params.user_role) queryParams.append('user_role', params.user_role);
+          if (params.ordering) queryParams.append('ordering', params.ordering);
+
+          const queryString = queryParams.toString();
+          const url = `${getApiBaseUrl()}users/kyc/list_all/${queryString ? `?${queryString}` : ''}`;
+          
+          console.log('📤 [USER API - getKYCList] Request URL:', url);
+          console.log('📤 [USER API - getKYCList] Query Params:', params);
+
+          let response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - getKYCList] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - getKYCList] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                });
+              }
+            } else {
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to fetch KYC list' }));
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data = await response.json();
+          console.log('📥 [USER API - getKYCList] Response:', JSON.stringify(data, null, 2));
+          console.log('📥 [USER API - getKYCList] Response Count:', data.count);
+          console.log('📥 [USER API - getKYCList] Results Count:', data.results?.length || 0);
+          return { data };
+        } catch (error) {
+          console.error('❌ [USER API - getKYCList] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      providesTags: ['KYC'],
+    }),
+
+    // POST users/kyc/{id}/update-status/ - Update KYC status (Approve/Reject) (Admin only)
+    updateKYCStatus: builder.mutation<{ success: boolean; message: string }, { kycId: number; status: 'approved' | 'rejected'; reason?: string }>({
+      queryFn: async ({ kycId, status, reason }) => {
+        const { accessToken } = getAuthTokens();
+        
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          const requestBody: { status: string; reason?: string } = { status };
+          if (status === 'rejected' && reason) {
+            requestBody.reason = reason;
+          }
+
+          console.log('📤 [USER API - updateKYCStatus] Request URL:', `${getApiBaseUrl()}users/kyc/${kycId}/update-status/`);
+          console.log('📤 [USER API - updateKYCStatus] Request Body:', JSON.stringify(requestBody, null, 2));
+
+          let response = await fetch(`${getApiBaseUrl()}users/kyc/${kycId}/update-status/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - updateKYCStatus] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - updateKYCStatus] Retrying request with new token...');
+                response = await fetch(`${getApiBaseUrl()}users/kyc/${kycId}/update-status/`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(requestBody),
+                });
+              }
+            } else {
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: `Failed to ${status} KYC` }));
+            console.error('❌ [USER API - updateKYCStatus] Error Response:', error);
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data = await response.json();
+          console.log('✅ [USER API - updateKYCStatus] Response:', JSON.stringify(data, null, 2));
+          return { data };
+        } catch (error) {
+          console.error('❌ [USER API - updateKYCStatus] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      invalidatesTags: ['KYC', 'User'],
+    }),
   }),
 });
 
@@ -652,5 +1268,11 @@ export const {
   useUpdateProfileMutation,
   useSubmitNomineeMutation,
   useGetNomineeDetailsQuery,
+  useGetNormalUsersQuery,
+  useGetUserByIdQuery,
+  useUpdateUserByIdMutation,
+  useDeleteUserByIdMutation,
+  useGetKYCListQuery,
+  useUpdateKYCStatusMutation,
 } = userApi;
 

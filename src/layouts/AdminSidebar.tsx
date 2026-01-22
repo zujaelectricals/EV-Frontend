@@ -30,7 +30,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { useGetPendingKYCQuery } from "@/app/api/kycApi";
 
 interface SubMenuItem {
   label: string;
@@ -220,22 +219,16 @@ const adminMenuSections: MenuSection[] = [
     label: "User Management",
     icon: Users,
     value: "users",
-    badge: 8, // Mock pending KYC count
-    badgeVariant: "destructive",
     children: [
-      { label: "Active Users", path: "/admin/users/active" },
-      { label: "Paid Users", path: "/admin/users/paid" },
-      { label: "Blocked Users", path: "/admin/users/blocked" },
-      { label: "Email Unverified", path: "/admin/users/email-unverified" },
-      { label: "Mobile Unverified", path: "/admin/users/mobile-unverified" },
+      { label: "Users", path: "/admin/users/active" },
+      // { label: "Paid Users", path: "/admin/users/paid" },
+      // { label: "Blocked Users", path: "/admin/users/blocked" },
+      // { label: "Email Unverified", path: "/admin/users/email-unverified" },
+      // { label: "Mobile Unverified", path: "/admin/users/mobile-unverified" },
       {
-        label: "KYC Pending",
-        path: "/admin/users/kyc-pending",
-        badge: 8,
-        badgeVariant: "destructive",
+        label: "KYC Records",
+        path: "/admin/users/kyc-records",
       },
-      { label: "KYC Verified", path: "/admin/users/kyc-verified" },
-      { label: "KYC Rejected", path: "/admin/users/kyc-rejected" },
       { label: "Send Notification", path: "/admin/users/notify" },
     ],
   },
@@ -309,31 +302,8 @@ export const AdminSidebar = () => {
   const { user } = useAppSelector((state) => state.auth);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Fetch pending KYC count
-  const { data: pendingKYCUsers = [] } = useGetPendingKYCQuery();
-  const pendingKYCCount = pendingKYCUsers.length;
-
-  // Create dynamic menu sections with actual KYC pending count
-  const dynamicMenuSections = useMemo(() => {
-    return adminMenuSections.map((section) => {
-      if (section.value === "users") {
-        return {
-          ...section,
-          badge: pendingKYCCount > 0 ? pendingKYCCount : undefined,
-          children: section.children.map((child) => {
-            if (child.path === "/admin/users/kyc-pending") {
-              return {
-                ...child,
-                badge: pendingKYCCount > 0 ? pendingKYCCount : undefined,
-              };
-            }
-            return child;
-          }),
-        };
-      }
-      return section;
-    });
-  }, [pendingKYCCount]);
+  // Use static menu sections without KYC pending count
+  const dynamicMenuSections = adminMenuSections;
 
   // Auto-expand sections based on current route
   const getActiveSection = useCallback(() => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   User,
@@ -51,6 +51,7 @@ import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { setCredentials } from "@/app/slices/authSlice";
 import { useGetBookingsQuery } from "@/app/api/bookingApi";
 import { toast } from "sonner";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export function ProfilePage() {
   const dispatch = useAppDispatch();
@@ -61,12 +62,19 @@ export function ProfilePage() {
     searchParams.get("tab") || "orders"
   );
   
-  // Fetch user profile using the new API
-  const { data: profileData, refetch: refetchProfile, isLoading: isLoadingProfile } = useGetUserProfileQuery();
+  // Redirect admin users - they should not access this page
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
   
-  // Fetch raw profile data for editing (only when settings tab is active)
+  // Fetch user profile using the new API - skip for admin (safety check)
+  const { data: profileData, refetch: refetchProfile, isLoading: isLoadingProfile } = useGetUserProfileQuery(undefined, {
+    skip: user?.role === 'admin',
+  });
+  
+  // Fetch raw profile data for editing (only when settings tab is active) - skip for admin
   const { data: rawProfileData, refetch: refetchRawProfile } = useGetUserProfileRawQuery(undefined, {
-    skip: activeTab !== "settings",
+    skip: activeTab !== "settings" || user?.role === 'admin',
   });
   
   // Update profile mutation
@@ -75,13 +83,14 @@ export function ProfilePage() {
   // Submit nominee mutation
   const [submitNominee, { isLoading: isSubmittingNominee }] = useSubmitNomineeMutation();
   
-  // Fetch nominee details (only when nominee tab is active)
+  // Fetch nominee details (only when nominee tab is active) - skip for admin
   const { data: nomineeData, isLoading: isLoadingNominee, error: nomineeError, refetch: refetchNominee } = useGetNomineeDetailsQuery(undefined, {
-    skip: activeTab !== "nominee",
+    skip: activeTab !== "nominee" || user?.role === 'admin',
   });
   
-  // Fetch bookings count from API to display accurate count
+  // Fetch bookings count from API to display accurate count - skip for admin
   const { data: bookingsData } = useGetBookingsQuery(undefined, {
+    skip: user?.role === 'admin',
     refetchOnMountOrArgChange: false,
     refetchOnFocus: false,
   });
@@ -534,8 +543,7 @@ export function ProfilePage() {
                 <Card>
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex items-center justify-center py-8">
-                      <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-                      <span className="ml-2 text-muted-foreground">Loading nominee details...</span>
+                      <LoadingSpinner text="Loading nominee details..." size="md" />
                     </div>
                   </CardContent>
                 </Card>

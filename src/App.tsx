@@ -46,6 +46,7 @@ import { RoleProtectedRoute } from './components/routes/RoleProtectedRoute';
 import { useAppSelector, useAppDispatch } from './app/hooks';
 import { isUserAuthenticated, setCredentials } from './app/slices/authSlice';
 import { useGetUserProfileQuery } from './app/api/userApi';
+import { getAuthTokens, getLogoutLogs } from './app/api/baseApi';
 import NotFound from './pages/NotFound';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -62,11 +63,72 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <MainLayout>{children}</MainLayout>;
 };
 
-// Component to clean up old localStorage keys
+// Component to clean up old localStorage keys and manage automatic token refresh
 const AuthInitializer = () => {
-  // Clean up old localStorage keys on mount
+  // Clean up old localStorage keys on mount and set up multi-tab synchronization
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // MULTI-TAB SYNC: Listen for token updates from other tabs
+      const handleStorageChange = (e: StorageEvent | CustomEvent) => {
+        if (e instanceof StorageEvent) {
+          // StorageEvent from other tabs
+          if (e.key === 'ev_nexus_auth_data' && e.newValue) {
+            try {
+              const newData = JSON.parse(e.newValue);
+              console.log('📡 [MULTI-TAB SYNC] Token update received from another tab', {
+                hasAccessToken: !!newData.accessToken,
+                hasRefreshToken: !!newData.refreshToken,
+                newRefreshTokenPrefix: newData.refreshToken?.substring(0, 20) + '...',
+              });
+              // Tokens are already updated in localStorage by the other tab
+              // Clear any refresh locks since tokens were updated
+              // Import the release function - we'll need to export it
+              // For now, just clear the localStorage lock key
+              try {
+                const lockData = localStorage.getItem('ev_nexus_refresh_lock');
+                if (lockData) {
+                  const lock = JSON.parse(lockData);
+                  const currentTabId = sessionStorage.getItem('ev_nexus_tab_id');
+                  // Only clear if it's not our lock (we don't want to clear our own active refresh)
+                  if (lock.tabId !== currentTabId) {
+                    localStorage.removeItem('ev_nexus_refresh_lock');
+                    console.log('🔓 [MULTI-TAB SYNC] Cleared refresh lock from another tab');
+                  }
+                }
+              } catch (lockError) {
+                // Ignore lock errors
+              }
+            } catch (error) {
+              console.error('❌ [MULTI-TAB SYNC] Error parsing token update:', error);
+            }
+          }
+        } else if (e instanceof CustomEvent && e.type === 'authTokensUpdated') {
+          // CustomEvent from same tab (for consistency)
+          console.log('📡 [MULTI-TAB SYNC] Token update received (same tab)', {
+            hasAccessToken: !!e.detail?.accessToken,
+            hasRefreshToken: !!e.detail?.refreshToken,
+          });
+        }
+      };
+      
+      // Listen for storage events from other tabs
+      window.addEventListener('storage', handleStorageChange as EventListener);
+      // Listen for custom events from same tab
+      window.addEventListener('authTokensUpdated', handleStorageChange as EventListener);
+      
+      // Check for logout logs from previous session
+      const logoutLogs = getLogoutLogs();
+      if (logoutLogs.length > 0) {
+        const lastLogout = logoutLogs[logoutLogs.length - 1];
+        console.group('🔴 [LOGOUT DETECTED] Previous logout event detected');
+        console.log('Last logout reason:', lastLogout.reason);
+        console.log('Last logout details:', lastLogout.details);
+        console.log('Last logout timestamp:', lastLogout.timestamp);
+        console.log('All logout logs:', logoutLogs);
+        console.log('To view logs programmatically, use: getLogoutLogs()');
+        console.groupEnd();
+      }
+      
       // Remove ev_nexus_multiple_accounts if it exists
       localStorage.removeItem('ev_nexus_multiple_accounts');
       
@@ -131,16 +193,12 @@ const AppRoutes = () => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   
-  // Fetch user profile if authenticated but:
-  // 1. User is null (not loaded yet)
-  // 2. User data is incomplete (missing isDistributor or distributorInfo)
-  const shouldFetchProfile = isAuthenticated && (
-    !user || 
-    user.isDistributor === undefined || 
-    (user.isDistributor === true && !user.distributorInfo)
-  );
+  // Always fetch user profile on mount if authenticated to ensure we have the latest data
+  // This is especially important for distributor status which affects sidebar visibility
+  // Skip for admin users - they don't need user-based APIs
   const { data: profileData } = useGetUserProfileQuery(undefined, {
-    skip: !shouldFetchProfile,
+    skip: !isAuthenticated || user?.role === 'admin',
+    refetchOnMountOrArgChange: true, // Always refetch on mount to get latest data
   });
 
   // Update Redux state when user profile is fetched
@@ -167,7 +225,7 @@ const AppRoutes = () => {
       
       {/* Protected Routes - User/Distributor */}
       <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="/profile" element={<RoleProtectedRoute allowedRoles={['user', 'staff']}><ProfilePage /></RoleProtectedRoute>} />
       <Route path="/become-distributor" element={<ProtectedRoute><DistributorApplication /></ProtectedRoute>} />
       <Route path="/redemption" element={<ProtectedRoute><RedemptionShop /></ProtectedRoute>} />
       <Route path="/distributor" element={<ProtectedRoute><DistributorDashboard /></ProtectedRoute>} />

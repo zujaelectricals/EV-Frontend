@@ -65,8 +65,6 @@ import { BlockedUsers } from './pages/BlockedUsers';
 import { EmailUnverified } from './pages/EmailUnverified';
 import { MobileUnverified } from './pages/MobileUnverified';
 import { KYCPending } from './pages/KYCPending';
-import { KYCVerified } from './pages/KYCVerified';
-import { KYCRejected } from './pages/KYCRejected';
 import { SendNotification } from './pages/SendNotification';
 import { PendingTickets } from './pages/PendingTickets';
 import { AnsweredTickets } from './pages/AnsweredTickets';
@@ -186,9 +184,7 @@ export const AdminRoutes = () => {
       <Route path="users/blocked" element={<BlockedUsers />} />
       <Route path="users/email-unverified" element={<EmailUnverified />} />
       <Route path="users/mobile-unverified" element={<MobileUnverified />} />
-      <Route path="users/kyc-pending" element={<KYCPending />} />
-      <Route path="users/kyc-verified" element={<KYCVerified />} />
-      <Route path="users/kyc-rejected" element={<KYCRejected />} />
+      <Route path="users/kyc-records" element={<KYCPending />} />
       <Route path="users/notify" element={<SendNotification />} />
       <Route path="users/distributor-applications" element={<DistributorApplications />} />
 

@@ -6,13 +6,12 @@ import {
   Info,
   AlertCircle,
   RefreshCw,
-  Search,
-  Filter,
-  ArrowUpDown,
   Activity,
   User,
   Network,
   Link2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Card,
@@ -24,6 +23,7 @@ import {
 import { useAppSelector } from "@/app/hooks";
 import {
   useGetBinaryTreeQuery,
+  useGetTreeStructureQuery,
   useGetBinaryStatsQuery,
   useGetPendingNodesQuery,
   usePositionPendingNodeMutation,
@@ -31,6 +31,9 @@ import {
   useCheckPairsMutation,
   type BinaryNode,
   type PendingNode,
+  type TreeNodeResponse,
+  type PaginatedSideMembers,
+  type SideMemberNode,
 } from "@/app/api/binaryApi";
 import { StatsCard } from "@/shared/components/StatsCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -62,6 +65,7 @@ import {
 import { toast } from "sonner";
 import { BinaryTreeNode } from "@/binary/components/BinaryTreeNode";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface TeamMember {
   id: string;
@@ -75,6 +79,7 @@ interface TeamMember {
   isActive: boolean;
   parentId?: string;
   parentName?: string;
+  referralCode?: string;
 }
 
 // Helper function to extract team members from binary tree
@@ -161,11 +166,176 @@ function countDescendants(node: BinaryNode | null): number {
   return count;
 }
 
+// Helper function to create a lookup map for parent names
+function createParentNameMap(treeStructure: TreeNodeResponse | undefined): Map<number, string> {
+  const parentMap = new Map<number, string>();
+  
+  if (!treeStructure) return parentMap;
+  
+  // Add root node
+  parentMap.set(treeStructure.node_id, treeStructure.user_full_name || treeStructure.user_username || 'Root');
+  
+  // Recursively add all nodes to the map
+  function addNodeToMap(node: TreeNodeResponse | null) {
+    if (!node) return;
+    
+    parentMap.set(node.node_id, node.user_full_name || node.user_username || node.user_email || 'Unknown');
+    
+    if (node.left_child) addNodeToMap(node.left_child);
+    if (node.right_child) addNodeToMap(node.right_child);
+  }
+  
+  if (treeStructure.left_child) addNodeToMap(treeStructure.left_child);
+  if (treeStructure.right_child) addNodeToMap(treeStructure.right_child);
+  
+  return parentMap;
+}
+
+// Helper function to extract team members from side_members arrays and direct children
+// Respects the API filtering - only extracts from what the API returns
+function extractTeamMembersFromSideMembers(
+  treeStructure: TreeNodeResponse | undefined
+): TeamMember[] {
+  if (!treeStructure) {
+    return [];
+  }
+
+  const members: TeamMember[] = [];
+  const parentNameMap = createParentNameMap(treeStructure);
+  const processedNodeIds = new Set<number>(); // Track processed nodes to avoid duplicates
+
+  // Helper function to convert TreeNodeResponse to TeamMember
+  const nodeToMember = (node: TreeNodeResponse, position: 'left' | 'right', parentId?: number): TeamMember => {
+    const parentName = parentId ? parentNameMap.get(parentId) : undefined;
+    return {
+      id: `node-${node.node_id || node.id || node.user_id}`,
+      name: node.user_full_name || node.user_username || node.user_email || 'Unknown',
+      userId: node.user_id?.toString(),
+      joinedAt: node.date_joined || node.created_at || new Date().toISOString(),
+      position: position,
+      pv: parseFloat(node.total_earnings || node.total_amount || '0'),
+      level: node.level || 0,
+      referrals: (node.left_count || 0) + (node.right_count || 0),
+      isActive: node.is_active_buyer !== false,
+      parentId: parentId ? `node-${parentId}` : undefined,
+      parentName: parentName || undefined,
+      referralCode: node.referral_code || undefined,
+    };
+  };
+
+  // Helper function to recursively extract from child nodes (only if side_members not available)
+  const extractFromChild = (child: TreeNodeResponse | null, position: 'left' | 'right', rootNodeId: number) => {
+    if (!child) return;
+    
+    const nodeId = child.node_id || child.id || child.user_id;
+    if (processedNodeIds.has(nodeId)) return; // Avoid duplicates
+    processedNodeIds.add(nodeId);
+    
+    members.push(nodeToMember(child, position, rootNodeId));
+    
+    // Recursively process children
+    if (child.left_child) {
+      extractFromChild(child.left_child, 'left', nodeId);
+    }
+    if (child.right_child) {
+      extractFromChild(child.right_child, 'right', nodeId);
+    }
+  };
+
+  // Helper function to extract members from either array or paginated format
+  const extractMembers = (sideMembers: SideMemberNode[] | PaginatedSideMembers | null | undefined, position: 'left' | 'right') => {
+    if (!sideMembers) return;
+
+    let memberArray: SideMemberNode[] = [];
+    
+    // Check if it's a paginated response
+    if (typeof sideMembers === 'object' && 'results' in sideMembers) {
+      memberArray = sideMembers.results;
+    } 
+    // Check if it's an array
+    else if (Array.isArray(sideMembers)) {
+      memberArray = sideMembers;
+    }
+
+    memberArray.forEach((member: SideMemberNode) => {
+      if (member) {
+        const nodeId = member.node_id || member.user_id;
+        // Skip if already processed
+        if (processedNodeIds.has(nodeId)) return;
+        processedNodeIds.add(nodeId);
+        
+        const parentId = member.parent;
+        const parentName = parentId ? parentNameMap.get(parentId) : undefined;
+        
+        members.push({
+          id: `node-${nodeId}`,
+          name: member.user_full_name || member.user_username || member.user_email || 'Unknown',
+          userId: member.user_id?.toString(),
+          joinedAt: member.date_joined || member.created_at || new Date().toISOString(),
+          position: position,
+          pv: parseFloat(member.total_earnings || '0'),
+          level: member.level || 0,
+          referrals: 0, // Not available in side member structure
+          isActive: member.is_active_buyer !== false,
+          parentId: parentId ? `node-${parentId}` : undefined,
+          parentName: parentName || undefined,
+          referralCode: member.referral_code || undefined,
+        });
+      }
+    });
+  };
+
+  const rootNodeId = treeStructure.node_id || treeStructure.id || treeStructure.user_id;
+
+  // Always extract direct children (left_child and right_child) first
+  // These are the immediate children of the root node
+  if (treeStructure.left_child) {
+    extractFromChild(treeStructure.left_child, 'left', rootNodeId);
+  }
+  if (treeStructure.right_child) {
+    extractFromChild(treeStructure.right_child, 'right', rootNodeId);
+  }
+
+  // Then extract from side_members (these contain all members on each side, already filtered by the API)
+  // The API will return null for the filtered-out side when side='left' or side='right'
+  // The processedNodeIds Set will prevent duplicates if a node appears in both children and side_members
+  extractMembers(treeStructure.left_side_members, 'left');
+  extractMembers(treeStructure.right_side_members, 'right');
+
+  return members;
+}
+
 export const BinaryTreeView = () => {
   const { user } = useAppSelector((state) => state.auth);
   const distributorId = user?.id || "";
+
+  // Pagination and filtering state - must be declared before use
+  const [sideFilter, setSideFilter] = useState<'left' | 'right' | 'both'>('both');
+  const [leftPage, setLeftPage] = useState(1);
+  const [rightPage, setRightPage] = useState(1);
+  const [bothPage, setBothPage] = useState(1); // For when side='both'
+  const [pageSize, setPageSize] = useState(20);
+  const [minDepth, setMinDepth] = useState<number | undefined>(undefined);
+  const [maxDepth, setMaxDepth] = useState<number | undefined>(5);
+
   const { data: binaryTree, isLoading: treeLoading, refetch: refetchTree } = useGetBinaryTreeQuery(
     distributorId,
+    { skip: !distributorId }
+  );
+  
+  // Determine which page to use based on side filter
+  // When side='both', use bothPage; otherwise use the specific side's page
+  const currentPage = sideFilter === 'left' ? leftPage : sideFilter === 'right' ? rightPage : bothPage;
+  
+  const { data: treeStructure, isLoading: structureLoading, refetch: refetchStructure } = useGetTreeStructureQuery(
+    {
+      distributorId,
+      side: sideFilter,
+      page: currentPage,
+      page_size: pageSize,
+      min_depth: minDepth,
+      max_depth: maxDepth,
+    },
     { skip: !distributorId }
   );
   const {
@@ -179,15 +349,6 @@ export const BinaryTreeView = () => {
   const [autoPlacePending, { isLoading: isAutoPlacing }] = useAutoPlacePendingMutation();
   const [checkPairs, { isLoading: isCheckingPairs }] = useCheckPairsMutation();
 
-  // Table state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterPosition, setFilterPosition] = useState<
-    "all" | "left" | "right"
-  >("all");
-  const [sortBy, setSortBy] = useState<
-    "name" | "joinedAt" | "pv" | "referrals" | "level"
-  >("level");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   // Pending node positioning state
   const [selectedPendingNode, setSelectedPendingNode] =
@@ -199,67 +360,54 @@ export const BinaryTreeView = () => {
   // Referral tree dialog state
   const [referralTreeDialogOpen, setReferralTreeDialogOpen] = useState(false);
 
-  // Extract team members from binary tree
-  const teamMembers = useMemo(() => {
-    if (!binaryTree) {
-      console.log('BinaryTreeView: No binary tree data');
-      return [];
+  // Helper to get pagination info from side members
+  const getPaginationInfo = (sideMembers: SideMemberNode[] | PaginatedSideMembers | null | undefined) => {
+    if (!sideMembers) return null;
+    if (typeof sideMembers === 'object' && 'results' in sideMembers) {
+      return {
+        count: sideMembers.count,
+        page: sideMembers.page,
+        page_size: sideMembers.page_size,
+        total_pages: sideMembers.total_pages,
+        next: sideMembers.next,
+        previous: sideMembers.previous,
+      };
     }
-    console.log('BinaryTreeView: Binary tree data:', binaryTree);
-    console.log('BinaryTreeView: Left child:', binaryTree.children.left);
-    console.log('BinaryTreeView: Right child:', binaryTree.children.right);
-    const members = extractTeamMembers(binaryTree);
-    console.log('BinaryTreeView: Extracted team members:', members);
-    return members;
-  }, [binaryTree]);
-
-  // Filter and sort team members
-  const filteredMembers = useMemo(() => {
-    const filtered = teamMembers.filter((member) => {
-      const matchesSearch =
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.parentName?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesPosition =
-        filterPosition === "all" || member.position === filterPosition;
-      return matchesSearch && matchesPosition;
-    });
-
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      switch (sortBy) {
-        case "name":
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case "joinedAt":
-          comparison =
-            new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
-          break;
-        case "pv":
-          comparison = a.pv - b.pv;
-          break;
-        case "referrals":
-          comparison = a.referrals - b.referrals;
-          break;
-        case "level":
-          comparison = a.level - b.level;
-          break;
-      }
-      return sortOrder === "asc" ? comparison : -comparison;
-    });
-
-    return filtered;
-  }, [teamMembers, searchQuery, filterPosition, sortBy, sortOrder]);
-
-  const handleSort = (
-    field: "name" | "joinedAt" | "pv" | "referrals" | "level"
-  ) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortOrder("asc");
-    }
+    return null;
   };
+
+  const leftPagination = useMemo(() => getPaginationInfo(treeStructure?.left_side_members), [treeStructure]);
+  const rightPagination = useMemo(() => getPaginationInfo(treeStructure?.right_side_members), [treeStructure]);
+
+  // Extract team members from side_members arrays (preferred) or fallback to tree structure
+  const teamMembers = useMemo(() => {
+    // First try to use side_members from the full API response
+    if (treeStructure) {
+      console.log('BinaryTreeView: Using tree structure with side_members');
+      console.log('BinaryTreeView: Left side members:', treeStructure.left_side_members);
+      console.log('BinaryTreeView: Right side members:', treeStructure.right_side_members);
+      const members = extractTeamMembersFromSideMembers(treeStructure);
+      console.log('BinaryTreeView: Extracted team members from side_members:', members);
+      if (members.length > 0) {
+        return members;
+      }
+    }
+    
+    // Fallback to tree structure traversal if side_members are not available
+    if (binaryTree) {
+      console.log('BinaryTreeView: Falling back to binary tree traversal');
+      console.log('BinaryTreeView: Binary tree data:', binaryTree);
+      const members = extractTeamMembers(binaryTree);
+      console.log('BinaryTreeView: Extracted team members from tree:', members);
+      return members;
+    }
+    
+    console.log('BinaryTreeView: No data available');
+    return [];
+  }, [treeStructure, binaryTree]);
+
+  // Use team members directly from server (no client-side filtering)
+  const displayMembers = teamMembers;
 
   const handlePositionPendingNode = async () => {
     if (!selectedPendingNode || !distributorId || !selectedParentId) {
@@ -314,6 +462,7 @@ export const BinaryTreeView = () => {
         setSelectedSide("left");
         // Refetch tree structure after positioning
         await refetchTree();
+        await refetchStructure();
       } else {
         toast.error(result.message || "Failed to position node");
       }
@@ -363,6 +512,7 @@ export const BinaryTreeView = () => {
       setSelectedSide("left");
       // Refetch tree structure after auto placing
       await refetchTree();
+      await refetchStructure();
     } catch (error: unknown) {
       console.error('Auto place pending error:', error);
       let errorMessage = "Failed to auto-position pending users. Please try again.";
@@ -393,6 +543,7 @@ export const BinaryTreeView = () => {
       toast.success('Pairs matched successfully!');
       // Refetch tree structure after matching pairs
       await refetchTree();
+      await refetchStructure();
       // Also refetch stats
       await refetchStats();
     } catch (error: unknown) {
@@ -434,10 +585,10 @@ export const BinaryTreeView = () => {
     return parents;
   }, [binaryTree, teamMembers]);
 
-  if (treeLoading || statsLoading || pendingLoading) {
+  if (treeLoading || structureLoading || statsLoading || pendingLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading team network...</div>
+        <LoadingSpinner text="Loading team network..." size="md" />
       </div>
     );
   }
@@ -649,8 +800,8 @@ export const BinaryTreeView = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="left">RSA (Revenue Stream A)</SelectItem>
-                  <SelectItem value="right">RSB (Revenue Stream B)</SelectItem>
+                  <SelectItem value="left">RSA</SelectItem>
+                  <SelectItem value="right">RSB</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -708,171 +859,256 @@ export const BinaryTreeView = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Filters and Search */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or parent..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+          {/* Server-side Filters - All in one line */}
+          <div className="flex flex-wrap items-center gap-4 mb-6">
             <Select
-              value={filterPosition}
-              onValueChange={(value: "all" | "left" | "right") =>
-                setFilterPosition(value)
-              }
+              value={sideFilter}
+              onValueChange={(value: 'left' | 'right' | 'both') => {
+                setSideFilter(value);
+                setLeftPage(1);
+                setRightPage(1);
+                setBothPage(1);
+              }}
             >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filter by position" />
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Positions</SelectItem>
-                <SelectItem value="left">Revenue Stream A</SelectItem>
-                <SelectItem value="right">Revenue Stream B</SelectItem>
+                <SelectItem value="both">Both Sides</SelectItem>
+                <SelectItem value="left">Left (RSA)</SelectItem>
+                <SelectItem value="right">Right (RSB)</SelectItem>
               </SelectContent>
             </Select>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setLeftPage(1);
+                setRightPage(1);
+                setBothPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium whitespace-nowrap">Min Depth:</label>
+              <Input
+                type="number"
+                min="0"
+                value={minDepth ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  setMinDepth(value === '' ? undefined : Number(value));
+                }}
+                placeholder="0"
+                className="w-[80px]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium whitespace-nowrap">Max Depth:</label>
+              <Input
+                type="number"
+                min="1"
+                value={maxDepth ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  setMaxDepth(value === '' ? undefined : Number(value));
+                }}
+                placeholder="5"
+                className="w-[80px]"
+              />
+            </div>
           </div>
 
           {/* Team Members Table */}
-          {filteredMembers.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 -ml-3"
-                        onClick={() => handleSort("name")}
-                      >
-                        Name
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 -ml-3"
-                        onClick={() => handleSort("level")}
-                      >
-                        Level
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>Parent</TableHead>
-                    <TableHead>Position</TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 -ml-3"
-                        onClick={() => handleSort("pv")}
-                      >
-                        PV (Point Value)
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 -ml-3"
-                        onClick={() => handleSort("referrals")}
-                      >
-                        Referrals
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 -ml-3"
-                        onClick={() => handleSort("joinedAt")}
-                      >
-                        Joined Date
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMembers.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          {member.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Level {member.level}</Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {member.parentName || "Root"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            member.position === "left" ? "default" : "secondary"
-                          }
-                        >
-                          {member.position === "left"
-                            ? "Revenue Stream A"
-                            : "Revenue Stream B"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        ₹{member.pv.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          {member.referrals}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(member.joinedAt).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={member.isActive ? "default" : "outline"}
-                        >
-                          {member.isActive ? (
-                            <>
-                              <Activity className="mr-1 h-3 w-3" />
-                              Active
-                            </>
-                          ) : (
-                            "Inactive"
-                          )}
-                        </Badge>
-                      </TableCell>
+          {displayMembers.length > 0 ? (
+            <>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Level</TableHead>
+                      <TableHead>Direct Parent</TableHead>
+                      <TableHead>Referral Code</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Joined Date</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {displayMembers.map((member) => (
+                      <TableRow key={member.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            {member.name}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">Level {member.level}</Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            {member.parentName || "Root"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {member.referralCode ? (
+                            <code className="text-sm bg-secondary px-2 py-1 rounded font-mono">
+                              {member.referralCode}
+                            </code>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              member.position === "left" ? "default" : "secondary"
+                            }
+                          >
+                            {member.position === "left" ? "RSA" : "RSB"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(member.joinedAt).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={member.isActive ? "default" : "outline"}
+                          >
+                            {member.isActive ? (
+                              <>
+                                <Activity className="mr-1 h-3 w-3" />
+                                Active
+                              </>
+                            ) : (
+                              "Inactive"
+                            )}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination Controls - Single unified control */}
+            {(leftPagination || rightPagination) && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    {sideFilter === 'both' && leftPagination && rightPagination && (
+                      <>
+                        Showing {((bothPage - 1) * pageSize) + 1} to {Math.min(bothPage * pageSize, leftPagination.count + rightPagination.count)} of{' '}
+                        {leftPagination.count + rightPagination.count} total members
+                        {' '}(Left: {leftPagination.count}, Right: {rightPagination.count})
+                      </>
+                    )}
+                    {sideFilter === 'left' && leftPagination && (
+                      <>
+                        Showing {((leftPagination.page - 1) * leftPagination.page_size) + 1} to{' '}
+                        {Math.min(leftPagination.page * leftPagination.page_size, leftPagination.count)} of{' '}
+                        {leftPagination.count} members
+                      </>
+                    )}
+                    {sideFilter === 'right' && rightPagination && (
+                      <>
+                        Showing {((rightPagination.page - 1) * rightPagination.page_size) + 1} to{' '}
+                        {Math.min(rightPagination.page * rightPagination.page_size, rightPagination.count)} of{' '}
+                        {rightPagination.count} members
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (sideFilter === 'both') {
+                          setBothPage(prev => Math.max(1, prev - 1));
+                        } else if (sideFilter === 'left') {
+                          setLeftPage(prev => Math.max(1, prev - 1));
+                        } else {
+                          setRightPage(prev => Math.max(1, prev - 1));
+                        }
+                      }}
+                      disabled={
+                        (sideFilter === 'both' && (!leftPagination?.previous || bothPage === 1)) ||
+                        (sideFilter === 'left' && (!leftPagination?.previous || leftPagination.page === 1)) ||
+                        (sideFilter === 'right' && (!rightPagination?.previous || rightPagination.page === 1))
+                      }
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <span className="text-sm">
+                      {sideFilter === 'both' && leftPagination && (
+                        <>Page {bothPage} of {leftPagination.total_pages}</>
+                      )}
+                      {sideFilter === 'left' && leftPagination && (
+                        <>Page {leftPagination.page} of {leftPagination.total_pages}</>
+                      )}
+                      {sideFilter === 'right' && rightPagination && (
+                        <>Page {rightPagination.page} of {rightPagination.total_pages}</>
+                      )}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (sideFilter === 'both') {
+                          setBothPage(prev => Math.min(leftPagination?.total_pages || 1, prev + 1));
+                        } else if (sideFilter === 'left') {
+                          setLeftPage(prev => Math.min(leftPagination?.total_pages || 1, prev + 1));
+                        } else {
+                          setRightPage(prev => Math.min(rightPagination?.total_pages || 1, prev + 1));
+                        }
+                      }}
+                      disabled={
+                        (sideFilter === 'both' && (!leftPagination?.next || bothPage === (leftPagination?.total_pages || 1))) ||
+                        (sideFilter === 'left' && (!leftPagination?.next || leftPagination.page === leftPagination.total_pages)) ||
+                        (sideFilter === 'right' && (!rightPagination?.next || rightPagination.page === rightPagination.total_pages))
+                      }
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+              {/* Show pagination info when no pagination is available (backward compatibility) */}
+              {!leftPagination && !rightPagination && treeStructure && (
+                <div className="mt-4 pt-4 border-t">
+                  <div className="text-sm text-muted-foreground text-center">
+                    Showing all {displayMembers.length} members (pagination not enabled)
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No team members found</p>
-              {searchQuery && (
-                <p className="text-sm mt-2">
-                  Try adjusting your search or filters
-                </p>
-              )}
+              <p className="text-sm mt-2">
+                Try adjusting your filters
+              </p>
             </div>
           )}
         </CardContent>

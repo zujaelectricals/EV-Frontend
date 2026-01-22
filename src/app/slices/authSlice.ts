@@ -237,38 +237,55 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (state, action: PayloadAction<{ user: User; token?: string; accessToken?: string; refreshToken?: string }>) => {
       state.user = action.payload.user;
+      
+      // CRITICAL: Always read the LATEST tokens from localStorage first
+      // This prevents overwriting refreshed tokens with stale Redux state
+      const latestAuth = getStoredAuth();
+      
+      // Update Redux state with new tokens if provided, otherwise use latest from localStorage
       if (action.payload.accessToken) {
         state.accessToken = action.payload.accessToken;
         state.token = action.payload.accessToken; // Keep token for backward compatibility
       } else if (action.payload.token) {
         state.token = action.payload.token;
         state.accessToken = action.payload.token;
+      } else if (latestAuth.accessToken || latestAuth.token) {
+        // No new tokens provided, use latest from localStorage to keep Redux in sync
+        state.accessToken = latestAuth.accessToken || latestAuth.token || null;
+        state.token = latestAuth.token || latestAuth.accessToken || null;
       }
+      
       if (action.payload.refreshToken) {
         state.refreshToken = action.payload.refreshToken;
+      } else if (latestAuth.refreshToken) {
+        // No new refresh token provided, use latest from localStorage to keep Redux in sync
+        state.refreshToken = latestAuth.refreshToken;
       }
+      
       state.isAuthenticated = true;
       
-      // Store tokens + minimal user info in localStorage
-      const accessTokenToStore = action.payload.accessToken || action.payload.token || state.accessToken;
+      // CRITICAL: When storing, prioritize new tokens from action, then latest from localStorage
+      // NEVER use stale Redux state tokens - always get fresh from localStorage
+      const accessTokenToStore = action.payload.accessToken || action.payload.token || latestAuth.accessToken || latestAuth.token;
+      const refreshTokenToStore = action.payload.refreshToken || latestAuth.refreshToken;
+      
       if (accessTokenToStore) {
         setStoredAuth(
           accessTokenToStore,
-          action.payload.refreshToken || state.refreshToken || null,
+          refreshTokenToStore || null,
           action.payload.user
         );
-      } else {
-        // If no new tokens but we have existing tokens, still update user data in localStorage
-        const existingAuth = getStoredAuth();
-        if (existingAuth.accessToken || existingAuth.token) {
-          setStoredAuth(
-            existingAuth.accessToken || existingAuth.token || '',
-            existingAuth.refreshToken || null,
-            action.payload.user
-          );
-        } else {
-          console.warn('⚠️ [setCredentials] No tokens available to store!');
+        
+        // Log if we're using tokens from localStorage (to detect if Redux was stale)
+        if (!action.payload.accessToken && !action.payload.token && (latestAuth.accessToken || latestAuth.token)) {
+          console.log('🟡 [setCredentials] Using latest tokens from localStorage (no new tokens provided)', {
+            hasAccessToken: !!accessTokenToStore,
+            hasRefreshToken: !!refreshTokenToStore,
+            refreshTokenPrefix: refreshTokenToStore?.substring(0, 20) + '...',
+          });
         }
+      } else {
+        console.warn('⚠️ [setCredentials] No tokens available to store!');
       }
     },
     logout: (state) => {
@@ -291,11 +308,12 @@ const authSlice = createSlice({
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
         // Update localStorage with new user data
-        const existingAuth = getStoredAuth();
-        if (existingAuth.accessToken || existingAuth.token) {
+        // CRITICAL: Always read latest tokens from localStorage to avoid overwriting refreshed tokens
+        const latestAuth = getStoredAuth();
+        if (latestAuth.accessToken || latestAuth.token) {
           setStoredAuth(
-            existingAuth.accessToken || existingAuth.token || '',
-            existingAuth.refreshToken || null,
+            latestAuth.accessToken || latestAuth.token || '',
+            latestAuth.refreshToken || null,
             state.user
           );
         }
@@ -334,11 +352,12 @@ const authSlice = createSlice({
         }
         
         // Update localStorage with new user data
-        const existingAuth = getStoredAuth();
-        if (existingAuth.accessToken || existingAuth.token) {
+        // CRITICAL: Always read latest tokens from localStorage to avoid overwriting refreshed tokens
+        const latestAuth = getStoredAuth();
+        if (latestAuth.accessToken || latestAuth.token) {
           setStoredAuth(
-            existingAuth.accessToken || existingAuth.token || '',
-            existingAuth.refreshToken || null,
+            latestAuth.accessToken || latestAuth.token || '',
+            latestAuth.refreshToken || null,
             state.user
           );
         }

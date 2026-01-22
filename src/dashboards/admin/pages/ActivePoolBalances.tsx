@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useGetAllPoolBalancesQuery, useGetDistributorPoolDetailsQuery } from '@/app/api/poolBalancesApi';
 import { format } from 'date-fns';
 
@@ -172,7 +173,7 @@ export const ActivePoolBalances = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading pool balances...</div>
+        <LoadingSpinner text="Loading pool balances..." size="md" />
       </div>
     );
   }

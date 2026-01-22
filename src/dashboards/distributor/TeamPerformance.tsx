@@ -4,6 +4,7 @@ import { Users, Award, Search, Filter, ArrowUpDown, Activity } from 'lucide-reac
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppSelector } from '@/app/hooks';
 import { useGetBinaryTreeQuery, useGetBinaryStatsQuery } from '@/app/api/binaryApi';
+import { useGetDistributorDashboardQuery } from '@/app/api/distributorApi';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -104,6 +105,7 @@ export const TeamPerformance = () => {
   const distributorInfo = user?.distributorInfo;
   const { data: binaryTree } = useGetBinaryTreeQuery(distributorId, { skip: !distributorId });
   const { data: binaryStats } = useGetBinaryStatsQuery(distributorId, { skip: !distributorId });
+  const { data: dashboardData, isLoading: isLoadingDashboard } = useGetDistributorDashboardQuery();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPosition, setFilterPosition] = useState<'all' | 'left' | 'right'>('all');
@@ -158,28 +160,60 @@ export const TeamPerformance = () => {
     return filtered;
   }, [teamMembers, searchQuery, filterPosition, sortBy, sortOrder]);
 
-  // Top performers (top 5 by referrals)
+  // Top performers from API or fallback to calculated
   const topPerformers = useMemo(() => {
+    if (dashboardData?.top_performers && dashboardData.top_performers.length > 0) {
+      return dashboardData.top_performers.slice(0, 5);
+    }
+    // Fallback to calculated from team members
     return [...teamMembers]
       .sort((a, b) => b.referrals - a.referrals)
       .slice(0, 5);
-  }, [teamMembers]);
+  }, [dashboardData?.top_performers, teamMembers]);
 
-  // Chart data for team growth (last 6 months - mock data)
-  const growthData = [
-    { month: 'Jul', members: Math.max(0, totalMembers - 10) },
-    { month: 'Aug', members: Math.max(0, totalMembers - 8) },
-    { month: 'Sep', members: Math.max(0, totalMembers - 6) },
-    { month: 'Oct', members: Math.max(0, totalMembers - 4) },
-    { month: 'Nov', members: Math.max(0, totalMembers - 2) },
-    { month: 'Dec', members: totalMembers },
-  ];
+  // Chart data for team growth from API or fallback
+  const growthData = useMemo(() => {
+    if (dashboardData?.team_growth_trend) {
+      return dashboardData.team_growth_trend.months.map((month, index) => ({
+        month,
+        members: dashboardData.team_growth_trend.counts[index] || 0,
+      }));
+    }
+    // Fallback to calculated data
+    return [
+      { month: 'Jul', members: Math.max(0, totalMembers - 10) },
+      { month: 'Aug', members: Math.max(0, totalMembers - 8) },
+      { month: 'Sep', members: Math.max(0, totalMembers - 6) },
+      { month: 'Oct', members: Math.max(0, totalMembers - 4) },
+      { month: 'Nov', members: Math.max(0, totalMembers - 2) },
+      { month: 'Dec', members: totalMembers },
+    ];
+  }, [dashboardData?.team_growth_trend, totalMembers]);
 
-  // Distribution data
-  const distributionData = [
-    { name: 'RSA', value: leftMembers, color: COLORS[0] },
-    { name: 'RSB', value: rightMembers, color: COLORS[1] },
-  ];
+  // Distribution data from API or fallback
+  const distributionData = useMemo(() => {
+    if (dashboardData?.team_distribution) {
+      return [
+        { 
+          name: 'RSA', 
+          value: dashboardData.team_distribution.rsa_count, 
+          percentage: dashboardData.team_distribution.rsa_percentage,
+          color: COLORS[0] 
+        },
+        { 
+          name: 'RSB', 
+          value: dashboardData.team_distribution.rsb_count, 
+          percentage: dashboardData.team_distribution.rsb_percentage,
+          color: COLORS[1] 
+        },
+      ];
+    }
+    // Fallback to calculated data
+    return [
+      { name: 'RSA', value: leftMembers, percentage: 0, color: COLORS[0] },
+      { name: 'RSB', value: rightMembers, percentage: 0, color: COLORS[1] },
+    ];
+  }, [dashboardData?.team_distribution, leftMembers, rightMembers]);
 
   // Performance by level
   const levelData = useMemo(() => {
@@ -209,7 +243,17 @@ export const TeamPerformance = () => {
       </div>
 
       {/* Top Performers */}
-      {topPerformers.length > 0 && (
+      {isLoadingDashboard ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Performers</CardTitle>
+            <CardDescription>Team members with highest referrals</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">Loading...</div>
+          </CardContent>
+        </Card>
+      ) : topPerformers.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>Top Performers</CardTitle>
@@ -217,37 +261,49 @@ export const TeamPerformance = () => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-5">
-              {topPerformers.map((performer, index) => (
-                <motion.div
-                  key={performer.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="text-center"
-                >
-                  <div className="relative mb-4">
-                    <div className="mx-auto h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
-                      <Award className={`h-8 w-8 ${index === 0 ? 'text-warning' : 'text-primary'}`} />
+              {topPerformers.map((performer, index) => {
+                // Handle both API format (TopPerformer) and calculated format (TeamMember)
+                const name = 'name' in performer ? performer.name : (performer as any).name || 'Unknown';
+                const referrals = 'referrals' in performer ? performer.referrals : (performer as any).referrals || 0;
+                const team = 'team' in performer 
+                  ? performer.team 
+                  : ('position' in performer 
+                      ? ((performer as any).position === 'left' ? 'RSA' : 'RSB')
+                      : 'RSA');
+                const isTop = index === 0;
+                
+                return (
+                  <motion.div
+                    key={`${name}-${index}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="text-center"
+                  >
+                    <div className="relative mb-4">
+                      <div className="mx-auto h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
+                        <Award className={`h-8 w-8 ${isTop ? 'text-warning' : 'text-primary'}`} />
+                      </div>
+                      {isTop && (
+                        <Badge className="absolute -top-2 left-1/2 -translate-x-1/2" variant="default">
+                          Top
+                        </Badge>
+                      )}
                     </div>
-                    {index === 0 && (
-                      <Badge className="absolute -top-2 left-1/2 -translate-x-1/2" variant="default">
-                        Top
-                      </Badge>
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-sm">{performer.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {performer.referrals} referrals
-                  </p>
-                  <Badge variant="outline" className="mt-2">
-                    {performer.position === 'left' ? 'RSA' : 'RSB'}
-                  </Badge>
-                </motion.div>
-              ))}
+                    <h3 className="font-semibold text-sm">{name}</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {referrals} {referrals === 1 ? 'referral' : 'referrals'}
+                    </p>
+                    <Badge variant="outline" className="mt-2">
+                      {team}
+                    </Badge>
+                  </motion.div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* Charts */}
       <div className="grid gap-6 md:grid-cols-2">
@@ -257,21 +313,25 @@ export const TeamPerformance = () => {
             <CardDescription>Monthly team member growth</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={growthData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="members" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--primary))' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {isLoadingDashboard ? (
+              <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={growthData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip />
+                  <Line 
+                    type="monotone" 
+                    dataKey="members" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--primary))' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -281,25 +341,33 @@ export const TeamPerformance = () => {
             <CardDescription>RSA vs RSB distribution</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={distributionData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {distributionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {isLoadingDashboard ? (
+              <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={distributionData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent, percentage }) => {
+                      // Use percentage from API if available, otherwise use calculated percent
+                      const displayPercent = percentage !== undefined ? percentage : (percent * 100);
+                      return `${name} ${displayPercent.toFixed(0)}%`;
+                    }}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {distributionData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -459,11 +459,10 @@ export function DistributorApplication() {
     }
   };
 
-  // Redirect to profile if already a distributor (verified or approved)
-  // If isDistributor is true from the API, that's sufficient - the API has already verified them
-  const isVerifiedDistributor = isDistributor === true || 
-                                (verificationStatus === 'approved') || 
-                                (currentUser?.distributorInfo?.isVerified);
+  // Redirect to profile if already a distributor
+  // Only check isDistributor flag - this is the primary indicator of distributor status
+  // Other flags like isVerified or verificationStatus might be set for KYC but not for distributor status
+  const isVerifiedDistributor = isDistributor === true;
   if (isVerifiedDistributor) {
     return (
       <div className="space-y-4 sm:space-y-6">

@@ -15,6 +15,7 @@ import { StoreNavbar } from "./StoreNavbar";
 import { Footer } from "@/components/Footer";
 import { useGetVehiclesQuery } from "@/app/api/inventoryApi";
 import { mapVehicleGroupsToScooters } from "./utils/vehicleMapper";
+import { InlineLoadingSpinner } from "@/components/ui/loading-spinner";
 
 export function ScootersPage() {
   const [search, setSearch] = useState("");
@@ -237,7 +238,7 @@ export function ScootersPage() {
           {/* Results Count */}
           <div className="mb-6 text-sm text-muted-foreground">
             {isLoading ? (
-              "Loading..."
+              <InlineLoadingSpinner />
             ) : (
               <>
                 Showing {scooters.length} of {inventoryData?.count || 0} scooters

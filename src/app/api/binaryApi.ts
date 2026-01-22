@@ -26,8 +26,49 @@ export interface PendingNode {
   referredBy: string; // Referral code of the distributor
 }
 
+// Side member node structure (used in both array and paginated formats)
+export interface SideMemberNode {
+  node_id: number;
+  user_id: number;
+  user_email: string;
+  user_username: string;
+  user_full_name: string;
+  user_mobile: string;
+  user_first_name: string;
+  user_last_name: string;
+  user_city: string;
+  user_state: string;
+  is_distributor: boolean;
+  is_active_buyer: boolean;
+  referral_code: string;
+  date_joined: string;
+  wallet_balance: string;
+  total_bookings: number;
+  total_binary_pairs: number;
+  total_earnings: string;
+  parent: number | null;
+  side: 'left' | 'right' | null;
+  level: number;
+  left_count: number;
+  right_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Paginated response structure for side members
+export interface PaginatedSideMembers {
+  count: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  next: string | null;
+  previous: string | null;
+  results: SideMemberNode[];
+}
+
 // API response structure for tree structure node
 export interface TreeNodeResponse {
+  id?: number; // Some responses use 'id' instead of 'node_id' for root
   node_id: number;
   user_id: number;
   user_email: string;
@@ -59,8 +100,9 @@ export interface TreeNodeResponse {
   activation_timestamp: string | null;
   left_child: TreeNodeResponse | null;
   right_child: TreeNodeResponse | null;
-  left_side_members: any[];
-  right_side_members: any[];
+  // Can be either array (backward compatibility) or paginated object
+  left_side_members: SideMemberNode[] | PaginatedSideMembers | null;
+  right_side_members: SideMemberNode[] | PaginatedSideMembers | null;
   created_at: string;
   updated_at: string;
   pending_users?: Array<{
@@ -736,6 +778,53 @@ export const binaryApi = api.injectEndpoints({
       },
       providesTags: (result, error, distributorId) => [{ type: 'Binary', id: distributorId }],
     }),
+    // Get full tree structure with side members
+    getTreeStructure: builder.query<
+      TreeNodeResponse,
+      {
+        distributorId: string;
+        side?: 'left' | 'right' | 'both';
+        page?: number;
+        page_size?: number;
+        min_depth?: number;
+        max_depth?: number;
+      }
+    >({
+      query: ({ side, page, page_size, min_depth, max_depth }) => {
+        const params = new URLSearchParams();
+        if (side) params.append('side', side);
+        if (page !== undefined && page !== null) params.append('page', page.toString());
+        if (page_size !== undefined && page_size !== null) params.append('page_size', page_size.toString());
+        if (min_depth !== undefined && min_depth !== null) params.append('min_depth', min_depth.toString());
+        if (max_depth !== undefined && max_depth !== null) params.append('max_depth', max_depth.toString());
+        
+        const queryString = params.toString();
+        const url = queryString 
+          ? `binary/nodes/tree_structure/?${queryString}`
+          : 'binary/nodes/tree_structure/';
+        
+        return {
+          url,
+          method: 'GET',
+        };
+      },
+      // Serialize query args to ensure proper caching for different filter combinations
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        const { distributorId, side, page, page_size, min_depth, max_depth } = queryArgs;
+        return `${endpointName}(${JSON.stringify({ 
+          distributorId, 
+          side: side || 'both', 
+          page: page || 1, 
+          page_size: page_size || 20,
+          min_depth: min_depth ?? undefined,
+          max_depth: max_depth ?? undefined
+        })})`;
+      },
+      providesTags: (result, error, args) => [
+        { type: 'Binary', id: args.distributorId },
+        { type: 'Binary', id: `${args.distributorId}-${args.side || 'both'}-${args.page || 1}` },
+      ],
+    }),
     getPendingNodes: builder.query<PendingNode[], string>({
       query: () => ({
         url: 'binary/nodes/tree_structure/',
@@ -1097,7 +1186,8 @@ export const binaryApi = api.injectEndpoints({
 });
 
 export const { 
-  useGetBinaryTreeQuery, 
+  useGetBinaryTreeQuery,
+  useGetTreeStructureQuery,
   useGetPendingNodesQuery,
   useGetPairHistoryQuery, 
   useGetBinaryStatsQuery, 

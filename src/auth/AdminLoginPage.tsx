@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { setCredentials, isUserAuthenticated } from "@/app/slices/authSlice";
 import { loadBookingsForUser } from "@/app/slices/bookingSlice";
 import { useSendAdminOTPMutation, useVerifyAdminOTPMutation } from "@/app/api/authApi";
+import { updateAuthTokens } from "@/app/api/baseApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -142,11 +143,53 @@ export const AdminLoginPage = () => {
         joinedAt: new Date().toISOString(),
       };
 
+      // CRITICAL: Store tokens with user info using updateAuthTokens (same as regular login)
+      // This ensures tokens are properly stored with all safeguards and multi-tab sync
+      updateAuthTokens(result.tokens.access, result.tokens.refresh, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      });
+
+      // Verify tokens were stored
+      const stored = localStorage.getItem('ev_nexus_auth_data');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        console.log('✅ [ADMIN LOGIN] Tokens stored in localStorage:', {
+          hasAccessToken: !!parsed.accessToken,
+          hasRefreshToken: !!parsed.refreshToken,
+          hasUser: !!parsed.user,
+        });
+      } else {
+        console.error('❌ [ADMIN LOGIN] Failed to store tokens in localStorage');
+      }
+
+      // Dispatch credentials to update Redux state
       dispatch(setCredentials({
         user,
         accessToken: result.tokens.access,
         refreshToken: result.tokens.refresh,
       }));
+
+      // Final verification after setCredentials
+      const finalCheck = localStorage.getItem('ev_nexus_auth_data');
+      if (finalCheck) {
+        const parsed = JSON.parse(finalCheck);
+        console.log('✅ [ADMIN LOGIN] Final check - Tokens in localStorage:', {
+          hasAccessToken: !!parsed.accessToken,
+          hasRefreshToken: !!parsed.refreshToken,
+          hasUser: !!parsed.user,
+        });
+      } else {
+        console.error('❌ [ADMIN LOGIN] Tokens missing after setCredentials, restoring...');
+        updateAuthTokens(result.tokens.access, result.tokens.refresh, {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        });
+      }
 
       dispatch(loadBookingsForUser(user.id));
       toast.success(`Welcome back, ${user.name || user.email}!`);

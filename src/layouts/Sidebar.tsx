@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -56,8 +56,8 @@ const distributorMenuItems: MenuItem[] = [
   { label: 'Authorized Partner Dashboard', icon: LayoutDashboard, path: '/distributor' },
   { label: 'Referral Link', icon: LinkIcon, path: '/distributor/referral' },
   { label: 'Team Network', icon: GitBranch, path: '/distributor/binary-tree' },
-  { label: 'Team Matching History', icon: History, path: '/distributor/pair-history' },
-  { label: 'Earnings & Commissions', icon: DollarSign, path: '/distributor/earnings' },
+  //{ label: 'Team Matching History', icon: History, path: '/distributor/pair-history' },
+  //{ label: 'Earnings & Commissions', icon: DollarSign, path: '/distributor/earnings' },
   { label: 'Team Performance', icon: Users, path: '/distributor/team' },
   { label: 'Sales Tracking', icon: TrendingUp, path: '/distributor/sales' },
   { label: 'Order History', icon: Package, path: '/distributor/orders' },
@@ -101,6 +101,43 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
   const { user } = useAppSelector((state) => state.auth);
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
+
+  // Check if user is a verified distributor
+  // Only show distributor options if:
+  // 1. isDistributor is explicitly true from the API, OR
+  // 2. distributorInfo.isDistributor is true, OR
+  // 3. distributorInfo.isVerified is true, OR
+  // 4. verificationStatus is 'approved'
+  // IMPORTANT: If distributorInfo.isDistributor is explicitly false, do NOT show distributor options
+  // Note: Having a referralCode does NOT make someone a distributor - it just means they were referred
+  // Use useMemo to ensure this recalculates when user object changes
+  const { isVerifiedDistributor, isExplicitlyNotDistributor } = useMemo(() => {
+    const isVerified = (user?.isDistributor === true) || 
+                       (user?.distributorInfo?.isDistributor === true) ||
+                       (user?.distributorInfo?.isVerified === true) || 
+                       (user?.distributorInfo?.verificationStatus === 'approved');
+    
+    const isExplicitlyNot = user?.distributorInfo?.isDistributor === false;
+    
+    return { isVerifiedDistributor: isVerified, isExplicitlyNotDistributor: isExplicitlyNot };
+  }, [user?.isDistributor, user?.distributorInfo?.isDistributor, user?.distributorInfo?.isVerified, user?.distributorInfo?.verificationStatus]);
+
+  // Debug logging (remove in production if needed)
+  useEffect(() => {
+    if (user) {
+      console.log('🔍 [SIDEBAR] User distributor status check:', {
+        isDistributor: user.isDistributor,
+        hasDistributorInfo: !!user.distributorInfo,
+        distributorInfoIsDistributor: user.distributorInfo?.isDistributor,
+        distributorInfoIsVerified: user.distributorInfo?.isVerified,
+        verificationStatus: user.distributorInfo?.verificationStatus,
+        hasReferralCode: !!(user.distributorInfo?.referralCode),
+        isExplicitlyNotDistributor,
+        isVerifiedDistributor,
+        finalResult: isVerifiedDistributor && !isExplicitlyNotDistributor,
+      });
+    }
+  }, [user, isVerifiedDistributor, isExplicitlyNotDistributor]);
 
   // Render AdminSidebar for admin users
   if (user?.role === 'admin') {
@@ -163,39 +200,6 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
       </Link>
     );
   };
-
-  // Check if user is a verified distributor
-  // Only show distributor options if:
-  // 1. isDistributor is explicitly true from the API, OR
-  // 2. distributorInfo.isDistributor is true, OR
-  // 3. distributorInfo.isVerified is true, OR
-  // 4. verificationStatus is 'approved'
-  // IMPORTANT: If distributorInfo.isDistributor is explicitly false, do NOT show distributor options
-  // Note: Having a referralCode does NOT make someone a distributor - it just means they were referred
-  const isVerifiedDistributor = (user?.isDistributor === true) || 
-                                (user?.distributorInfo?.isDistributor === true) ||
-                                (user?.distributorInfo?.isVerified === true) || 
-                                (user?.distributorInfo?.verificationStatus === 'approved');
-  
-  // Explicitly exclude if distributorInfo says they're NOT a distributor
-  const isExplicitlyNotDistributor = user?.distributorInfo?.isDistributor === false;
-
-  // Debug logging (remove in production if needed)
-  useEffect(() => {
-    if (user) {
-      console.log('🔍 [SIDEBAR] User distributor status check:', {
-        isDistributor: user.isDistributor,
-        hasDistributorInfo: !!user.distributorInfo,
-        distributorInfoIsDistributor: user.distributorInfo?.isDistributor,
-        distributorInfoIsVerified: user.distributorInfo?.isVerified,
-        verificationStatus: user.distributorInfo?.verificationStatus,
-        hasReferralCode: !!(user.distributorInfo?.referralCode),
-        isExplicitlyNotDistributor,
-        isVerifiedDistributor,
-        finalResult: isVerifiedDistributor && !isExplicitlyNotDistributor,
-      });
-    }
-  }, [user, isVerifiedDistributor, isExplicitlyNotDistributor]);
 
   // Get menu items based on user role
   const getMenuItems = (): MenuItem[] => {

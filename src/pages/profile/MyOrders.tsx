@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { useAddReferralNodeMutation } from "@/app/api/binaryApi";
 import { useGetBookingsQuery, useMakePaymentMutation } from "@/app/api/bookingApi";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Booking, PaymentMethod } from "@/app/slices/bookingSlice";
 import { setBookings } from "@/app/slices/bookingSlice";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -491,8 +492,7 @@ export function MyOrders() {
       {isLoadingBookings ? (
         <Card>
           <CardContent className="py-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
-            <p className="text-muted-foreground text-sm">Loading orders...</p>
+            <LoadingSpinner text="Loading orders..." size="md" />
           </CardContent>
         </Card>
       ) : bookingsError ? (

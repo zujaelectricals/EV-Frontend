@@ -13,6 +13,7 @@ import { useAppSelector } from '@/app/hooks';
 import { Footer } from '@/components/Footer';
 import { useGetStockQuery } from '@/app/api/inventoryApi';
 import { Scooter } from './ScooterCard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export function ScooterDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -114,10 +115,7 @@ export function ScooterDetailPage() {
       <div className="min-h-screen bg-background">
         <StoreNavbar />
         <div className="pt-20 pb-16 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading scooter details...</p>
-          </div>
+          <LoadingSpinner text="Loading scooter details..." size="lg" />
         </div>
         <Footer />
       </div>

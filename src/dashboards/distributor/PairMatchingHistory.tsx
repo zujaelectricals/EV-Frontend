@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatsCard } from "@/shared/components/StatsCard";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export const PairMatchingHistory = () => {
   const { user } = useAppSelector((state) => state.auth);
@@ -34,7 +35,7 @@ export const PairMatchingHistory = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading pair history...</div>
+        <LoadingSpinner text="Loading pair history..." size="md" />
       </div>
     );
   }

@@ -76,6 +76,48 @@ export interface DistributorApplicationResponse {
   user: number;
 }
 
+// Distributor Dashboard Response
+export interface TopPerformer {
+  name: string;
+  referrals: number;
+  team: 'RSA' | 'RSB';
+}
+
+export interface TeamGrowthTrend {
+  months: string[];
+  counts: number[];
+}
+
+export interface TeamDistribution {
+  rsa_percentage: number;
+  rsb_percentage: number;
+  rsa_count: number;
+  rsb_count: number;
+}
+
+export interface RecentSalesActivity {
+  date: string;
+  left_pv: string;
+  right_pv: string;
+  matched_pv: string;
+  commission: string;
+  net_amount: string;
+  status: 'matched' | 'processed' | string;
+}
+
+export interface CommissionTrend {
+  months: string[];
+  amounts: number[];
+}
+
+export interface DistributorDashboardResponse {
+  top_performers: TopPerformer[];
+  team_growth_trend: TeamGrowthTrend;
+  team_distribution: TeamDistribution;
+  recent_sales_activity: RecentSalesActivity[];
+  commission_trend: CommissionTrend;
+}
+
 // Mock storage for applications (in real app, this would be in a database)
 let mockApplications: DistributorApplication[] = [];
 
@@ -500,6 +542,12 @@ export const distributorApi = api.injectEndpoints({
       },
       invalidatesTags: ['DistributorApplication'],
     }),
+
+    // Get distributor dashboard data
+    getDistributorDashboard: builder.query<DistributorDashboardResponse, void>({
+      query: () => 'reports/distributor-dashboard/',
+      providesTags: ['User'],
+    }),
   }),
 });
 
@@ -558,5 +606,6 @@ export const {
   useGetAllDistributorApplicationsQuery,
   useApproveDistributorApplicationMutation,
   useRejectDistributorApplicationMutation,
+  useGetDistributorDashboardQuery,
 } = distributorApi;
 

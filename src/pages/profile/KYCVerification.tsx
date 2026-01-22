@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useGetUserProfileQuery } from '@/app/api/userApi';
 import { KYCModal } from '@/components/KYCModal';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export function KYCVerification() {
   const [isKYCModalOpen, setIsKYCModalOpen] = useState(false);
@@ -72,7 +73,7 @@ export function KYCVerification() {
       <Card>
         <CardContent className="p-4 sm:p-6">
           <div className="flex items-center justify-center py-8">
-            <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+            <LoadingSpinner size="md" />
           </div>
         </CardContent>
       </Card>

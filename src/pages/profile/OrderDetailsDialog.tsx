@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Package,
   Calendar,
@@ -138,7 +139,7 @@ export function OrderDetailsDialog({
             <DialogDescription>Loading booking information...</DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <LoadingSpinner size="md" />
           </div>
         </DialogContent>
       </Dialog>

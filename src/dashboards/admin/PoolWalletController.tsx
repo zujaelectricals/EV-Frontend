@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useGetAllWithdrawalRequestsQuery, useApproveWithdrawalRequestMutation, useRejectWithdrawalRequestMutation } from '@/app/api/poolWithdrawalApi';
 import { toast } from 'sonner';
@@ -135,7 +136,7 @@ export const PoolWalletController = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading withdrawal requests...</div>
+        <LoadingSpinner text="Loading withdrawal requests..." size="md" />
       </div>
     );
   }

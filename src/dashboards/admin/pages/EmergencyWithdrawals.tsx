@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useGetEmergencyWithdrawalRequestsQuery, useApproveWithdrawalRequestMutation, useRejectWithdrawalRequestMutation } from '@/app/api/poolWithdrawalApi';
 import { toast } from 'sonner';
@@ -219,7 +220,7 @@ export const EmergencyWithdrawals = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading emergency withdrawal requests...</div>
+        <LoadingSpinner text="Loading emergency withdrawal requests..." size="md" />
       </div>
     );
   }
