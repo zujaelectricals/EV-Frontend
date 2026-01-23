@@ -77,6 +77,7 @@ export interface User {
   preBookingInfo?: PreBookingInfo;
   kycStatus?: 'not_submitted' | 'pending' | 'verified' | 'rejected';
   kycDetails?: KYCDetails;
+  distributorApplicationStatus?: 'pending' | 'approved' | 'rejected' | null;
 }
 
 // Helper functions for localStorage - stores tokens + minimal user info
@@ -131,6 +132,7 @@ const setStoredAuth = (accessToken: string | null, refreshToken?: string | null,
           kycStatus: user.kycStatus,
           phone: user.phone,
           distributorInfo: user.distributorInfo,
+          distributorApplicationStatus: user.distributorApplicationStatus,
         };
       }
       
@@ -216,6 +218,7 @@ const createUserFromStored = (): User | null => {
     kycDetails: storedAuth.user.kycDetails,
     distributorInfo: storedAuth.user.distributorInfo,
     preBookingInfo: storedAuth.user.preBookingInfo,
+    distributorApplicationStatus: storedAuth.user.distributorApplicationStatus,
   };
   
   console.log('🟢 [AUTH INIT] User loaded from localStorage:', { id: userObj.id, email: userObj.email, name: userObj.name });

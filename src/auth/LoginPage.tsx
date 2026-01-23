@@ -73,6 +73,9 @@ export const LoginPage = () => {
   const [otpCode, setOtpCode] = useState<string>("");
   const [otpError, setOtpError] = useState<string>("");
   
+  // Multi-step signup state
+  const [signupStep, setSignupStep] = useState<1 | 2 | 3>(1);
+  
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -342,64 +345,86 @@ export const LoginPage = () => {
     }
   };
 
-  const validateSignupForm = (): boolean => {
+  const validateSignupStep = (step: 1 | 2): boolean => {
     const newErrors: Partial<Record<keyof SignupFormData, string>> = {};
 
-    if (!signupData.first_name.trim()) {
-      newErrors.first_name = 'First name is required';
-    }
-
-    if (!signupData.last_name.trim()) {
-      newErrors.last_name = 'Last name is required';
-    }
-
-    if (!signupData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
-
-    if (!signupData.mobile.trim()) {
-      newErrors.mobile = 'Mobile number is required';
-    } else if (!/^[0-9]{10,12}$/.test(signupData.mobile)) {
-      newErrors.mobile = 'Mobile number must be 10-12 digits';
-    }
-
-    if (!signupData.gender) {
-      newErrors.gender = 'Gender is required';
-    }
-
-    if (!signupData.date_of_birth) {
-      newErrors.date_of_birth = 'Date of Birth is required';
-    } else {
-      const dob = new Date(signupData.date_of_birth);
-      const today = new Date();
-      const age = today.getFullYear() - dob.getFullYear();
-      if (age < 18) {
-        newErrors.date_of_birth = 'You must be at least 18 years old';
+    if (step === 1) {
+      // Validate Personal Information
+      if (!signupData.first_name.trim()) {
+        newErrors.first_name = 'First name is required';
       }
-    }
 
-    if (!signupData.address_line1.trim()) {
-      newErrors.address_line1 = 'Address line 1 is required';
-    }
+      if (!signupData.last_name.trim()) {
+        newErrors.last_name = 'Last name is required';
+      }
 
-    if (!signupData.city.trim()) {
-      newErrors.city = 'City is required';
-    }
+      if (!signupData.email.trim()) {
+        newErrors.email = 'Email is required';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupData.email)) {
+        newErrors.email = 'Invalid email format';
+      }
 
-    if (!signupData.state.trim()) {
-      newErrors.state = 'State is required';
-    }
+      if (!signupData.mobile.trim()) {
+        newErrors.mobile = 'Mobile number is required';
+      } else if (!/^[0-9]{10,12}$/.test(signupData.mobile)) {
+        newErrors.mobile = 'Mobile number must be 10-12 digits';
+      }
 
-    if (!signupData.pincode.trim()) {
-      newErrors.pincode = 'Pincode is required';
-    } else if (!/^[0-9]{6}$/.test(signupData.pincode)) {
-      newErrors.pincode = 'Pincode must be 6 digits';
+      if (!signupData.gender) {
+        newErrors.gender = 'Gender is required';
+      }
+
+      if (!signupData.date_of_birth) {
+        newErrors.date_of_birth = 'Date of Birth is required';
+      } else {
+        const dob = new Date(signupData.date_of_birth);
+        const today = new Date();
+        const age = today.getFullYear() - dob.getFullYear();
+        if (age < 18) {
+          newErrors.date_of_birth = 'You must be at least 18 years old';
+        }
+      }
+    } else if (step === 2) {
+      // Validate Address Information
+      if (!signupData.address_line1.trim()) {
+        newErrors.address_line1 = 'Address line 1 is required';
+      }
+
+      if (!signupData.city.trim()) {
+        newErrors.city = 'City is required';
+      }
+
+      if (!signupData.state.trim()) {
+        newErrors.state = 'State is required';
+      }
+
+      if (!signupData.pincode.trim()) {
+        newErrors.pincode = 'Pincode is required';
+      } else if (!/^[0-9]{6}$/.test(signupData.pincode)) {
+        newErrors.pincode = 'Pincode must be 6 digits';
+      }
     }
 
     setSignupErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const validateSignupForm = (): boolean => {
+    return validateSignupStep(1) && validateSignupStep(2);
+  };
+
+  const handleNextStep = () => {
+    if (signupStep === 1) {
+      if (validateSignupStep(1)) {
+        setSignupStep(2);
+      }
+    }
+  };
+
+  const handlePreviousStep = () => {
+    if (signupStep === 2) {
+      setSignupStep(1);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -434,28 +459,106 @@ export const LoginPage = () => {
       
       setSignupToken(result.signup_token);
       setShowOTPVerification(true);
+      setSignupStep(3);
       toast.success(result.message || 'OTP sent to both email and mobile');
     } catch (err: unknown) {
       console.log('🔴 [SIGNUP] Error Response:', JSON.stringify(err, null, 2));
-      let errorMessage = 'Failed to create account. Please try again.';
+      
+      const newErrors: Partial<Record<keyof SignupFormData, string>> = {};
+      let genericErrorMessage = '';
+      
       if (err && typeof err === 'object' && 'data' in err) {
-        const error = err as { data?: { message?: string; detail?: string; error?: string } | string | string[] };
+        const error = err as { 
+          data?: { 
+            [key: string]: string | string[] | undefined;
+            message?: string; 
+            detail?: string; 
+            error?: string;
+          } | string | string[] 
+        };
+        
+        // Handle field-specific errors (e.g., { "mobile": ["Mobile number already registered"] })
+        if (error.data && typeof error.data === 'object' && !Array.isArray(error.data)) {
+          // Map API field names to form field names
+          const fieldMapping: Record<string, keyof SignupFormData> = {
+            'first_name': 'first_name',
+            'last_name': 'last_name',
+            'email': 'email',
+            'mobile': 'mobile',
+            'gender': 'gender',
+            'date_of_birth': 'date_of_birth',
+            'address_line1': 'address_line1',
+            'address_line2': 'address_line2',
+            'city': 'city',
+            'state': 'state',
+            'pincode': 'pincode',
+            'country': 'country',
+          };
+          
+          // Extract field-specific errors
+          Object.keys(error.data).forEach((key) => {
+            const formField = fieldMapping[key];
+            if (formField) {
+              const errorValue = error.data![key];
+              if (Array.isArray(errorValue)) {
+                newErrors[formField] = errorValue[0] || '';
+              } else if (typeof errorValue === 'string') {
+                newErrors[formField] = errorValue;
+              }
+            } else if (key === 'message' || key === 'detail' || key === 'error') {
+              // Generic error messages
+              const errorValue = error.data![key];
+              if (typeof errorValue === 'string') {
+                genericErrorMessage = errorValue;
+              } else if (Array.isArray(errorValue)) {
+                genericErrorMessage = errorValue[0] || '';
+              }
+            }
+          });
+        } 
         // Handle array response (e.g., ["User does not have admin/staff privileges"])
-        if (Array.isArray(error.data)) {
-          errorMessage = error.data[0] || errorMessage;
-        } else if (typeof error.data === 'string') {
-          errorMessage = error.data;
-        } else if (error.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error.data?.detail) {
-          errorMessage = error.data.detail;
-        } else if (error.data?.error) {
-          errorMessage = error.data.error;
+        else if (Array.isArray(error.data)) {
+          genericErrorMessage = error.data[0] || 'Failed to create account. Please try again.';
+        } 
+        // Handle string response
+        else if (typeof error.data === 'string') {
+          genericErrorMessage = error.data;
         }
       } else if (err && typeof err === 'object' && 'error' in err) {
-        errorMessage = (err as { error: string }).error;
+        genericErrorMessage = (err as { error: string }).error;
       }
-      toast.error(errorMessage);
+      
+      // If no field-specific errors found, use generic message
+      if (Object.keys(newErrors).length === 0 && !genericErrorMessage) {
+        genericErrorMessage = 'Failed to create account. Please try again.';
+      }
+      
+      // Set field-specific errors
+      if (Object.keys(newErrors).length > 0) {
+        setSignupErrors(newErrors);
+        
+        // Navigate to the step containing the first error
+        const errorFields = Object.keys(newErrors);
+        const firstErrorField = errorFields[0] as keyof SignupFormData;
+        
+        // Determine which step the error belongs to
+        const step1Fields: (keyof SignupFormData)[] = ['first_name', 'last_name', 'email', 'mobile', 'gender', 'date_of_birth'];
+        if (step1Fields.includes(firstErrorField)) {
+          setSignupStep(1);
+        } else {
+          setSignupStep(2);
+        }
+        
+        // Show toast with summary if there are multiple errors, or just the first error
+        if (errorFields.length > 1) {
+          toast.error(`Please fix the errors in the form`);
+        } else {
+          toast.error(newErrors[firstErrorField] || 'Please fix the error in the form');
+        }
+      } else if (genericErrorMessage) {
+        // Show generic error toast if no field-specific errors
+        toast.error(genericErrorMessage);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -539,18 +642,19 @@ export const LoginPage = () => {
       dispatch(loadBookingsForUser(user.id));
       toast.success('Account created successfully! Welcome!');
 
-      // Redirect based on user role from API response
-      const userRole = result.user.role?.toLowerCase();
-      if (userRole === "admin") {
-        navigate("/admin", { replace: true });
-      } else if (userRole === "staff") {
-        navigate("/staff/leads", { replace: true });
-      } else if (result.user.is_distributor || user.isDistributor) {
-        navigate("/distributor", { replace: true });
-      } else {
-        // Regular user - redirect to home
-        navigate("/", { replace: true });
-      }
+      /**
+       * Redirect behaviour after successful SIGNUP
+       *
+       * Product requirement:
+       * - After creating a new account, the user should always land on the
+       *   public marketing homepage (the scooters landing page), NOT on any
+       *   dashboard (including the distributor pending screen).
+       *
+       * Even if the backend flags the user as a distributor, they should only
+       * explicitly navigate to distributor views via the UI (e.g. sidebar /
+       * Become Authorized Partner), not immediately after signup.
+       */
+      navigate("/", { replace: true });
     } catch (err: unknown) {
       console.log('🔴 [VERIFY OTP] Error Response:', JSON.stringify(err, null, 2));
       let errorMessage = 'Invalid OTP. Please try again.';
@@ -855,14 +959,18 @@ export const LoginPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="w-full max-w-md"
+                className="w-full max-w-4xl"
               >
                 <div className="mb-6">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setIsSignupMode(false)}
+                    onClick={() => {
+                      setIsSignupMode(false);
+                      setSignupStep(1);
+                      setShowOTPVerification(false);
+                    }}
                     className="mb-4 -ml-2 text-gray-600 hover:text-gray-900"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -877,224 +985,358 @@ export const LoginPage = () => {
                   </p>
                 </div>
 
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="first_name" className="text-sm font-medium">First Name *</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                        <Input
-                          id="first_name"
-                          type="text"
-                          placeholder="Enter first name"
-                          value={signupData.first_name}
-                          onChange={(e) => handleSignupInputChange('first_name', e.target.value)}
-                          className={`pl-10 h-11 ${signupErrors.first_name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                        />
+                {/* Progress Indicator */}
+                {!showOTPVerification && (
+                  <div className="mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
+                          signupStep >= 1 ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500'
+                        }`}>
+                          1
+                        </div>
+                        <span className={`text-sm font-medium ${signupStep >= 1 ? 'text-gray-900' : 'text-gray-500'}`}>
+                          Personal Information
+                        </span>
                       </div>
-                      {signupErrors.first_name && <p className="text-xs text-red-500">{signupErrors.first_name}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="last_name" className="text-sm font-medium">Last Name *</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                        <Input
-                          id="last_name"
-                          type="text"
-                          placeholder="Enter last name"
-                          value={signupData.last_name}
-                          onChange={(e) => handleSignupInputChange('last_name', e.target.value)}
-                          className={`pl-10 h-11 ${signupErrors.last_name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                        />
-                      </div>
-                      {signupErrors.last_name && <p className="text-xs text-red-500">{signupErrors.last_name}</p>}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium">Email *</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={signupData.email}
-                        onChange={(e) => handleSignupInputChange('email', e.target.value)}
-                        className={`pl-10 h-11 ${signupErrors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                      />
-                    </div>
-                    {signupErrors.email && <p className="text-xs text-red-500">{signupErrors.email}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="mobile" className="text-sm font-medium">Mobile *</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                      <Input
-                        id="mobile"
-                        type="tel"
-                        placeholder="Enter mobile number"
-                        value={signupData.mobile}
-                        onChange={(e) => handleSignupInputChange('mobile', e.target.value.replace(/\D/g, ''))}
-                        maxLength={12}
-                        className={`pl-10 h-11 ${signupErrors.mobile ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                      />
-                    </div>
-                    {signupErrors.mobile && <p className="text-xs text-red-500">{signupErrors.mobile}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="gender" className="text-sm font-medium">Gender *</Label>
-                    <Select
-                      value={signupData.gender}
-                      onValueChange={(value) => handleSelectChange('gender', value)}
-                    >
-                      <SelectTrigger className={`h-11 ${signupErrors.gender ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'}`}>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {signupErrors.gender && <p className="text-xs text-red-500">{signupErrors.gender}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="date_of_birth" className="text-sm font-medium">Date of Birth *</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                      <Input
-                        id="date_of_birth"
-                        type="date"
-                        value={signupData.date_of_birth}
-                        onChange={(e) => handleSignupInputChange('date_of_birth', e.target.value)}
-                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                        className={`pl-10 h-11 ${signupErrors.date_of_birth ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                      />
-                    </div>
-                    {signupErrors.date_of_birth && <p className="text-xs text-red-500">{signupErrors.date_of_birth}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address_line1" className="text-sm font-medium">Address Line 1 *</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                      <Input
-                        id="address_line1"
-                        type="text"
-                        placeholder="Enter address line 1"
-                        value={signupData.address_line1}
-                        onChange={(e) => handleSignupInputChange('address_line1', e.target.value)}
-                        className={`pl-10 h-11 ${signupErrors.address_line1 ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                      />
-                    </div>
-                    {signupErrors.address_line1 && <p className="text-xs text-red-500">{signupErrors.address_line1}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address_line2" className="text-sm font-medium">Address Line 2</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                      <Input
-                        id="address_line2"
-                        type="text"
-                        placeholder="Enter address line 2 (Optional)"
-                        value={signupData.address_line2}
-                        onChange={(e) => handleSignupInputChange('address_line2', e.target.value)}
-                        className="pl-10 h-11 border-gray-300 focus:border-gray-900 transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="city" className="text-sm font-medium">City *</Label>
-                      <div className="relative">
-                        <Building className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                        <Input
-                          id="city"
-                          type="text"
-                          placeholder="Enter city"
-                          value={signupData.city}
-                          onChange={(e) => handleSignupInputChange('city', e.target.value)}
-                          className={`pl-10 h-11 ${signupErrors.city ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                        />
-                      </div>
-                      {signupErrors.city && <p className="text-xs text-red-500">{signupErrors.city}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="state" className="text-sm font-medium">State *</Label>
-                      <div className="relative">
-                        <Building className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                        <Input
-                          id="state"
-                          type="text"
-                          placeholder="Enter state"
-                          value={signupData.state}
-                          onChange={(e) => handleSignupInputChange('state', e.target.value)}
-                          className={`pl-10 h-11 ${signupErrors.state ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                        />
-                      </div>
-                      {signupErrors.state && <p className="text-xs text-red-500">{signupErrors.state}</p>}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="pincode" className="text-sm font-medium">Pincode *</Label>
-                      <div className="relative">
-                        <Hash className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                        <Input
-                          id="pincode"
-                          type="text"
-                          placeholder="Enter 6-digit pincode"
-                          value={signupData.pincode}
-                          onChange={(e) => handleSignupInputChange('pincode', e.target.value.replace(/\D/g, ''))}
-                          maxLength={6}
-                          className={`pl-10 h-11 ${signupErrors.pincode ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
-                        />
-                      </div>
-                      {signupErrors.pincode && <p className="text-xs text-red-500">{signupErrors.pincode}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="country" className="text-sm font-medium">Country</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                        <Input
-                          id="country"
-                          type="text"
-                          placeholder="Enter country"
-                          value={signupData.country}
-                          onChange={(e) => handleSignupInputChange('country', e.target.value)}
-                          className="pl-10 h-11 border-gray-300 focus:border-gray-900 transition-all"
-                        />
+                      <div className={`flex-1 h-0.5 mx-4 ${signupStep >= 2 ? 'bg-gray-900' : 'bg-gray-200'}`} />
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
+                          signupStep >= 2 ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500'
+                        }`}>
+                          2
+                        </div>
+                        <span className={`text-sm font-medium ${signupStep >= 2 ? 'text-gray-900' : 'text-gray-500'}`}>
+                          Address Details
+                        </span>
                       </div>
                     </div>
                   </div>
+                )}
 
-                  <Button
-                    type="submit"
-                    className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl mt-6"
-                    disabled={isSubmitting || isSigningUp}
-                  >
-                    {isSubmitting || isSigningUp ? 'Creating Account...' : 'Create Account'}
-                  </Button>
-                </form>
+                {/* Error Message Display */}
+                {Object.keys(signupErrors).length > 0 && !showOTPVerification && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start gap-3 mb-2">
+                      <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-white text-xs font-bold">!</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-800 mb-2">
+                          Please fix the following errors:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {Object.entries(signupErrors).map(([field, error]) => {
+                            if (!error) return null;
+                            const fieldLabels: Record<string, string> = {
+                              'first_name': 'First Name',
+                              'last_name': 'Last Name',
+                              'email': 'Email',
+                              'mobile': 'Mobile',
+                              'gender': 'Gender',
+                              'date_of_birth': 'Date of Birth',
+                              'address_line1': 'Address Line 1',
+                              'address_line2': 'Address Line 2',
+                              'city': 'City',
+                              'state': 'State',
+                              'pincode': 'Pincode',
+                              'country': 'Country',
+                            };
+                            return (
+                              <li key={field} className="text-sm text-red-700">
+                                <span className="font-medium">{fieldLabels[field] || field}:</span> {error}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!showOTPVerification && (
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    if (signupStep === 2) {
+                      handleSignup(e);
+                    } else {
+                      handleNextStep();
+                    }
+                  }} className="space-y-6">
+                    {/* Step 1: Personal Information */}
+                    {signupStep === 1 && (
+                      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-6">Personal Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="first_name" className="text-sm font-medium">First Name *</Label>
+                            <div className="relative">
+                              <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="first_name"
+                                type="text"
+                                placeholder="Enter first name"
+                                value={signupData.first_name}
+                                onChange={(e) => handleSignupInputChange('first_name', e.target.value)}
+                                className={`pl-10 h-11 ${signupErrors.first_name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                            </div>
+                            {signupErrors.first_name && <p className="text-xs text-red-500">{signupErrors.first_name}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="last_name" className="text-sm font-medium">Last Name *</Label>
+                            <div className="relative">
+                              <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="last_name"
+                                type="text"
+                                placeholder="Enter last name"
+                                value={signupData.last_name}
+                                onChange={(e) => handleSignupInputChange('last_name', e.target.value)}
+                                className={`pl-10 h-11 ${signupErrors.last_name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                            </div>
+                            {signupErrors.last_name && <p className="text-xs text-red-500">{signupErrors.last_name}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="email" className="text-sm font-medium">Email *</Label>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="email"
+                                type="email"
+                                placeholder="Enter your email"
+                                value={signupData.email}
+                                onChange={(e) => handleSignupInputChange('email', e.target.value)}
+                                className={`pl-10 h-11 ${signupErrors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                            </div>
+                            {signupErrors.email && <p className="text-xs text-red-500">{signupErrors.email}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="mobile" className="text-sm font-medium">Mobile *</Label>
+                            <div className="relative">
+                              <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="mobile"
+                                type="tel"
+                                placeholder="Enter mobile number"
+                                value={signupData.mobile}
+                                onChange={(e) => handleSignupInputChange('mobile', e.target.value.replace(/\D/g, ''))}
+                                maxLength={12}
+                                className={`pl-10 h-11 ${signupErrors.mobile ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                            </div>
+                            {signupErrors.mobile && <p className="text-xs text-red-500">{signupErrors.mobile}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="gender" className="text-sm font-medium">Gender *</Label>
+                            <Select
+                              value={signupData.gender}
+                              onValueChange={(value) => handleSelectChange('gender', value)}
+                            >
+                              <SelectTrigger className={`h-11 ${signupErrors.gender ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'}`}>
+                                <SelectValue placeholder="Select gender" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="male">Male</SelectItem>
+                                <SelectItem value="female">Female</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {signupErrors.gender && <p className="text-xs text-red-500">{signupErrors.gender}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="date_of_birth" className="text-sm font-medium">Date of Birth *</Label>
+                            <div className="relative">
+                              <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                              <Input
+                                id="date_of_birth"
+                                type="date"
+                                value={signupData.date_of_birth}
+                                onChange={(e) => handleSignupInputChange('date_of_birth', e.target.value)}
+                                max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                                className={`pl-10 h-11 ${signupErrors.date_of_birth ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                            </div>
+                            {signupErrors.date_of_birth && <p className="text-xs text-red-500">{signupErrors.date_of_birth}</p>}
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-4">All fields marked with * are mandatory</p>
+                      </div>
+                    )}
+
+                    {/* Step 2: Address Information */}
+                    {signupStep === 2 && (
+                      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-6">Address Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="address_line1" className="text-sm font-medium">Address Line 1 *</Label>
+                            <div className="relative">
+                              <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="address_line1"
+                                type="text"
+                                placeholder="Enter address line 1"
+                                value={signupData.address_line1}
+                                onChange={(e) => handleSignupInputChange('address_line1', e.target.value)}
+                                className={`pl-10 h-11 ${signupErrors.address_line1 ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                            </div>
+                            {signupErrors.address_line1 && <p className="text-xs text-red-500">{signupErrors.address_line1}</p>}
+                          </div>
+
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="address_line2" className="text-sm font-medium">Address Line 2</Label>
+                            <div className="relative">
+                              <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="address_line2"
+                                type="text"
+                                placeholder="Enter address line 2 (Optional)"
+                                value={signupData.address_line2}
+                                onChange={(e) => handleSignupInputChange('address_line2', e.target.value)}
+                                className="pl-10 h-11 border-gray-300 focus:border-gray-900 transition-all"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="city" className="text-sm font-medium">City *</Label>
+                            <div className="relative">
+                              <Building className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="city"
+                                type="text"
+                                placeholder="Enter city"
+                                value={signupData.city}
+                                onChange={(e) => handleSignupInputChange('city', e.target.value)}
+                                className={`pl-10 h-11 ${signupErrors.city ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                            </div>
+                            {signupErrors.city && <p className="text-xs text-red-500">{signupErrors.city}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="state" className="text-sm font-medium">State *</Label>
+                            <div className="relative">
+                              <Building className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="state"
+                                type="text"
+                                placeholder="Enter state"
+                                value={signupData.state}
+                                onChange={(e) => handleSignupInputChange('state', e.target.value)}
+                                className={`pl-10 h-11 ${signupErrors.state ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                            </div>
+                            {signupErrors.state && <p className="text-xs text-red-500">{signupErrors.state}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="pincode" className="text-sm font-medium">Pincode *</Label>
+                            <div className="relative">
+                              <Hash className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="pincode"
+                                type="text"
+                                placeholder="Enter 6-digit pincode"
+                                value={signupData.pincode}
+                                onChange={(e) => handleSignupInputChange('pincode', e.target.value.replace(/\D/g, ''))}
+                                maxLength={6}
+                                className={`pl-10 h-11 ${signupErrors.pincode ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                            </div>
+                            {signupErrors.pincode && <p className="text-xs text-red-500">{signupErrors.pincode}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="country" className="text-sm font-medium">Country</Label>
+                            <div className="relative">
+                              <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="country"
+                                type="text"
+                                placeholder="Enter country"
+                                value={signupData.country}
+                                onChange={(e) => handleSignupInputChange('country', e.target.value)}
+                                className="pl-10 h-11 border-gray-300 focus:border-gray-900 transition-all"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-4">All fields marked with * are mandatory</p>
+                      </div>
+                    )}
+
+                    {/* Navigation Buttons */}
+                    <div className="flex items-center justify-between gap-4 pt-4">
+                      {signupStep === 2 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handlePreviousStep}
+                          className="h-12 px-6 border-gray-300 hover:bg-gray-50 text-gray-900"
+                        >
+                          ← Previous
+                        </Button>
+                      )}
+                      <div className="flex-1" />
+                      <Button
+                        type="submit"
+                        className="h-12 px-8 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
+                        disabled={isSubmitting || isSigningUp}
+                      >
+                        {signupStep === 1 ? (
+                          'Next →'
+                        ) : (
+                          isSubmitting || isSigningUp ? 'Creating Account...' : 'Create Account'
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                )}
 
                 {/* OTP Verification Section */}
                 {showOTPVerification && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 pt-6 border-t border-gray-200"
+                    className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm"
                   >
-                    <div className="mb-4">
+                    {/* Progress Indicator for OTP Step */}
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-gray-900 text-white">
+                            1
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">Personal Information</span>
+                        </div>
+                        <div className="flex-1 h-0.5 mx-4 bg-gray-900" />
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-gray-900 text-white">
+                            2
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">Address Details</span>
+                        </div>
+                        <div className="flex-1 h-0.5 mx-4 bg-gray-900" />
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-gray-900 text-white">
+                            3
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">OTP Verification</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
                       <div className="flex items-center gap-2 mb-2">
                         <Shield className="h-5 w-5 text-gray-900" />
                         <h3 className="text-xl font-semibold text-gray-900">
@@ -1142,13 +1384,14 @@ export const LoginPage = () => {
                           type="button"
                           onClick={() => {
                             setShowOTPVerification(false);
+                            setSignupStep(2);
                             setSignupToken(null);
                             setOtpCode("");
                             setOtpError("");
                           }}
                           className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                         >
-                          Go back to signup form
+                          ← Go back to address details
                         </button>
                       </div>
                     </form>

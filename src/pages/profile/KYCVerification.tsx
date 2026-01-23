@@ -168,7 +168,13 @@ export function KYCVerification() {
                 {kycStatus === 'rejected' ? 'Resubmit KYC Documents' : 'Submit KYC Documents'}
               </Button>
             )}
-            {(kycStatus === 'verified' || kycStatus === 'approved' || kycStatus === 'pending') && (
+            {kycStatus === 'pending' && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                <span className="text-yellow-800 dark:text-yellow-200 font-medium">Your KYC is Under Review</span>
+              </div>
+            )}
+            {(kycStatus === 'verified' || kycStatus === 'approved') && (
               <Button
                 onClick={() => setIsKYCModalOpen(true)}
                 className="w-full sm:w-auto"

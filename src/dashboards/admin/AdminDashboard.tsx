@@ -15,6 +15,10 @@ import {
   ArrowRight,
   ShoppingCart,
   CheckCircle,
+  Clock,
+  XCircle,
+  AlertCircle,
+  CreditCard,
 } from "lucide-react";
 import {
   AreaChart,
@@ -32,22 +36,14 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import {
-  useGetGrowthMetricsQuery,
-  useGetBookingTrendsQuery,
-  useGetPaymentTypesQuery,
-  useGetStaffPerformanceQuery,
-} from "@/app/api/growthApi";
-import { StatsCard } from "@/shared/components/StatsCard";
+import { useGetAdminDashboardQuery } from "@/app/api/reportsApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const AdminDashboard = () => {
-  const { data: metrics } = useGetGrowthMetricsQuery();
-  const { data: bookingTrends } = useGetBookingTrendsQuery();
-  const { data: paymentTypes } = useGetPaymentTypesQuery();
-  const { data: staffPerformance } = useGetStaffPerformanceQuery();
+  const { data: dashboardData, isLoading, isError } = useGetAdminDashboardQuery();
 
   const COLORS = [
     "hsl(221 83% 53%)",
@@ -56,62 +52,108 @@ export const AdminDashboard = () => {
     "hsl(0 84% 60%)",
   ];
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
-  };
+  // Transform API data to component format
+  const bookingTrendsData = dashboardData?.booking_trends
+    ? dashboardData.booking_trends.months.map((month, index) => ({
+        month,
+        bookings: dashboardData.booking_trends.bookings[index],
+      }))
+    : [];
 
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 },
-  };
+  const paymentTypes = dashboardData?.payment_distribution
+    ? [
+        {
+          name: "Full Payment",
+          value: dashboardData.payment_distribution.full_payment.percentage,
+        },
+        {
+          name: "Wallet",
+          value: dashboardData.payment_distribution.wallet.percentage,
+        },
+        {
+          name: "EMI",
+          value: dashboardData.payment_distribution.emi.percentage,
+        },
+        {
+          name: "Mixed",
+          value: dashboardData.payment_distribution.mixed.percentage,
+        },
+      ]
+    : [];
 
-  // Mock data matching the image
-  const mockMetrics = {
-    evBookings: { value: 1250, change: 15.2, trend: "up" },
-    activeBuyers: { value: 8450, change: 8.5, trend: "up" },
-  };
+  const staffPerformance = dashboardData?.staff_performance
+    ? dashboardData.staff_performance.map((staff) => ({
+        name: staff.name,
+        value: staff.achievement,
+      }))
+    : [];
 
-  const bookingTrendsData = [
-    { month: "Jan", bookings: 120 },
-    { month: "Feb", bookings: 180 },
-    { month: "Mar", bookings: 250 },
-    { month: "Apr", bookings: 320 },
-  ];
+  const funnelData = dashboardData?.sales_funnel
+    ? dashboardData.sales_funnel.map((stage, index) => ({
+        name: stage.stage,
+        value: stage.count,
+        percentage: stage.percentage,
+        drop_off: stage.drop_off,
+        fill:
+          index === 0
+            ? "hsl(221 83% 53%)"
+            : index === 1
+            ? "hsl(199 89% 48%)"
+            : index === 2
+            ? "hsl(38 92% 50%)"
+            : index === 3
+            ? "hsl(142 76% 36%)"
+            : "hsl(0 84% 60%)",
+      }))
+    : [];
 
-  const funnelData = [
-    { name: "Visitors", value: 10000, fill: "hsl(221 83% 53%)" },
-    { name: "Interested", value: 3500, fill: "hsl(199 89% 48%)" },
-    { name: "Pre-Booked", value: 1250, fill: "hsl(38 92% 50%)" },
-    { name: "Paid", value: 850, fill: "hsl(142 76% 36%)" },
-    { name: "Delivered", value: 720, fill: "hsl(0 84% 60%)" },
-  ];
+  const conversionRates = dashboardData?.conversion_rates
+    ? dashboardData.conversion_rates.map((rate) => ({
+        stage: `${rate.from} → ${rate.to}`,
+        rate: rate.rate,
+        change: rate.change,
+        trend: rate.trend,
+        converted_count: rate.converted_count,
+      }))
+    : [];
 
-  const conversionRates = [
-    { stage: "Visitors → Interested", rate: 35.0, change: +2.5 },
-    { stage: "Interested → Pre-Booked", rate: 35.7, change: -1.2 },
-    { stage: "Pre-Booked → Paid", rate: 68.0, change: +3.8 },
-    { stage: "Paid → Delivered", rate: 84.7, change: +0.5 },
-  ];
+  const buyerGrowthData = dashboardData?.buyer_growth_trend
+    ? dashboardData.buyer_growth_trend.months.map((month, index) => ({
+        month,
+        active: dashboardData.buyer_growth_trend.active_buyers[index],
+        total: dashboardData.buyer_growth_trend.total_buyers[index],
+        new:
+          index > 0
+            ? dashboardData.buyer_growth_trend.active_buyers[index] -
+              dashboardData.buyer_growth_trend.active_buyers[index - 1]
+            : dashboardData.buyer_growth_trend.active_buyers[index],
+      }))
+    : [];
 
-  const buyerGrowthData = [
-    { month: "Jan", new: 450, active: 3200, total: 7200 },
-    { month: "Feb", new: 520, active: 3650, total: 7800 },
-    { month: "Mar", new: 680, active: 4200, total: 8500 },
-    { month: "Apr", new: 750, active: 4850, total: 9200 },
-    { month: "May", new: 820, active: 5400, total: 10000 },
-    { month: "Jun", new: 950, active: 6100, total: 11000 },
-  ];
-
-  const buyerSegments = [
-    { name: "Active Buyers", value: 6100, color: "hsl(142 76% 36%)" },
-    { name: "Pre-Booked", value: 1250, color: "hsl(38 92% 50%)" },
-    { name: "Inactive", value: 2650, color: "hsl(0 84% 60%)" },
-    { name: "New This Month", value: 950, color: "hsl(221 83% 53%)" },
-  ];
+  const buyerSegments = dashboardData?.buyer_segments
+    ? [
+        {
+          name: "Active Buyers",
+          value: dashboardData.buyer_segments.active_buyers,
+          color: "hsl(142 76% 36%)",
+        },
+        {
+          name: "Pre-Booked",
+          value: dashboardData.buyer_segments.pre_booked,
+          color: "hsl(38 92% 50%)",
+        },
+        {
+          name: "Inactive",
+          value: dashboardData.buyer_segments.inactive,
+          color: "hsl(0 84% 60%)",
+        },
+        {
+          name: "New This Month",
+          value: dashboardData.buyer_segments.new_this_month,
+          color: "hsl(221 83% 53%)",
+        },
+      ]
+    : [];
 
   const buyerSegmentColors = [
     "hsl(142 76% 36%)",
@@ -119,6 +161,63 @@ export const AdminDashboard = () => {
     "hsl(0 84% 60%)",
     "hsl(221 83% 53%)",
   ];
+
+  // Transform pre-bookings data
+  const emiCollectionTrendData = dashboardData?.emi_orders?.collection_trend
+    ? dashboardData.emi_orders.collection_trend.months.map((month, index) => ({
+        month,
+        amount: dashboardData.emi_orders!.collection_trend.amounts[index],
+        orders: dashboardData.emi_orders!.collection_trend.order_counts[index],
+      }))
+    : [];
+
+  const cancellationTrendData = dashboardData?.cancelled_orders?.cancellation_trend
+    ? dashboardData.cancelled_orders.cancellation_trend.months.map((month, index) => ({
+        month,
+        count: dashboardData.cancelled_orders!.cancellation_trend.counts[index],
+      }))
+    : [];
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <Skeleton className="h-10 w-64" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-32" />
+            <Skeleton className="h-9 w-32" />
+          </div>
+        </div>
+        <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-80" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError || !dashboardData) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Card className="p-6">
+          <CardContent className="text-center">
+            <p className="text-destructive mb-2">Failed to load dashboard data</p>
+            <p className="text-sm text-muted-foreground">
+              Please try refreshing the page
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6 lg:space-y-8">
@@ -171,12 +270,22 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <div className="text-xl sm:text-2xl font-bold text-foreground">
-                {mockMetrics.activeBuyers.value.toLocaleString()}
+                {dashboardData.kpi_cards.active_buyers.value.toLocaleString()}
               </div>
               <div className="flex items-center gap-1 mt-1">
-                <ArrowUpRight className="h-3 w-3 text-success flex-shrink-0" />
-                <span className="text-[10px] sm:text-xs text-success">
-                  {mockMetrics.activeBuyers.change}% vs last month
+                {dashboardData.kpi_cards.active_buyers.trend === "up" ? (
+                  <ArrowUpRight className="h-3 w-3 text-success flex-shrink-0" />
+                ) : (
+                  <ArrowDownRight className="h-3 w-3 text-destructive flex-shrink-0" />
+                )}
+                <span
+                  className={`text-[10px] sm:text-xs ${
+                    dashboardData.kpi_cards.active_buyers.trend === "up"
+                      ? "text-success"
+                      : "text-destructive"
+                  }`}
+                >
+                  {dashboardData.kpi_cards.active_buyers.change}% vs last month
                 </span>
               </div>
             </CardContent>
@@ -198,12 +307,23 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <div className="text-xl sm:text-2xl font-bold text-foreground">
-                10,000
+                {dashboardData.kpi_cards.total_visitors.value.toLocaleString()}
               </div>
               <div className="flex items-center gap-1 mt-1">
-                <TrendingUp className="h-3 w-3 text-success flex-shrink-0" />
-                <span className="text-[10px] sm:text-xs text-success">
-                  +8.2% from last month
+                {dashboardData.kpi_cards.total_visitors.trend === "up" ? (
+                  <ArrowUpRight className="h-3 w-3 text-success flex-shrink-0" />
+                ) : (
+                  <ArrowDownRight className="h-3 w-3 text-destructive flex-shrink-0" />
+                )}
+                <span
+                  className={`text-[10px] sm:text-xs ${
+                    dashboardData.kpi_cards.total_visitors.trend === "up"
+                      ? "text-success"
+                      : "text-destructive"
+                  }`}
+                >
+                  {dashboardData.kpi_cards.total_visitors.trend === "up" ? "+" : ""}
+                  {dashboardData.kpi_cards.total_visitors.change}% from last month
                 </span>
               </div>
             </CardContent>
@@ -225,10 +345,10 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <div className="text-xl sm:text-2xl font-bold text-foreground">
-                1,250
+                {dashboardData.kpi_cards.pre_booked.value.toLocaleString()}
               </div>
               <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                12.5% conversion
+                {dashboardData.kpi_cards.pre_booked.conversion}% conversion
               </div>
             </CardContent>
           </Card>
@@ -249,10 +369,10 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <div className="text-xl sm:text-2xl font-bold text-foreground">
-                850
+                {dashboardData.kpi_cards.paid_orders.value.toLocaleString()}
               </div>
               <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                68% conversion
+                {dashboardData.kpi_cards.paid_orders.conversion}% conversion
               </div>
             </CardContent>
           </Card>
@@ -273,10 +393,10 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <div className="text-xl sm:text-2xl font-bold text-foreground">
-                720
+                {dashboardData.kpi_cards.delivered.value.toLocaleString()}
               </div>
               <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                84.7% conversion
+                {dashboardData.kpi_cards.delivered.conversion}% conversion
               </div>
             </CardContent>
           </Card>
@@ -310,7 +430,7 @@ export const AdminDashboard = () => {
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1 text-xs sm:text-sm text-success">
                   <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4" />
-                  15.2%
+                  {dashboardData.booking_trends.growth}%
                 </span>
               </div>
             </div>
@@ -349,7 +469,10 @@ export const AdminDashboard = () => {
                   <YAxis
                     stroke="hsl(215 16% 47%)"
                     fontSize={12}
-                    domain={[0, 600]}
+                    domain={[
+                      0,
+                      Math.max(...bookingTrendsData.map((d) => d.bookings)) * 1.2,
+                    ]}
                   />
                   <Tooltip
                     contentStyle={{
@@ -697,13 +820,14 @@ export const AdminDashboard = () => {
             </div>
             <div className="flex-1 flex flex-col justify-between space-y-4">
               {funnelData.map((item, index) => {
-                const percentage = (item.value / funnelData[0].value) * 100;
-                const dropOff =
-                  index > 0
-                    ? ((funnelData[index - 1].value - item.value) /
-                        funnelData[index - 1].value) *
-                      100
-                    : 0;
+                const percentage = item.percentage || (item.value / funnelData[0].value) * 100;
+                const dropOff = item.drop_off !== null && item.drop_off !== undefined
+                  ? item.drop_off
+                  : index > 0
+                  ? ((funnelData[index - 1].value - item.value) /
+                      funnelData[index - 1].value) *
+                    100
+                  : 0;
                 return (
                   <div key={item.name} className="space-y-2">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
@@ -711,7 +835,7 @@ export const AdminDashboard = () => {
                         <span className="text-xs sm:text-sm font-medium text-foreground truncate">
                           {item.name}
                         </span>
-                        {index > 0 && dropOff > 0 && (
+                        {index > 0 && dropOff !== null && dropOff !== undefined && dropOff > 0 && (
                           <span className="text-[10px] sm:text-xs text-muted-foreground">
                             ({dropOff.toFixed(1)}% drop-off)
                           </span>
@@ -782,7 +906,9 @@ export const AdminDashboard = () => {
                     <p className="text-base sm:text-lg font-bold text-info">
                       {(() => {
                         const dropOffs = funnelData.map((item, idx) =>
-                          idx > 0
+                          item.drop_off !== null && item.drop_off !== undefined
+                            ? item.drop_off
+                            : idx > 0
                             ? ((funnelData[idx - 1].value - item.value) /
                                 funnelData[idx - 1].value) *
                               100
@@ -795,7 +921,9 @@ export const AdminDashboard = () => {
                     <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                       {(() => {
                         const dropOffs = funnelData.map((item, idx) =>
-                          idx > 0
+                          item.drop_off !== null && item.drop_off !== undefined
+                            ? item.drop_off
+                            : idx > 0
                             ? ((funnelData[idx - 1].value - item.value) /
                                 funnelData[idx - 1].value) *
                               100
@@ -804,9 +932,11 @@ export const AdminDashboard = () => {
                         const maxIndex = dropOffs.indexOf(
                           Math.max(...dropOffs)
                         );
-                        return `${funnelData[maxIndex - 1].name} → ${
-                          funnelData[maxIndex].name
-                        }`;
+                        return maxIndex > 0
+                          ? `${funnelData[maxIndex - 1].name} → ${
+                              funnelData[maxIndex].name
+                            }`
+                          : "N/A";
                       })()}
                     </p>
                   </div>
@@ -855,6 +985,7 @@ export const AdminDashboard = () => {
               {conversionRates.map((item, index) => {
                 const isPositive = item.change >= 0;
                 const TrendIcon = isPositive ? ArrowUpRight : ArrowDownRight;
+                const trend = item.trend || (isPositive ? "up" : "down");
                 return (
                   <div key={index} className="space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -882,41 +1013,33 @@ export const AdminDashboard = () => {
                             {item.rate}%
                           </span>
                           <span className="text-[10px] sm:text-xs text-muted-foreground">
-                            {index === 0 &&
-                              `${(
-                                (item.rate / 100) *
-                                10000
-                              ).toLocaleString()} converted`}
-                            {index === 1 &&
-                              `${(
-                                (item.rate / 100) *
-                                3500
-                              ).toLocaleString()} converted`}
-                            {index === 2 &&
-                              `${(
-                                (item.rate / 100) *
-                                1250
-                              ).toLocaleString()} converted`}
-                            {index === 3 &&
-                              `${(
-                                (item.rate / 100) *
-                                850
-                              ).toLocaleString()} converted`}
+                            {item.converted_count
+                              ? `${item.converted_count.toLocaleString()} converted`
+                              : ""}
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="relative">
                       <Progress value={item.rate} className="h-3" />
-                      <div className="absolute inset-0 flex items-center justify-end pr-2">
-                        <span className="text-[10px] font-medium text-white">
-                          {item.rate >= 50
-                            ? "Excellent"
-                            : item.rate >= 35
-                            ? "Good"
-                            : "Needs Improvement"}
-                        </span>
-                      </div>
+                      {item.rate >= 50 && (
+                        <div className="absolute inset-0 flex items-center justify-end pr-2">
+                          <span className="text-[10px] font-medium text-white">
+                            {item.rate >= 50
+                              ? "Excellent"
+                              : item.rate >= 35
+                              ? "Good"
+                              : "Needs Improvement"}
+                          </span>
+                        </div>
+                      )}
+                      {item.rate < 50 && (
+                        <div className="absolute inset-0 flex items-center justify-end pr-2">
+                          <span className="text-[10px] font-medium text-foreground">
+                            {item.rate >= 35 ? "Good" : "Needs Improvement"}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     {index < conversionRates.length - 1 && (
                       <div className="border-t border-border/50" />
@@ -972,6 +1095,337 @@ export const AdminDashboard = () => {
           </Card>
         </motion.div>
       </div>
+
+      {/* Pre-Bookings Section */}
+      {dashboardData?.pre_bookings && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="space-y-4 sm:space-y-6"
+        >
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5 text-primary" />
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+              Pre-Bookings Overview
+            </h2>
+          </div>
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Pre-Bookings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {dashboardData.pre_bookings.kpi_cards.total_pre_bookings.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total amount: ₹{dashboardData.pre_bookings.kpi_cards.total_amount.toLocaleString('en-IN')}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-warning">
+                  {dashboardData.pre_bookings.kpi_cards.pending.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {((dashboardData.pre_bookings.kpi_cards.pending / dashboardData.pre_bookings.kpi_cards.total_pre_bookings) * 100).toFixed(1)}% of total
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-success">
+                  {dashboardData.pre_bookings.kpi_cards.confirmed.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {((dashboardData.pre_bookings.kpi_cards.confirmed / dashboardData.pre_bookings.kpi_cards.total_pre_bookings) * 100).toFixed(1)}% of total
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Expired</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-destructive">
+                  {dashboardData.pre_bookings.summary.expired_count.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {((dashboardData.pre_bookings.summary.expired_count / dashboardData.pre_bookings.summary.total_count) * 100).toFixed(1)}% of total
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </motion.div>
+      )}
+
+      {/* EMI Orders Section */}
+      {dashboardData?.emi_orders && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+          className="space-y-4 sm:space-y-6"
+        >
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+              EMI Orders Overview
+            </h2>
+          </div>
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total EMI Orders</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {dashboardData.emi_orders.kpi_cards.total_emi_orders.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Active: {dashboardData.emi_orders.kpi_cards.active_emis.toLocaleString()}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Active EMIs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-success">
+                  {dashboardData.emi_orders.kpi_cards.active_emis.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {((dashboardData.emi_orders.kpi_cards.active_emis / dashboardData.emi_orders.kpi_cards.total_emi_orders) * 100).toFixed(1)}% of total
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Monthly Collection</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">
+                  ₹{dashboardData.emi_orders.kpi_cards.monthly_collection.toLocaleString('en-IN')}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Current month
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Pending Amount</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-warning">
+                  ₹{dashboardData.emi_orders.kpi_cards.pending_amount.toLocaleString('en-IN')}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total pending
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* EMI Collection Trend Chart */}
+          {emiCollectionTrendData.length > 0 && (
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+              <Card className="p-4 sm:p-6">
+                <div className="mb-4 sm:mb-6">
+                  <h3 className="text-sm sm:text-base font-semibold text-foreground">
+                    Collection Trend
+                  </h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    Monthly EMI collection amounts
+                  </p>
+                </div>
+                <div className="h-[250px] sm:h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={emiCollectionTrendData}>
+                      <defs>
+                        <linearGradient id="colorEmiAmount" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(221 83% 53%)" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="hsl(221 83% 53%)" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+                      <XAxis dataKey="month" stroke="hsl(215 16% 47%)" fontSize={12} />
+                      <YAxis stroke="hsl(215 16% 47%)" fontSize={12} />
+                      <Tooltip
+                        formatter={(value: number) => `₹${value.toLocaleString('en-IN')}`}
+                        contentStyle={{
+                          backgroundColor: "hsl(0 0% 100%)",
+                          border: "1px solid hsl(214 32% 91%)",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="amount"
+                        stroke="hsl(221 83% 53%)"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorEmiAmount)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+              <Card className="p-4 sm:p-6">
+                <div className="mb-4 sm:mb-6">
+                  <h3 className="text-sm sm:text-base font-semibold text-foreground">
+                    EMI Summary
+                  </h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    Order status breakdown
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Total Collected</span>
+                    <span className="text-lg font-bold text-success">
+                      ₹{dashboardData.emi_orders.summary.total_collected.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Total Pending</span>
+                    <span className="text-lg font-bold text-warning">
+                      ₹{dashboardData.emi_orders.summary.total_pending.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Completed</span>
+                    <span className="text-lg font-bold text-foreground">
+                      {dashboardData.emi_orders.summary.completed_count}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Cancelled</span>
+                    <span className="text-lg font-bold text-destructive">
+                      {dashboardData.emi_orders.summary.cancelled_count}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* Cancelled Orders Section */}
+      {dashboardData?.cancelled_orders && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0 }}
+          className="space-y-4 sm:space-y-6"
+        >
+          <div className="flex items-center gap-2">
+            <XCircle className="h-5 w-5 text-destructive" />
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+              Cancelled Orders Overview
+            </h2>
+          </div>
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Cancelled</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-destructive">
+                  {dashboardData.cancelled_orders.kpi_cards.total_cancelled.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {dashboardData.cancelled_orders.kpi_cards.cancellation_rate}% cancellation rate
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  ₹{dashboardData.cancelled_orders.kpi_cards.total_amount.toLocaleString('en-IN')}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cancelled orders value
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Refund Pending</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-warning">
+                  {dashboardData.cancelled_orders.kpi_cards.refund_pending.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ₹{dashboardData.cancelled_orders.summary.pending_refund_amount.toLocaleString('en-IN')} pending
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Refund Processed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-success">
+                  {dashboardData.cancelled_orders.summary.refund_processed_count.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ₹{dashboardData.cancelled_orders.summary.total_refunded_amount.toLocaleString('en-IN')} refunded
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Cancellation Trend Chart */}
+          {cancellationTrendData.length > 0 && (
+            <Card className="p-4 sm:p-6">
+              <div className="mb-4 sm:mb-6">
+                <h3 className="text-sm sm:text-base font-semibold text-foreground">
+                  Cancellation Trend
+                </h3>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Monthly cancellation counts
+                </p>
+              </div>
+              <div className="h-[250px] sm:h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={cancellationTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+                    <XAxis dataKey="month" stroke="hsl(215 16% 47%)" fontSize={12} />
+                    <YAxis stroke="hsl(215 16% 47%)" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(0 0% 100%)",
+                        border: "1px solid hsl(214 32% 91%)",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="hsl(0 84% 60%)"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
+        </motion.div>
+      )}
     </div>
   );
 };

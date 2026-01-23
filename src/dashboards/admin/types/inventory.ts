@@ -14,15 +14,20 @@ export interface InventoryModel {
   updatedAt: string;
   description?: string;
   variants?: ProductVariant[];
+  variantIds?: number[]; // All variant IDs for this vehicle group
+  firstVariantId?: number; // First variant ID for quick access
 }
 
 export interface ProductVariant {
   id: string;
+  variantId: number; // Actual variant ID from API for CRUD operations
   name: string;
   color?: string;
   priceAdjustment: number;
   sku: string;
   stock?: number;
+  batteryVariant?: string[];
+  price?: string;
 }
 
 export interface Warehouse {

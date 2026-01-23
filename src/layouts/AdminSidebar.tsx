@@ -53,11 +53,8 @@ const adminMenuSections: MenuSection[] = [
     label: "Platform Dashboard",
     icon: LayoutDashboard,
     value: "dashboard",
-    children: [
-      { label: "Overview", path: "/admin" },
-      //{ label: "Live Metrics", path: "/admin/dashboard/metrics" },
-      //{ label: "Alerts Center", path: "/admin/dashboard/alerts" },
-    ],
+    path: "/admin",
+    children: [],
   },
   // {
   //   label: 'Growth Analytics',
@@ -79,8 +76,8 @@ const adminMenuSections: MenuSection[] = [
       { label: "Pre-Bookings", path: "/admin/sales/pre-bookings" },
       { label: "EMI Orders", path: "/admin/sales/emi-orders" },
       { label: "Cancelled Orders", path: "/admin/sales/cancelled" },
-      { label: "Drop-off Users", path: "/admin/sales/drop-off" },
-      { label: "Partner Redemptions", path: "/admin/sales/redemptions" },
+      // { label: "Drop-off Users", path: "/admin/sales/drop-off" },
+      // { label: "Partner Redemptions", path: "/admin/sales/redemptions" },
     ],
   },
   // {
@@ -129,20 +126,6 @@ const adminMenuSections: MenuSection[] = [
         label: "Lead Conversion Rate",
         path: "/admin/staff-performance/conversion",
       },
-    ],
-  },
-  {
-    label: "Binary Engine Control",
-    icon: Settings,
-    value: "binary-engine",
-    children: [
-      { label: "Pair Rules", path: "/admin/binary-engine/pair-rules" },
-      { label: "Ceiling Settings", path: "/admin/binary-engine/ceiling" },
-      {
-        label: "Carry Forward Logic",
-        path: "/admin/binary-engine/carry-forward",
-      },
-      { label: "Monthly Reset Engine", path: "/admin/binary-engine/reset" },
     ],
   },
   {
@@ -264,6 +247,13 @@ const adminMenuSections: MenuSection[] = [
       { label: "Notification History", path: "/admin/reports/notifications" },
     ],
   },
+  {
+    label: "Binary Engine Control",
+    icon: Settings,
+    value: "binary-engine",
+    path: "/admin/binary-engine/pair-rules",
+    children: [],
+  },
   // {
   //   label: "Risk & Compliance",
   //   icon: Shield,
@@ -313,9 +303,16 @@ export const AdminSidebar = () => {
     let bestMatch: { section: string; specificity: number } | null = null;
 
     for (const section of dynamicMenuSections) {
-      // Check if current path matches parent path exactly
+      // Check if current path matches parent path exactly (for direct path sections)
       if (section.path && section.path === path) {
         return section.value;
+      }
+      // Check if path starts with section path (for direct path sections with sub-routes)
+      if (section.path && section.path !== "/admin" && path.startsWith(section.path)) {
+        const specificity = section.path.length;
+        if (!bestMatch || specificity > bestMatch.specificity) {
+          bestMatch = { section: section.value, specificity };
+        }
       }
       // Check children for matches
       for (const child of section.children) {
@@ -382,6 +379,12 @@ export const AdminSidebar = () => {
   };
 
   const isSectionActive = (section: MenuSection) => {
+    // If section has a direct path, check if it matches
+    if (section.path && section.children.length === 0) {
+      return location.pathname === section.path || 
+        (section.path !== "/admin" && location.pathname.startsWith(section.path));
+    }
+    // Otherwise check children
     return section.children.some((child) =>
       isSubMenuActive(child.path, section.children)
     );
@@ -442,7 +445,55 @@ export const AdminSidebar = () => {
     const sectionActive = isSectionActive(section);
     const isParentPathActive =
       section.path && location.pathname === section.path;
+    
+    // If section has a direct path and no children, render as a simple link
+    if (section.path && section.children.length === 0) {
+      const isActive = location.pathname === section.path || 
+        (section.path !== "/admin" && location.pathname.startsWith(section.path));
+      
+      return (
+        <Link
+          key={section.value}
+          to={section.path}
+          className={cn(
+            "group relative flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+            isActive
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+          )}
+        >
+          <div className="flex items-center gap-3 flex-1">
+            <Icon
+              className={cn(
+                "h-5 w-5 shrink-0 transition-colors",
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground group-hover:text-primary"
+              )}
+            />
+            {!collapsed && (
+              <span className="truncate flex-1 text-left">{section.label}</span>
+            )}
+            {!collapsed && section.badge !== undefined && (
+              <Badge
+                variant={section.badgeVariant || "default"}
+                className="h-5 min-w-5 px-1.5 text-xs"
+              >
+                {section.badge}
+              </Badge>
+            )}
+          </div>
+          {isActive && (
+            <motion.div
+              layoutId="activeSectionIndicator"
+              className="absolute right-0 h-8 w-1 rounded-l-full bg-primary"
+            />
+          )}
+        </Link>
+      );
+    }
 
+    // Otherwise, render as accordion item with children
     return (
       <AccordionItem
         key={section.value}
@@ -542,10 +593,11 @@ export const AdminSidebar = () => {
             {dynamicMenuSections.map((section) => {
               const Icon = section.icon;
               const sectionActive = isSectionActive(section);
+              const targetPath = section.path || section.children[0]?.path || "/admin";
               return (
                 <Link
                   key={section.value}
-                  to={section.children[0]?.path || "/admin"}
+                  to={targetPath}
                   className={cn(
                     "group relative flex items-center justify-center rounded-lg p-3 text-sm font-medium transition-all duration-200",
                     sectionActive
@@ -572,15 +624,64 @@ export const AdminSidebar = () => {
             })}
           </div>
         ) : (
-          <Accordion
-            type="multiple"
-            value={openSections}
-            onValueChange={setOpenSections}
-            className="space-y-1"
-            defaultValue={[getActiveSection()]}
-          >
-            {dynamicMenuSections.map(renderSection)}
-          </Accordion>
+          <div className="space-y-1">
+            {(() => {
+              const result: JSX.Element[] = [];
+              let accordionGroup: MenuSection[] = [];
+              
+              dynamicMenuSections.forEach((section, index) => {
+                const isDirectPath = section.path && section.children.length === 0;
+                const nextSection = dynamicMenuSections[index + 1];
+                const isNextDirectPath = nextSection && nextSection.path && nextSection.children.length === 0;
+                
+                if (isDirectPath) {
+                  // If we have accumulated accordion sections, render them first
+                  if (accordionGroup.length > 0) {
+                    result.push(
+                      <Accordion
+                        key={`accordion-${index}`}
+                        type="multiple"
+                        value={openSections}
+                        onValueChange={setOpenSections}
+                        className="space-y-1"
+                        defaultValue={[getActiveSection()]}
+                      >
+                        {accordionGroup.map(renderSection)}
+                      </Accordion>
+                    );
+                    accordionGroup = [];
+                  }
+                  // Render direct path section
+                  result.push(
+                    <div key={section.value}>
+                      {renderSection(section)}
+                    </div>
+                  );
+                } else {
+                  // Accumulate accordion sections
+                  accordionGroup.push(section);
+                  // If next section is direct path or this is the last section, render accordion
+                  if (isNextDirectPath || !nextSection) {
+                    result.push(
+                      <Accordion
+                        key={`accordion-${index}`}
+                        type="multiple"
+                        value={openSections}
+                        onValueChange={setOpenSections}
+                        className="space-y-1"
+                        defaultValue={[getActiveSection()]}
+                      >
+                        {accordionGroup.map(renderSection)}
+                      </Accordion>
+                    );
+                    accordionGroup = [];
+                  }
+                }
+              });
+              
+              return result;
+            })()}
+          </div>
         )}
       </nav>
 

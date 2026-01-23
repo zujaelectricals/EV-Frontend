@@ -1012,8 +1012,8 @@ export const KYCPending = () => {
                 </Button>
                 <Button
                   className="bg-success hover:bg-success/90"
-                  onClick={() => handleApprove(viewingKYC.id)}
-                  disabled={isApproving}
+                  onClick={() => handleApprove(viewingKYC)}
+                  disabled={isUpdatingStatus}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Approve KYC

@@ -1,9 +1,11 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 import { XCircle, AlertTriangle, TrendingDown, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -21,38 +23,49 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
-
-const cancelledOrders = [
-  {
-    id: 'CO001',
-    userId: 'U12345',
-    userName: 'Rajesh Kumar',
-    vehicle: 'EV Scooter Pro',
-    amount: 125000,
-    cancelledDate: '2024-03-20',
-    reason: 'Changed mind',
-    refundStatus: 'processed',
-  },
-  {
-    id: 'CO002',
-    userId: 'U12346',
-    userName: 'Priya Sharma',
-    vehicle: 'EV Bike Elite',
-    amount: 250000,
-    cancelledDate: '2024-03-18',
-    reason: 'Financial issues',
-    refundStatus: 'pending',
-  },
-];
-
-const cancellationTrend = [
-  { month: 'Jan', count: 12, amount: 1.5 },
-  { month: 'Feb', count: 15, amount: 1.8 },
-  { month: 'Mar', count: 18, amount: 2.2 },
-  { month: 'Apr', count: 22, amount: 2.6 },
-];
+import { useGetAdminDashboardQuery } from '@/app/api/reportsApi';
 
 export const CancelledOrders = () => {
+  const { data: dashboardData, isLoading, isError } = useGetAdminDashboardQuery();
+
+  // Console log the full API response for debugging
+  React.useEffect(() => {
+    if (dashboardData) {
+      console.log('=== CancelledOrders: Full Admin Dashboard API Response ===');
+      console.log('Full response:', dashboardData);
+      console.log('Cancelled Orders:', dashboardData.cancelled_orders);
+      console.log('Cancellation Trend:', dashboardData.cancelled_orders?.cancellation_trend);
+    }
+  }, [dashboardData]);
+
+  // Transform cancellation trend data
+  const cancellationTrendData = React.useMemo(() => {
+    if (!dashboardData?.cancelled_orders?.cancellation_trend) {
+      console.log('CancelledOrders: No cancellation_trend data', {
+        hasCancelledOrders: !!dashboardData?.cancelled_orders,
+        cancellationTrend: dashboardData?.cancelled_orders?.cancellation_trend,
+      });
+      return [];
+    }
+    const trend = dashboardData.cancelled_orders.cancellation_trend;
+    if (!trend.months || !trend.counts) {
+      console.log('CancelledOrders: Missing months or counts', { trend });
+      return [];
+    }
+    if (trend.months.length !== trend.counts.length) {
+      console.log('CancelledOrders: Length mismatch', {
+        monthsLength: trend.months.length,
+        countsLength: trend.counts.length,
+      });
+      return [];
+    }
+    const data = trend.months.map((month, index) => ({
+      month,
+      count: trend.counts[index] || 0,
+    }));
+    console.log('CancelledOrders: Transformed data', data);
+    return data;
+  }, [dashboardData?.cancelled_orders?.cancellation_trend]);
   return (
     <div className="space-y-6">
       <div>
@@ -62,76 +75,94 @@ export const CancelledOrders = () => {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Cancelled</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">67</p>
-                </div>
-                <XCircle className="h-8 w-8 text-destructive opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {isLoading ? (
+          <>
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </>
+        ) : dashboardData?.cancelled_orders ? (
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Cancelled</p>
+                      <p className="text-3xl font-bold text-foreground mt-1">
+                        {dashboardData.cancelled_orders.kpi_cards.total_cancelled.toLocaleString()}
+                      </p>
+                    </div>
+                    <XCircle className="h-8 w-8 text-destructive opacity-20" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">₹8.2M</p>
-                </div>
-                <DollarSign className="h-8 w-8 text-warning opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
+                      <p className="text-3xl font-bold text-foreground mt-1">
+                        ₹{(dashboardData.cancelled_orders.kpi_cards.total_amount / 1000000).toFixed(1)}M
+                      </p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-warning opacity-20" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Refund Pending</p>
-                  <p className="text-3xl font-bold text-warning mt-1">12</p>
-                </div>
-                <AlertTriangle className="h-8 w-8 text-warning opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Refund Pending</p>
+                      <p className="text-3xl font-bold text-warning mt-1">
+                        {dashboardData.cancelled_orders.kpi_cards.refund_pending.toLocaleString()}
+                      </p>
+                    </div>
+                    <AlertTriangle className="h-8 w-8 text-warning opacity-20" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Cancellation Rate</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">5.4%</p>
-                </div>
-                <TrendingDown className="h-8 w-8 text-info opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Cancellation Rate</p>
+                      <p className="text-3xl font-bold text-foreground mt-1">
+                        {dashboardData.cancelled_orders.kpi_cards.cancellation_rate}%
+                      </p>
+                    </div>
+                    <TrendingDown className="h-8 w-8 text-info opacity-20" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </>
+        ) : null}
       </div>
 
       {/* Cancellation Trend */}
@@ -145,21 +176,38 @@ export const CancelledOrders = () => {
             <CardTitle>Cancellation Trend</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={cancellationTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-                <XAxis dataKey="month" stroke="hsl(215 16% 47%)" fontSize={12} />
-                <YAxis stroke="hsl(215 16% 47%)" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(0 0% 100%)',
-                    border: '1px solid hsl(214 32% 91%)',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Line type="monotone" dataKey="count" stroke="hsl(0 84% 60%)" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+            {isLoading ? (
+              <Skeleton className="h-[300px] w-full" />
+            ) : cancellationTrendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={cancellationTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+                  <XAxis dataKey="month" stroke="hsl(215 16% 47%)" fontSize={12} />
+                  <YAxis stroke="hsl(215 16% 47%)" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(0 0% 100%)',
+                      border: '1px solid hsl(214 32% 91%)',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Line type="monotone" dataKey="count" stroke="hsl(0 84% 60%)" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : dashboardData?.cancelled_orders ? (
+              <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                <p>No trend data available</p>
+                <p className="text-xs">
+                  {dashboardData.cancelled_orders.cancellation_trend 
+                    ? 'Data structure issue - check console'
+                    : 'cancellation_trend not found in API response'}
+                </p>
+              </div>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                {isError ? 'Error loading data' : 'No data available'}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -187,41 +235,19 @@ export const CancelledOrders = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {cancelledOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium text-foreground">{order.userName}</p>
-                      <p className="text-xs text-muted-foreground">{order.userId}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{order.vehicle}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-bold text-foreground">₹{order.amount.toLocaleString()}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{order.cancelledDate}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">{order.reason}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={order.refundStatus === 'processed' ? 'default' : 'destructive'}
-                    >
-                      {order.refundStatus}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm">
-                      View
-                    </Button>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8">
+                    <Skeleton className="h-8 w-full" />
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    Detailed cancelled orders list will be available from a separate API endpoint
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

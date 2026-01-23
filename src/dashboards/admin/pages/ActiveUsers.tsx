@@ -129,7 +129,7 @@ export const ActiveUsers = () => {
   const [searchInput, setSearchInput] = useState(''); // Input field value
   const [searchQuery, setSearchQuery] = useState(''); // Submitted search query
   const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [ordering, setOrdering] = useState<string>('-date_joined');
+  const [ordering, setOrdering] = useState<string>('date_joined');
 
   // Build query parameters
   const queryParams = useMemo(() => {

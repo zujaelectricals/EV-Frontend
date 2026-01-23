@@ -43,12 +43,12 @@ export const updateAuthTokens = (accessToken: string, refreshToken: string, user
     console.warn('⚠️ [updateAuthTokens] window is undefined');
     return;
   }
-  
+
   if (!accessToken || !refreshToken) {
     console.error('❌ [updateAuthTokens] Missing tokens:', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
     return;
   }
-  
+
   try {
     // Store tokens + minimal user info (id, email, name, role) needed for UI
     const authData: AuthStorageData = {
@@ -56,7 +56,7 @@ export const updateAuthTokens = (accessToken: string, refreshToken: string, user
       token: accessToken, // Keep for backward compatibility
       refreshToken,
     };
-    
+
     // Store minimal user info if provided (needed for UI on page reload)
     if (user) {
       authData.user = {
@@ -66,17 +66,17 @@ export const updateAuthTokens = (accessToken: string, refreshToken: string, user
         role: user.role,
       };
     }
-    
+
     const key = 'ev_nexus_auth_data';
     const dataString = JSON.stringify(authData);
-    
+
     // CRITICAL: Update localStorage synchronously and atomically
     localStorage.setItem(key, dataString);
-    
+
     // MULTI-TAB SYNC: Clear any refresh locks since we just got new tokens
     // The old token lock is no longer valid
     releaseRefreshLock();
-    
+
     // MULTI-TAB SYNC: Broadcast token update to other tabs/windows
     // This ensures all tabs use the same tokens and prevents "token already used" errors
     try {
@@ -95,10 +95,10 @@ export const updateAuthTokens = (accessToken: string, refreshToken: string, user
       console.warn('⚠️ [updateAuthTokens] Failed to broadcast token update:', broadcastError);
       // Continue even if broadcast fails
     }
-    
+
     // Note: tokenInUse is managed in refreshAccessToken, not here
     // This function just stores the tokens
-    
+
     // Verify it was stored
     const verify = localStorage.getItem(key);
     if (verify) {
@@ -112,7 +112,7 @@ export const updateAuthTokens = (accessToken: string, refreshToken: string, user
         tokensMatch,
         newRefreshTokenPrefix: refreshToken.substring(0, 20) + '...',
       });
-      
+
       if (!tokensMatch) {
         console.error('❌ [updateAuthTokens] Token mismatch after storage! This should not happen.');
         // Try to fix it
@@ -136,12 +136,12 @@ export const clearNonAuthStorage = () => {
       hasAuthData: !!authData,
       authDataLength: authData?.length || 0,
     });
-    
+
     if (!authData) {
       console.warn('⚠️ [clearNonAuthStorage] No auth data to preserve, skipping clear');
       return; // Don't clear if there's no auth data to preserve
     }
-    
+
     // Get all keys to clear (except ev_nexus_auth_data)
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -150,14 +150,14 @@ export const clearNonAuthStorage = () => {
         keysToRemove.push(key);
       }
     }
-    
+
     // Remove each key individually instead of clearing all
     keysToRemove.forEach(key => {
       localStorage.removeItem(key);
     });
-    
+
     console.log('✅ [clearNonAuthStorage] Cleared non-auth keys:', keysToRemove.length);
-    
+
     // Verify auth data is still there
     const verifyAuth = localStorage.getItem('ev_nexus_auth_data');
     if (verifyAuth) {
@@ -196,25 +196,25 @@ interface LogoutLogEntry {
 
 const addLogoutLog = (reason: string, details: Record<string, unknown> = {}) => {
   if (typeof window === 'undefined') return;
-  
+
   try {
     const existingLogs = sessionStorage.getItem(LOGOUT_LOG_KEY);
     const logs: LogoutLogEntry[] = existingLogs ? JSON.parse(existingLogs) : [];
-    
+
     const newEntry: LogoutLogEntry = {
       timestamp: new Date().toISOString(),
       reason,
       details,
       stackTrace: new Error().stack,
     };
-    
+
     logs.push(newEntry);
-    
+
     // Keep only the last MAX_LOG_ENTRIES entries
     if (logs.length > MAX_LOG_ENTRIES) {
       logs.shift();
     }
-    
+
     sessionStorage.setItem(LOGOUT_LOG_KEY, JSON.stringify(logs));
     console.error('🔴 [LOGOUT TRIGGERED]', reason, details);
   } catch (error) {
@@ -236,13 +236,13 @@ export const getLogoutLogs = (): LogoutLogEntry[] => {
 // Helper function to clear all localStorage data and logout
 const clearAllStorageAndLogout = (reason: string = 'Unknown reason', details: Record<string, unknown> = {}) => {
   if (typeof window === 'undefined') return;
-  
+
   try {
     // Log the logout event with details BEFORE clearing
     const { accessToken, refreshToken } = getAuthTokens();
     const accessTokenExpiry = refreshToken ? getTokenExpiryTime(accessToken) : null;
     const refreshTokenExpiry = refreshToken ? getTokenExpiryTime(refreshToken) : null;
-    
+
     addLogoutLog(reason, {
       ...details,
       hasAccessToken: !!accessToken,
@@ -251,11 +251,11 @@ const clearAllStorageAndLogout = (reason: string = 'Unknown reason', details: Re
       refreshTokenExpiryHours: refreshTokenExpiry ? Math.round(refreshTokenExpiry / 3600000 * 10) / 10 : null,
       currentTime: new Date().toISOString(),
     });
-    
+
     // Clear all localStorage data (including auth tokens on logout)
     // But preserve the logout log in sessionStorage (which survives redirects)
     localStorage.clear();
-    
+
     // Redirect to login page
     window.location.href = '/login';
   } catch (error) {
@@ -304,17 +304,17 @@ const getTabId = (): string => {
 // Check if a token is currently being used in another tab
 const isTokenInUseInAnotherTab = (token: string): boolean => {
   if (typeof window === 'undefined') return false;
-  
+
   try {
     const lockData = localStorage.getItem(REFRESH_LOCK_KEY);
     if (!lockData) return false;
-    
+
     const lock: RefreshLock = JSON.parse(lockData);
     const currentTabId = getTabId();
-    
+
     // If it's our own lock, it's not "another tab"
     if (lock.tabId === currentTabId) return false;
-    
+
     // Check if lock is stale (older than timeout)
     const lockAge = Date.now() - lock.timestamp;
     if (lockAge > REFRESH_LOCK_TIMEOUT) {
@@ -326,7 +326,7 @@ const isTokenInUseInAnotherTab = (token: string): boolean => {
       localStorage.removeItem(REFRESH_LOCK_KEY);
       return false;
     }
-    
+
     // Check if the token matches (using prefix for comparison)
     const tokenPrefix = token.substring(0, 20);
     if (lock.tokenPrefix === tokenPrefix) {
@@ -337,7 +337,7 @@ const isTokenInUseInAnotherTab = (token: string): boolean => {
       });
       return true;
     }
-    
+
     return false;
   } catch (error) {
     console.error('❌ [MULTI-TAB SYNC] Error checking refresh lock:', error);
@@ -348,29 +348,29 @@ const isTokenInUseInAnotherTab = (token: string): boolean => {
 // Acquire a lock for using a specific token
 const acquireRefreshLock = (token: string): boolean => {
   if (typeof window === 'undefined') return true; // Server-side, allow it
-  
+
   try {
     const currentTabId = getTabId();
     const tokenPrefix = token.substring(0, 20);
-    
+
     // Check if another tab has a lock
     if (isTokenInUseInAnotherTab(token)) {
       return false; // Another tab is using this token
     }
-    
+
     // Acquire the lock
     const lock: RefreshLock = {
       tokenPrefix,
       tabId: currentTabId,
       timestamp: Date.now(),
     };
-    
+
     localStorage.setItem(REFRESH_LOCK_KEY, JSON.stringify(lock));
     console.log('🔒 [MULTI-TAB SYNC] Acquired refresh lock', {
       tokenPrefix,
       tabId: currentTabId,
     });
-    
+
     return true;
   } catch (error) {
     console.error('❌ [MULTI-TAB SYNC] Error acquiring refresh lock:', error);
@@ -381,13 +381,13 @@ const acquireRefreshLock = (token: string): boolean => {
 // Release the refresh lock
 const releaseRefreshLock = (): void => {
   if (typeof window === 'undefined') return;
-  
+
   try {
     const lockData = localStorage.getItem(REFRESH_LOCK_KEY);
     if (lockData) {
       const lock: RefreshLock = JSON.parse(lockData);
       const currentTabId = getTabId();
-      
+
       // Only release if it's our lock
       if (lock.tabId === currentTabId) {
         localStorage.removeItem(REFRESH_LOCK_KEY);
@@ -483,10 +483,10 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
     const maxWaitTime = 5000;
     const checkInterval = 200;
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < maxWaitTime) {
       await new Promise(resolve => setTimeout(resolve, checkInterval));
-      
+
       // Check if token is still in use in another tab
       if (!isTokenInUseInAnotherTab(preCheckToken)) {
         // Token is no longer in use, re-read it (it might have been updated)
@@ -501,7 +501,7 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
         break;
       }
     }
-    
+
     // If we timed out, check one more time
     if (isTokenInUseInAnotherTab(preCheckToken)) {
       console.warn('⚠️ [TOKEN REFRESH] Timeout waiting for other tab, proceeding anyway (lock may be stale)');
@@ -539,19 +539,19 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
   refreshPromise = (async () => {
     // Clear the creation lock immediately after promise is created
     isCreatingRefreshPromise = false;
-    
+
     // CRITICAL: Read refresh token from localStorage RIGHT BEFORE using it
     // Since we're inside the refreshPromise, we know no other refresh is happening concurrently
     // But we already marked tokenInUse = expectedToken above, so verify we still have the same token
     const tokens = getAuthTokens();
     const tokenToUse = tokens.refreshToken;
-    
+
     if (!tokenToUse) {
       console.log('🔴 [TOKEN REFRESH] No refresh token found inside promise');
       tokenInUse = null; // Clear marker on error
       return null;
     }
-    
+
     // CRITICAL: Verify the token matches what we marked as "in use"
     // If it doesn't match, it means another refresh completed and updated it
     // In that case, we should use the new token instead
@@ -564,13 +564,13 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
       tokenInUse = tokenToUse;
     }
     // Otherwise, tokenInUse is already set to expectedToken (which equals tokenToUse)
-    
+
     console.log('🔵 [TOKEN REFRESH] Using refresh token:', {
       tokenPrefix: tokenToUse.substring(0, 20) + '...',
       tokenMatches: tokenToUse === expectedToken,
       tokenInUseMatches: tokenInUse === tokenToUse,
     });
-    
+
     // Check if refresh token is expired BEFORE attempting to refresh
     // This prevents unnecessary API calls and helps identify the issue early
     const refreshTokenExpiryTime = getTokenExpiryTime(tokenToUse);
@@ -604,19 +604,19 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
         });
       }
     }
-    
+
     // CRITICAL: Read the refresh token ONE MORE TIME right before the API call
     // This ensures we ALWAYS use the absolute latest token, even if another tab updated it
     // This is the final read before making the API call - must be the latest token
     const finalTokenCheck = getAuthTokens();
     const finalRefreshToken = finalTokenCheck.refreshToken;
-    
+
     if (!finalRefreshToken) {
       console.error('🔴 [TOKEN REFRESH] No refresh token found in final check before API call');
       tokenInUse = null;
       return null;
     }
-    
+
     // If the token changed since we last read it, use the new one
     // This handles the case where another tab refreshed and updated localStorage
     if (finalRefreshToken !== tokenToUse) {
@@ -627,7 +627,7 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
       // Update tokenInUse to the latest token
       tokenInUse = finalRefreshToken;
     }
-    
+
     // CRITICAL: Always use the latest token from localStorage for the API call
     // This ensures we never use a stale token
     const requestBody = { refresh: finalRefreshToken };
@@ -636,7 +636,7 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
       refreshTokenLength: finalRefreshToken.length,
       tokenWasUpdated: finalRefreshToken !== tokenToUse,
     });
-    
+
     try {
       const response = await fetch(`${getApiBaseUrl()}auth/refresh/`, {
         method: 'POST',
@@ -653,37 +653,37 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
           statusText: response.statusText,
           data: errorData
         }, null, 2));
-        
+
         // Handle token errors: 401 (invalid), 400 (blacklisted or already used)
         const errorDetail = errorData?.detail || errorData?.message || '';
         const errorDetailLower = errorDetail.toLowerCase();
-        
+
         // Only logout on actual REFRESH TOKEN errors, not access token errors
         // Check for specific refresh token error messages
-        const isRefreshTokenError = response.status === 401 || 
-                            (response.status === 400 && (
-                              errorDetailLower === 'token is blacklisted' ||
-                              errorDetailLower.includes('refresh token') && (
-                                errorDetailLower.includes('already been used') ||
-                                errorDetailLower.includes('has already been used') ||
-                                errorDetailLower.includes('is invalid') ||
-                                errorDetailLower.includes('is expired') ||
-                                errorDetailLower.includes('expired')
-                              ) ||
-                              (errorDetailLower.includes('token is invalid') && errorDetailLower.includes('refresh')) ||
-                              (errorDetailLower.includes('token is expired') && errorDetailLower.includes('refresh'))
-                            ));
-        
+        const isRefreshTokenError = response.status === 401 ||
+          (response.status === 400 && (
+            errorDetailLower === 'token is blacklisted' ||
+            errorDetailLower.includes('refresh token') && (
+              errorDetailLower.includes('already been used') ||
+              errorDetailLower.includes('has already been used') ||
+              errorDetailLower.includes('is invalid') ||
+              errorDetailLower.includes('is expired') ||
+              errorDetailLower.includes('expired')
+            ) ||
+            (errorDetailLower.includes('token is invalid') && errorDetailLower.includes('refresh')) ||
+            (errorDetailLower.includes('token is expired') && errorDetailLower.includes('refresh'))
+          ));
+
         // CRITICAL: Clear the "in use" marker on error
         // If it's a refresh token error, the token is invalid and we're logging out anyway
         // If it's a network error, clear it so we can retry
         tokenInUse = null;
-        
+
         // Only logout on actual refresh token errors, not on network errors (5xx) or access token errors
         if (isRefreshTokenError) {
           console.log('🔴 [TOKEN REFRESH] Refresh token is invalid, blacklisted, expired, or already used:', errorDetail);
           // Don't clear tokenInUse here - we're logging out anyway
-            clearAllStorageAndLogout('Refresh token error from API', {
+          clearAllStorageAndLogout('Refresh token error from API', {
             status: response.status,
             errorDetail,
             isRefreshTokenError: true,
@@ -699,7 +699,7 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
       }
 
       const data = await response.json() as { access: string; refresh: string };
-      
+
       // CRITICAL: Validate that we got both tokens
       if (!data.access || !data.refresh) {
         console.error('❌ [TOKEN REFRESH] Invalid response - missing tokens:', {
@@ -710,14 +710,14 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
         tokenInUse = null;
         return null;
       }
-      
+
       console.log('🟢 [AUTH/REFRESH API] Response received:', {
         accessTokenPrefix: data.access.substring(0, 20) + '...',
         newRefreshTokenPrefix: data.refresh.substring(0, 20) + '...',
         oldRefreshTokenPrefix: tokenToUse.substring(0, 20) + '...',
         tokensRotated: tokenToUse !== data.refresh, // Check if refresh token was rotated
       });
-      
+
       // Preserve existing user data from localStorage before updating tokens
       let existingUser: MinimalUserInfo | undefined = undefined;
       try {
@@ -737,16 +737,16 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
       } catch (error) {
         console.warn('⚠️ [TOKEN REFRESH] Could not parse existing auth data to preserve user info:', error);
       }
-      
+
       // CRITICAL: Update tokens IMMEDIATELY and atomically
       // updateAuthTokens will store the new tokens
       // We also clear tokenInUse and set it to the new token to track it
       updateAuthTokens(data.access, data.refresh, existingUser);
-      
+
       // Clear the old token marker and set it to the new token
       // This ensures any waiting refreshes know the new token is available
       tokenInUse = data.refresh;
-      
+
       // Verify the update was successful
       const verifyTokens = getAuthTokens();
       if (verifyTokens.refreshToken !== data.refresh) {
@@ -757,7 +757,7 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
         // Try to update again - this is critical
         updateAuthTokens(data.access, data.refresh, existingUser);
       }
-      
+
       // Final verification
       const finalVerify = getAuthTokens();
       if (finalVerify.refreshToken === data.refresh) {
@@ -776,7 +776,7 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
         updateAuthTokens(data.access, data.refresh, existingUser);
         tokenInUse = data.refresh;
       }
-      
+
       return data;
     } catch (error) {
       // Network errors or other exceptions - don't logout, might be temporary
@@ -786,7 +786,7 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
     } finally {
       // CRITICAL: Always release the cross-tab lock when done
       releaseRefreshLock();
-      
+
       // Clear the promise when done so future calls can start a new refresh
       refreshPromise = null;
       isCreatingRefreshPromise = false; // Also clear the lock
@@ -842,13 +842,13 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
       // Determine if this is a public endpoint using the endpoint name
       // The endpoint name is a string that may contain the path
       const endpointStr = endpoint || '';
-      
+
       // Only add auth header for non-public endpoints
       // Check if endpoint contains any public endpoint path
-      const isPublic = publicEndpoints.some(publicEndpoint => 
+      const isPublic = publicEndpoints.some(publicEndpoint =>
         endpointStr.includes(`auth/${publicEndpoint}`) || endpointStr.includes(publicEndpoint)
       );
-      
+
       if (!isPublic) {
         const { accessToken } = getAuthTokens();
         if (accessToken) {
@@ -891,10 +891,10 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
     }
 
     console.log('🟡 [TOKEN REFRESH] Access token expired, attempting to refresh...');
-    
+
     // Try to refresh the token
     const { refreshToken } = getAuthTokens();
-    
+
     if (!refreshToken) {
       console.log('🔴 [TOKEN REFRESH] No refresh token found, logging out...');
       clearAllStorageAndLogout('No refresh token found during 401 retry', {
@@ -912,23 +912,48 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
         // Retry the original query with the new access token
         const { accessToken } = getAuthTokens();
         if (accessToken) {
-          // Prepare retry args
+          // Prepare retry args - preserve all original request properties
           let retryArgs: FetchArgs;
           if (typeof originalArgs === 'string') {
-            retryArgs = { url: originalArgs };
+            // If args is just a string (URL), create a minimal FetchArgs object
+            retryArgs = { 
+              url: originalArgs,
+              method: 'GET', // Default to GET for string URLs
+            };
           } else {
-            retryArgs = { ...originalArgs };
+            // Preserve all original request properties (method, body, headers, etc.)
+            retryArgs = {
+              url: originalArgs.url,
+              method: originalArgs.method, // Preserve method (GET, POST, PUT, DELETE, PATCH)
+              body: originalArgs.body, // Preserve body (including FormData, JSON, etc.)
+              params: originalArgs.params, // Preserve query params if any
+              responseHandler: originalArgs.responseHandler, // Preserve response handler if any
+              validateStatus: originalArgs.validateStatus, // Preserve status validation if any
+              // Preserve headers but update Authorization
+              headers: {
+                ...originalArgs.headers,
+                Authorization: `Bearer ${accessToken}`,
+              },
+            };
           }
-          
-          // Ensure headers exist and add Authorization
+
+          // If headers weren't set in the else branch (shouldn't happen, but safety check)
           if (!retryArgs.headers) {
             retryArgs.headers = {};
           }
+          // Ensure Authorization header is set
           retryArgs.headers = {
             ...retryArgs.headers,
             Authorization: `Bearer ${accessToken}`,
           };
-          
+
+          console.log('🔄 [TOKEN REFRESH] Retrying request with new token:', {
+            url: retryArgs.url,
+            method: retryArgs.method || 'GET',
+            hasBody: !!retryArgs.body,
+            bodyType: retryArgs.body ? (retryArgs.body instanceof FormData ? 'FormData' : typeof retryArgs.body) : 'none',
+          });
+
           // Retry the original request with new token
           const retryResult = await baseQuery(retryArgs, api, extraOptions);
           return retryResult;
@@ -960,7 +985,7 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['User', 'Wallet', 'Binary', 'Booking', 'Payout', 'Staff', 'Growth', 'DistributorApplication', 'PoolWithdrawals', 'PendingNodes', 'BinaryStats', 'PoolBalances', 'NomineeTransfers', 'KYC', 'Inventory'],
+  tagTypes: ['User', 'Wallet', 'Binary', 'Booking', 'Payout', 'Staff', 'Growth', 'DistributorApplication', 'PoolWithdrawals', 'PendingNodes', 'BinaryStats', 'PoolBalances', 'NomineeTransfers', 'KYC', 'Inventory', 'Settings'],
   keepUnusedDataFor: 60, // Keep unused data in cache for 60 seconds (default is 60)
   endpoints: () => ({}),
 });

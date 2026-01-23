@@ -296,6 +296,7 @@ export function DistributorApplication() {
 
   // Check if already a distributor
   const isDistributor = currentUser?.isDistributor;
+  const distributorApplicationStatusFromProfile = currentUser?.distributorApplicationStatus ?? null;
   const verificationStatus = currentUser?.distributorInfo?.verificationStatus || existingApplication?.status;
 
   const handleInputChange = (field: string, value: string) => {
@@ -459,10 +460,12 @@ export function DistributorApplication() {
     }
   };
 
-  // Redirect to profile if already a distributor
-  // Only check isDistributor flag - this is the primary indicator of distributor status
-  // Other flags like isVerified or verificationStatus might be set for KYC but not for distributor status
-  const isVerifiedDistributor = isDistributor === true;
+  // Redirect to profile if already a distributor with an approved distributor application
+  // We rely on distributor_application_status from the profile so that:
+  // - If status is null (not applied yet) but KYC is verified, user can see and fill the distributor application form
+  // - If status is approved, we treat the user as an active authorized partner
+  const isVerifiedDistributor =
+    isDistributor === true && distributorApplicationStatusFromProfile === 'approved';
   if (isVerifiedDistributor) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -538,21 +541,27 @@ export function DistributorApplication() {
                   </p>
                 )}
                 <div className="mt-4 flex gap-2">
-                  <Button 
-                    onClick={() => {
-                      console.log('🔵 [KYC BUTTON] Clicked, opening modal...');
-                      setIsKYCModalOpen(true);
-                      console.log('🟢 [KYC BUTTON] Modal state set to true');
-                    }} 
-                    className="mt-2"
-                    size="lg"
-                  >
-                    <Shield className="w-4 h-4 mr-2" />
-                    {kycStatus === 'not_submitted' && 'Complete KYC Verification'}
-                    {kycStatus === 'pending' && 'View KYC Status'}
-                    {kycStatus === 'rejected' && 'Resubmit KYC Documents'}
-                    {kycStatus === 'verified' && 'Update KYC Verification'}
-                  </Button>
+                  {kycStatus === 'pending' ? (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <Shield className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                      <span className="text-yellow-800 dark:text-yellow-200 font-medium">Your KYC is Under Review</span>
+                    </div>
+                  ) : (
+                    <Button 
+                      onClick={() => {
+                        console.log('🔵 [KYC BUTTON] Clicked, opening modal...');
+                        setIsKYCModalOpen(true);
+                        console.log('🟢 [KYC BUTTON] Modal state set to true');
+                      }} 
+                      className="mt-2"
+                      size="lg"
+                    >
+                      <Shield className="w-4 h-4 mr-2" />
+                      {kycStatus === 'not_submitted' && 'Submit KYC Documents'}
+                      {kycStatus === 'rejected' && 'Resubmit KYC Documents'}
+                      {kycStatus === 'verified' && 'Update KYC Verification'}
+                    </Button>
+                  )}
                 </div>
               </AlertDescription>
             </Alert>
@@ -568,8 +577,13 @@ export function DistributorApplication() {
     );
   }
 
-  // Check application status from API
-  const applicationStatus = existingApplication?.status || verificationStatus;
+  // Check application status:
+  // 1. Primary source: distributor_application_status from users/profile
+  // 2. Fallbacks: existingApplication.status (legacy mock) or distributorInfo.verificationStatus
+  const applicationStatus =
+    distributorApplicationStatusFromProfile ||
+    existingApplication?.status ||
+    verificationStatus;
 
   if (applicationStatus === 'pending' || verificationStatus === 'pending') {
     return (

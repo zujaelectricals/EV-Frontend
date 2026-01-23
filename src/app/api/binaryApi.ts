@@ -759,6 +759,20 @@ export const binaryApi = api.injectEndpoints({
         console.log('Transformed left child:', leftChild);
         console.log('Transformed right child:', rightChild);
         
+        const rootUserId =
+          response.user_id != null
+            ? response.user_id.toString()
+            : response.id != null
+            ? response.id.toString()
+            : '';
+
+        if (!rootUserId) {
+          console.warn(
+            'getBinaryTree.transformResponse: Missing user identifier on response. Raw response:',
+            response,
+          );
+        }
+
         const rootNode: BinaryNode = {
           id: `node-${response.node_id}`,
           name: response.user_full_name || response.user_username || response.user_email,
@@ -766,7 +780,7 @@ export const binaryApi = api.injectEndpoints({
           pv: parseFloat(response.total_amount) || 0,
           joinedAt: response.date_joined,
           isActive: response.is_active_buyer,
-          userId: response.user_id.toString(),
+          userId: rootUserId,
           children: {
             left: leftChild,
             right: rightChild,

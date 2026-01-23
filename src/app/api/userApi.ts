@@ -34,6 +34,8 @@ export interface UserProfileResponse {
   right_leg_count: number;
   carry_forward_left: number;
   carry_forward_right: number;
+  is_distributor_terms_and_conditions_accepted: boolean | null;
+  distributor_application_status: 'pending' | 'approved' | 'rejected' | null;
 }
 
 // KYC submission request (multipart/form-data)
@@ -132,10 +134,18 @@ const transformUserProfile = (profile: UserProfileResponse): User => {
     phone: profile.mobile,
     joinedAt: profile.date_joined,
     kycStatus: profile.kyc_status === 'approved' ? 'verified' : (profile.kyc_status || 'not_submitted'),
+     distributorApplicationStatus: profile.distributor_application_status,
     distributorInfo: shouldIncludeDistributorInfo ? {
       isDistributor: profile.is_distributor,
       isVerified: profile.kyc_status === 'approved' || profile.kyc_status === 'verified',
-      verificationStatus: profile.kyc_status === 'approved' || profile.kyc_status === 'verified' ? 'approved' : profile.kyc_status === 'rejected' ? 'rejected' : 'pending',
+      // Use distributor_application_status when available, otherwise fall back to KYC status mapping
+      verificationStatus: profile.distributor_application_status
+        ? profile.distributor_application_status
+        : profile.kyc_status === 'approved' || profile.kyc_status === 'verified'
+          ? 'approved'
+          : profile.kyc_status === 'rejected'
+            ? 'rejected'
+            : 'pending',
       referralCode: profile.referral_code || '',
       referredBy: profile.referred_by || undefined,
       leftCount: profile.left_leg_count || 0,

@@ -1,5 +1,5 @@
 import { api } from './baseApi';
-import { getAuthTokens } from './baseApi';
+import { getAuthTokens, refreshAccessToken } from './baseApi';
 import { getApiBaseUrl } from '../../lib/config';
 import { User, DistributorInfo } from '../slices/authSlice';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
@@ -147,7 +147,7 @@ export const distributorApi = api.injectEndpoints({
             body.is_distributor_terms_and_conditions_accepted.toString()
           );
 
-          const response = await fetch(`${getApiBaseUrl()}users/distributor-application/`, {
+          let response = await fetch(`${getApiBaseUrl()}users/distributor-application/`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -155,6 +155,43 @@ export const distributorApi = api.injectEndpoints({
             },
             body: formData,
           });
+
+          // Handle 401 Unauthorized - try to refresh token and retry
+          if (response.status === 401) {
+            console.log('🟡 [DISTRIBUTOR API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [DISTRIBUTOR API] Retrying request with new token...');
+                // Recreate FormData for retry (FormData cannot be reused)
+                const retryFormData = new FormData();
+                retryFormData.append('is_distributor_terms_and_conditions_accepted', 
+                  body.is_distributor_terms_and_conditions_accepted.toString()
+                );
+                
+                response = await fetch(`${getApiBaseUrl()}users/distributor-application/`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    // Don't set Content-Type - browser will set it with boundary for multipart/form-data
+                  },
+                  body: retryFormData,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
 
           if (!response.ok) {
             const error = await response.json().catch(() => ({ message: 'Failed to submit distributor application' }));
