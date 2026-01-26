@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Calendar, DollarSign, Truck, CheckCircle, Clock, XCircle, Eye, CreditCard, Filter } from 'lucide-react';
+import { Package, Calendar, DollarSign, Truck, CheckCircle, Clock, XCircle, Eye, CreditCard, Filter, RefreshCw, Search } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { updateBooking } from '@/app/slices/bookingSlice';
+import { updateBooking, setBookings, Booking, PaymentMethod } from '@/app/slices/bookingSlice';
 import { PaymentGateway } from '@/store/components/PaymentGateway';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useGetBookingsQuery } from '@/app/api/bookingApi';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { api } from '@/app/api/baseApi';
 
 type BookingStatus = 'pre-booked' | 'pending' | 'confirmed' | 'delivered' | 'cancelled' | 'refunded';
 type PaymentStatus = 'pending' | 'partial' | 'completed' | 'overdue' | 'refunded';
@@ -21,29 +24,166 @@ export function OrderHistory() {
   const { bookings } = useAppSelector((state) => state.booking);
   const { user } = useAppSelector((state) => state.auth);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Filter bookings
-  const filteredBookings = bookings.filter((booking) => {
-    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
-    const matchesPayment = paymentFilter === 'all' || booking.paymentStatus === paymentFilter;
-    const matchesSearch = 
-      booking.vehicleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.id.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesPayment && matchesSearch;
-  });
+  // Map API status to query parameter
+  const getApiStatus = (localStatus: string): string | undefined => {
+    const statusMap: Record<string, string> = {
+      "all": "",
+      "pending": "pending",
+      "pre-booked": "pending",
+      "active": "active",
+      "confirmed": "active",
+      "completed": "completed",
+      "delivered": "completed",
+      "cancelled": "cancelled",
+      "expired": "expired",
+    };
+    return statusMap[localStatus] || undefined;
+  };
+
+  // Handle search button click
+  const handleSearch = () => {
+    setSearchQuery(searchInput.trim());
+  };
+
+  // Get bookings with status filter - uses RTK Query caching
+  const apiStatus = statusFilter === 'all' ? undefined : getApiStatus(statusFilter);
+  const queryParams = useMemo(() => {
+    const params: { status?: string; search?: string } = {};
+    if (apiStatus) params.status = apiStatus;
+    if (searchQuery.trim()) params.search = searchQuery.trim();
+    return Object.keys(params).length > 0 ? params : undefined;
+  }, [apiStatus, searchQuery]);
+
+  const { 
+    data: bookingsData, 
+    isLoading: isLoadingBookings, 
+    error: bookingsError, 
+    refetch,
+    isFetching,
+    currentData
+  } = useGetBookingsQuery(
+    queryParams,
+    {
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: false,
+      refetchOnReconnect: true,
+    }
+  );
+
+  // Use currentData if available, otherwise fallback to data
+  const activeBookingsData = currentData ?? bookingsData;
+
+  // Handle refresh button click
+  const handleRefresh = async () => {
+    try {
+      const status = apiStatus || 'all';
+      dispatch(
+        api.util.invalidateTags([
+          { type: 'Booking', id: 'LIST' },
+          { type: 'Booking', id: `LIST-${status}` },
+        ])
+      );
+      
+      const result = await refetch();
+      if (result.data) {
+        setRefreshKey(prev => prev + 1);
+        toast.success("Orders refreshed successfully");
+      } else if (result.error) {
+        toast.error("Failed to refresh orders");
+      }
+    } catch (error) {
+      console.error("Error refreshing orders:", error);
+      toast.error("Failed to refresh orders");
+    }
+  };
+
+  // Map API bookings to local booking format
+  const mappedBookings: Booking[] = useMemo(() => {
+    if (!activeBookingsData?.results) return [];
+    
+    return activeBookingsData.results.map((apiBooking): Booking => {
+      // Map API status to display status
+      let displayStatus: Booking['status'] = 'pending';
+      if (apiBooking.status === 'pending') {
+        displayStatus = 'pre-booked';
+      } else if (apiBooking.status === 'active') {
+        displayStatus = 'confirmed';
+      } else if (apiBooking.status === 'confirmed') {
+        displayStatus = 'confirmed';
+      } else if (apiBooking.status === 'delivered') {
+        displayStatus = 'delivered';
+      } else if (apiBooking.status === 'cancelled') {
+        displayStatus = 'cancelled';
+      } else if (apiBooking.status === 'refunded') {
+        displayStatus = 'refunded';
+      }
+      
+      return {
+        id: apiBooking.id.toString(),
+        vehicleId: `vehicle-${apiBooking.vehicle_details.name?.toLowerCase().replace(/\s+/g, '-') || 'vehicle'}-${apiBooking.vehicle_model}`,
+        vehicleName: apiBooking.vehicle_details.name,
+        modelCode: apiBooking.model_code,
+        status: displayStatus,
+        preBookingAmount: parseFloat(apiBooking.booking_amount) || 0,
+        totalAmount: parseFloat(apiBooking.total_amount) || 0,
+        remainingAmount: parseFloat(apiBooking.remaining_amount) || 0,
+        totalPaid: parseFloat(apiBooking.total_paid) || 0,
+        paymentMethod: (apiBooking.payment_option === 'full_payment' ? 'full' : 
+                      apiBooking.payment_option === 'emi' ? 'emi' : 'flexible') as PaymentMethod,
+        paymentDueDate: apiBooking.expires_at,
+        paymentStatus: (parseFloat(apiBooking.remaining_amount) === 0 ? 'completed' : 
+                      parseFloat(apiBooking.total_paid) > 0 ? 'partial' : 'pending') as Booking['paymentStatus'],
+        isActiveBuyer: true,
+        redemptionPoints: 0,
+        redemptionEligible: false,
+        bookedAt: apiBooking.created_at,
+        referredBy: apiBooking.referred_by?.fullname || apiBooking.referred_by?.email || undefined,
+        addedToTeamNetwork: false,
+        bookingNumber: apiBooking.booking_number,
+        vehicleColor: apiBooking.vehicle_color,
+        batteryVariant: apiBooking.battery_variant,
+      };
+    });
+  }, [activeBookingsData, refreshKey]);
+
+  // Update Redux store when bookings data changes
+  useEffect(() => {
+    if (mappedBookings.length > 0 || activeBookingsData) {
+      dispatch(setBookings(mappedBookings));
+    }
+  }, [mappedBookings, dispatch, activeBookingsData]);
+
+  // Always use API data when available
+  const displayBookings = useMemo(() => {
+    const source = activeBookingsData !== undefined ? mappedBookings : bookings;
+    // Remove duplicates by ID
+    const seen = new Set<string>();
+    return source.filter((booking) => {
+      if (seen.has(booking.id)) {
+        return false;
+      }
+      seen.add(booking.id);
+      return true;
+    });
+  }, [mappedBookings, bookings, activeBookingsData]);
+
+  // Filter bookings - search is handled by API, so we just use displayBookings
+  const filteredBookings = displayBookings;
 
   // Get pending payments count
-  const pendingPayments = bookings.filter(
+  const pendingPayments = displayBookings.filter(
     (b) => b.paymentStatus === 'pending' || b.paymentStatus === 'partial' || b.paymentStatus === 'overdue'
   ).length;
 
   // Get total pending amount
-  const totalPendingAmount = bookings
+  const totalPendingAmount = displayBookings
     .filter((b) => b.paymentStatus === 'pending' || b.paymentStatus === 'partial' || b.paymentStatus === 'overdue')
     .reduce((sum, b) => sum + b.remainingAmount, 0);
 
@@ -99,9 +239,9 @@ export function OrderHistory() {
     setShowPaymentModal(true);
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     if (selectedBooking) {
-      const booking = bookings.find((b) => b.id === selectedBooking);
+      const booking = displayBookings.find((b) => b.id === selectedBooking);
       if (booking) {
         dispatch(updateBooking({
           id: selectedBooking,
@@ -116,9 +256,12 @@ export function OrderHistory() {
     }
     setShowPaymentModal(false);
     setSelectedBooking(null);
+    
+    // Refetch bookings to get updated data from server
+    await refetch();
   };
 
-  const selectedBookingData = selectedBooking ? bookings.find((b) => b.id === selectedBooking) : null;
+  const selectedBookingData = selectedBooking ? displayBookings.find((b) => b.id === selectedBooking) : null;
 
   return (
     <div className="space-y-6">
@@ -138,7 +281,9 @@ export function OrderHistory() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{bookings.length}</div>
+            <div className="text-2xl font-bold">
+              {isLoadingBookings ? '...' : (activeBookingsData?.count ?? displayBookings.length)}
+            </div>
             <p className="text-xs text-muted-foreground">All time orders</p>
           </CardContent>
         </Card>
@@ -149,9 +294,11 @@ export function OrderHistory() {
             <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{pendingPayments}</div>
+            <div className="text-2xl font-bold text-warning">
+              {isLoadingBookings ? '...' : pendingPayments}
+            </div>
             <p className="text-xs text-muted-foreground">
-              ₹{totalPendingAmount.toLocaleString()} pending
+              ₹{isLoadingBookings ? '...' : totalPendingAmount.toLocaleString()} pending
             </p>
           </CardContent>
         </Card>
@@ -163,7 +310,7 @@ export function OrderHistory() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-success">
-              {bookings.filter((b) => b.status === 'delivered' || b.status === 'confirmed').length}
+              {isLoadingBookings ? '...' : displayBookings.filter((b) => b.status === 'delivered' || b.status === 'confirmed').length}
             </div>
             <p className="text-xs text-muted-foreground">Successfully completed</p>
           </CardContent>
@@ -172,57 +319,66 @@ export function OrderHistory() {
 
       {/* Filters */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Filters</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoadingBookings || isFetching}
+            title="Refresh orders"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${(isLoadingBookings || isFetching) ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[200px] space-y-2">
               <label className="text-sm font-medium">Search</label>
-              <Input
-                placeholder="Search by vehicle or order ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Search by vehicle or order ID..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearch();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleSearch}
+                  disabled={isLoadingBookings || isFetching}
+                  className="shrink-0"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Search
+                </Button>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Order Status</label>
+            <div className="space-y-2 min-w-[180px]">
+              <label className="text-sm font-medium">Booking Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pre-booked">Pre-booked</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Payment Status</label>
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All payments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payments</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-end">
               <Button
                 variant="outline"
-                className="w-full"
                 onClick={() => {
                   setStatusFilter('all');
-                  setPaymentFilter('all');
+                  setSearchInput('');
                   setSearchQuery('');
                 }}
               >
@@ -235,13 +391,33 @@ export function OrderHistory() {
       </Card>
 
       {/* Orders List */}
-      {filteredBookings.length === 0 ? (
+      {isLoadingBookings ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <LoadingSpinner text="Loading orders..." size="md" />
+          </CardContent>
+        </Card>
+      ) : bookingsError ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Package className="w-16 h-16 text-destructive mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">Error loading orders</h3>
+            <p className="text-muted-foreground text-center max-w-md mb-4">
+              Failed to load your orders. Please try again.
+            </p>
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      ) : filteredBookings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Package className="w-16 h-16 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No orders found</h3>
             <p className="text-muted-foreground text-center max-w-md">
-              {bookings.length === 0
+              {displayBookings.length === 0
                 ? "You haven't placed any orders yet. Start browsing vehicles to make your first order!"
                 : 'No orders match your current filters. Try adjusting your search criteria.'}
             </p>
@@ -249,6 +425,18 @@ export function OrderHistory() {
         </Card>
       ) : (
         <div className="space-y-4">
+          {/* Results Count */}
+          {activeBookingsData?.count !== undefined && (
+            <div className="text-sm text-muted-foreground mb-2">
+              Showing {filteredBookings.length} of {activeBookingsData.count} orders
+              {activeBookingsData.total_pages && activeBookingsData.total_pages > 1 && (
+                <span className="ml-2">
+                  (Page {activeBookingsData.current_page || 1} of {activeBookingsData.total_pages})
+                </span>
+              )}
+            </div>
+          )}
+          
           {filteredBookings.map((booking, index) => (
             <motion.div
               key={booking.id}
@@ -272,7 +460,10 @@ export function OrderHistory() {
                               {booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1)}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">Order ID: {booking.id}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Order ID: {booking.id}
+                            {booking.bookingNumber && ` • Booking #${booking.bookingNumber}`}
+                          </p>
                         </div>
                       </div>
 

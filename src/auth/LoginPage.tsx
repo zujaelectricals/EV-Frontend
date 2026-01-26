@@ -95,10 +95,8 @@ export const LoginPage = () => {
       redirectPath = "/admin";
     } else if (user?.role === "staff") {
       redirectPath = "/staff/leads";
-    } else if (user?.isDistributor) {
-      redirectPath = "/distributor";
     } else {
-      // Regular user - always redirect to homepage
+      // Regular user or distributor - always redirect to homepage
       redirectPath = "/";
     }
 
@@ -314,10 +312,8 @@ export const LoginPage = () => {
         navigate("/admin", { replace: true });
       } else if (userRole === "staff") {
         navigate("/staff/leads", { replace: true });
-      } else if (result.user.is_distributor || user.isDistributor) {
-        navigate("/distributor", { replace: true });
       } else {
-        // Regular user - redirect to homepage
+        // Regular user or distributor - redirect to homepage
         navigate("/", { replace: true });
       }
     } catch (err: unknown) {

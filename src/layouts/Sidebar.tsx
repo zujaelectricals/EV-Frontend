@@ -61,10 +61,10 @@ const distributorMenuItems: MenuItem[] = [
   { label: 'Team Performance', icon: Users, path: '/distributor/team' },
   { label: 'Sales Tracking', icon: TrendingUp, path: '/distributor/sales' },
   { label: 'Order History', icon: Package, path: '/distributor/orders' },
-  { label: 'Reserve Wallet', icon: Landmark, path: '/distributor/pool-wallet' },
+  //{ label: 'Reserve Wallet', icon: Landmark, path: '/distributor/pool-wallet' },
   { label: 'Payout History', icon: ClipboardList, path: '/distributor/payouts' },
   { label: 'Milestone Tracker', icon: Award, path: '/distributor/milestones' },
-  { label: 'Nominee Management', icon: UserCheck, path: '/distributor/nominee' },
+  //{ label: 'Nominee Management', icon: UserCheck, path: '/distributor/nominee' },
 ];
 
 const staffMenuItems: MenuItem[] = [

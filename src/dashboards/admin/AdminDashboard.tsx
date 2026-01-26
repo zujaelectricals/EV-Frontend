@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   TrendingUp,
@@ -44,6 +45,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export const AdminDashboard = () => {
   const { data: dashboardData, isLoading, isError } = useGetAdminDashboardQuery();
+
+  // Console log the API response
+  useEffect(() => {
+    if (dashboardData) {
+      console.log('📊 [ADMIN DASHBOARD] API Response:', dashboardData);
+      console.log('📊 [ADMIN DASHBOARD] API Response (JSON):', JSON.stringify(dashboardData, null, 2));
+    }
+    if (isError) {
+      console.error('❌ [ADMIN DASHBOARD] API Error:', isError);
+    }
+  }, [dashboardData, isError]);
 
   const COLORS = [
     "hsl(221 83% 53%)",

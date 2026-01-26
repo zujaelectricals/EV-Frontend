@@ -15,6 +15,11 @@ export interface Booking {
   id: string;
   vehicleId: string;
   vehicleName: string;
+  // Optional metadata about the specific model / variant booked
+  modelCode?: string;
+  bookingNumber?: string;
+  vehicleColor?: string;
+  batteryVariant?: string;
   status: BookingStatus;
   preBookingAmount: number;
   totalAmount: number;

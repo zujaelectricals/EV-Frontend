@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, AlertCircle, User, Mail, Phone, FileCheck, Shield } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, User, Mail, Phone, FileCheck, Shield, Eye, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -134,12 +134,18 @@ export function DistributorApplication() {
   // Auto-fill applicant details from user profile (uneditable)
   useEffect(() => {
     if (currentUser) {
+      // Handle both User and UserProfileResponse types
+      const userWithAddress = currentUser as typeof currentUser & { 
+        address?: string; 
+        city?: string;
+        address_line1?: string;
+      };
       setFormData(prev => ({
         ...prev,
         applicantName: currentUser.name || '',
         mobileNumber: currentUser.phone || currentUser.email?.replace(/[^0-9]/g, '').slice(-10) || '',
         date: new Date().toISOString().split('T')[0],
-        place: currentUser.address || currentUser.city || '',
+        place: userWithAddress.address || userWithAddress.address_line1 || userWithAddress.city || '',
       }));
     }
   }, [currentUser]);
@@ -167,8 +173,11 @@ export function DistributorApplication() {
         }).unwrap();
         setOtpSent(true);
         toast.success(`OTP sent to your ${otpType === 'email' ? 'email' : 'mobile number'}`);
-      } catch (error: any) {
-        toast.error(error?.data?.message || 'Failed to send OTP');
+      } catch (error: unknown) {
+        const errorMessage = error && typeof error === 'object' && 'data' in error && 
+          error.data && typeof error.data === 'object' && 'message' in error.data &&
+          typeof error.data.message === 'string' ? error.data.message : 'Failed to send OTP';
+        toast.error(errorMessage);
         setTermsAccepted(false);
       } finally {
         setIsSendingOTP(false);
@@ -207,11 +216,30 @@ export function DistributorApplication() {
       setOtpVerified(true);
       setConditionsAccepted(prev => ({ ...prev, otpVerified: true }));
       toast.success('OTP verified successfully!');
-    } catch (error: any) {
-      toast.error(error?.data?.message || 'Invalid OTP. Please try again.');
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'data' in error && 
+        error.data && typeof error.data === 'object' && 'message' in error.data &&
+        typeof error.data.message === 'string' ? error.data.message : 'Invalid OTP. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsVerifyingOTP(false);
     }
+  };
+
+  // Handle viewing Terms of Service PDF
+  const handleViewTerms = () => {
+    window.open('/SUJA_Combined_Terms_of_Service.pdf', '_blank');
+  };
+
+  // Handle downloading Terms of Service PDF
+  const handleDownloadTerms = () => {
+    const link = document.createElement('a');
+    link.href = '/SUJA_Combined_Terms_of_Service.pdf';
+    link.download = 'SUJA_Combined_Terms_of_Service.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Terms of Service PDF download started');
   };
 
   // Use API bookings data, fallback to Redux bookings
@@ -258,7 +286,7 @@ export function DistributorApplication() {
         redemptionPoints: 0,
         redemptionEligible: false,
         bookedAt: apiBooking.created_at,
-        referredBy: apiBooking.referred_by || undefined,
+        referredBy: apiBooking.referred_by ? (apiBooking.referred_by.fullname || apiBooking.referred_by.email || undefined) : undefined,
         addedToTeamNetwork: false,
         bookingNumber: apiBooking.booking_number,
         vehicleColor: apiBooking.vehicle_color,
@@ -282,8 +310,11 @@ export function DistributorApplication() {
   // Check KYC verification status
   // If kyc_status is null from API, treat it as 'not_submitted'
   // Handle both 'verified' and 'approved' as verified states
-  const kycStatus = currentUser?.kycStatus === null ? 'not_submitted' : (currentUser?.kycStatus || 'not_submitted');
-  const isKYCVerified = kycStatus === 'verified' || kycStatus === 'approved';
+  // UserProfileResponse has 'approved' but User type doesn't, so we need to handle both
+  const kycStatusValue = currentUser?.kycStatus;
+  const kycStatus = kycStatusValue === null ? 'not_submitted' : (kycStatusValue || 'not_submitted');
+  // Check if kycStatus is verified or approved (approved exists in UserProfileResponse)
+  const isKYCVerified = kycStatus === 'verified' || (kycStatusValue as string) === 'approved';
   
   // Debug: Log eligibility status
   console.log('Distributor Eligibility Check:', {
@@ -301,7 +332,7 @@ export function DistributorApplication() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => {
-      const updates: any = { [field]: value };
+      const updates: Partial<typeof formData> = { [field]: value };
       
       // Auto-calculate balance amount when MRP or advance paid changes in installment mode
       if (prev.paymentMode === 'installment') {
@@ -393,18 +424,25 @@ export function DistributorApplication() {
               isDistributor: true,
               isVerified: true,
               verificationStatus: 'approved',
-              referralCode: currentUser?.distributorInfo?.referralCode || '',
-              leftCount: currentUser?.distributorInfo?.leftCount || 0,
-              rightCount: currentUser?.distributorInfo?.rightCount || 0,
-              totalReferrals: currentUser?.distributorInfo?.totalReferrals || 0,
-              binaryActivated: currentUser?.distributorInfo?.binaryActivated || false,
-              poolMoney: currentUser?.distributorInfo?.poolMoney || 0,
-              joinedAt: currentUser?.distributorInfo?.joinedAt || new Date().toISOString(),
+              referralCode: updatedProfile.distributorInfo?.referralCode || currentUser?.distributorInfo?.referralCode || '',
+              leftCount: updatedProfile.distributorInfo?.leftCount || currentUser?.distributorInfo?.leftCount || 0,
+              rightCount: updatedProfile.distributorInfo?.rightCount || currentUser?.distributorInfo?.rightCount || 0,
+              totalReferrals: updatedProfile.distributorInfo?.totalReferrals || currentUser?.distributorInfo?.totalReferrals || 0,
+              binaryActivated: updatedProfile.distributorInfo?.binaryActivated || currentUser?.distributorInfo?.binaryActivated || false,
+              poolMoney: updatedProfile.distributorInfo?.poolMoney || currentUser?.distributorInfo?.poolMoney || 0,
+              joinedAt: updatedProfile.distributorInfo?.joinedAt || currentUser?.distributorInfo?.joinedAt || new Date().toISOString(),
             }));
 
             dispatch(updateUser({
               isDistributor: true,
             }));
+
+            // If application is approved and user is now a distributor, redirect to dashboard
+            // Use navigate with replace to ensure proper routing and state updates
+            setTimeout(() => {
+              navigate('/distributor', { replace: true });
+            }, 50);
+            return; // Exit early to prevent form reset
           }
         } catch (profileError) {
           console.error('Error fetching updated profile:', profileError);
@@ -430,7 +468,9 @@ export function DistributorApplication() {
         applicantName: currentUser?.name || '',
         mobileNumber: currentUser?.phone || currentUser?.email?.replace(/[^0-9]/g, '').slice(-10) || '',
         date: new Date().toISOString().split('T')[0],
-        place: currentUser?.address || currentUser?.city || '',
+        place: (currentUser as typeof currentUser & { address?: string; city?: string; address_line1?: string })?.address || 
+               (currentUser as typeof currentUser & { address_line1?: string })?.address_line1 || 
+               (currentUser as typeof currentUser & { city?: string })?.city || '',
         aadharNumber: '',
         panNumber: '',
         bankAccountNumber: '',
@@ -452,9 +492,20 @@ export function DistributorApplication() {
       setOtpCode('');
       setOtpSent(false);
       setOtpVerified(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Submission error:', error);
-      toast.error(error?.data?.message || error?.data?.detail || 'Failed to submit application. Please try again.');
+      let errorMessage = 'Failed to submit application. Please try again.';
+      if (error && typeof error === 'object' && 'data' in error) {
+        const errorData = error.data;
+        if (errorData && typeof errorData === 'object') {
+          if ('message' in errorData && typeof errorData.message === 'string') {
+            errorMessage = errorData.message;
+          } else if ('detail' in errorData && typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          }
+        }
+      }
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -504,7 +555,8 @@ export function DistributorApplication() {
   // Check KYC verification - show warning if not verified or approved
   // Only show KYC button if status is not_submitted, pending, rejected, or verified
   // If status is 'approved', skip KYC requirement and show distributor form directly
-  if (!isKYCVerified && kycStatus !== 'approved') {
+  const kycStatusValueForCheck = currentUser?.kycStatus as string | null | undefined;
+  if (!isKYCVerified && kycStatusValueForCheck !== 'approved') {
     return (
       <div className="space-y-6">
         <Card>
@@ -559,7 +611,7 @@ export function DistributorApplication() {
                       <Shield className="w-4 h-4 mr-2" />
                       {kycStatus === 'not_submitted' && 'Submit KYC Documents'}
                       {kycStatus === 'rejected' && 'Resubmit KYC Documents'}
-                      {kycStatus === 'verified' && 'Update KYC Verification'}
+                      {kycStatusValueForCheck === 'verified' && 'Update KYC Verification'}
                     </Button>
                   )}
                 </div>
@@ -715,16 +767,42 @@ export function DistributorApplication() {
               </p>
               
               {/* Terms & Conditions Checkbox */}
-              <div className="flex items-start space-x-3 p-4 border rounded-lg">
-                <Checkbox
-                  id="terms-checkbox"
-                  checked={termsAccepted}
-                  onCheckedChange={handleTermsCheckboxChange}
-                  disabled={isSendingOTP}
-                />
-                <label htmlFor="terms-checkbox" className="cursor-pointer flex-1 text-sm">
-                  I understand and accept the Terms & Conditions *
-                </label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border rounded-lg">
+                <div className="flex items-start space-x-3 flex-1 min-w-0">
+                  <Checkbox
+                    id="terms-checkbox"
+                    checked={termsAccepted}
+                    onCheckedChange={handleTermsCheckboxChange}
+                    disabled={isSendingOTP}
+                    className="mt-1 flex-shrink-0"
+                  />
+                  <label htmlFor="terms-checkbox" className="cursor-pointer text-sm flex-1">
+                    I understand and accept the Terms & Conditions *
+                  </label>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Terms of Service</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleViewTerms}
+                    className="h-8 w-8 flex-shrink-0"
+                    title="View Terms of Service"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleDownloadTerms}
+                    className="h-8 w-8 flex-shrink-0"
+                    title="Download Terms of Service"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               
               {/* OTP Verification Section */}
@@ -940,11 +1018,11 @@ export function DistributorApplication() {
               type="submit" 
               className="w-full" 
               size="lg" 
-              disabled={isSubmitting || !termsAccepted || !otpVerified || (!isKYCVerified && kycStatus !== 'approved')}
+              disabled={isSubmitting || !termsAccepted || !otpVerified || (!isKYCVerified && kycStatusValueForCheck !== 'approved')}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </Button>
-            {!isKYCVerified && kycStatus !== 'approved' && (
+            {!isKYCVerified && kycStatusValueForCheck !== 'approved' && (
               <p className="text-sm text-destructive text-center">
                 KYC verification is required. Please complete your KYC verification to submit the application.
                 <Button 
