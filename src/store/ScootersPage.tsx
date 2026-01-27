@@ -112,6 +112,19 @@ export function ScootersPage() {
     setCurrentPage(1);
   }, [search, selectedStatus, selectedColor, selectedBattery, selectedPriceRange]);
 
+  // Check if any filter/search is active (for "Clear all" action)
+  const hasActiveFilters = useMemo(
+    () =>
+      Boolean(
+        search.trim() ||
+          selectedStatus !== "All" ||
+          selectedColor !== "All" ||
+          selectedBattery !== "All" ||
+          selectedPriceRange !== "All Prices"
+      ),
+    [search, selectedStatus, selectedColor, selectedBattery, selectedPriceRange]
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <StoreNavbar />
@@ -133,49 +146,65 @@ export function ScootersPage() {
             </p>
           </motion.div>
 
-          {/* Filters Section - Responsive Layout */}
+          {/* Search Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mb-8 p-4 sm:p-6 bg-card/50 border border-border rounded-2xl"
+            className="mb-4"
           >
-            {/* Search Bar - Full Width on Mobile */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-4 lg:mb-6">
-              <div className="relative flex-1 w-full max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <div className="mb-3 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+              <div className="relative w-full sm:w-[360px] lg:w-[420px] sm:ml-auto">
                 <Input
                   placeholder="Search scooters..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      // Search is already reactive, but we can add explicit handling if needed
-                    }
+                    if (e.key === "Enter") return;
                   }}
-                  className="pl-10 w-full"
+                  className="w-full pr-12 rounded-full bg-background/80 border-input shadow-sm focus-visible:ring-1"
                 />
+                {/* Search icon button overlayed on the right of the input on desktop */}
+                <div className="pointer-events-none absolute inset-y-0 right-2 hidden sm:flex items-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-primary"
+                  >
+                    <Search className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-              <Button
-                type="button"
-                onClick={() => {
-                  // Search is already reactive via state, but button provides explicit action
-                }}
-                className="w-full sm:w-auto shrink-0"
-              >
-                <Search className="w-4 h-4 mr-2" />
-                Search
-              </Button>
+              {/* Mobile search button (below input) */}
+              <div className="sm:hidden">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="mx-auto flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground shadow-sm"
+                >
+                  <Search className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
+          </motion.div>
 
+          {/* Filters Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-6 p-3 sm:p-4 bg-card/70 border border-border rounded-2xl shadow-sm"
+          >
             {/* Filter Dropdowns - Grid Layout on Mobile, Row Layout on Desktop */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 sm:gap-4 lg:gap-4">
               {/* Status Dropdown */}
               <Select
                 value={selectedStatus}
                 onValueChange={(value) => setSelectedStatus(value as any)}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full rounded-full bg-background/80 border-input shadow-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -188,7 +217,7 @@ export function ScootersPage() {
 
               {/* Color Dropdown */}
               <Select value={selectedColor} onValueChange={setSelectedColor}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full rounded-full bg-background/80 border-input shadow-sm">
                   <SelectValue placeholder="Color" />
                 </SelectTrigger>
                 <SelectContent>
@@ -203,7 +232,7 @@ export function ScootersPage() {
 
               {/* Battery Dropdown */}
               <Select value={selectedBattery} onValueChange={setSelectedBattery}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full rounded-full bg-background/80 border-input shadow-sm">
                   <SelectValue placeholder="Battery" />
                 </SelectTrigger>
                 <SelectContent>
@@ -221,7 +250,7 @@ export function ScootersPage() {
                 value={selectedPriceRange}
                 onValueChange={setSelectedPriceRange}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full rounded-full bg-background/80 border-input shadow-sm">
                   <SelectValue placeholder="Price Range" />
                 </SelectTrigger>
                 <SelectContent>

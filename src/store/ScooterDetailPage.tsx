@@ -109,6 +109,30 @@ export function ScooterDetailPage() {
     return null;
   }, [stockData, id]);
 
+  // Auto-rotate product images every 3 seconds when multiple images are available
+  useEffect(() => {
+    const images =
+      stockData?.images && stockData.images.length > 0
+        ? stockData.images
+        : stockData?.primary_image_url
+        ? [{ image_url: stockData.primary_image_url, is_primary: true }]
+        : scooter?.image
+        ? [{ image_url: scooter.image, is_primary: true }]
+        : [];
+
+    if (!images || images.length <= 1) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setSelectedImageIndex((prev) =>
+        prev === images.length - 1 ? 0 : prev + 1
+      );
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [stockData, scooter?.image]);
+
   // Handle loading state
   if (stockLoading && variantId) {
     return (
@@ -241,11 +265,14 @@ export function ScooterDetailPage() {
 
                   return (
                     <>
-                      <img
+                      <motion.img
                         key={selectedImageIndex}
                         src={currentImage}
                         alt={scooter.name}
-                        className="w-full h-full object-contain p-8 transition-opacity duration-300"
+                        className="w-full h-full object-contain p-8"
+                        initial={{ opacity: 0, scale: 1.02 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.4 }}
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/placeholder.svg';
                         }}
@@ -375,90 +402,153 @@ export function ScooterDetailPage() {
                 </div> */}
               </div>
 
-              {/* Price */}
-              <div className="p-6 bg-card/50 border border-border/50 rounded-2xl">
-                <div className="flex items-end gap-4 mb-4">
-                  <span className="text-4xl font-bold text-primary">
-                    ₹{scooter.price.toLocaleString()}
-                  </span>
-                  {scooter.originalPrice && (
-                    <span className="text-xl text-muted-foreground line-through">
-                      ₹{scooter.originalPrice.toLocaleString()}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Quick Specs */}
-              {/* <div className="grid grid-cols-4 gap-3">
-                {specs.map((spec, i) => (
-                  <div key={i} className="p-4 bg-muted/50 rounded-xl text-center">
-                    <spec.icon className="w-5 h-5 text-primary mx-auto mb-2" />
-                    <div className="text-sm font-semibold">{spec.value}</div>
-                    <div className="text-xs text-muted-foreground">{spec.label}</div>
-                  </div>
-                ))}
-              </div> */}
-
-              {/* Stock Information */}
-              {stockData && (
-                <div className="p-6 bg-card/50 border border-border/50 rounded-2xl space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Package className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold text-foreground">Stock Information</h3>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-3 bg-muted/30 rounded-xl">
-                      <div className="text-2xl font-bold text-primary">{stockData.total_quantity || 0}</div>
-                      <div className="text-xs text-muted-foreground mt-1">Total Stock</div>
-                    </div>
-                    <div className="text-center p-3 bg-emerald-500/10 rounded-xl">
-                      <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                        {stockData.available_quantity || 0}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">Available</div>
-                    </div>
-                    <div className="text-center p-3 bg-amber-500/10 rounded-xl">
-                      <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                        {stockData.reserved_quantity || 0}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">Reserved</div>
-                    </div>
-                  </div>
-                  <div className="pt-4 border-t border-border/50 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Model Code:</span>
-                      <span className="text-sm font-semibold">{stockData.vehicle_model_code || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Status:</span>
-                      <span className={`text-sm font-semibold capitalize ${
-                        stockData.status === 'available' ? 'text-emerald-600' :
-                        stockData.status === 'out_of_stock' ? 'text-red-600' :
-                        'text-gray-600'
-                      }`}>
-                        {stockData.status ? stockData.status.replace(/_/g, ' ') : 'Unknown'}
+              {/* Price & Stock Panel */}
+              <div className="glass-card rounded-3xl border border-border/70 shadow-glass p-6 lg:p-7 space-y-6">
+                {/* Price Row */}
+                <div className="flex items-start justify-between gap-6">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      On-Road Pre‑Booking Price
+                    </p>
+                    <div className="flex items-end gap-3">
+                      <span className="text-4xl lg:text-5xl font-bold text-primary leading-none">
+                        ₹{scooter.price.toLocaleString()}
                       </span>
+                      {scooter.originalPrice && (
+                        <span className="text-sm lg:text-base text-muted-foreground line-through">
+                          ₹{scooter.originalPrice.toLocaleString()}
+                        </span>
+                      )}
                     </div>
-                    {stockData.vehicle_colors && stockData.vehicle_colors.length > 0 && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Color:</span>
-                        <span className="text-sm font-semibold capitalize">
-                          {stockData.vehicle_colors.join(', ')}
-                        </span>
-                      </div>
+                  </div>
+
+                  {/* Small badge block */}
+                  <div className="hidden sm:flex flex-col items-end gap-2">
+                    {stockData?.status && (
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                          stockData.status === 'available'
+                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                            : stockData.status === 'out_of_stock'
+                            ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            stockData.status === 'available'
+                              ? 'bg-emerald-500'
+                              : stockData.status === 'out_of_stock'
+                              ? 'bg-red-500'
+                              : 'bg-gray-400'
+                          }`}
+                        />
+                        {stockData.status.replace(/_/g, ' ')}
+                      </span>
                     )}
-                    {stockData.battery_variants && stockData.battery_variants.length > 0 && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Battery:</span>
-                        <span className="text-sm font-semibold">
-                          {stockData.battery_variants.join(', ')}
-                        </span>
-                      </div>
+                    {stockData?.vehicle_model_code && (
+                      <span className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+                        Model: <span className="text-foreground">{stockData.vehicle_model_code}</span>
+                      </span>
                     )}
                   </div>
                 </div>
-              )}
+
+                {/* Stock Information */}
+                {stockData ? (
+                  <div className="rounded-2xl border border-border/60 bg-muted/20 px-4 py-4 lg:px-5 lg:py-5 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                          <Package className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-foreground">
+                            Stock Information
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            Live availability for this exact color & battery variant.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr),minmax(0,1.1fr)] items-stretch">
+                      {/* Big availability pill */}
+                      <div className="flex flex-col justify-center rounded-2xl bg-emerald-500/5 border border-emerald-500/30 px-5 py-4 text-center">
+                        <span className="text-xs font-medium uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-300">
+                          Available Units
+                        </span>
+                        <div className="mt-1 text-3xl font-extrabold text-emerald-600 dark:text-emerald-300">
+                          {Number(stockData.available_quantity ?? 0).toLocaleString()}
+                        </div>
+                        <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-200/90">
+                          Ready to be reserved instantly
+                        </p>
+                        {(stockData.reserved_quantity || stockData.total_quantity) && (
+                          <div className="mt-3 flex items-center justify-center gap-3 text-[11px] text-emerald-900/70 dark:text-emerald-100/80">
+                            {typeof stockData.reserved_quantity !== 'undefined' && (
+                              <span>
+                                <span className="font-semibold">
+                                  {Number(stockData.reserved_quantity).toLocaleString()}
+                                </span>{' '}
+                                reserved
+                              </span>
+                            )}
+                            {typeof stockData.total_quantity !== 'undefined' && (
+                              <>
+                                <span className="h-1 w-1 rounded-full bg-emerald-500/60" />
+                                <span>
+                                  <span className="font-semibold">
+                                    {Number(stockData.total_quantity).toLocaleString()}
+                                  </span>{' '}
+                                  in stock
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Meta list */}
+                      <div className="grid grid-cols-1 gap-3 text-sm">
+                        {stockData.vehicle_colors && stockData.vehicle_colors.length > 0 && (
+                          <div className="flex items-center justify-between rounded-xl bg-card/70 px-4 py-2.5 border border-border/60">
+                            <span className="text-xs text-muted-foreground">Color</span>
+                            <span className="text-sm font-semibold capitalize text-foreground text-right">
+                              {stockData.vehicle_colors.join(', ')}
+                            </span>
+                          </div>
+                        )}
+                        {stockData.battery_variants && stockData.battery_variants.length > 0 && (
+                          <div className="flex items-center justify-between rounded-xl bg-card/70 px-4 py-2.5 border border-border/60">
+                            <span className="text-xs text-muted-foreground">Battery</span>
+                            <span className="text-sm font-semibold text-foreground text-right">
+                              {stockData.battery_variants.join(', ')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-border/60 bg-muted/20 px-4 py-4 lg:px-5 lg:py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                        <Package className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">
+                          Stock information unavailable
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          We’re fetching live stock for this variant. Please try again in a moment or contact our team.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* CTA Button */}
               <div>
@@ -485,40 +575,65 @@ export function ScooterDetailPage() {
             transition={{ delay: 0.2 }}
             className="mt-16"
           >
-            <Tabs defaultValue="features" className="w-full">
-              <TabsList className="w-full justify-start bg-muted/30 p-1 rounded-xl">
-                <TabsTrigger value="features" className="flex-1 md:flex-none">Features</TabsTrigger>
-                <TabsTrigger value="specs" className="flex-1 md:flex-none">Specifications</TabsTrigger>
-                <TabsTrigger value="reviews" className="flex-1 md:flex-none">Reviews</TabsTrigger>
+            <Tabs defaultValue="features" className="w-full space-y-6">
+              {/* Tab labels */}
+              <TabsList className="w-full justify-between bg-muted/60 rounded-full border border-border/70 shadow-sm overflow-hidden">
+                <TabsTrigger value="features" className="flex-1 md:flex-none">
+                  Features
+                </TabsTrigger>
+                <TabsTrigger value="specs" className="flex-1 md:flex-none">
+                  Specifications
+                </TabsTrigger>
+                <TabsTrigger value="reviews" className="flex-1 md:flex-none">
+                  Reviews
+                </TabsTrigger>
               </TabsList>
 
+              {/* Features */}
               <TabsContent value="features" className="mt-8">
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                   {features.map((feature, i) => (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="flex items-center gap-3 p-4 bg-card/50 border border-border/50 rounded-xl"
+                      className="group relative flex items-center gap-3 p-4 lg:p-5 bg-card/70 border border-border/70 rounded-2xl shadow-sm hover:shadow-lg hover:border-emerald-400/70 hover:-translate-y-1 transition-all duration-200"
                     >
-                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-200">
+                        <Check className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-muted-foreground uppercase tracking-[0.18em]">
+                          Key Feature
+                        </p>
+                        <p className="text-base lg:text-lg font-semibold text-foreground leading-snug">
+                          {feature}
+                        </p>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
               </TabsContent>
 
+              {/* Specifications */}
               <TabsContent value="specs" className="mt-8">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-2 gap-5">
                   {stockData && stockData.specifications ? (
                     // Use specifications from API response
                     Object.entries(stockData.specifications)
                       .filter(([_, value]) => value && value.toString().trim() !== '')
                       .map(([label, value], i) => (
-                        <div key={i} className="flex justify-between p-4 bg-muted/30 rounded-xl">
-                          <span className="text-muted-foreground">{label}</span>
-                          <span className="font-medium">{value}</span>
+                        <div
+                          key={i}
+                          className="flex items-start justify-between gap-4 p-4 lg:p-5 bg-muted/40 rounded-2xl border border-border/70 hover:border-emerald-400/70 hover:bg-background/90 hover:shadow-md transition-all duration-200"
+                        >
+                          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                            {label}
+                          </span>
+                          <span className="text-sm lg:text-base font-semibold text-foreground text-right">
+                            {value}
+                          </span>
                         </div>
                       ))
                   ) : scooter.specifications ? (
@@ -526,23 +641,49 @@ export function ScooterDetailPage() {
                     Object.entries(scooter.specifications)
                       .filter(([_, value]) => value && value.toString().trim() !== '')
                       .map(([label, value], i) => (
-                        <div key={i} className="flex justify-between p-4 bg-muted/30 rounded-xl">
-                          <span className="text-muted-foreground">{label}</span>
-                          <span className="font-medium">{value}</span>
+                        <div
+                          key={i}
+                          className="flex items-start justify-between gap-4 p-4 lg:p-5 bg-muted/40 rounded-2xl border border-border/70 hover:border-emerald-400/70 hover:bg-background/90 hover:shadow-md transition-all duration-200"
+                        >
+                          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                            {label}
+                          </span>
+                          <span className="text-sm lg:text-base font-semibold text-foreground text-right">
+                            {value}
+                          </span>
                         </div>
                       ))
                   ) : (
                     // Fallback message if no specifications available
-                    <div className="col-span-2 text-center py-8 text-muted-foreground">
-                      No specifications available
+                    <div className="col-span-2">
+                      <div className="text-center py-10 px-6 rounded-3xl border border-dashed border-border/70 bg-muted/40">
+                        <p className="text-sm lg:text-base text-muted-foreground">
+                          No specifications available for this scooter yet. We’re updating this section soon.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
               </TabsContent>
 
+              {/* Reviews */}
               <TabsContent value="reviews" className="mt-8">
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>Reviews coming soon. Be the first to review this scooter!</p>
+                <div className="max-w-2xl mx-auto">
+                  <div className="glass-card rounded-3xl px-8 py-10 text-center border border-border/70">
+                    <div className="inline-flex items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] mb-4">
+                      <Star className="w-4 h-4 mr-1" />
+                      Reviews
+                    </div>
+                    <h3 className="text-2xl lg:text-3xl font-bold text-foreground mb-3">
+                      Reviews coming soon
+                    </h3>
+                    <p className="text-sm lg:text-base text-muted-foreground mb-6">
+                      Be the first to share your experience once you own this scooter. Your review helps other riders decide.
+                    </p>
+                    <Button variant="outline" size="lg" className="rounded-full px-8">
+                      Notify me when reviews are live
+                    </Button>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
@@ -563,7 +704,7 @@ export function ScooterDetailPage() {
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 {stockData.other_variants.map((variant, index) => {
                   const variantId = `vehicle-${stockData.vehicle_name?.toLowerCase().replace(/\s+/g, '-') || 'variant'}-${variant.id}`;
                   return (
@@ -573,103 +714,98 @@ export function ScooterDetailPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 + index * 0.05 }}
                       onClick={() => navigate(`/scooters/${variantId}`)}
-                      className="group relative bg-card border border-border/80 rounded-2xl overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all duration-300 cursor-pointer"
+                      className="group relative cursor-pointer"
                     >
-                      {/* Variant Image */}
-                      <div className="relative h-64 bg-gradient-to-br from-muted/20 via-muted/10 to-muted/30 overflow-hidden">
-                        <img
-                          src={variant.primary_image_url || variant.images?.[0]?.image_url || '/placeholder.svg'}
-                          alt={variant.model_code}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/placeholder.svg';
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        
-                        {/* Status Badge */}
-                        <div className="absolute top-3 right-3">
-                          <span className={`text-xs px-3 py-1.5 rounded-full font-bold shadow-lg ${
-                            variant.status === 'available' ? 'bg-emerald-500 text-white' :
-                            variant.status === 'out_of_stock' ? 'bg-red-500 text-white' :
-                            'bg-gray-500 text-white'
-                          }`}>
-                            {variant.status === 'available' ? 'Available' : 
-                             variant.status === 'out_of_stock' ? 'Out of Stock' : 
-                             'Discontinued'}
-                          </span>
-                        </div>
-                      </div>
+                      <div className="relative rounded-3xl bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50/70 shadow-[0_18px_40px_rgba(15,23,42,0.18)] overflow-visible">
+                        {/* Image Section */}
+                        <div className="relative h-56 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl rounded-b-none overflow-hidden">
+                          <motion.img
+                            src={variant.primary_image_url || variant.images?.[0]?.image_url || '/placeholder.svg'}
+                            alt={variant.model_code}
+                            whileHover={{ y: -6 }}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder.svg';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
 
-                      {/* Variant Details */}
-                      <div className="p-5 space-y-4">
-                        {/* Model Code & Name */}
-                        <div>
-                          <h4 className="font-bold text-foreground text-base mb-1 line-clamp-1">
-                            {variant.model_code}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {stockData.vehicle_name}
-                          </p>
-                        </div>
-
-                        {/* Color & Battery */}
-                        <div className="flex flex-wrap items-center gap-3 text-sm">
-                          {variant.vehicle_color && variant.vehicle_color.length > 0 && (
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg">
-                              <span className="text-muted-foreground">Color:</span>
-                              <span className="font-semibold capitalize">{variant.vehicle_color[0]}</span>
-                            </div>
-                          )}
-                          {variant.battery_variant && variant.battery_variant.length > 0 && (
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg">
-                              <span className="text-muted-foreground">Battery:</span>
-                              <span className="font-semibold">{variant.battery_variant[0]}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Stock Info */}
-                        <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border/50">
-                          <div className="text-center p-2 bg-emerald-500/10 rounded-lg">
-                            <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                              {variant.stock_available_quantity || 0}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">Available</div>
-                          </div>
-                          <div className="text-center p-2 bg-amber-500/10 rounded-lg">
-                            <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                              {variant.stock_reserved_quantity || 0}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">Reserved</div>
-                          </div>
-                          <div className="text-center p-2 bg-primary/10 rounded-lg">
-                            <div className="text-lg font-bold text-primary">
-                              {variant.stock_total_quantity || 0}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">Total</div>
-                          </div>
-                        </div>
-
-                        {/* Price */}
-                        <div className="pt-3 border-t border-border/50">
-                          <div className="flex items-baseline justify-between">
-                            <div>
-                              <div className="text-2xl font-bold text-primary">
-                                ₹{parseFloat(variant.price || '0').toLocaleString()}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-1">Ex-showroom</div>
-                            </div>
-                            <Button
-                              size="sm"
-                              className="bg-primary text-primary-foreground hover:bg-primary/90"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/scooters/${variantId}`);
-                              }}
+                          {/* Status Badge */}
+                          <div className="absolute top-4 left-4 z-10">
+                            <span
+                              className={`px-3 py-1.5 text-xs font-semibold rounded-full shadow-md ${
+                                variant.status === 'available'
+                                  ? 'bg-emerald-500 text-white'
+                                  : variant.status === 'out_of_stock'
+                                  ? 'bg-red-500 text-white'
+                                  : 'bg-slate-600 text-white'
+                              }`}
                             >
-                              View Details
-                            </Button>
+                              {variant.status === 'available'
+                                ? 'Available'
+                                : variant.status === 'out_of_stock'
+                                ? 'Out of Stock'
+                                : 'Discontinued'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Bottom content panel */}
+                        <div className="relative -mt-6 px-4 pb-4">
+                          <div className="relative rounded-3xl bg-white shadow-[0_14px_30px_rgba(15,23,42,0.12)] px-5 pt-5 pb-4 space-y-4">
+                            {/* Model Code & Name */}
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-[0.16em] mb-1">
+                                  {stockData.vehicle_name}
+                                </p>
+                                <h4 className="text-base sm:text-lg font-semibold text-slate-900 line-clamp-1">
+                                  {variant.model_code}
+                                </h4>
+                              </div>
+                            </div>
+
+                            {/* Color & Battery */}
+                            <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                              {variant.vehicle_color && variant.vehicle_color.length > 0 && (
+                                <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 border border-slate-200">
+                                  <span className="text-slate-500">Color</span>
+                                  <span className="font-semibold capitalize text-slate-900">
+                                    {variant.vehicle_color[0]}
+                                  </span>
+                                </div>
+                              )}
+                              {variant.battery_variant && variant.battery_variant.length > 0 && (
+                                <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 border border-slate-200">
+                                  <span className="text-slate-500">Battery</span>
+                                  <span className="font-semibold text-slate-900">
+                                    {variant.battery_variant[0]}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Price & CTA */}
+                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 mt-1">
+                              <div>
+                                <p className="text-xs text-slate-400 uppercase tracking-[0.16em] mb-0.5">
+                                  Ex‑showroom
+                                </p>
+                                <div className="text-xl font-bold text-emerald-600">
+                                  ₹{parseFloat(variant.price || '0').toLocaleString()}
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="rounded-full shadow-[0_10px_25px_rgba(16,185,129,0.45)] hover:shadow-[0_14px_34px_rgba(16,185,129,0.6)]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/scooters/${variantId}`);
+                                }}
+                              >
+                                View Details
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>

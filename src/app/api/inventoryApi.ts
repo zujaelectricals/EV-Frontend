@@ -641,6 +641,93 @@ export const inventoryApi = api.injectEndpoints({
       },
       providesTags: ['Inventory'],
     }),
+    updateStockByVehicleId: builder.mutation<StockDetailResponse, { vehicleId: number; totalQuantity: number }>({
+      queryFn: async ({ vehicleId, totalQuantity }) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          const url = `${baseUrl}inventory/stock/by-vehicle/${vehicleId}/`;
+          
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          const requestBody = {
+            total_quantity: totalQuantity,
+          };
+          
+          console.log('📤 [UPDATE STOCK BY VEHICLE ID API] Request URL:', url);
+          console.log('📤 [UPDATE STOCK BY VEHICLE ID API] Request Method: POST');
+          console.log('📤 [UPDATE STOCK BY VEHICLE ID API] Request Body:', JSON.stringify(requestBody, null, 2));
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBody),
+          });
+          
+          console.log('📥 [UPDATE STOCK BY VEHICLE ID API] Response Status:', response.status);
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [UPDATE STOCK BY VEHICLE ID API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                response = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify(requestBody),
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('📥 [UPDATE STOCK BY VEHICLE ID API] Error Response:', errorData);
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+          
+          const responseData = await response.json();
+          console.log('📥 [UPDATE STOCK BY VEHICLE ID API] Response Body:', JSON.stringify(responseData, null, 2));
+          console.log('✅ [UPDATE STOCK BY VEHICLE ID API] Update successful');
+          
+          return { data: responseData };
+        } catch (error) {
+          console.error('Update Stock By Vehicle ID API Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: ['Inventory'],
+    }),
   }),
 });
 
@@ -713,5 +800,6 @@ export const {
   useLazyGetVehicleByIdQuery,
   useUpdateVehicleMutation,
   useDeleteVehicleMutation,
+  useUpdateStockByVehicleIdMutation,
 } = inventoryApi;
 

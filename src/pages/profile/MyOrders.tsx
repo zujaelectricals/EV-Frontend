@@ -150,22 +150,43 @@ export function MyOrders() {
     console.log("🔄 [MAPPED BOOKINGS] First booking remaining_amount:", activeBookingsData.results[0]?.remaining_amount);
     
     return activeBookingsData.results.map((apiBooking) => {
-      // Map API status to display status
-      let displayStatus: Booking['status'] = 'pending';
-      if (apiBooking.status === 'pending') {
-        displayStatus = 'pre-booked';
-      } else if (apiBooking.status === 'active') {
-        displayStatus = 'confirmed';
-      } else if (apiBooking.status === 'confirmed') {
-        displayStatus = 'confirmed';
-      } else if (apiBooking.status === 'delivered') {
-        displayStatus = 'delivered';
-      } else if (apiBooking.status === 'cancelled') {
-        displayStatus = 'cancelled';
-      } else if (apiBooking.status === 'refunded') {
-        displayStatus = 'refunded';
+      // IMPORTANT:
+      // Use payment_status and reservation_status (NOT status field) for display logic
+      const remainingAmount = parseFloat(apiBooking.remaining_amount) || 0;
+
+      let displayStatus: Booking['status'] = "pending";
+
+      // If the reservation has been released, treat as expired
+      if (apiBooking.reservation_status === "released") {
+        displayStatus = "expired";
       }
-      
+      // Explicitly cancelled payments/bookings
+      else if (
+        apiBooking.payment_status === "cancelled" ||
+        apiBooking.status === "cancelled"
+      ) {
+        displayStatus = "cancelled";
+      }
+      // Fully paid bookings
+      else if (remainingAmount === 0) {
+        // If delivered timestamp exists, mark as delivered
+        if (apiBooking.delivered_at || apiBooking.completed_at) {
+          displayStatus = "delivered";
+        } else {
+          // Payment completed, reservation completed -> confirmed
+          displayStatus = "confirmed";
+        }
+      }
+      // Partially / only booking-amount paid -> pre-booked
+      else if (
+        apiBooking.reservation_status === "completed" ||
+        apiBooking.reservation_status === "pending" ||
+        apiBooking.payment_status === "completed" ||
+        apiBooking.payment_status === "pending"
+      ) {
+        displayStatus = "pre-booked";
+      }
+
       return {
         id: apiBooking.id.toString(),
         vehicleId: `vehicle-${apiBooking.vehicle_details.name?.toLowerCase().replace(/\s+/g, '-') || 'vehicle'}-${apiBooking.vehicle_model}`,
@@ -190,6 +211,7 @@ export function MyOrders() {
         bookingNumber: apiBooking.booking_number,
         vehicleColor: apiBooking.vehicle_color,
         batteryVariant: apiBooking.battery_variant,
+        reservationStatus: apiBooking.reservation_status,
       };
     });
   }, [activeBookingsData, refreshKey]); // Use activeBookingsData instead of bookingsData
@@ -553,8 +575,22 @@ export function MyOrders() {
                     <Badge className={getStatusColor(booking.status)}>
                       <span className="flex items-center gap-1 text-[10px] sm:text-xs">
                         {getStatusIcon(booking.status)}
-                        <span className="hidden sm:inline">{booking.status.replace("-", " ").toUpperCase()}</span>
-                        <span className="sm:hidden">{booking.status.replace("-", " ").toUpperCase().slice(0, 3)}</span>
+                        {(() => {
+                          const baseText =
+                            (booking.status === "pre-booked" || booking.status === "expired") &&
+                            (booking as Booking).reservationStatus
+                              ? (booking as Booking).reservationStatus!
+                              : booking.status.replace("-", " ");
+
+                          const label = baseText.toUpperCase();
+
+                          return (
+                            <>
+                              <span className="hidden sm:inline">{label}</span>
+                              <span className="sm:hidden">{label.slice(0, 3)}</span>
+                            </>
+                          );
+                        })()}
                       </span>
                     </Badge>
                   </div>

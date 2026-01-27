@@ -13,6 +13,7 @@ export interface PayoutResponse {
   account_number: string;
   ifsc_code: string;
   account_holder_name: string;
+  bank_details?: BankDetails[];
   emi_auto_filled: boolean;
   emi_amount: string;
   created_at: string;
@@ -21,8 +22,11 @@ export interface PayoutResponse {
   transaction_id: string | null;
   rejection_reason: string;
   notes: string;
+  reason?: string;
   user_email: string;
   wallet_balance: string;
+  user?: number;
+  wallet?: number;
 }
 
 // Withdrawal history item interface
@@ -244,9 +248,14 @@ export const payoutApi = api.injectEndpoints({
           }
           
           // Console log the request
+          console.log('📤 [PAYOUTS LIST API] ========================================');
           console.log('📤 [PAYOUTS LIST API] Request URL:', url);
-          console.log('📤 [PAYOUTS LIST API] Query Params:', params);
-          console.log('📤 [PAYOUTS LIST API] Request Headers:', headers);
+          console.log('📤 [PAYOUTS LIST API] Request Method: GET');
+          console.log('📤 [PAYOUTS LIST API] Query Params (Object):', JSON.stringify(params || {}, null, 2));
+          console.log('📤 [PAYOUTS LIST API] Query String:', queryString || '(none)');
+          console.log('📤 [PAYOUTS LIST API] Request Headers:', JSON.stringify(headers, null, 2));
+          console.log('📤 [PAYOUTS LIST API] Request Body: (GET request - no body)');
+          console.log('📤 [PAYOUTS LIST API] ========================================');
           
           let response = await fetch(url, {
             method: 'GET',
@@ -299,7 +308,12 @@ export const payoutApi = api.injectEndpoints({
           }
           
           const data = await response.json();
-          console.log('📥 [PAYOUTS LIST API] Success Response:', JSON.stringify(data, null, 2));
+          console.log('📥 [PAYOUTS LIST API] ========================================');
+          console.log('📥 [PAYOUTS LIST API] Response Status:', response.status);
+          console.log('📥 [PAYOUTS LIST API] Response Status Text:', response.statusText);
+          console.log('📥 [PAYOUTS LIST API] Success Response (Formatted):', JSON.stringify(data, null, 2));
+          console.log('📥 [PAYOUTS LIST API] Success Response (Raw):', data);
+          console.log('📥 [PAYOUTS LIST API] ========================================');
           
           return { data };
         } catch (error) {
@@ -343,12 +357,229 @@ export const payoutApi = api.injectEndpoints({
         return tags;
       },
     }),
+    processPayout: builder.mutation<PayoutResponse, { id: number; notes?: string }>({
+      queryFn: async ({ id, notes }) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          const url = `${baseUrl}payout/${id}/process/`;
+          
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          const requestBody = notes ? { notes } : {};
+          const requestBodyString = JSON.stringify(requestBody);
+          
+          console.log('📤 [PROCESS PAYOUT API] ========================================');
+          console.log('📤 [PROCESS PAYOUT API] Request URL:', url);
+          console.log('📤 [PROCESS PAYOUT API] Request Method: POST');
+          console.log('📤 [PROCESS PAYOUT API] Payout ID:', id);
+          console.log('📤 [PROCESS PAYOUT API] Request Body (Formatted):', JSON.stringify(requestBody, null, 2));
+          console.log('📤 [PROCESS PAYOUT API] Request Body (Raw String):', requestBodyString);
+          console.log('📤 [PROCESS PAYOUT API] Request Headers:', headers);
+          console.log('📤 [PROCESS PAYOUT API] ========================================');
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: requestBodyString,
+          });
+          
+          console.log('📥 [PROCESS PAYOUT API] Response Status:', response.status);
+          console.log('📥 [PROCESS PAYOUT API] Response Status Text:', response.statusText);
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [PROCESS PAYOUT API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                console.log('🔄 [PROCESS PAYOUT API] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                  body: requestBodyString,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [PROCESS PAYOUT API] ========================================');
+            console.error('❌ [PROCESS PAYOUT API] Error Response Status:', response.status);
+            console.error('❌ [PROCESS PAYOUT API] Error Response Status Text:', response.statusText);
+            console.error('❌ [PROCESS PAYOUT API] Error Response Data (Formatted):', JSON.stringify(errorData, null, 2));
+            console.error('❌ [PROCESS PAYOUT API] Error Response Data (Raw):', errorData);
+            console.error('❌ [PROCESS PAYOUT API] ========================================');
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+          
+          const data = await response.json();
+          console.log('✅ [PROCESS PAYOUT API] ========================================');
+          console.log('✅ [PROCESS PAYOUT API] Success Response (Formatted):', JSON.stringify(data, null, 2));
+          console.log('✅ [PROCESS PAYOUT API] Success Response (Raw):', data);
+          console.log('✅ [PROCESS PAYOUT API] Response Status:', response.status);
+          console.log('✅ [PROCESS PAYOUT API] ========================================');
+          
+          return { data };
+        } catch (error) {
+          console.error('❌ [PROCESS PAYOUT API] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Payout', id },
+        { type: 'Payout', id: 'LIST' },
+        { type: 'Payout', id: 'LIST-pending' },
+        { type: 'Payout', id: 'LIST-processing' },
+      ],
+    }),
+    completePayout: builder.mutation<PayoutResponse, { id: number; transaction_id?: string; notes?: string }>({
+      queryFn: async ({ id, transaction_id, notes }) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          const url = `${baseUrl}payout/${id}/complete/`;
+          
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          const requestBody: { transaction_id?: string; notes?: string } = {};
+          if (transaction_id) requestBody.transaction_id = transaction_id;
+          if (notes) requestBody.notes = notes;
+          
+          const requestBodyString = JSON.stringify(requestBody);
+          
+          console.log('📤 [COMPLETE PAYOUT API] ========================================');
+          console.log('📤 [COMPLETE PAYOUT API] Request URL:', url);
+          console.log('📤 [COMPLETE PAYOUT API] Request Method: POST');
+          console.log('📤 [COMPLETE PAYOUT API] Payout ID:', id);
+          console.log('📤 [COMPLETE PAYOUT API] Request Body (Formatted):', JSON.stringify(requestBody, null, 2));
+          console.log('📤 [COMPLETE PAYOUT API] Request Body (Raw String):', requestBodyString);
+          console.log('📤 [COMPLETE PAYOUT API] Request Headers:', headers);
+          console.log('📤 [COMPLETE PAYOUT API] ========================================');
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: requestBodyString,
+          });
+          
+          console.log('📥 [COMPLETE PAYOUT API] Response Status:', response.status);
+          console.log('📥 [COMPLETE PAYOUT API] Response Status Text:', response.statusText);
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [COMPLETE PAYOUT API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                console.log('🔄 [COMPLETE PAYOUT API] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                  body: requestBodyString,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [COMPLETE PAYOUT API] ========================================');
+            console.error('❌ [COMPLETE PAYOUT API] Error Response Status:', response.status);
+            console.error('❌ [COMPLETE PAYOUT API] Error Response Status Text:', response.statusText);
+            console.error('❌ [COMPLETE PAYOUT API] Error Response Data (Formatted):', JSON.stringify(errorData, null, 2));
+            console.error('❌ [COMPLETE PAYOUT API] Error Response Data (Raw):', errorData);
+            console.error('❌ [COMPLETE PAYOUT API] ========================================');
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+          
+          const data = await response.json();
+          console.log('✅ [COMPLETE PAYOUT API] ========================================');
+          console.log('✅ [COMPLETE PAYOUT API] Success Response (Formatted):', JSON.stringify(data, null, 2));
+          console.log('✅ [COMPLETE PAYOUT API] Success Response (Raw):', data);
+          console.log('✅ [COMPLETE PAYOUT API] Response Status:', response.status);
+          console.log('✅ [COMPLETE PAYOUT API] ========================================');
+          
+          return { data };
+        } catch (error) {
+          console.error('❌ [COMPLETE PAYOUT API] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Payout', id },
+        { type: 'Payout', id: 'LIST' },
+        { type: 'Payout', id: 'LIST-processing' },
+        { type: 'Payout', id: 'LIST-completed' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
 
 export const { 
   useGetPayoutsQuery,
-  useCreatePayoutMutation
+  useCreatePayoutMutation,
+  useProcessPayoutMutation,
+  useCompletePayoutMutation
 } = payoutApi;
 

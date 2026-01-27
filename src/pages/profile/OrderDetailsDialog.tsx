@@ -58,21 +58,13 @@ export function OrderDetailsDialog({
   const detailedBooking: BookingResponse | null = bookingDetail || null;
 
   const vehicleDetails = useMemo(() => {
-    if (detailedBooking?.vehicle_details) {
-      // Use vehicle details from API response
-      return {
-        id: detailedBooking.vehicle_details.id.toString(),
-        name: detailedBooking.vehicle_details.name,
-        model_code: detailedBooking.vehicle_details.model_code,
-        colors: detailedBooking.vehicle_details.vehicle_color,
-        battery: detailedBooking.vehicle_details.battery_variant,
-      };
-    }
+    // For now, only map to the local scooter catalogue when we have a basic booking.
+    // The detailed API response is handled directly via `detailedBooking` elsewhere.
     if (booking) {
-      return scooters.find((s) => s.id === booking.vehicleId);
+      return scooters.find((s) => s.id === booking.vehicleId) || null;
     }
     return null;
-  }, [detailedBooking, booking]);
+  }, [booking]);
 
   // Calculate overdue status based on expires_at
   const isOverdue = useMemo(() => {
@@ -318,8 +310,8 @@ export function OrderDetailsDialog({
                 )}
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Status</p>
-                  <Badge className={getStatusColor(detailedBooking?.status || booking?.status || '')}>
-                    {(detailedBooking?.status || booking?.status || '').replace(/_/g, " ").toUpperCase()}
+                  <Badge className={getStatusColor(detailedBooking?.payment_status || booking?.paymentStatus || '')}>
+                    {(detailedBooking?.payment_status || booking?.paymentStatus || '').replace(/_/g, " ").toUpperCase()}
                   </Badge>
                 </div>
                 <div>
@@ -406,7 +398,10 @@ export function OrderDetailsDialog({
                       Referred By
                     </p>
                     <p className="font-semibold text-foreground">
-                      {detailedBooking.referred_by}
+                      {/* referred_by is an object { id, fullname, email } - render a readable string */}
+                      {detailedBooking.referred_by.fullname ||
+                        detailedBooking.referred_by.email ||
+                        `User #${detailedBooking.referred_by.id}`}
                     </p>
                   </div>
                 )}

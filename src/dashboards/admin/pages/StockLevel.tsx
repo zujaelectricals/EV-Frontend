@@ -31,8 +31,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ResponsiveContainer,
   BarChart,
@@ -45,7 +43,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { useGetStockListQuery, StockListQueryParams } from '@/app/api/inventoryApi';
+import { useGetStockListQuery, StockListQueryParams, useUpdateStockByVehicleIdMutation } from '@/app/api/inventoryApi';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -103,6 +101,22 @@ const getMovementTypeBadge = (type: string) => {
   }
 };
 
+// Helper function to format vehicle variant display
+const formatVehicleVariantDisplay = (stock: {
+  vehicle_name: string;
+  vehicle_colors?: string[];
+  battery_variants?: string[];
+}): string => {
+  const colors = stock.vehicle_colors && stock.vehicle_colors.length > 0 
+    ? stock.vehicle_colors.join(', ') 
+    : 'N/A';
+  const batteries = stock.battery_variants && stock.battery_variants.length > 0 
+    ? stock.battery_variants.join(', ') 
+    : 'N/A';
+  
+  return `${stock.vehicle_name} - ${colors} / ${batteries}`;
+};
+
 export const StockLevel = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -119,6 +133,13 @@ export const StockLevel = () => {
   
   const [isAdjustmentDialogOpen, setIsAdjustmentDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Add Stock form state
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
+  const [stockQuantity, setStockQuantity] = useState<string>('');
+  
+  // API mutation for updating stock
+  const [updateStockByVehicleId, { isLoading: isUpdatingStock }] = useUpdateStockByVehicleIdMutation();
 
   // Build query params
   const queryParams: StockListQueryParams = useMemo(() => {
@@ -156,10 +177,67 @@ export const StockLevel = () => {
   }, [currentPage, pageSize, appliedSearchQuery, vehicleIdFilter, modelCodeFilter, vehicleNameFilter, minAvailableFilter, maxAvailableFilter]);
 
   // Fetch stock data
-  const { data: stockData, isLoading, isError, error } = useGetStockListQuery(queryParams);
+  const { data: stockData, isLoading, isError, error, refetch: refetchStockList } = useGetStockListQuery(queryParams);
 
   // Calculate pagination info
   const totalPages = stockData ? Math.ceil(stockData.count / pageSize) : 0;
+  
+  // Handle Add Stock form submission
+  const handleAddStock = async () => {
+    if (!selectedVehicleId || !stockQuantity) {
+      toast.error('Please select a vehicle model and enter quantity');
+      return;
+    }
+    
+    const quantity = parseInt(stockQuantity);
+    if (isNaN(quantity) || quantity <= 0) {
+      toast.error('Please enter a valid quantity greater than 0');
+      return;
+    }
+    
+    const vehicleId = parseInt(selectedVehicleId);
+    if (isNaN(vehicleId)) {
+      toast.error('Invalid vehicle selected');
+      return;
+    }
+    
+    try {
+      const result = await updateStockByVehicleId({
+        vehicleId,
+        totalQuantity: quantity,
+      }).unwrap();
+      
+      toast.success(`Stock updated successfully! ${result.vehicle_name} now has ${result.total_quantity} units`);
+      
+      // Reset form
+      setSelectedVehicleId('');
+      setStockQuantity('');
+      
+      // Close dialog
+      setIsAdjustmentDialogOpen(false);
+      
+      // Refetch stock list to show updated data
+      refetchStockList();
+    } catch (error: unknown) {
+      console.error('Error updating stock:', error);
+      if (error && typeof error === 'object' && 'status' in error) {
+        const apiError = error as { status?: number; data?: { error?: string; detail?: string } };
+        if (apiError.status === 404) {
+          toast.error('Vehicle not found');
+        } else if (apiError.status === 403) {
+          toast.error('Only admin users can perform this action');
+        } else if (apiError.data?.error) {
+          toast.error(apiError.data.error);
+        } else if (apiError.data?.detail) {
+          toast.error(apiError.data.detail);
+        } else {
+          toast.error('Failed to update stock. Please try again.');
+        }
+      } else {
+        toast.error('Failed to update stock. Please try again.');
+      }
+    }
+  };
   
   // Handle search
   const handleSearch = () => {
@@ -232,7 +310,17 @@ export const StockLevel = () => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Dialog open={isAdjustmentDialogOpen} onOpenChange={setIsAdjustmentDialogOpen}>
+          <Dialog 
+            open={isAdjustmentDialogOpen} 
+            onOpenChange={(open) => {
+              setIsAdjustmentDialogOpen(open);
+              if (!open) {
+                // Reset form when dialog closes
+                setSelectedVehicleId('');
+                setStockQuantity('');
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -241,178 +329,69 @@ export const StockLevel = () => {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Stock Adjustment</DialogTitle>
-                <DialogDescription>Add, remove, or transfer stock between warehouses</DialogDescription>
+                <DialogTitle>Add Stock</DialogTitle>
+                <DialogDescription>Add stock to a specific vehicle model variant</DialogDescription>
               </DialogHeader>
-              <Tabs defaultValue="adjust" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="adjust">Adjust</TabsTrigger>
-                  <TabsTrigger value="transfer">Transfer</TabsTrigger>
-                  <TabsTrigger value="add">Add Stock</TabsTrigger>
-                </TabsList>
-                <TabsContent value="adjust" className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Model</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {stockData?.results && stockData.results.length > 0 ? (
-                          stockData.results.map((stock) => (
-                            <SelectItem key={stock.id} value={stock.vehicle.toString()}>
-                              {stock.vehicle_name} ({stock.vehicle_model_code})
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-data" disabled>No models available</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Warehouse</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select warehouse" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="wh1">Mumbai Central</SelectItem>
-                        <SelectItem value="wh2">Delhi North</SelectItem>
-                        <SelectItem value="wh3">Bangalore South</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Adjustment Type</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="increase">Increase</SelectItem>
-                        <SelectItem value="decrease">Decrease</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Quantity</Label>
-                    <Input type="number" placeholder="0" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Reason</Label>
-                    <Textarea placeholder="Enter reason for adjustment..." rows={3} />
-                  </div>
-                </TabsContent>
-                <TabsContent value="transfer" className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Model</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {stockData?.results && stockData.results.length > 0 ? (
-                          stockData.results.map((stock) => (
-                            <SelectItem key={stock.id} value={stock.vehicle.toString()}>
-                              {stock.vehicle_name} ({stock.vehicle_model_code})
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-data" disabled>No models available</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>From Warehouse</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select warehouse" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="wh1">Mumbai Central</SelectItem>
-                          <SelectItem value="wh2">Delhi North</SelectItem>
-                          <SelectItem value="wh3">Bangalore South</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>To Warehouse</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select warehouse" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="wh1">Mumbai Central</SelectItem>
-                          <SelectItem value="wh2">Delhi North</SelectItem>
-                          <SelectItem value="wh3">Bangalore South</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Quantity</Label>
-                    <Input type="number" placeholder="0" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Reason</Label>
-                    <Textarea placeholder="Enter reason for transfer..." rows={3} />
-                  </div>
-                </TabsContent>
-                <TabsContent value="add" className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Model</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {stockData?.results && stockData.results.length > 0 ? (
-                          stockData.results.map((stock) => (
-                            <SelectItem key={stock.id} value={stock.vehicle.toString()}>
-                              {stock.vehicle_name} ({stock.vehicle_model_code})
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-data" disabled>No models available</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Warehouse</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select warehouse" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="wh1">Mumbai Central</SelectItem>
-                        <SelectItem value="wh2">Delhi North</SelectItem>
-                        <SelectItem value="wh3">Bangalore South</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Quantity</Label>
-                    <Input type="number" placeholder="0" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Purchase Order Reference</Label>
-                    <Input placeholder="PO-2024-XXX" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Notes</Label>
-                    <Textarea placeholder="Additional notes..." rows={3} />
-                  </div>
-                </TabsContent>
-              </Tabs>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="vehicle-select">Vehicle Model Variant</Label>
+                  <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                    <SelectTrigger id="vehicle-select">
+                      <SelectValue placeholder="Select vehicle model variant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stockData?.results && stockData.results.length > 0 ? (
+                        stockData.results.map((stock) => (
+                          <SelectItem key={stock.id} value={stock.vehicle.toString()}>
+                            {formatVehicleVariantDisplay(stock)}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-data" disabled>No models available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="quantity-input">Total Quantity</Label>
+                  <Input 
+                    id="quantity-input"
+                    type="number" 
+                    placeholder="Enter total quantity" 
+                    value={stockQuantity}
+                    onChange={(e) => setStockQuantity(e.target.value)}
+                    min="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter the total stock quantity for this vehicle model variant. If stock doesn't exist, it will be created automatically.
+                  </p>
+                </div>
+              </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAdjustmentDialogOpen(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsAdjustmentDialogOpen(false);
+                    setSelectedVehicleId('');
+                    setStockQuantity('');
+                  }}
+                  disabled={isUpdatingStock}
+                >
                   Cancel
                 </Button>
-                <Button onClick={() => setIsAdjustmentDialogOpen(false)}>Apply</Button>
+                <Button 
+                  onClick={handleAddStock}
+                  disabled={isUpdatingStock}
+                >
+                  {isUpdatingStock ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Add Stock'
+                  )}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

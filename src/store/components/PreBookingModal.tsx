@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, AlertCircle, CheckCircle, Info, Calendar, Wallet, Users } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, Info, Calendar, Wallet, Users, Eye, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -278,6 +278,22 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       isSubmittingRef.current = false;
       setIsBookingInProgress(false);
     }
+  };
+
+  // Handle viewing Booking Terms PDF
+  const handleViewBookingTerms = () => {
+    window.open('/Booking_Terms.pdf', '_blank');
+  };
+
+  // Handle downloading Booking Terms PDF
+  const handleDownloadBookingTerms = () => {
+    const link = document.createElement('a');
+    link.href = '/Booking_Terms.pdf';
+    link.download = 'Booking_Terms.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Booking Terms PDF download started');
   };
 
   const handlePaymentSuccess = async (paymentGatewayRef?: string) => {
@@ -651,19 +667,43 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
 
           {/* Terms and Conditions */}
           <div className="space-y-2">
-            <div className="flex items-start space-x-2">
-              <Checkbox
-                id="termsAccepted"
-                checked={termsAccepted}
-                onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
-                required
-              />
-              <Label
-                htmlFor="termsAccepted"
-                className="text-sm cursor-pointer leading-relaxed"
-              >
-                I accept the terms and conditions <span className="text-destructive">*</span>
-              </Label>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="termsAccepted"
+                  checked={termsAccepted}
+                  onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                  required
+                />
+                <Label
+                  htmlFor="termsAccepted"
+                  className="text-sm cursor-pointer leading-relaxed"
+                >
+                  I accept the terms and conditions <span className="text-destructive">*</span>
+                </Label>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleViewBookingTerms}
+                  className="h-8 w-8 flex-shrink-0"
+                  title="View Booking Terms"
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDownloadBookingTerms}
+                  className="h-8 w-8 flex-shrink-0"
+                  title="Download Booking Terms"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             {!termsAccepted && (
               <p className="text-xs text-destructive ml-6">

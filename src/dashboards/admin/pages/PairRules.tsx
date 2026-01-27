@@ -26,7 +26,7 @@ export const PairRules = () => {
 
   // Form state
   const [formData, setFormData] = useState({
-    booking_reservation_timeout_minutes: 1440,
+    booking_reservation_timeout_minutes: 2,
     direct_user_commission_amount: 1000,
     binary_commission_activation_count: 3,
     binary_pair_commission_amount: 2000,
@@ -34,8 +34,12 @@ export const PairRules = () => {
     binary_commission_tds_percentage: 20,
     binary_extra_deduction_percentage: 20,
     binary_daily_pair_limit: 10,
+    binary_commission_initial_bonus: 2000,
     binary_tree_default_placement_side: 'left' as 'left' | 'right',
+    activation_amount: 5000,
     distributor_application_auto_approve: true,
+    payout_approval_needed: true,
+    payout_tds_percentage: 0,
   });
 
   // Track if form has been modified
@@ -45,7 +49,7 @@ export const PairRules = () => {
   useEffect(() => {
     if (settings) {
       setFormData({
-        booking_reservation_timeout_minutes: settings.booking_reservation_timeout_minutes ?? 1440,
+        booking_reservation_timeout_minutes: settings.booking_reservation_timeout_minutes ?? 2,
         direct_user_commission_amount: settings.direct_user_commission_amount,
         binary_commission_activation_count: settings.binary_commission_activation_count,
         binary_pair_commission_amount: settings.binary_pair_commission_amount,
@@ -53,8 +57,12 @@ export const PairRules = () => {
         binary_commission_tds_percentage: settings.binary_commission_tds_percentage,
         binary_extra_deduction_percentage: settings.binary_extra_deduction_percentage,
         binary_daily_pair_limit: settings.binary_daily_pair_limit,
+        binary_commission_initial_bonus: settings.binary_commission_initial_bonus ?? 2000,
         binary_tree_default_placement_side: settings.binary_tree_default_placement_side,
+        activation_amount: settings.activation_amount ?? 5000,
         distributor_application_auto_approve: settings.distributor_application_auto_approve ?? true,
+        payout_approval_needed: settings.payout_approval_needed ?? true,
+        payout_tds_percentage: settings.payout_tds_percentage ?? 0,
       });
       setIsDirty(false);
     }
@@ -88,6 +96,14 @@ export const PairRules = () => {
       }
       if (formData.binary_daily_pair_limit < 1) {
         toast.error('Daily pair limit must be at least 1');
+        return;
+      }
+      if (formData.activation_amount < 0) {
+        toast.error('Activation amount cannot be negative');
+        return;
+      }
+      if (formData.payout_tds_percentage < 0 || formData.payout_tds_percentage > 100) {
+        toast.error('Payout TDS percentage must be between 0 and 100');
         return;
       }
 
@@ -263,6 +279,20 @@ export const PairRules = () => {
                 Commission per direct user before binary activation
               </p>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="activation_amount">Activation Amount (₹)</Label>
+              <Input
+                id="activation_amount"
+                type="number"
+                min="0"
+                value={formData.activation_amount}
+                onChange={(e) => handleChange('activation_amount', parseInt(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Minimum payment amount per booking required for seniors to earn commission. If payment is less than this amount, no commission is credited, but user is still counted in descendants calculation. On cancellation, this amount is withheld for future point redemption (min: 0)
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -334,6 +364,20 @@ export const PairRules = () => {
                 Default placement side for new users in binary tree
               </p>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="initial_bonus">Binary Commission Initial Bonus (₹)</Label>
+              <Input
+                id="initial_bonus"
+                type="number"
+                min="0"
+                value={formData.binary_commission_initial_bonus}
+                onChange={(e) => handleChange('binary_commission_initial_bonus', parseInt(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Initial bonus amount (in rupees) credited to user's wallet and total_earnings when binary commission is activated (3 persons). TDS is deducted from this amount, but TDS is NOT deducted from booking balance (default: 0)
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -392,7 +436,42 @@ export const PairRules = () => {
         </CardContent>
       </Card>
 
-      
+      {/* Payout Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Payout Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="payout_approval">Payout Approval Required</Label>
+              <p className="text-xs text-muted-foreground">
+                If enabled, payout requests require admin approval. If disabled, payouts are automatically processed upon creation.
+              </p>
+            </div>
+            <Switch
+              id="payout_approval"
+              checked={formData.payout_approval_needed}
+              onCheckedChange={(checked) => handleChange('payout_approval_needed', checked)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="payout_tds">Payout TDS Percentage (%)</Label>
+            <Input
+              id="payout_tds"
+              type="number"
+              min="0"
+              max="100"
+              value={formData.payout_tds_percentage}
+              onChange={(e) => handleChange('payout_tds_percentage', parseInt(e.target.value) || 0)}
+            />
+            <p className="text-xs text-muted-foreground">
+              TDS percentage applied on payout withdrawals (default: 0, meaning no payout TDS, range: 0-100)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       
     </div>

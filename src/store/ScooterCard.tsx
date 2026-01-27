@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Heart, Star } from "lucide-react";
+import { Heart, Star, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -59,9 +58,7 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
   const isFavorited = wishlistItems.some((item) => item.id === scooter.id);
 
   const discount = scooter.originalPrice
-    ? Math.round(
-        ((scooter.originalPrice - scooter.price) / scooter.originalPrice) * 100
-      )
+    ? Math.round(((scooter.originalPrice - scooter.price) / scooter.originalPrice) * 100)
     : 0;
 
   const formatPrice = (price: number) => {
@@ -77,17 +74,20 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
+      initial={{ opacity: 0, y: 30, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.08, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
       onClick={handleCardClick}
-      className="group relative bg-card border border-border/80 rounded-2xl overflow-hidden hover:shadow-neon-strong hover:border-primary/30 transition-all duration-300 glass-card cursor-pointer"
+      className="group relative cursor-pointer"
     >
-      {/* Image Section */}
-      <div className="relative h-64 bg-gradient-to-br from-muted/20 via-muted/10 to-muted/30 overflow-hidden">
+      {/* Card shell inspired by shoe cards */}
+      <div className="relative rounded-3xl bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50/70 shadow-[0_18px_40px_rgba(15,23,42,0.18)] overflow-visible">
+        {/* Image Section */}
+        <div className="relative h-60 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl rounded-b-none overflow-hidden">
         <motion.img
           src={scooter.image}
           alt={scooter.name}
+          whileHover={{ y: -6 }}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
           onError={(e) => {
             // Fallback to a placeholder if image fails to load
@@ -95,105 +95,92 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
               "https://via.placeholder.com/600x400/cccccc/666666?text=EV+Motorcycle";
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
 
-        {/* Favorite Icon */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (isFavorited) {
-              dispatch(removeFromWishlist(scooter.id));
-              toast.success("Removed from wishlist");
-            } else {
-              dispatch(addToWishlist(scooter));
-              toast.success("Added to wishlist");
-            }
-          }}
-          className="absolute top-4 right-4 z-10 p-2.5 bg-background/95 backdrop-blur-md rounded-full hover:bg-background shadow-lg hover:scale-110 transition-all duration-200 border border-border/50"
-        >
-          <Heart
-            className={cn(
-              "w-5 h-5 transition-colors",
-              isFavorited
-                ? "fill-destructive text-destructive"
-                : "text-muted-foreground hover:text-destructive"
-            )}
-          />
-        </button>
+          {/* Favorite Icon */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isFavorited) {
+                dispatch(removeFromWishlist(scooter.id));
+                toast.success("Removed from wishlist");
+              } else {
+                dispatch(addToWishlist(scooter));
+                toast.success("Added to wishlist");
+              }
+            }}
+            className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 backdrop-blur-md border border-white/40 shadow-sm hover:scale-110 transition-transform duration-200"
+          >
+            <Heart
+              className={cn(
+                "w-4 h-4 transition-colors",
+                isFavorited ? "fill-destructive text-destructive" : "text-white/80",
+              )}
+            />
+          </button>
 
-        {/* Badges */}
-        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-          {scooter.isNew && (
-            <span className="px-3 py-1.5 bg-success text-success-foreground text-xs font-bold rounded-full shadow-md backdrop-blur-sm">
-              New
-            </span>
-          )}
-          {discount > 0 && (
-            <span className="px-3 py-1.5 bg-destructive text-destructive-foreground text-xs font-bold rounded-full shadow-md backdrop-blur-sm">
-              {discount}% OFF
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Content Section */}
-      <div className="p-6 space-y-4 bg-card">
-        {/* Brand & Name */}
-        <div>
-          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
-            {scooter.brand}
-          </p>
-          <h3 className="text-lg font-bold text-foreground mb-2 font-display">
-            {scooter.name}
-          </h3>
-
-          {/* Description */}
-          {scooter.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-3">
-              {scooter.description}
-            </p>
-          )}
-
-          {/* Rating */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-              <span className="text-sm font-semibold text-foreground">
-                {scooter.rating?.toFixed(1) || "4.5"}
+          {/* Badges */}
+          <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+            {scooter.isNew && (
+              <span className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-bold rounded-full shadow-md backdrop-blur-sm">
+                New
               </span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              ({scooter.reviews?.toLocaleString() || "0"})
-            </span>
+            )}
+            {discount > 0 && (
+              <span className="px-3 py-1.5 bg-black/60 text-white text-xs font-bold rounded-full shadow-md backdrop-blur-sm">
+                {discount}% OFF
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Price & CTA */}
-        <div className="flex items-end justify-between pt-4 border-t border-border/60">
-          <div>
-            {scooter.originalPrice && (
-              <p className="text-xs text-muted-foreground line-through mb-1">
-                {formatPrice(scooter.originalPrice)}
+        {/* Bottom content panel */}
+        <div className="relative -mt-6 px-5 pb-5">
+          <div className="relative rounded-3xl bg-white shadow-[0_14px_30px_rgba(15,23,42,0.12)] px-5 pt-5 pb-4">
+            {/* Brand & Name */}
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-[0.16em] mb-1">
+                {scooter.brand}
               </p>
-            )}
-            <p className="text-2xl font-bold text-foreground font-display">
-              {formatPrice(scooter.price)}
-            </p>
-          </div>
-          <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            <Link to={`/scooters/${scooter.id}`}>
-              <Button
-                size="sm"
-                className={cn(
-                  "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-200 font-semibold",
-                  scooter.isComingSoon &&
-                    "bg-muted hover:bg-muted/80 text-foreground"
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900">
+                {scooter.name}
+              </h3>
+            </div>
+
+            {/* Price & CTA */}
+            <div className="mt-4 flex items-center justify-between">
+              <div>
+                {scooter.originalPrice && (
+                  <p className="text-[11px] text-slate-400 line-through mb-0.5">
+                    {formatPrice(scooter.originalPrice)}
+                  </p>
                 )}
+                <p className="text-lg font-bold text-slate-900">
+                  {formatPrice(scooter.price)}
+                </p>
+              </div>
+
+              <div
+                className="flex-shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
               >
-                {scooter.isComingSoon ? "Notify Me" : "Pre-Book"}
-              </Button>
-            </Link>
+                <Link to={`/scooters/${scooter.id}`}>
+                  <Button
+                    size="icon"
+                    className={cn(
+                      "rounded-full shadow-[0_10px_25px_rgba(16,185,129,0.45)] hover:shadow-[0_14px_34px_rgba(16,185,129,0.6)]",
+                      scooter.isComingSoon &&
+                        "bg-slate-200 text-slate-700 shadow-none hover:shadow-none",
+                    )}
+                  >
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>

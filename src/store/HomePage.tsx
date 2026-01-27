@@ -70,19 +70,49 @@ export function HomePage() {
   });
 
   const features = [
-    "High-efficiency electric motors",
-    "Long-lasting lithium battery technology",
-    "Reinforced suspension and braking systems",
-    "Digital dashboard and smart features",
-    "Silent, zero-emission operation",
+    {
+      icon: Zap,
+      title: "High-efficiency electric motors",
+      desc: "Powerful motors tuned for smooth, everyday performance.",
+    },
+    {
+      icon: Battery,
+      title: "Advanced lithium battery",
+      desc: "Long‑range lithium battery with rapid charging support.",
+    },
+    {
+      icon: Shield,
+      title: "Reinforced safety systems",
+      desc: "Upgraded suspension and brakes for confident control.",
+    },
+    {
+      icon: Leaf,
+      title: "Smart & eco-friendly",
+      desc: "Smart dashboard, app features, and silent zero‑emission rides.",
+    },
   ];
 
   const services = [
-    "Electric scooter sales",
-    "Easy EMI and finance assistance",
-    "After-sales service and maintenance",
-    "Genuine spare parts support",
-    "Test rides and customer guidance",
+    {
+      icon: Truck,
+      title: "Electric scooter sales",
+      desc: "Wide range of models tailored for city commutes and daily use.",
+    },
+    {
+      icon: Award,
+      title: "Easy EMI & finance",
+      desc: "Flexible EMI plans and finance assistance for stress-free ownership.",
+    },
+    {
+      icon: Headphones,
+      title: "After-sales & support",
+      desc: "Dedicated service, maintenance, and genuine spare parts support.",
+    },
+    {
+      icon: Battery,
+      title: "Test rides & guidance",
+      desc: "Expert guidance and test rides to help you choose the perfect scooter.",
+    },
   ];
 
   // Key Features title - slide up only, no fade with smooth easing
@@ -163,91 +193,18 @@ export function HomePage() {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center overflow-hidden">
-        {/* Dot Pattern Background - Radial Spokes with Concentric Rings */}
-        <div className="absolute inset-0 bg-white dark:bg-background overflow-hidden">
-          <style>{`
-            @keyframes dotFloat {
-              0%, 100% {
-                transform: translate(0, 0);
-              }
-              25% {
-                transform: translate(4px, -4px);
-              }
-              50% {
-                transform: translate(-3px, 3px);
-              }
-              75% {
-                transform: translate(3px, 4px);
-              }
-            }
-            .dot-animated {
-              animation: dotFloat 8s ease-in-out infinite;
-              transform-origin: center;
-            }
-          `}</style>
-          <svg
-            className="absolute inset-0 w-full h-full"
-            viewBox="0 0 1000 1000"
-            preserveAspectRatio="xMidYMid slice"
-            style={{ opacity: 0.4 }}
-          >
-            <defs>
-              {/* Radial gradient for circular void in center */}
-              <radialGradient id="center-void" cx="500" cy="500" r="500">
-                <stop offset="0%" stopColor="white" stopOpacity="1" />
-                <stop offset="8%" stopColor="white" stopOpacity="1" />
-                <stop offset="10%" stopColor="white" stopOpacity="0.98" />
-                <stop offset="12%" stopColor="white" stopOpacity="0.9" />
-                <stop offset="15%" stopColor="white" stopOpacity="0.6" />
-                <stop offset="20%" stopColor="white" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="white" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-
-            <g transform="translate(500, 500)">
-              {/* Create radial spokes with dots arranged in concentric rings */}
-              {Array.from({ length: 40 }).map((_, rayIndex) => {
-                const angle = (rayIndex * 360) / 40;
-
-                return (
-                  <g key={rayIndex} transform={`rotate(${angle})`}>
-                    {/* Create dots along each radial line with increasing size */}
-                    {Array.from({ length: 28 }).map((_, dotIndex) => {
-                      // Start from center void edge (about 80px from center)
-                      const startRadius = 80;
-                      const radius = startRadius + dotIndex * 25;
-                      // Dot size increases with distance from center: 0.8px to 4px
-                      const dotSize = 0.8 + dotIndex * 0.12;
-                      // Opacity decreases as we go outward: starts at 0.7, decreases to 0.2
-                      const maxDots = 28;
-                      const opacity = 0.7 - (dotIndex / maxDots) * 0.5;
-                      // Animation delay based on position for wave effect
-                      const animationDelay = rayIndex * 0.2 + dotIndex * 0.1;
-
-                      return (
-                        <circle
-                          key={dotIndex}
-                          cx={radius}
-                          cy="0"
-                          r={dotSize}
-                          fill="#9ca3af"
-                          opacity={opacity}
-                          className="dot-animated"
-                          style={{
-                            animationDelay: `${animationDelay}s`,
-                            animationDuration: `${6 + dotIndex * 0.15}s`,
-                          }}
-                        />
-                      );
-                    })}
-                  </g>
-                );
-              })}
-            </g>
-
-            {/* Radial fade to create circular void in center */}
-            <rect width="1000" height="1000" fill="url(#center-void)" />
-          </svg>
+        {/* Video Background */}
+        <div className="absolute inset-0 overflow-hidden">
+          <video
+            src="/Banner_videos/video2.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          {/* Soft gradient overlay for readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/70 to-emerald-100/60" />
         </div>
 
         <div className="container mx-auto px-4 relative z-10">
@@ -450,9 +407,9 @@ export function HomePage() {
         ref={featuresSectionRef}
         className="relative overflow-hidden"
         style={{
-          minHeight: "150vh", // Reduced height for better scroll control
-          paddingTop: "4rem",
-          paddingBottom: "4rem",
+          minHeight: "115vh",
+          paddingTop: "3rem",
+          paddingBottom: "3rem",
         }}
       >
         {/* Background Image - Fixed using background-attachment */}
@@ -502,12 +459,12 @@ export function HomePage() {
           />
         </div>
 
-        <div className="container mx-auto px-4 sm:px-6 relative z-10">
-          <div className="max-w-4xl mx-auto py-8 sm:py-12">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="w-full max-w-7xl mx-auto py-8 sm:py-12">
             {/* Key Features */}
             <div className="mb-16 sm:mb-24">
               <motion.h2
-                className="text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8"
+                className="text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-10 text-center"
                 style={{
                   y: featuresTitleY,
                 }}
@@ -515,28 +472,49 @@ export function HomePage() {
               >
                 Key Features
               </motion.h2>
-              <div className="space-y-4 sm:space-y-6">
+              <div className="grid gap-14 sm:gap-20 sm:grid-cols-2 lg:grid-cols-4">
                 {features.map((feature, i) => (
                   <motion.div
-                    key={i}
-                    style={{
-                      y: featureTransforms[i].y,
+                    key={feature.title}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{
+                      duration: 0.4,
+                      delay: i * 0.05,
+                      ease: [0.25, 0.1, 0.25, 1],
                     }}
-                    className="flex items-start gap-3 p-4 sm:p-5 rounded-xl bg-white/80 dark:bg-card/80 border-2 border-gray-300/70 dark:border-gray-500/50 hover:border-gray-400 dark:hover:border-gray-400 transition-all duration-300 ease-out backdrop-blur-sm shadow-sm hover:shadow-lg transform-gpu"
-                    whileHover={{ scale: 1.01 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="group relative h-full mx-3 lg:mx-4"
                   >
-                    <div className="mt-1 w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 flex-shrink-0" />
-                    <p className="text-muted-foreground text-base">{feature}</p>
+                    <div
+                      className="relative h-full w-full rounded-2xl p-6 sm:p-7 flex flex-col items-start justify-between gap-5 backdrop-blur-xl shadow-lg transition-transform duration-300 group-hover:-translate-y-1 min-h-[270px] sm:min-h-[300px]"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,253,250,0.9) 100%)",
+                        border: "1px solid rgba(148, 163, 184, 0.4)",
+                      }}
+                    >
+                      <div className="inline-flex items-center justify-center rounded-xl p-3.5 bg-emerald-500/10 text-emerald-700">
+                        <feature.icon className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+                          {feature.title}
+                        </h3>
+                        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                          {feature.desc}
+                        </p>
+                      </div>
+                    </div>
                   </motion.div>
                 ))}
               </div>
             </div>
 
             {/* Our Services */}
-            <div>
+            <div className="mt-12 sm:mt-16">
               <motion.h2
-                className="text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8"
+                className="relative z-20 text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-10 text-center"
                 style={{
                   y: servicesTitleY,
                 }}
@@ -544,19 +522,40 @@ export function HomePage() {
               >
                 Our Services
               </motion.h2>
-              <div className="flex flex-col gap-4 sm:gap-6">
+              <div className="grid gap-10 sm:gap-12 sm:grid-cols-2 lg:grid-cols-4">
                 {services.map((service, i) => (
                   <motion.div
-                    key={i}
-                    style={{
-                      y: serviceTransforms[i].y,
+                    key={service.title}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{
+                      duration: 0.4,
+                      delay: i * 0.05,
+                      ease: [0.25, 0.1, 0.25, 1],
                     }}
-                    className="flex items-center gap-3 p-4 sm:p-5 rounded-xl bg-white/80 dark:bg-card/80 border-2 border-gray-300/70 dark:border-gray-500/50 hover:border-gray-400 dark:hover:border-gray-400 transition-all duration-300 ease-out backdrop-blur-sm shadow-sm hover:shadow-lg transform-gpu"
-                    whileHover={{ scale: 1.01 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="group relative h-full"
                   >
-                    <div className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 flex-shrink-0" />
-                    <p className="text-muted-foreground text-base flex-1">{service}</p>
+                    <div
+                      className="relative h-full w-full rounded-2xl p-7 sm:p-8 flex flex-col items-start justify-between gap-5 backdrop-blur-xl shadow-lg transition-transform duration-300 group-hover:-translate-y-1 min-h-[260px] sm:min-h-[280px]"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(240,253,250,1) 100%)",
+                        border: "1px solid rgba(148, 163, 184, 0.4)",
+                      }}
+                    >
+                      <div className="inline-flex items-center justify-center rounded-xl p-3 bg-emerald-500/10 text-emerald-700">
+                        <service.icon className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-foreground mb-2">
+                          {service.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {service.desc}
+                        </p>
+                      </div>
+                    </div>
                   </motion.div>
                 ))}
               </div>
@@ -622,300 +621,104 @@ export function HomePage() {
       </section>
 
       {/* Why Choose Us */}
-      <section className="relative py-24 overflow-hidden">
-        <div className="container mx-auto px-4 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
-          >
+      <section className="relative py-20 bg-gradient-to-b from-background via-slate-50/60 to-background dark:via-slate-900/40">
+        <div className="container mx-auto px-4">
+          <div className="rounded-[28px] border border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-950/40 px-6 py-10 sm:px-10 sm:py-12 lg:px-12 lg:py-14 shadow-[0_18px_45px_rgba(15,23,42,0.12)] dark:shadow-[0_18px_55px_rgba(0,0,0,0.6)]">
+            <div className="grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] items-start">
+            {/* Left: Copy */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <motion.h2
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 bg-clip-text text-transparent"
-                animate={{
-                  backgroundPosition: ["0%", "100%", "0%"],
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-                style={{
-                  backgroundSize: "200% 100%",
-                }}
-              >
-                Why Choose Us
-              </motion.h2>
-            </motion.div>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed"
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="space-y-6"
             >
-              We're committed to providing the best electric mobility experience
-              with cutting-edge technology and exceptional service
-            </motion.p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
-            {[
-              {
-                icon: Award,
-                title: "Premium Quality",
-                desc: "Every scooter undergoes rigorous quality checks and comes with industry-leading certifications.",
-                gradientFrom: "rgb(16, 185, 129)",
-                gradientTo: "rgb(5, 150, 105)",
-                bgGradientFrom: "rgba(209, 250, 229, 0.6)",
-                bgGradientTo: "rgba(167, 243, 208, 0.4)",
-                darkBgGradientFrom: "rgba(6, 78, 59, 0.4)",
-                darkBgGradientTo: "rgba(2, 44, 34, 0.3)",
-              },
-              {
-                icon: Headphones,
-                title: "24/7 Support",
-                desc: "Our dedicated support team is always ready to help you with any queries or assistance.",
-                gradientFrom: "rgb(20, 184, 166)",
-                gradientTo: "rgb(13, 148, 136)",
-                bgGradientFrom: "rgba(204, 251, 241, 0.6)",
-                bgGradientTo: "rgba(153, 246, 228, 0.4)",
-                darkBgGradientFrom: "rgba(17, 94, 89, 0.4)",
-                darkBgGradientTo: "rgba(13, 71, 67, 0.3)",
-              },
-              {
-                icon: Shield,
-                title: "Secure Payments",
-                desc: "Multiple payment options including EMI plans starting from ₹2,999/month.",
-                gradientFrom: "rgb(34, 197, 94)",
-                gradientTo: "rgb(22, 163, 74)",
-                bgGradientFrom: "rgba(220, 252, 231, 0.6)",
-                bgGradientTo: "rgba(187, 247, 208, 0.4)",
-                darkBgGradientFrom: "rgba(20, 83, 45, 0.4)",
-                darkBgGradientTo: "rgba(15, 60, 33, 0.3)",
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{
-                  duration: 0.6,
-                  delay: i * 0.15,
-                  type: "spring",
-                  stiffness: 100,
-                }}
-                className="relative group"
-              >
-                {/* Card Container with Glassmorphism */}
-                <motion.div
-                  className="relative h-full p-8 lg:p-10 rounded-3xl overflow-hidden
-                    backdrop-blur-xl border border-emerald-200/30 dark:border-emerald-400/20
-                    shadow-lg"
-                  style={{
-                    background: `linear-gradient(135deg, ${item.bgGradientFrom}, ${item.bgGradientTo})`,
-                    boxShadow: `
-                      0 10px 40px -10px rgba(16, 185, 129, 0.15),
-                      0 0 0 1px rgba(255, 255, 255, 0.2),
-                      inset 0 1px 0 0 rgba(255, 255, 255, 0.3)
-                    `,
-                  }}
-                  whileHover={{
-                    y: -10,
-                    scale: 1.03,
-                    boxShadow: `
-                      0 25px 70px -10px rgba(16, 185, 129, 0.25),
-                      0 0 0 1px rgba(255, 255, 255, 0.3),
-                      inset 0 1px 0 0 rgba(255, 255, 255, 0.4)
-                    `,
-                    transition: { duration: 0.4, ease: "easeOut" },
-                  }}
-                >
-                  {/* Dark mode background overlay */}
-                  <div
-                    className="absolute inset-0 rounded-3xl opacity-0 dark:opacity-100 transition-opacity"
-                    style={{
-                      background: `linear-gradient(135deg, ${item.darkBgGradientFrom}, ${item.darkBgGradientTo})`,
-                    }}
-                  />
-
-                  {/* Animated Background Gradient on Hover */}
-                  <motion.div
-                    className="absolute inset-0 rounded-3xl"
-                    style={{
-                      background: `linear-gradient(135deg, ${item.gradientFrom}, ${item.gradientTo})`,
-                    }}
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 0.1 }}
-                    transition={{ duration: 0.4 }}
-                  />
-
-                  {/* Floating particles animation */}
-                  <motion.div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-                    {[...Array(3)].map((_, idx) => (
-                      <motion.div
-                        key={idx}
-                        className="absolute w-2 h-2 bg-emerald-400/30 rounded-full"
-                        style={{
-                          left: `${20 + idx * 30}%`,
-                          top: `${30 + idx * 20}%`,
-                        }}
-                        animate={{
-                          y: [0, -20, 0],
-                          opacity: [0.3, 0.6, 0.3],
-                          scale: [1, 1.2, 1],
-                        }}
-                        transition={{
-                          duration: 3 + idx,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                          delay: idx * 0.5,
-                        }}
-                      />
-                    ))}
-                  </motion.div>
-
-                  {/* Shimmer Effect */}
-                  <motion.div
-                    className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none"
-                    initial={{ x: "-100%" }}
-                    whileHover={{ x: "200%" }}
-                    transition={{ duration: 0.8, ease: "easeInOut" }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full" />
-                  </motion.div>
-
-                  {/* Glow Effect on Hover */}
-                  <motion.div
-                    className="absolute -inset-1 rounded-3xl -z-10 pointer-events-none"
-                    style={{
-                      background: `linear-gradient(135deg, ${item.gradientFrom}, ${item.gradientTo})`,
-                    }}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileHover={{ opacity: 0.4, scale: 1.02 }}
-                    transition={{ duration: 0.4 }}
-                  />
-
-                  {/* Content */}
-                  <div className="relative z-10 text-center">
-                    {/* Icon Container with Animation */}
-                    <div className="inline-flex mb-6">
-                      <motion.div
-                        className="relative p-5 rounded-2xl"
-                        style={{
-                          background: `linear-gradient(135deg, ${item.gradientFrom}, ${item.gradientTo})`,
-                          boxShadow: `0 8px 24px -4px ${item.gradientFrom}50`,
-                        }}
-                        whileHover={{
-                          scale: 1.15,
-                          rotate: [0, -5, 5, -5, 0],
-                          transition: { duration: 0.5 },
-                        }}
-                        animate={{
-                          y: [0, -5, 0],
-                        }}
-                        transition={{
-                          y: {
-                            duration: 3,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                            delay: i * 0.2,
-                          },
-                        }}
-                      >
-                        <motion.div
-                          animate={{
-                            rotate: [0, 5, -5, 0],
-                          }}
-                          transition={{
-                            duration: 5,
-                            repeat: Infinity,
-                            repeatDelay: 2,
-                            ease: "easeInOut",
-                          }}
-                        >
-                          <item.icon className="w-10 h-10 text-white drop-shadow-lg" />
-                        </motion.div>
-
-                        {/* Pulse Ring */}
-                        <motion.div
-                          className="absolute inset-0 rounded-2xl border-2 border-white/50"
-                          animate={{
-                            scale: [1, 1.2, 1],
-                            opacity: [0.5, 0, 0.5],
-                          }}
-                          transition={{
-                            duration: 3,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                          }}
-                        />
-                      </motion.div>
-                    </div>
-
-                    {/* Title with Animation */}
-                    <motion.div
-                      className="relative mb-4 h-[2.5rem] flex items-center justify-center"
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.15 + 0.3 }}
-                    >
-                      <h3 className="text-2xl font-bold text-foreground transition-all duration-300">
-                        {item.title}
-                      </h3>
-                    </motion.div>
-
-                    {/* Description */}
-                    <motion.p
-                      className="text-muted-foreground leading-relaxed text-base"
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.15 + 0.4 }}
-                    >
-                      {item.desc}
-                    </motion.p>
-
-                    {/* Decorative Elements */}
-                    <motion.div
-                      className="absolute top-4 right-4 w-20 h-20 bg-emerald-300/10 rounded-full blur-2xl"
-                      animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.1, 0.2, 0.1],
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: i * 0.3,
-                      }}
-                    />
-                    <motion.div
-                      className="absolute bottom-4 left-4 w-16 h-16 bg-teal-300/10 rounded-full blur-xl"
-                      animate={{
-                        scale: [1, 1.15, 1],
-                        opacity: [0.1, 0.2, 0.1],
-                      }}
-                      transition={{
-                        duration: 5,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: i * 0.4,
-                      }}
-                    />
+              <p className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 px-4 py-1 text-xs font-semibold tracking-wide uppercase">
+                Why riders trust Suja
+              </p>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                Modern electric mobility,
+                <span className="block text-emerald-600 dark:text-emerald-400">
+                  backed by real-world reliability.
+                </span>
+              </h2>
+              <p className="text-base sm:text-lg text-muted-foreground max-w-xl">
+                From engineering and testing to delivery and after‑sales support, every step
+                is designed to feel premium, transparent, and worry‑free for our customers.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2 max-w-xl text-sm text-muted-foreground">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+                    <Shield className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" />
                   </div>
-                </motion.div>
+                  <div>
+                    <p className="font-medium text-foreground">Safety-first design</p>
+                    <p>Robust chassis, braking, and battery protection tested for Indian roads.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+                    <Headphones className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">People-first support</p>
+                    <p>Real humans on chat and phone to help you before and after purchase.</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+              {/* Right: Feature cards */}
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
+              >
+                <div className="grid gap-6 md:grid-cols-3">
+                {[
+                  {
+                    icon: Award,
+                    title: "Premium Quality",
+                    desc: "Each scooter is QC-checked across 100+ points and certified by leading labs.",
+                  },
+                  {
+                    icon: Headphones,
+                    title: "24/7 Support",
+                    desc: "Round‑the‑clock assistance for breakdowns, service queries, and ownership help.",
+                  },
+                  {
+                    icon: Shield,
+                    title: "Secure Payments",
+                    desc: "Trusted payment partners, easy EMIs, and clear pricing with no hidden fees.",
+                  },
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.title}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-60px" }}
+                    transition={{ duration: 0.4, delay: 0.08 * i, ease: "easeOut" }}
+                    className="h-full"
+                  >
+                    <div className="h-full rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-900/70 shadow-sm hover:shadow-md transition-shadow duration-200 px-5 py-6 flex flex-col gap-4">
+                      <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                        <item.icon className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-base font-semibold text-foreground">
+                          {item.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+                </div>
               </motion.div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
@@ -924,34 +727,42 @@ export function HomePage() {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-400/20 via-emerald-300/10 to-emerald-400/20 border border-emerald-300/30 p-12 lg:p-16"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-emerald-50 via-emerald-25 to-emerald-100/70 dark:from-emerald-900/40 dark:via-emerald-900/20 dark:to-emerald-800/40 border border-emerald-200/70 dark:border-emerald-700 px-6 py-12 sm:px-10 sm:py-14 lg:px-20 lg:py-16"
           >
-            <div className="absolute inset-0">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-400/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            {/* soft radial highlight */}
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(16,185,129,0.18),_transparent_65%)]" />
             </div>
-            <div className="relative z-10 text-center max-w-3xl mx-auto">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-6">
+
+            <div className="relative z-10 max-w-4xl mx-auto text-center space-y-6">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                 Ready to Go Electric?
               </h2>
-              <p className="text-xl text-muted-foreground mb-8">
-                Easy EMI Available at very low interest rates, making electric
-                scooters affordable for everyone. Join thousands of happy riders
-                and experience the future of mobility today!
+              <p className="text-base sm:text-lg lg:text-xl text-slate-600 dark:text-slate-200/80 max-w-3xl mx-auto">
+                Easy EMI available at very low interest rates, making electric scooters
+                affordable for everyone. Join thousands of happy riders and experience the
+                future of mobility today.
               </p>
-              <div className="flex flex-wrap justify-center gap-4">
+
+              <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
                 <Link to="/scooters">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    Shop Now <ArrowRight className="ml-2 w-5 h-5" />
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto rounded-full px-8 bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_18px_40px_rgba(16,185,129,0.45)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.55)] transition-shadow duration-200"
+                  >
+                    Shop Now
+                    <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
                 <Link to="/login" className="w-full sm:w-auto">
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full sm:w-auto"
+                    className="w-full sm:w-auto rounded-full border-emerald-500/60 text-emerald-700 dark:text-emerald-300 dark:border-emerald-500/70 bg-white/80 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-900/40"
                   >
                     Become a Distributor
                   </Button>

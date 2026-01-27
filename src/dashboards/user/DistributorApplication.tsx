@@ -228,14 +228,14 @@ export function DistributorApplication() {
 
   // Handle viewing Terms of Service PDF
   const handleViewTerms = () => {
-    window.open('/SUJA_Combined_Terms_of_Service.pdf', '_blank');
+    window.open('/Distributor_Terms.pdf', '_blank');
   };
 
   // Handle downloading Terms of Service PDF
   const handleDownloadTerms = () => {
     const link = document.createElement('a');
-    link.href = '/SUJA_Combined_Terms_of_Service.pdf';
-    link.download = 'SUJA_Combined_Terms_of_Service.pdf';
+    link.href = '/Distributor_Terms.pdf';
+    link.download = 'Distributor_Terms.pdf';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

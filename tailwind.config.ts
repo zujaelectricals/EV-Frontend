@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         display: ['Orbitron', 'sans-serif'],
+        nav: ['Iceland', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

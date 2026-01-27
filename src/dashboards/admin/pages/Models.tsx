@@ -188,6 +188,7 @@ export const Models = () => {
     image_ids: [] as number[],
     initial_quantity: 0,
   });
+  const [featureInput, setFeatureInput] = useState('');
 
   // API hooks
   const [getVehicleById, { isLoading: isLoadingVehicleDetail }] = useLazyGetVehicleByIdQuery();
@@ -315,6 +316,7 @@ export const Models = () => {
         image_ids: result.images.map((img) => img.id),
         initial_quantity: result.stock_total_quantity,
       });
+      setFeatureInput('');
     } catch (error) {
       console.error('Error fetching vehicle details for edit:', error);
       toast.error('Failed to load vehicle details for editing');
@@ -361,7 +363,20 @@ export const Models = () => {
       image_ids: [],
       initial_quantity: 0,
     });
+    setFeatureInput('');
     setIsDialogOpen(true);
+  };
+
+  const addFeature = (feature: string) => {
+    const trimmed = feature.trim();
+    if (!trimmed) return;
+    setFormData((prev) => {
+      if (prev.features.includes(trimmed)) return prev;
+      return {
+        ...prev,
+        features: [...prev.features, trimmed],
+      };
+    });
   };
 
   // Handle form submission
@@ -706,14 +721,24 @@ export const Models = () => {
                     <div className="space-y-2">
                       <Label>Features *</Label>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Enter features separated by commas
+                        Type a feature and press Enter or comma to add it
                       </p>
                       <Input
                         placeholder="USB Charging Port, Reverse Gear, Parking Mode"
-                        value={formData.features.join(', ')}
-                        onChange={(e) => {
-                          const features = e.target.value.split(',').map(f => f.trim()).filter(f => f);
-                          setFormData({ ...formData, features });
+                        value={featureInput}
+                        onChange={(e) => setFeatureInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ',') {
+                            e.preventDefault();
+                            addFeature(featureInput);
+                            setFeatureInput('');
+                          }
+                        }}
+                        onBlur={() => {
+                          if (featureInput.trim()) {
+                            addFeature(featureInput);
+                            setFeatureInput('');
+                          }
                         }}
                       />
                       {formData.features.length > 0 && (

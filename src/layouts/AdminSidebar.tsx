@@ -212,6 +212,14 @@ const adminMenuSections: MenuSection[] = [
         label: "KYC Records",
         path: "/admin/users/kyc-records",
       },
+      {
+        label: "Payouts",
+        path: "/admin/users/payouts",
+      },
+      {
+        label: "Payment Management",
+        path: "/admin/users/payment-management",
+      },
       { label: "Send Notification", path: "/admin/users/notify" },
     ],
   },

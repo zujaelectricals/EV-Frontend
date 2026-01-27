@@ -13,8 +13,12 @@ export interface SystemSettings {
     binary_commission_tds_percentage: number; // TDS percentage on ALL binary commissions (default: 20%, range: 0-100)
     binary_extra_deduction_percentage: number; // Extra deduction percentage on 6th+ pairs (default: 20%, range: 0-100)
     binary_daily_pair_limit: number; // Maximum binary pairs per day after activation (default: 10, min: 1)
+    binary_commission_initial_bonus: number; // Initial bonus amount (in rupees) credited to user's wallet and total_earnings when binary commission is activated (3 persons). TDS is deducted from this amount, but TDS is NOT deducted from booking balance (default: 0)
     binary_tree_default_placement_side: 'left' | 'right'; // Default placement side: "left" or "right" (default: "left")
+    activation_amount: number; // Minimum payment amount per booking required for seniors to earn commission. If payment is less than this amount, no commission is credited, but user is still counted in descendants calculation. On cancellation, this amount is withheld for future point redemption (default: ₹5000, min: 0)
     distributor_application_auto_approve: boolean; // If true, auto-approve distributor applications; if false, require admin/staff approval (default: true)
+    payout_approval_needed: boolean; // If true, payout requests require admin approval; if false, payouts are automatically processed upon creation (default: true)
+    payout_tds_percentage: number; // TDS percentage applied on payout withdrawals (default: 0, meaning no payout TDS, range: 0-100)
 }
 
 // Partial settings for PATCH requests (all fields optional)

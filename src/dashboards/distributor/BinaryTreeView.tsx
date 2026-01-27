@@ -35,6 +35,8 @@ import {
   type PaginatedSideMembers,
   type SideMemberNode,
 } from "@/app/api/binaryApi";
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
+import type { SerializedError } from '@reduxjs/toolkit';
 import { StatsCard } from "@/shared/components/StatsCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -475,23 +477,41 @@ export const BinaryTreeView = () => {
         console.error("🔴 [Position Member] Error Stringified:", JSON.stringify(error, null, 2));
       }
 
+      // Type guard to check if it's a FetchBaseQueryError
+      const isFetchBaseQueryError = (err: unknown): err is FetchBaseQueryError => {
+        return typeof err === 'object' && err !== null && 'status' in err;
+      };
+
+      // Type guard to check if it's a SerializedError
+      const isSerializedError = (err: unknown): err is SerializedError => {
+        return typeof err === 'object' && err !== null && 'message' in err && !('status' in err);
+      };
+
       let errorMessage = "Failed to position node. Please try again.";
-      if (error && typeof error === "object") {
-        if ("data" in error && error.data && typeof error.data === "object") {
-          const errorData = error.data as {
-            data?: string;
-            error?: { data?: string };
-            message?: string;
-          };
-          errorMessage =
-            errorData.data ||
-            errorData.error?.data ||
-            errorData.message ||
-            errorMessage;
-        } else if ("message" in error && typeof error.message === "string") {
-          errorMessage = error.message;
+
+      if (isFetchBaseQueryError(error)) {
+        const errorData = error.data;
+        
+        // Check for nested error structure: { error: "message" }
+        if (errorData && typeof errorData === 'object') {
+          if ('error' in errorData && typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if ('message' in errorData && typeof errorData.message === 'string') {
+            errorMessage = errorData.message;
+          } else if ('detail' in errorData && typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else if (Array.isArray(errorData) && errorData.length > 0) {
+            // Handle array responses (e.g., ["Error message"])
+            errorMessage = String(errorData[0]);
+          }
+        } else if (typeof errorData === 'string') {
+          // If error.data is directly a string
+          errorMessage = errorData;
         }
+      } else if (isSerializedError(error)) {
+        errorMessage = error.message || "Failed to position node. Please try again.";
       }
+
       toast.error(errorMessage);
     }
   };

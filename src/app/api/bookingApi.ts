@@ -24,6 +24,32 @@ export interface MakePaymentRequest {
   payment_method: 'online' | 'bank_transfer' | 'cash' | 'wallet';
 }
 
+// Payment response interface
+export interface PaymentResponse {
+  id: number;
+  booking_number: string;
+  booking_id?: number; // Booking ID for accept_payment endpoint
+  booking?: number; // Alternative field name for booking ID
+  amount: string;
+  payment_method: 'online' | 'bank_transfer' | 'cash' | 'wallet';
+  status: string;
+  payment_date: string;
+}
+
+// Payments list response interface
+export interface PaymentsListResponse {
+  count: number;
+  results: PaymentResponse[];
+}
+
+// Accept payment request interface
+export interface AcceptPaymentRequest {
+  amount: number;
+  payment_method: 'online' | 'bank_transfer' | 'cash' | 'wallet';
+  transaction_id?: string;
+  notes?: string;
+}
+
 // Make payment response interface (can be same as BookingResponse or different)
 export interface MakePaymentResponse {
   id: number;
@@ -74,6 +100,8 @@ export interface BookingResponse {
   vehicle_color: string;
   battery_variant: string;
   booking_amount: string;
+  // Overall payment status for this booking (e.g. "pending", "completed")
+  payment_status: string;
   payment_option: string;
   total_amount: string;
   total_paid: string;
@@ -641,6 +669,186 @@ export const bookingApi = api.injectEndpoints({
         { type: 'Booking', id: 'LIST-delivered' },
       ],
     }),
+    getPayments: builder.query<PaymentsListResponse, void>({
+      queryFn: async () => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          const url = `${baseUrl}booking/payments/`;
+          
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          console.log('📤 [PAYMENTS API] Request URL:', url);
+          console.log('📤 [PAYMENTS API] Request Headers:', headers);
+          
+          let response = await fetch(url, {
+            method: 'GET',
+            headers,
+          });
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [PAYMENTS API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                console.log('🔄 [PAYMENTS API] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'GET',
+                  headers,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [PAYMENTS API] Error Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              data: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+          
+          const data = await response.json();
+          console.log('📥 [PAYMENTS API] Success Response:', JSON.stringify(data, null, 2));
+          
+          return { data };
+        } catch (error) {
+          console.error('❌ [PAYMENTS API] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      providesTags: [{ type: 'Booking', id: 'PAYMENTS' }],
+    }),
+    acceptPayment: builder.mutation<BookingResponse, { bookingId: number; paymentData: AcceptPaymentRequest }>({
+      queryFn: async ({ bookingId, paymentData }) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          const url = `${baseUrl}booking/bookings/${bookingId}/accept_payment/`;
+          
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          // Console log the request body
+          const requestBodyString = JSON.stringify(paymentData);
+          console.log('📤 [ACCEPT PAYMENT API] Request URL:', url);
+          console.log('📤 [ACCEPT PAYMENT API] Booking ID:', bookingId);
+          console.log('📤 [ACCEPT PAYMENT API] Request Body (Formatted):', JSON.stringify(paymentData, null, 2));
+          console.log('📤 [ACCEPT PAYMENT API] Request Body (Raw String):', requestBodyString);
+          console.log('📤 [ACCEPT PAYMENT API] Request Headers:', headers);
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: requestBodyString,
+          });
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [ACCEPT PAYMENT API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                console.log('🔄 [ACCEPT PAYMENT API] Retrying request with new token...');
+                console.log('🔄 [ACCEPT PAYMENT API] Retry Request Body:', JSON.stringify(paymentData, null, 2));
+                response = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                  body: requestBodyString,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [ACCEPT PAYMENT API] Error Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              data: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+          
+          const data = await response.json();
+          console.log('✅ [ACCEPT PAYMENT API] Success Response:', JSON.stringify(data, null, 2));
+          
+          return { data };
+        } catch (error) {
+          console.error('❌ [ACCEPT PAYMENT API] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: [
+        'Booking',
+        { type: 'Booking', id: 'PAYMENTS' },
+        { type: 'Booking', id: 'LIST' },
+        { type: 'Booking', id: 'LIST-all' },
+        { type: 'Booking', id: 'LIST-pending' },
+        { type: 'Booking', id: 'LIST-active' },
+        { type: 'Booking', id: 'LIST-completed' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -650,6 +858,8 @@ export const {
   useMakePaymentMutation, 
   useGetBookingsQuery, 
   useGetBookingDetailQuery,
-  useUpdateBookingStatusMutation 
+  useUpdateBookingStatusMutation,
+  useGetPaymentsQuery,
+  useAcceptPaymentMutation
 } = bookingApi;
 
