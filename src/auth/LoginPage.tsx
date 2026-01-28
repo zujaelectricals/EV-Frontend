@@ -739,7 +739,7 @@ export const LoginPage = () => {
                     Zuja Electric Scooters
                   </h1>
                   <p className="text-xl text-white/80 max-w-md">
-                    Driving a Smarter, Cleaner Electric Future
+                    Ride The Electric Wave
                   </p>
                 </motion.div>
               </div>
