@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Zap, Battery, Clock, Weight, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -127,34 +128,36 @@ export function ScootersPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <StoreNavbar />
+      <StoreNavbar solidBackground />
 
       <div className="pt-24 pb-16">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 sm:mb-8"
-          >
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2 font-display">
-              Electric Scooters
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Discover premium electric scooters from Zuja Electric. Choose from
-              our collection of {inventoryData?.count || 0} high-performance models
-            </p>
-          </motion.div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-0">
+          {/* Header with Search */}
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10">
+            {/* Left: Title & Description */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-xl"
+            >
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-3 font-display">
+                Electric Scooters
+              </h1>
+              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
+                Discover premium electric scooters from Zuja Electric. Choose from
+                our collection of {inventoryData?.count || 0} high-performance models
+              </p>
+            </motion.div>
 
-          {/* Search Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-4"
-          >
-            <div className="mb-3 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
-              <div className="relative w-full sm:w-[360px] lg:w-[420px] sm:ml-auto">
+            {/* Right: Search */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="w-full lg:w-auto lg:min-w-[320px]"
+            >
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search scooters..."
                   value={search}
@@ -162,49 +165,27 @@ export function ScootersPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") return;
                   }}
-                  className="w-full pr-12 rounded-full bg-background/80 border-input shadow-sm focus-visible:ring-1"
+                  className="w-full pl-11 pr-4 h-11 rounded-full bg-background border-input shadow-sm focus-visible:ring-1"
                 />
-                {/* Search icon button overlayed on the right of the input on desktop */}
-                <div className="pointer-events-none absolute inset-y-0 right-2 hidden sm:flex items-center">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-primary"
-                  >
-                    <Search className="w-4 h-4" />
-                  </Button>
-                </div>
               </div>
-              {/* Mobile search button (below input) */}
-              <div className="sm:hidden">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="mx-auto flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground shadow-sm"
-                >
-                  <Search className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
 
           {/* Filters Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="mb-6 p-3 sm:p-4 bg-card/70 border border-border rounded-2xl shadow-sm"
+            className="mb-8"
           >
             {/* Filter Dropdowns - Grid Layout on Mobile, Row Layout on Desktop */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 sm:gap-4 lg:gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Status Dropdown */}
               <Select
                 value={selectedStatus}
                 onValueChange={(value) => setSelectedStatus(value as any)}
               >
-                <SelectTrigger className="w-full rounded-full bg-background/80 border-input shadow-sm">
+                <SelectTrigger className="w-full h-11 rounded-full bg-background border-input shadow-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -217,7 +198,7 @@ export function ScootersPage() {
 
               {/* Color Dropdown */}
               <Select value={selectedColor} onValueChange={setSelectedColor}>
-                <SelectTrigger className="w-full rounded-full bg-background/80 border-input shadow-sm">
+                <SelectTrigger className="w-full h-11 rounded-full bg-background border-input shadow-sm">
                   <SelectValue placeholder="Color" />
                 </SelectTrigger>
                 <SelectContent>
@@ -232,7 +213,7 @@ export function ScootersPage() {
 
               {/* Battery Dropdown */}
               <Select value={selectedBattery} onValueChange={setSelectedBattery}>
-                <SelectTrigger className="w-full rounded-full bg-background/80 border-input shadow-sm">
+                <SelectTrigger className="w-full h-11 rounded-full bg-background border-input shadow-sm">
                   <SelectValue placeholder="Battery" />
                 </SelectTrigger>
                 <SelectContent>
@@ -250,7 +231,7 @@ export function ScootersPage() {
                 value={selectedPriceRange}
                 onValueChange={setSelectedPriceRange}
               >
-                <SelectTrigger className="w-full rounded-full bg-background/80 border-input shadow-sm">
+                <SelectTrigger className="w-full h-11 rounded-full bg-background border-input shadow-sm">
                   <SelectValue placeholder="Price Range" />
                 </SelectTrigger>
                 <SelectContent>
@@ -265,7 +246,7 @@ export function ScootersPage() {
           </motion.div>
 
           {/* Results Count */}
-          <div className="mb-6 text-sm text-muted-foreground">
+          <div className="mb-8 text-sm font-medium bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] bg-clip-text text-transparent">
             {isLoading ? (
               <InlineLoadingSpinner />
             ) : (
@@ -282,9 +263,9 @@ export function ScootersPage() {
 
           {/* Scooters Grid */}
           {isLoading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="h-96 bg-card border border-border/80 rounded-2xl animate-pulse" />
+                <div key={i} className="h-[380px] bg-card border border-border/50 rounded-3xl animate-pulse" />
               ))}
             </div>
           ) : error ? (
@@ -299,7 +280,7 @@ export function ScootersPage() {
             </motion.div>
           ) : scooters.length > 0 ? (
             <>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
                 {scooters.map((scooter, i) => (
                   <ScooterCard key={scooter.id} scooter={scooter} index={i} />
                 ))}
@@ -382,6 +363,131 @@ export function ScootersPage() {
           )}
         </div>
       </div>
+
+      {/* Features Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="relative py-10 overflow-hidden"
+        style={{
+          background: "linear-gradient(90deg, rgba(21,176,187,0.18) 0%, rgba(22,191,155,0.12) 20%, rgba(245,250,249,1) 50%, rgba(22,191,155,0.12) 80%, rgba(21,176,187,0.18) 100%)"
+        }}
+      >
+        {/* Decorative dots */}
+        <div className="absolute top-4 right-8 w-3 h-3 rounded-full bg-[#16bf9b]/70" />
+        <div className="absolute bottom-4 left-12 w-3 h-3 rounded-full bg-[#15b0bb]/60" />
+        <div className="absolute bottom-6 left-1/4 w-2 h-2 rounded-full bg-[#15b0bb]/50" />
+        <div className="absolute top-1/2 right-1/3 w-2 h-2 rounded-full bg-[#16bf9b]/40" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            {[
+              { icon: Zap, title: "Instant Power", subtitle: "Electric Motors" },
+              { icon: Battery, title: "Long Range", subtitle: "Up to 120km" },
+              { icon: Clock, title: "Fast Charging", subtitle: "2-4 Hours" },
+              { icon: Weight, title: "Lightweight", subtitle: "28-48 kg" },
+            ].map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1, duration: 0.4 }}
+                className="flex items-center gap-3"
+              >
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-[#15b0bb]/15 to-[#16bf9b]/10 flex items-center justify-center border border-[#15b0bb]/10">
+                  <feature.icon className="w-5 h-5 text-[#15b0bb]" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-900 text-sm">{feature.title}</p>
+                  <p className="text-xs text-muted-foreground">{feature.subtitle}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Need Help Choosing Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="relative py-20 overflow-hidden"
+      >
+        {/* Decorative elements */}
+        <div className="absolute top-10 left-10 w-3 h-3 rounded-full bg-[#16bf9b]/30" />
+        <div className="absolute top-20 right-20 w-2 h-2 rounded-full bg-[#15b0bb]/40" />
+        <div className="absolute bottom-16 left-1/4 w-4 h-4 rounded-full bg-[#16bf9b]/20" />
+        <div className="absolute top-1/3 right-1/3 w-2 h-2 rounded-full bg-orange-300/50" />
+        <div className="absolute bottom-20 right-10 w-3 h-3 rounded-full bg-[#15b0bb]/30" />
+
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Section Header */}
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3">
+              Need Help{" "}
+              <span className="bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] bg-clip-text text-transparent">
+                Choosing?
+              </span>
+            </h2>
+            <p className="text-muted-foreground max-w-lg mx-auto">
+              Our experts are ready to help you find the perfect scooter for your needs
+            </p>
+          </div>
+
+          {/* Cards */}
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+            {/* Book a Test Ride Card */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="relative bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-slate-100"
+            >
+              <div className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-orange-300/60" />
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Book a Test Ride</h3>
+              <p className="text-muted-foreground mb-6 leading-relaxed">
+                Experience our scooters firsthand. Visit our showroom or request a home test ride.
+              </p>
+              <Link to="/test-ride">
+                <Button className="rounded-full bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] hover:from-[#13a0aa] hover:to-[#14af8b] shadow-[0_8px_20px_rgba(21,176,187,0.35)] px-6">
+                  Schedule Now
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            </motion.div>
+
+            {/* Talk to an Expert Card */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="relative rounded-3xl p-8 shadow-[0_8px_30px_rgba(21,176,187,0.3)]"
+              style={{
+                background: "linear-gradient(135deg, #15b0bb 0%, #16bf9b 100%)"
+              }}
+            >
+              <h3 className="text-xl font-bold text-white mb-3">Talk to an Expert</h3>
+              <p className="text-white/90 mb-6 leading-relaxed">
+                Get personalized recommendations based on your commute, preferences, and budget.
+              </p>
+              <Link to="/contact">
+                <button className="relative rounded-full px-6 py-2.5 font-medium text-sm bg-white/20 backdrop-blur-sm border border-white/40 text-white hover:bg-white/30 transition-all duration-200 inline-flex items-center gap-2">
+                  Contact Us
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </Link>
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+
       <Footer />
     </div>
   );
