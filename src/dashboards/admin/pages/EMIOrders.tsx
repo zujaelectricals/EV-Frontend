@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, Calendar, DollarSign, TrendingUp, Search, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -27,6 +28,7 @@ import { useGetAdminDashboardQuery } from '@/app/api/reportsApi';
 
 export const EMIOrders = () => {
   const { data: dashboardData, isLoading, isError } = useGetAdminDashboardQuery();
+  const [userType, setUserType] = useState<'normal_users' | 'staff_users' | 'combined'>('combined');
 
   // Console log the full API response for debugging
   React.useEffect(() => {
@@ -40,35 +42,31 @@ export const EMIOrders = () => {
 
   // Transform EMI collection trend data
   const emiCollectionTrendData = React.useMemo(() => {
-    if (!dashboardData?.emi_orders?.collection_trend) {
-      console.log('EMIOrders: No collection_trend data', {
-        hasEmiOrders: !!dashboardData?.emi_orders,
-        collectionTrend: dashboardData?.emi_orders?.collection_trend,
-      });
+    if (!dashboardData?.emi_orders) {
       return [];
     }
-    const trend = dashboardData.emi_orders.collection_trend;
-    if (!trend.months || !trend.amounts || !trend.order_counts) {
-      console.log('EMIOrders: Missing required fields', { trend });
-      return [];
+    
+    if (userType === 'combined') {
+      const normal = dashboardData.emi_orders.normal_users.collection_trend;
+      const staff = dashboardData.emi_orders.staff_users.collection_trend;
+      const months = normal.months;
+      return months.map((month, index) => ({
+        month,
+        amount: ((normal.amounts[index] || 0) + (staff.amounts[index] || 0)) / 1000000,
+        orders: (normal.order_counts[index] || 0) + (staff.order_counts[index] || 0),
+      }));
+    } else {
+      const trend = dashboardData.emi_orders[userType].collection_trend;
+      if (!trend.months || !trend.amounts || !trend.order_counts) {
+        return [];
+      }
+      return trend.months.map((month, index) => ({
+        month,
+        amount: (trend.amounts[index] || 0) / 1000000,
+        orders: trend.order_counts[index] || 0,
+      }));
     }
-    if (trend.months.length !== trend.amounts.length || 
-        trend.months.length !== trend.order_counts.length) {
-      console.log('EMIOrders: Length mismatch', {
-        monthsLength: trend.months.length,
-        amountsLength: trend.amounts.length,
-        orderCountsLength: trend.order_counts.length,
-      });
-      return [];
-    }
-    const data = trend.months.map((month, index) => ({
-      month,
-      amount: (trend.amounts[index] || 0) / 1000000, // Convert to millions
-      orders: trend.order_counts[index] || 0,
-    }));
-    console.log('EMIOrders: Transformed data', data);
-    return data;
-  }, [dashboardData?.emi_orders?.collection_trend]);
+  }, [dashboardData?.emi_orders, userType]);
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -84,6 +82,15 @@ export const EMIOrders = () => {
         </div>
       </div>
 
+      {/* User Type Tabs */}
+      <Tabs value={userType} onValueChange={(v) => setUserType(v as typeof userType)}>
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="combined">Combined</TabsTrigger>
+          <TabsTrigger value="normal_users">Normal Users</TabsTrigger>
+          <TabsTrigger value="staff_users">Staff Users</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         {isLoading ? (
@@ -93,86 +100,100 @@ export const EMIOrders = () => {
             ))}
           </>
         ) : dashboardData?.emi_orders ? (
-          <>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total EMI Orders</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">
-                        {dashboardData.emi_orders.kpi_cards.total_emi_orders.toLocaleString()}
-                      </p>
-                    </div>
-                    <CreditCard className="h-8 w-8 text-primary opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+          (() => {
+            const emiData = userType === 'combined'
+              ? {
+                  kpi_cards: {
+                    total_emi_orders: dashboardData.emi_orders.normal_users.kpi_cards.total_emi_orders + dashboardData.emi_orders.staff_users.kpi_cards.total_emi_orders,
+                    active_emis: dashboardData.emi_orders.normal_users.kpi_cards.active_emis + dashboardData.emi_orders.staff_users.kpi_cards.active_emis,
+                    monthly_collection: dashboardData.emi_orders.normal_users.kpi_cards.monthly_collection + dashboardData.emi_orders.staff_users.kpi_cards.monthly_collection,
+                    pending_amount: dashboardData.emi_orders.normal_users.kpi_cards.pending_amount + dashboardData.emi_orders.staff_users.kpi_cards.pending_amount,
+                  }
+                }
+              : dashboardData.emi_orders[userType];
+            return (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Total EMI Orders</p>
+                          <p className="text-3xl font-bold text-foreground mt-1">
+                            {emiData.kpi_cards.total_emi_orders.toLocaleString()}
+                          </p>
+                        </div>
+                        <CreditCard className="h-8 w-8 text-primary opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Active EMIs</p>
-                      <p className="text-3xl font-bold text-info mt-1">
-                        {dashboardData.emi_orders.kpi_cards.active_emis.toLocaleString()}
-                      </p>
-                    </div>
-                    <TrendingUp className="h-8 w-8 text-info opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Active EMIs</p>
+                          <p className="text-3xl font-bold text-info mt-1">
+                            {emiData.kpi_cards.active_emis.toLocaleString()}
+                          </p>
+                        </div>
+                        <TrendingUp className="h-8 w-8 text-info opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Monthly Collection</p>
-                      <p className="text-3xl font-bold text-success mt-1">
-                        ₹{(dashboardData.emi_orders.kpi_cards.monthly_collection / 1000000).toFixed(1)}M
-                      </p>
-                    </div>
-                    <DollarSign className="h-8 w-8 text-success opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Monthly Collection</p>
+                          <p className="text-3xl font-bold text-success mt-1">
+                            ₹{(emiData.kpi_cards.monthly_collection / 1000000).toFixed(1)}M
+                          </p>
+                        </div>
+                        <DollarSign className="h-8 w-8 text-success opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
-                      <p className="text-3xl font-bold text-warning mt-1">
-                        ₹{(dashboardData.emi_orders.kpi_cards.pending_amount / 1000000).toFixed(1)}M
-                      </p>
-                    </div>
-                    <Calendar className="h-8 w-8 text-warning opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
+                          <p className="text-3xl font-bold text-warning mt-1">
+                            ₹{(emiData.kpi_cards.pending_amount / 1000000).toFixed(1)}M
+                          </p>
+                        </div>
+                        <Calendar className="h-8 w-8 text-warning opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </>
+            );
+          })()
         ) : null}
       </div>
 

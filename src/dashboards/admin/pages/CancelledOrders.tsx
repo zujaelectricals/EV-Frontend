@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { XCircle, AlertTriangle, TrendingDown, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -27,6 +28,7 @@ import { useGetAdminDashboardQuery } from '@/app/api/reportsApi';
 
 export const CancelledOrders = () => {
   const { data: dashboardData, isLoading, isError } = useGetAdminDashboardQuery();
+  const [userType, setUserType] = useState<'normal_users' | 'staff_users' | 'combined'>('combined');
 
   // Console log the full API response for debugging
   React.useEffect(() => {
@@ -40,38 +42,44 @@ export const CancelledOrders = () => {
 
   // Transform cancellation trend data
   const cancellationTrendData = React.useMemo(() => {
-    if (!dashboardData?.cancelled_orders?.cancellation_trend) {
-      console.log('CancelledOrders: No cancellation_trend data', {
-        hasCancelledOrders: !!dashboardData?.cancelled_orders,
-        cancellationTrend: dashboardData?.cancelled_orders?.cancellation_trend,
-      });
+    if (!dashboardData?.cancelled_orders) {
       return [];
     }
-    const trend = dashboardData.cancelled_orders.cancellation_trend;
-    if (!trend.months || !trend.counts) {
-      console.log('CancelledOrders: Missing months or counts', { trend });
-      return [];
+    
+    if (userType === 'combined') {
+      const normal = dashboardData.cancelled_orders.normal_users.cancellation_trend;
+      const staff = dashboardData.cancelled_orders.staff_users.cancellation_trend;
+      const months = normal.months;
+      return months.map((month, index) => ({
+        month,
+        count: (normal.counts[index] || 0) + (staff.counts[index] || 0),
+      }));
+    } else {
+      const trend = dashboardData.cancelled_orders[userType].cancellation_trend;
+      if (!trend.months || !trend.counts) {
+        return [];
+      }
+      return trend.months.map((month, index) => ({
+        month,
+        count: trend.counts[index] || 0,
+      }));
     }
-    if (trend.months.length !== trend.counts.length) {
-      console.log('CancelledOrders: Length mismatch', {
-        monthsLength: trend.months.length,
-        countsLength: trend.counts.length,
-      });
-      return [];
-    }
-    const data = trend.months.map((month, index) => ({
-      month,
-      count: trend.counts[index] || 0,
-    }));
-    console.log('CancelledOrders: Transformed data', data);
-    return data;
-  }, [dashboardData?.cancelled_orders?.cancellation_trend]);
+  }, [dashboardData?.cancelled_orders, userType]);
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Cancelled Orders</h1>
         <p className="text-muted-foreground mt-1">Track cancelled orders and refund status</p>
       </div>
+
+      {/* User Type Tabs */}
+      <Tabs value={userType} onValueChange={(v) => setUserType(v as typeof userType)}>
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="combined">Combined</TabsTrigger>
+          <TabsTrigger value="normal_users">Normal Users</TabsTrigger>
+          <TabsTrigger value="staff_users">Staff Users</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -82,86 +90,100 @@ export const CancelledOrders = () => {
             ))}
           </>
         ) : dashboardData?.cancelled_orders ? (
-          <>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Cancelled</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">
-                        {dashboardData.cancelled_orders.kpi_cards.total_cancelled.toLocaleString()}
-                      </p>
-                    </div>
-                    <XCircle className="h-8 w-8 text-destructive opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+          (() => {
+            const cancelledData = userType === 'combined'
+              ? {
+                  kpi_cards: {
+                    total_cancelled: dashboardData.cancelled_orders.normal_users.kpi_cards.total_cancelled + dashboardData.cancelled_orders.staff_users.kpi_cards.total_cancelled,
+                    total_amount: dashboardData.cancelled_orders.normal_users.kpi_cards.total_amount + dashboardData.cancelled_orders.staff_users.kpi_cards.total_amount,
+                    refund_pending: dashboardData.cancelled_orders.normal_users.kpi_cards.refund_pending + dashboardData.cancelled_orders.staff_users.kpi_cards.refund_pending,
+                    cancellation_rate: ((dashboardData.cancelled_orders.normal_users.kpi_cards.cancellation_rate + dashboardData.cancelled_orders.staff_users.kpi_cards.cancellation_rate) / 2),
+                  }
+                }
+              : dashboardData.cancelled_orders[userType];
+            return (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Total Cancelled</p>
+                          <p className="text-3xl font-bold text-foreground mt-1">
+                            {cancelledData.kpi_cards.total_cancelled.toLocaleString()}
+                          </p>
+                        </div>
+                        <XCircle className="h-8 w-8 text-destructive opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">
-                        ₹{(dashboardData.cancelled_orders.kpi_cards.total_amount / 1000000).toFixed(1)}M
-                      </p>
-                    </div>
-                    <DollarSign className="h-8 w-8 text-warning opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
+                          <p className="text-3xl font-bold text-foreground mt-1">
+                            ₹{(cancelledData.kpi_cards.total_amount / 1000000).toFixed(1)}M
+                          </p>
+                        </div>
+                        <DollarSign className="h-8 w-8 text-warning opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Refund Pending</p>
-                      <p className="text-3xl font-bold text-warning mt-1">
-                        {dashboardData.cancelled_orders.kpi_cards.refund_pending.toLocaleString()}
-                      </p>
-                    </div>
-                    <AlertTriangle className="h-8 w-8 text-warning opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Refund Pending</p>
+                          <p className="text-3xl font-bold text-warning mt-1">
+                            {cancelledData.kpi_cards.refund_pending.toLocaleString()}
+                          </p>
+                        </div>
+                        <AlertTriangle className="h-8 w-8 text-warning opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Cancellation Rate</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">
-                        {dashboardData.cancelled_orders.kpi_cards.cancellation_rate}%
-                      </p>
-                    </div>
-                    <TrendingDown className="h-8 w-8 text-info opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Cancellation Rate</p>
+                          <p className="text-3xl font-bold text-foreground mt-1">
+                            {cancelledData.kpi_cards.cancellation_rate.toFixed(1)}%
+                          </p>
+                        </div>
+                        <TrendingDown className="h-8 w-8 text-info opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </>
+            );
+          })()
         ) : null}
       </div>
 

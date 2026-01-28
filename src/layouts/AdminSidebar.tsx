@@ -74,7 +74,7 @@ const adminMenuSections: MenuSection[] = [
     value: "sales",
     children: [
       { label: "Pre-Bookings", path: "/admin/sales/pre-bookings" },
-      { label: "EMI Orders", path: "/admin/sales/emi-orders" },
+      //{ label: "EMI Orders", path: "/admin/sales/emi-orders" },
       { label: "Cancelled Orders", path: "/admin/sales/cancelled" },
       // { label: "Drop-off Users", path: "/admin/sales/drop-off" },
       // { label: "Partner Redemptions", path: "/admin/sales/redemptions" },
@@ -135,7 +135,7 @@ const adminMenuSections: MenuSection[] = [
     children: [
       { label: "Models", path: "/admin/inventory/models" },
       { label: "Stock Level", path: "/admin/inventory/stock" },
-      { label: "Delivery Pipeline", path: "/admin/inventory/delivery" },
+      //{ label: "Delivery Pipeline", path: "/admin/inventory/delivery" },
       //{ label: 'Pending Allocations', path: '/admin/inventory/allocations' },
     ],
   },
@@ -220,7 +220,7 @@ const adminMenuSections: MenuSection[] = [
         label: "Payment Management",
         path: "/admin/users/payment-management",
       },
-      { label: "Send Notification", path: "/admin/users/notify" },
+      //{ label: "Send Notification", path: "/admin/users/notify" },
     ],
   },
   // {

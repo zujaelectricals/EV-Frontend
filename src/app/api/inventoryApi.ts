@@ -150,6 +150,29 @@ export interface UpdateVehicleRequest {
   initial_quantity?: number; // Or use stock_quantity (both supported)
 }
 
+// Create vehicle request - POST inventory/vehicles/
+export interface CreateVehicleRequest {
+  name: string;
+  vehicle_color: string[];
+  battery_variant: string[];
+  price: number;
+  battery_pricing?: Record<string, number>; // Optional: Dictionary mapping battery variant names to prices
+  status: 'available' | 'out_of_stock' | 'discontinued';
+  description: string;
+  features: string[];
+  specifications: Record<string, string>;
+  color_images?: Record<string, number[]>; // Optional: Object mapping colors to image ID arrays
+  image_ids?: number[]; // Optional: Fallback array of image IDs
+  initial_quantity?: number; // Optional: Initial stock quantity for each vehicle variant
+}
+
+// Image upload response
+export interface ImageUploadResponse {
+  id: number;
+  image_url: string;
+  created_at: string;
+}
+
 export const inventoryApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getVehicles: builder.query<InventoryResponse, InventoryQueryParams | void>({
@@ -160,17 +183,18 @@ export const inventoryApi = api.injectEndpoints({
           
           // Build query string
           const queryParams = new URLSearchParams();
+          const queryParamsObj: InventoryQueryParams = params || {};
           
-          if (params.page) queryParams.append('page', params.page.toString());
-          if (params.page_size) queryParams.append('page_size', params.page_size.toString());
-          if (params.name) queryParams.append('name', params.name);
-          if (params.model_code) queryParams.append('model_code', params.model_code);
-          if (params.status) queryParams.append('status', params.status);
-          if (params.color) queryParams.append('color', params.color);
-          if (params.battery) queryParams.append('battery', params.battery);
-          if (params.min_price !== undefined) queryParams.append('min_price', params.min_price.toString());
-          if (params.max_price !== undefined) queryParams.append('max_price', params.max_price.toString());
-          if (params.search) queryParams.append('search', params.search);
+          if (queryParamsObj.page) queryParams.append('page', queryParamsObj.page.toString());
+          if (queryParamsObj.page_size) queryParams.append('page_size', queryParamsObj.page_size.toString());
+          if (queryParamsObj.name) queryParams.append('name', queryParamsObj.name);
+          if (queryParamsObj.model_code) queryParams.append('model_code', queryParamsObj.model_code);
+          if (queryParamsObj.status) queryParams.append('status', queryParamsObj.status);
+          if (queryParamsObj.color) queryParams.append('color', queryParamsObj.color);
+          if (queryParamsObj.battery) queryParams.append('battery', queryParamsObj.battery);
+          if (queryParamsObj.min_price !== undefined) queryParams.append('min_price', queryParamsObj.min_price.toString());
+          if (queryParamsObj.max_price !== undefined) queryParams.append('max_price', queryParamsObj.max_price.toString());
+          if (queryParamsObj.search) queryParams.append('search', queryParamsObj.search);
           
           const queryString = queryParams.toString();
           const url = `${baseUrl}inventory/vehicles/${queryString ? `?${queryString}` : ''}`;
@@ -563,14 +587,15 @@ export const inventoryApi = api.injectEndpoints({
           
           // Build query string
           const queryParams = new URLSearchParams();
+          const queryParamsObj: StockListQueryParams = params || {};
           
-          if (params.page) queryParams.append('page', params.page.toString());
-          if (params.page_size) queryParams.append('page_size', params.page_size.toString());
-          if (params.vehicle_id) queryParams.append('vehicle_id', params.vehicle_id.toString());
-          if (params.model_code) queryParams.append('model_code', params.model_code);
-          if (params.vehicle_name) queryParams.append('vehicle_name', params.vehicle_name);
-          if (params.min_available !== undefined) queryParams.append('min_available', params.min_available.toString());
-          if (params.max_available !== undefined) queryParams.append('max_available', params.max_available.toString());
+          if (queryParamsObj.page) queryParams.append('page', queryParamsObj.page.toString());
+          if (queryParamsObj.page_size) queryParams.append('page_size', queryParamsObj.page_size.toString());
+          if (queryParamsObj.vehicle_id) queryParams.append('vehicle_id', queryParamsObj.vehicle_id.toString());
+          if (queryParamsObj.model_code) queryParams.append('model_code', queryParamsObj.model_code);
+          if (queryParamsObj.vehicle_name) queryParams.append('vehicle_name', queryParamsObj.vehicle_name);
+          if (queryParamsObj.min_available !== undefined) queryParams.append('min_available', queryParamsObj.min_available.toString());
+          if (queryParamsObj.max_available !== undefined) queryParams.append('max_available', queryParamsObj.max_available.toString());
           
           const queryString = queryParams.toString();
           const url = `${baseUrl}inventory/stock/${queryString ? `?${queryString}` : ''}`;
@@ -728,6 +753,178 @@ export const inventoryApi = api.injectEndpoints({
       },
       invalidatesTags: ['Inventory'],
     }),
+    uploadImages: builder.mutation<ImageUploadResponse[], File[]>({
+      queryFn: async (files) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          const url = `${baseUrl}inventory/images/upload/`;
+          
+          const formData = new FormData();
+          files.forEach((file) => {
+            formData.append('images', file);
+          });
+          
+          const headers: HeadersInit = {};
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          console.log('📤 [UPLOAD IMAGES API] Request URL:', url);
+          console.log('📤 [UPLOAD IMAGES API] Request Method: POST');
+          console.log('📤 [UPLOAD IMAGES API] Files count:', files.length);
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: formData,
+          });
+          
+          console.log('📥 [UPLOAD IMAGES API] Response Status:', response.status);
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [UPLOAD IMAGES API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                response = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                  body: formData,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('📥 [UPLOAD IMAGES API] Error Response:', errorData);
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+          
+          const responseData = await response.json();
+          console.log('📥 [UPLOAD IMAGES API] Response Body:', JSON.stringify(responseData, null, 2));
+          console.log('✅ [UPLOAD IMAGES API] Upload successful');
+          
+          return { data: responseData };
+        } catch (error) {
+          console.error('Upload Images API Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: ['Inventory'],
+    }),
+    createVehicle: builder.mutation<VehicleDetailResponse[], CreateVehicleRequest>({
+      queryFn: async (data) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          const url = `${baseUrl}inventory/vehicles/`;
+          
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          // Console log the POST request
+          console.log('📤 [CREATE VEHICLE API] Request URL:', url);
+          console.log('📤 [CREATE VEHICLE API] Request Method: POST');
+          console.log('📤 [CREATE VEHICLE API] Request Headers:', headers);
+          console.log('📤 [CREATE VEHICLE API] Request Body:', JSON.stringify(data, null, 2));
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data),
+          });
+          
+          console.log('📥 [CREATE VEHICLE API] Response Status:', response.status);
+          console.log('📥 [CREATE VEHICLE API] Response Headers:', Object.fromEntries(response.headers.entries()));
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [CREATE VEHICLE API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                response = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify(data),
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('📥 [CREATE VEHICLE API] Error Response:', errorData);
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+          
+          const responseData = await response.json();
+          console.log('📥 [CREATE VEHICLE API] Response Body:', JSON.stringify(responseData, null, 2));
+          console.log('✅ [CREATE VEHICLE API] Create successful');
+          
+          return { data: responseData };
+        } catch (error) {
+          console.error('Create Vehicle API Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: ['Inventory'],
+    }),
   }),
 });
 
@@ -801,5 +998,7 @@ export const {
   useUpdateVehicleMutation,
   useDeleteVehicleMutation,
   useUpdateStockByVehicleIdMutation,
+  useUploadImagesMutation,
+  useCreateVehicleMutation,
 } = inventoryApi;
 

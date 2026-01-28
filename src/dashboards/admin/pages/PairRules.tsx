@@ -26,7 +26,7 @@ export const PairRules = () => {
 
   // Form state
   const [formData, setFormData] = useState({
-    booking_reservation_timeout_minutes: 2,
+    booking_reservation_timeout_minutes: 1440,
     direct_user_commission_amount: 1000,
     binary_commission_activation_count: 3,
     binary_pair_commission_amount: 2000,
@@ -34,7 +34,8 @@ export const PairRules = () => {
     binary_commission_tds_percentage: 20,
     binary_extra_deduction_percentage: 20,
     binary_daily_pair_limit: 10,
-    binary_commission_initial_bonus: 2000,
+    max_earnings_before_active_buyer: 5,
+    binary_commission_initial_bonus: 0,
     binary_tree_default_placement_side: 'left' as 'left' | 'right',
     activation_amount: 5000,
     distributor_application_auto_approve: true,
@@ -49,16 +50,17 @@ export const PairRules = () => {
   useEffect(() => {
     if (settings) {
       setFormData({
-        booking_reservation_timeout_minutes: settings.booking_reservation_timeout_minutes ?? 2,
-        direct_user_commission_amount: settings.direct_user_commission_amount,
-        binary_commission_activation_count: settings.binary_commission_activation_count,
-        binary_pair_commission_amount: settings.binary_pair_commission_amount,
-        binary_tds_threshold_pairs: settings.binary_tds_threshold_pairs,
-        binary_commission_tds_percentage: settings.binary_commission_tds_percentage,
-        binary_extra_deduction_percentage: settings.binary_extra_deduction_percentage,
-        binary_daily_pair_limit: settings.binary_daily_pair_limit,
-        binary_commission_initial_bonus: settings.binary_commission_initial_bonus ?? 2000,
-        binary_tree_default_placement_side: settings.binary_tree_default_placement_side,
+        booking_reservation_timeout_minutes: settings.booking_reservation_timeout_minutes ?? 1440,
+        direct_user_commission_amount: settings.direct_user_commission_amount ?? 1000,
+        binary_commission_activation_count: settings.binary_commission_activation_count ?? 3,
+        binary_pair_commission_amount: settings.binary_pair_commission_amount ?? 2000,
+        binary_tds_threshold_pairs: settings.binary_tds_threshold_pairs ?? 5,
+        binary_commission_tds_percentage: settings.binary_commission_tds_percentage ?? 20,
+        binary_extra_deduction_percentage: settings.binary_extra_deduction_percentage ?? 20,
+        binary_daily_pair_limit: settings.binary_daily_pair_limit ?? 10,
+        max_earnings_before_active_buyer: settings.max_earnings_before_active_buyer ?? 5,
+        binary_commission_initial_bonus: settings.binary_commission_initial_bonus ?? 0,
+        binary_tree_default_placement_side: settings.binary_tree_default_placement_side ?? 'left',
         activation_amount: settings.activation_amount ?? 5000,
         distributor_application_auto_approve: settings.distributor_application_auto_approve ?? true,
         payout_approval_needed: settings.payout_approval_needed ?? true,
@@ -73,6 +75,7 @@ export const PairRules = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
   };
+
 
   // Handle save
   const handleSave = async () => {
@@ -96,6 +99,10 @@ export const PairRules = () => {
       }
       if (formData.binary_daily_pair_limit < 1) {
         toast.error('Daily pair limit must be at least 1');
+        return;
+      }
+      if (formData.max_earnings_before_active_buyer < 1) {
+        toast.error('Max earnings before active buyer must be at least 1');
         return;
       }
       if (formData.activation_amount < 0) {
@@ -255,11 +262,26 @@ export const PairRules = () => {
               </Label>
               <Input
                 id="booking_timeout"
-                type="number"
-                min="0"
+                type="text"
+                inputMode="numeric"
                 placeholder="Enter minutes or leave empty"
                 value={formData.booking_reservation_timeout_minutes ?? ''}
-                onChange={(e) => handleChange('booking_reservation_timeout_minutes', e.target.value ? parseInt(e.target.value) : null)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    handleChange('booking_reservation_timeout_minutes', null);
+                    return;
+                  }
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && isFinite(num) && num >= 0) {
+                    handleChange('booking_reservation_timeout_minutes', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '') {
+                    handleChange('booking_reservation_timeout_minutes', null);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Time before booking reservation expires (null = never expires)
@@ -270,10 +292,26 @@ export const PairRules = () => {
               <Label htmlFor="direct_commission">Direct User Commission Amount (₹)</Label>
               <Input
                 id="direct_commission"
-                type="number"
-                min="0"
-                value={formData.direct_user_commission_amount}
-                onChange={(e) => handleChange('direct_user_commission_amount', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="decimal"
+                value={formData.direct_user_commission_amount === 0 ? '' : formData.direct_user_commission_amount || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || val === '.') {
+                    setFormData(prev => ({ ...prev, direct_user_commission_amount: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseFloat(val);
+                  if (!isNaN(num) && isFinite(num)) {
+                    handleChange('direct_user_commission_amount', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '' || e.target.value === '.') {
+                    handleChange('direct_user_commission_amount', 1000);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Commission per direct user before binary activation
@@ -284,10 +322,26 @@ export const PairRules = () => {
               <Label htmlFor="activation_amount">Activation Amount (₹)</Label>
               <Input
                 id="activation_amount"
-                type="number"
-                min="0"
-                value={formData.activation_amount}
-                onChange={(e) => handleChange('activation_amount', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="decimal"
+                value={formData.activation_amount === 0 ? '' : formData.activation_amount || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || val === '.') {
+                    setFormData(prev => ({ ...prev, activation_amount: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseFloat(val);
+                  if (!isNaN(num) && isFinite(num)) {
+                    handleChange('activation_amount', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '' || e.target.value === '.') {
+                    handleChange('activation_amount', 5000);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Minimum payment amount per booking required for seniors to earn commission. If payment is less than this amount, no commission is credited, but user is still counted in descendants calculation. On cancellation, this amount is withheld for future point redemption (min: 0)
@@ -308,10 +362,26 @@ export const PairRules = () => {
               <Label htmlFor="activation_count">Binary Activation Count (users)</Label>
               <Input
                 id="activation_count"
-                type="number"
-                min="1"
-                value={formData.binary_commission_activation_count}
-                onChange={(e) => handleChange('binary_commission_activation_count', parseInt(e.target.value) || 1)}
+                type="text"
+                inputMode="numeric"
+                value={formData.binary_commission_activation_count === 0 ? '' : formData.binary_commission_activation_count || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setFormData(prev => ({ ...prev, binary_commission_activation_count: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && isFinite(num) && num >= 1) {
+                    handleChange('binary_commission_activation_count', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '') {
+                    handleChange('binary_commission_activation_count', 3);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Number of direct users needed to activate binary commission (min: 1)
@@ -322,10 +392,26 @@ export const PairRules = () => {
               <Label htmlFor="pair_commission">Binary Pair Commission Amount (₹)</Label>
               <Input
                 id="pair_commission"
-                type="number"
-                min="0"
-                value={formData.binary_pair_commission_amount}
-                onChange={(e) => handleChange('binary_pair_commission_amount', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="decimal"
+                value={formData.binary_pair_commission_amount === 0 ? '' : formData.binary_pair_commission_amount || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || val === '.') {
+                    setFormData(prev => ({ ...prev, binary_pair_commission_amount: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseFloat(val);
+                  if (!isNaN(num) && isFinite(num)) {
+                    handleChange('binary_pair_commission_amount', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '' || e.target.value === '.') {
+                    handleChange('binary_pair_commission_amount', 2000);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Commission per binary pair after activation
@@ -336,13 +422,59 @@ export const PairRules = () => {
               <Label htmlFor="daily_limit">Daily Pair Limit (pairs)</Label>
               <Input
                 id="daily_limit"
-                type="number"
-                min="1"
-                value={formData.binary_daily_pair_limit}
-                onChange={(e) => handleChange('binary_daily_pair_limit', parseInt(e.target.value) || 1)}
+                type="text"
+                inputMode="numeric"
+                value={formData.binary_daily_pair_limit === 0 ? '' : formData.binary_daily_pair_limit || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setFormData(prev => ({ ...prev, binary_daily_pair_limit: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && isFinite(num) && num >= 1) {
+                    handleChange('binary_daily_pair_limit', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '') {
+                    handleChange('binary_daily_pair_limit', 10);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Maximum binary pairs per day after activation (min: 1)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="max_earnings_before_active_buyer">Max Earnings Before Active Buyer (pairs)</Label>
+              <Input
+                id="max_earnings_before_active_buyer"
+                type="text"
+                inputMode="numeric"
+                value={formData.max_earnings_before_active_buyer === 0 ? '' : formData.max_earnings_before_active_buyer || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setFormData(prev => ({ ...prev, max_earnings_before_active_buyer: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && isFinite(num) && num >= 1) {
+                    handleChange('max_earnings_before_active_buyer', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '') {
+                    handleChange('max_earnings_before_active_buyer', 5);
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Maximum number of binary pairs non-Active Buyer distributors can earn commission for before becoming Active Buyer. 6th+ pairs are blocked until user becomes Active Buyer (default: 5, min: 1)
               </p>
             </div>
 
@@ -369,10 +501,26 @@ export const PairRules = () => {
               <Label htmlFor="initial_bonus">Binary Commission Initial Bonus (₹)</Label>
               <Input
                 id="initial_bonus"
-                type="number"
-                min="0"
-                value={formData.binary_commission_initial_bonus}
-                onChange={(e) => handleChange('binary_commission_initial_bonus', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="decimal"
+                value={formData.binary_commission_initial_bonus === 0 ? '' : formData.binary_commission_initial_bonus || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || val === '.') {
+                    setFormData(prev => ({ ...prev, binary_commission_initial_bonus: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseFloat(val);
+                  if (!isNaN(num) && isFinite(num)) {
+                    handleChange('binary_commission_initial_bonus', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '' || e.target.value === '.') {
+                    handleChange('binary_commission_initial_bonus', 0);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Initial bonus amount (in rupees) credited to user's wallet and total_earnings when binary commission is activated (3 persons). TDS is deducted from this amount, but TDS is NOT deducted from booking balance (default: 0)
@@ -393,11 +541,26 @@ export const PairRules = () => {
               <Label htmlFor="tds_percentage">Binary Commission TDS Percentage (%)</Label>
               <Input
                 id="tds_percentage"
-                type="number"
-                min="0"
-                max="100"
-                value={formData.binary_commission_tds_percentage}
-                onChange={(e) => handleChange('binary_commission_tds_percentage', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="numeric"
+                value={formData.binary_commission_tds_percentage === 0 ? '' : formData.binary_commission_tds_percentage || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setFormData(prev => ({ ...prev, binary_commission_tds_percentage: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && isFinite(num) && num >= 0 && num <= 100) {
+                    handleChange('binary_commission_tds_percentage', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '') {
+                    handleChange('binary_commission_tds_percentage', 20);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 TDS percentage on ALL binary commissions (range: 0-100)
@@ -408,10 +571,26 @@ export const PairRules = () => {
               <Label htmlFor="tds_threshold">TDS Threshold Pairs (pairs)</Label>
               <Input
                 id="tds_threshold"
-                type="number"
-                min="0"
-                value={formData.binary_tds_threshold_pairs}
-                onChange={(e) => handleChange('binary_tds_threshold_pairs', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="numeric"
+                value={formData.binary_tds_threshold_pairs === 0 ? '' : formData.binary_tds_threshold_pairs || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setFormData(prev => ({ ...prev, binary_tds_threshold_pairs: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && isFinite(num) && num >= 0) {
+                    handleChange('binary_tds_threshold_pairs', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '') {
+                    handleChange('binary_tds_threshold_pairs', 5);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Number of pairs after activation before extra deduction starts (min: 0)
@@ -422,11 +601,26 @@ export const PairRules = () => {
               <Label htmlFor="extra_deduction">Extra Deduction Percentage (%)</Label>
               <Input
                 id="extra_deduction"
-                type="number"
-                min="0"
-                max="100"
-                value={formData.binary_extra_deduction_percentage}
-                onChange={(e) => handleChange('binary_extra_deduction_percentage', parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="numeric"
+                value={formData.binary_extra_deduction_percentage === 0 ? '' : formData.binary_extra_deduction_percentage || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setFormData(prev => ({ ...prev, binary_extra_deduction_percentage: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && isFinite(num) && num >= 0 && num <= 100) {
+                    handleChange('binary_extra_deduction_percentage', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '') {
+                    handleChange('binary_extra_deduction_percentage', 20);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Extra deduction percentage on pairs beyond threshold (range: 0-100)
@@ -460,11 +654,26 @@ export const PairRules = () => {
             <Label htmlFor="payout_tds">Payout TDS Percentage (%)</Label>
             <Input
               id="payout_tds"
-              type="number"
-              min="0"
-              max="100"
-              value={formData.payout_tds_percentage}
-              onChange={(e) => handleChange('payout_tds_percentage', parseInt(e.target.value) || 0)}
+              type="text"
+              inputMode="numeric"
+              value={formData.payout_tds_percentage === 0 ? '' : formData.payout_tds_percentage || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '') {
+                  setFormData(prev => ({ ...prev, payout_tds_percentage: 0 }));
+                  setIsDirty(true);
+                  return;
+                }
+                const num = parseInt(val, 10);
+                if (!isNaN(num) && isFinite(num) && num >= 0 && num <= 100) {
+                  handleChange('payout_tds_percentage', num);
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '') {
+                  handleChange('payout_tds_percentage', 0);
+                }
+              }}
             />
             <p className="text-xs text-muted-foreground">
               TDS percentage applied on payout withdrawals (default: 0, meaning no payout TDS, range: 0-100)

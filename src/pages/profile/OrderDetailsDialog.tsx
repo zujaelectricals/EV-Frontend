@@ -310,6 +310,14 @@ export function OrderDetailsDialog({
                 )}
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Status</p>
+                  <Badge className={getStatusColor(detailedBooking?.status || booking?.status || '')}>
+                    {(detailedBooking?.status || booking?.status || '').replace(/_/g, " ").toUpperCase()}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Payment Status
+                  </p>
                   <Badge className={getStatusColor(detailedBooking?.payment_status || booking?.paymentStatus || '')}>
                     {(detailedBooking?.payment_status || booking?.paymentStatus || '').replace(/_/g, " ").toUpperCase()}
                   </Badge>

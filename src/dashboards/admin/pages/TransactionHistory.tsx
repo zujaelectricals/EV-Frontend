@@ -11,6 +11,9 @@ import {
   XCircle,
   Clock,
   TrendingUp,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,109 +51,17 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { TransactionReport, TransactionType, TransactionStatus } from '../types/reports';
+import { useGetComprehensiveReportsQuery, TransactionItem } from '@/app/api/reportsApi';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const mockTransactions: TransactionReport[] = [
-  {
-    id: '1',
-    transactionId: 'TXN-2024-001',
-    userId: 'U12345',
-    userName: 'Rajesh Kumar',
-    userEmail: 'rajesh@example.com',
-    type: 'payment',
-    amount: 50000,
-    status: 'completed',
-    description: 'Vehicle pre-booking payment',
-    paymentMethod: 'card',
-    gateway: 'Razorpay',
-    referenceNumber: 'REF-001',
-    createdAt: '2024-03-22T10:30:00',
-    updatedAt: '2024-03-22T10:30:00',
-  },
-  {
-    id: '2',
-    transactionId: 'TXN-2024-002',
-    userId: 'U12346',
-    userName: 'Priya Sharma',
-    userEmail: 'priya@example.com',
-    type: 'commission',
-    amount: 2000,
-    status: 'completed',
-    description: 'Binary commission payout',
-    paymentMethod: 'bank_transfer',
-    referenceNumber: 'REF-002',
-    createdAt: '2024-03-21T14:20:00',
-    updatedAt: '2024-03-21T14:20:00',
-  },
-  {
-    id: '3',
-    transactionId: 'TXN-2024-003',
-    userId: 'U12347',
-    userName: 'Amit Patel',
-    userEmail: 'amit@example.com',
-    type: 'refund',
-    amount: 10000,
-    status: 'completed',
-    description: 'Refund for cancelled booking',
-    paymentMethod: 'card',
-    gateway: 'Razorpay',
-    referenceNumber: 'REF-003',
-    createdAt: '2024-03-20T09:15:00',
-    updatedAt: '2024-03-20T09:15:00',
-  },
-  {
-    id: '4',
-    transactionId: 'TXN-2024-004',
-    userId: 'U12348',
-    userName: 'Sneha Reddy',
-    userEmail: 'sneha@example.com',
-    type: 'payout',
-    amount: 15000,
-    status: 'pending',
-    description: 'Referral commission payout',
-    paymentMethod: 'bank_transfer',
-    referenceNumber: 'REF-004',
-    createdAt: '2024-03-22T11:00:00',
-    updatedAt: '2024-03-22T11:00:00',
-  },
-  {
-    id: '5',
-    transactionId: 'TXN-2024-005',
-    userId: 'U12349',
-    userName: 'Vikram Singh',
-    userEmail: 'vikram@example.com',
-    type: 'redemption',
-    amount: 5000,
-    status: 'completed',
-    description: 'Redemption points used',
-    paymentMethod: 'wallet',
-    referenceNumber: 'REF-005',
-    createdAt: '2024-03-19T15:30:00',
-    updatedAt: '2024-03-19T15:30:00',
-  },
-];
+type TransactionType = 'PAYMENT' | 'COMMISSION' | 'PAYOUT' | 'REFUND' | 'REDEMPTION' | 'WALLET' | string;
+type TransactionStatus = 'Completed' | 'Pending' | 'Failed' | 'Cancelled' | string;
 
-const dailyTransactionData = [
-  { day: 'Mon', transactions: 125, amount: 1250000 },
-  { day: 'Tue', transactions: 145, amount: 1450000 },
-  { day: 'Wed', transactions: 132, amount: 1320000 },
-  { day: 'Thu', transactions: 158, amount: 1580000 },
-  { day: 'Fri', transactions: 168, amount: 1680000 },
-  { day: 'Sat', transactions: 95, amount: 950000 },
-  { day: 'Sun', transactions: 78, amount: 780000 },
-];
-
-const transactionTypeSummary = [
-  { type: 'Payment', count: 850, totalAmount: 12500000, avgAmount: 14705, successRate: 98.5 },
-  { type: 'Commission', count: 245, totalAmount: 3200000, avgAmount: 13061, successRate: 95.2 },
-  { type: 'Payout', count: 120, totalAmount: 2800000, avgAmount: 23333, successRate: 92.3 },
-  { type: 'Refund', count: 20, totalAmount: 450000, avgAmount: 22500, successRate: 100 },
-  { type: 'Redemption', count: 10, totalAmount: 250000, avgAmount: 25000, successRate: 100 },
-  { type: 'Wallet', count: 85, totalAmount: 850000, avgAmount: 10000, successRate: 97.6 },
-];
+const PAGE_SIZE = 20;
 
 const getTypeBadge = (type: TransactionType) => {
-  switch (type) {
+  const normalizedType = type.toLowerCase();
+  switch (normalizedType) {
     case 'payment':
       return <Badge className="bg-success text-white">Payment</Badge>;
     case 'commission':
@@ -169,7 +80,8 @@ const getTypeBadge = (type: TransactionType) => {
 };
 
 const getStatusBadge = (status: TransactionStatus) => {
-  switch (status) {
+  const normalizedStatus = status.toLowerCase();
+  switch (normalizedStatus) {
     case 'completed':
       return (
         <Badge className="bg-success text-white">
@@ -204,32 +116,120 @@ const getStatusBadge = (status: TransactionStatus) => {
 };
 
 export const TransactionHistory = () => {
-  const [transactions] = useState<TransactionReport[]>(mockTransactions);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  // Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewingTransaction, setViewingTransaction] = useState<TransactionReport | null>(null);
+  
+  // Dialog state
+  const [viewingTransaction, setViewingTransaction] = useState<TransactionItem | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const filteredTransactions = transactions.filter((txn) => {
-    const matchesSearch =
-      txn.transactionId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      txn.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      txn.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === 'all' || txn.type === typeFilter;
-    const matchesStatus = statusFilter === 'all' || txn.status === statusFilter;
-    return matchesSearch && matchesType && matchesStatus;
-  });
+  // Build API params with server-side pagination and filtering
+  const apiParams = {
+    sections: 'transaction_history',
+    transaction_page: currentPage,
+    transaction_page_size: PAGE_SIZE,
+    ...(statusFilter !== 'all' && { transaction_status: statusFilter }),
+  };
 
-  const totalTransactions = transactions.length;
-  const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-  const successRate = (transactions.filter((t) => t.status === 'completed').length / transactions.length) * 100;
-  const failedTransactions = transactions.filter((t) => t.status === 'failed').length;
+  const { data: reportsData, isLoading, isFetching, isError, error } = useGetComprehensiveReportsQuery(apiParams);
 
-  const handleViewTransaction = (transaction: TransactionReport) => {
+  const transactionData = reportsData?.transaction_history;
+  // Ensure transactions is always an array - API might return object with results or array directly
+  const rawTransactions = transactionData?.all_transactions;
+  const transactions = Array.isArray(rawTransactions) 
+    ? rawTransactions 
+    : (rawTransactions as any)?.results ?? [];
+  
+  // Get pagination info - API might return it at different levels
+  const apiPagination = transactionData?.pagination || (rawTransactions as any)?.pagination;
+  
+  // Calculate pagination values - use API values if available, otherwise estimate
+  const totalItems = apiPagination?.total_items ?? transactionData?.summary_cards?.total_transactions ?? transactions.length;
+  const totalPages = apiPagination?.total_pages ?? (Math.ceil(totalItems / PAGE_SIZE) || 1);
+  const hasNext = apiPagination?.has_next ?? (currentPage < totalPages);
+  const hasPrevious = apiPagination?.has_previous ?? (currentPage > 1);
+
+  // Transform weekly trend data for chart
+  const weeklyTrendData = transactionData?.weekly_trend
+    ? Object.entries(transactionData.weekly_trend).map(([day, data]) => ({
+        day,
+        transactions: data.transactions,
+        amount: data.amount,
+      }))
+    : [];
+
+  const handleViewTransaction = (transaction: TransactionItem) => {
     setViewingTransaction(transaction);
     setIsDetailOpen(true);
   };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Transaction History</h1>
+            <p className="text-muted-foreground mt-1">View and analyze all platform transactions</p>
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardContent className="p-6 flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Transaction History</h1>
+            <p className="text-muted-foreground mt-1">View and analyze all platform transactions</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-destructive">
+              <XCircle className="h-12 w-12 mx-auto mb-4" />
+              <p className="text-lg font-medium">Failed to load transaction data</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {(error as Error)?.message || 'Please try again later'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const summaryCards = transactionData?.summary_cards;
+  const totalTransactions = summaryCards?.total_transactions || 0;
+  const totalAmount = summaryCards?.total_amount || '0';
+  const successRate = summaryCards?.success_rate || 0;
+  const failedTransactions = summaryCards?.failed || 0;
 
   return (
     <div className="space-y-6">
@@ -279,7 +279,7 @@ export const TransactionHistory = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
-                  <p className="text-3xl font-bold text-success mt-1">₹{totalAmount.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-success mt-1">₹{totalAmount}</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-success opacity-20" />
               </div>
@@ -346,23 +346,23 @@ export const TransactionHistory = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactionTypeSummary.map((summary) => (
+                {transactionData?.transaction_type_summary?.map((summary) => (
                   <TableRow key={summary.type}>
                     <TableCell>
                       <Badge variant="outline">{summary.type}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">{summary.count}</TableCell>
-                    <TableCell className="font-medium">₹{summary.totalAmount.toLocaleString()}</TableCell>
-                    <TableCell>₹{summary.avgAmount.toLocaleString()}</TableCell>
+                    <TableCell className="font-medium">₹{summary.total_amount}</TableCell>
+                    <TableCell>₹{summary.avg_amount}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-secondary rounded-full h-2">
                           <div
                             className="bg-success h-2 rounded-full"
-                            style={{ width: `${summary.successRate}%` }}
+                            style={{ width: `${summary.success_rate}%` }}
                           />
                         </div>
-                        <span className="text-sm font-medium">{summary.successRate}%</span>
+                        <span className="text-sm font-medium">{summary.success_rate}%</span>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -373,37 +373,39 @@ export const TransactionHistory = () => {
         </Card>
       </motion.div>
 
-      {/* Weekly Trend Chart - Single Chart */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle>Weekly Transaction Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={dailyTransactionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-                <XAxis dataKey="day" stroke="hsl(215 16% 47%)" fontSize={12} />
-                <YAxis stroke="hsl(215 16% 47%)" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(0 0% 100%)',
-                    border: '1px solid hsl(214 32% 91%)',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="transactions" stroke="hsl(221 83% 53%)" strokeWidth={2} name="Transactions" />
-                <Line type="monotone" dataKey="amount" stroke="hsl(142 76% 36%)" strokeWidth={2} name="Amount (₹)" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </motion.div>
+      {/* Weekly Trend Chart */}
+      {weeklyTrendData.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Weekly Transaction Trend</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={weeklyTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+                  <XAxis dataKey="day" stroke="hsl(215 16% 47%)" fontSize={12} />
+                  <YAxis stroke="hsl(215 16% 47%)" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(0 0% 100%)',
+                      border: '1px solid hsl(214 32% 91%)',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="transactions" stroke="hsl(221 83% 53%)" strokeWidth={2} name="Transactions" />
+                  <Line type="monotone" dataKey="amount" stroke="hsl(142 76% 36%)" strokeWidth={2} name="Amount (₹)" />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Transactions Table */}
       <Card>
@@ -411,45 +413,25 @@ export const TransactionHistory = () => {
           <div className="flex items-center justify-between">
             <CardTitle>All Transactions</CardTitle>
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search transactions..."
-                  className="pl-10 w-64"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="payment">Payment</SelectItem>
-                  <SelectItem value="commission">Commission</SelectItem>
-                  <SelectItem value="payout">Payout</SelectItem>
-                  <SelectItem value="refund">Refund</SelectItem>
-                  <SelectItem value="redemption">Redemption</SelectItem>
-                  <SelectItem value="wallet">Wallet</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Deducted">Deducted</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
         </CardHeader>
         <CardContent>
+          {isFetching && !isLoading && (
+            <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
@@ -458,58 +440,113 @@ export const TransactionHistory = () => {
                 <TableHead>User</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Payment Method</TableHead>
-                <TableHead>Gateway</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTransactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell className="font-medium">
-                    <code className="text-sm bg-secondary px-2 py-1 rounded">{transaction.transactionId}</code>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-sm">{transaction.createdAt.split('T')[0]}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="text-sm font-medium">{transaction.userName}</p>
-                      <p className="text-xs text-muted-foreground">{transaction.userEmail}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getTypeBadge(transaction.type)}</TableCell>
-                  <TableCell>
-                    <span className="font-medium">₹{transaction.amount.toLocaleString()}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm capitalize">{transaction.paymentMethod || 'N/A'}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{transaction.gateway || 'N/A'}</span>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(transaction.status)}</TableCell>
-                  <TableCell>
-                    <p className="text-sm line-clamp-1 max-w-xs">{transaction.description}</p>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewTransaction(transaction)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+              {transactions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    No transactions found
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                transactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell className="font-medium">
+                      <code className="text-sm bg-secondary px-2 py-1 rounded">{transaction.transaction_id}</code>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{transaction.date}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm font-medium">{transaction.user.name}</p>
+                        <p className="text-xs text-muted-foreground">{transaction.user.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getTypeBadge(transaction.type)}</TableCell>
+                    <TableCell>
+                      <span className="font-medium">₹{transaction.amount}</span>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(transaction.status)}</TableCell>
+                    <TableCell>
+                      <p className="text-sm line-clamp-1 max-w-xs">{transaction.description}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewTransaction(transaction)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
+
+          {/* Pagination - Always show when there's data */}
+          {transactions.length > 0 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing page {currentPage} of {totalPages} ({totalItems} total items)
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={!hasPrevious || isFetching}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum: number;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        disabled={isFetching}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={!hasNext || isFetching}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -520,23 +557,23 @@ export const TransactionHistory = () => {
             <DialogHeader>
               <DialogTitle>Transaction Details</DialogTitle>
               <DialogDescription>
-                Complete information for {viewingTransaction.transactionId}
+                Complete information for {viewingTransaction.transaction_id}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Transaction ID</p>
-                  <p className="font-medium">{viewingTransaction.transactionId}</p>
+                  <p className="font-medium">{viewingTransaction.transaction_id}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Reference Number</p>
-                  <p className="font-medium">{viewingTransaction.referenceNumber || 'N/A'}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Date</p>
+                  <p className="font-medium">{viewingTransaction.date}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">User</p>
-                  <p className="font-medium">{viewingTransaction.userName}</p>
-                  <p className="text-sm text-muted-foreground">{viewingTransaction.userEmail}</p>
+                  <p className="font-medium">{viewingTransaction.user.name}</p>
+                  <p className="text-sm text-muted-foreground">{viewingTransaction.user.email}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Type</p>
@@ -544,19 +581,11 @@ export const TransactionHistory = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Amount</p>
-                  <p className="text-2xl font-bold">₹{viewingTransaction.amount.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">₹{viewingTransaction.amount}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Status</p>
                   <div className="mt-1">{getStatusBadge(viewingTransaction.status)}</div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Payment Method</p>
-                  <p className="font-medium capitalize">{viewingTransaction.paymentMethod || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Gateway</p>
-                  <p className="font-medium">{viewingTransaction.gateway || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Description</p>
@@ -564,11 +593,7 @@ export const TransactionHistory = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Created At</p>
-                  <p className="font-medium">{new Date(viewingTransaction.createdAt).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Updated At</p>
-                  <p className="font-medium">{new Date(viewingTransaction.updatedAt).toLocaleString()}</p>
+                  <p className="font-medium">{new Date(viewingTransaction.created_at).toLocaleString()}</p>
                 </div>
               </div>
             </div>

@@ -38,10 +38,13 @@ import {
   useLazyGetVehicleByIdQuery,
   useUpdateVehicleMutation,
   useDeleteVehicleMutation,
+  useUploadImagesMutation,
+  useCreateVehicleMutation,
   VehicleGroup,
   VehicleDetailResponse,
   InventoryQueryParams,
-  UpdateVehicleRequest
+  UpdateVehicleRequest,
+  CreateVehicleRequest
 } from '@/app/api/inventoryApi';
 import { toast } from 'sonner';
 
@@ -189,11 +192,24 @@ export const Models = () => {
     initial_quantity: 0,
   });
   const [featureInput, setFeatureInput] = useState('');
+  const [activeTab, setActiveTab] = useState('basic');
+  const [uploadedImages, setUploadedImages] = useState<Array<{ id: number; image_url: string; created_at: string }>>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const [vehicleColorInput, setVehicleColorInput] = useState('');
+  const [batteryVariantInput, setBatteryVariantInput] = useState('');
+  const [isAddingSpecification, setIsAddingSpecification] = useState(false);
+  const [newSpecKey, setNewSpecKey] = useState('');
+  const [newSpecValue, setNewSpecValue] = useState('');
+  const [editingSpecKeys, setEditingSpecKeys] = useState<Record<string, string>>({});
+  const [colorImageInputs, setColorImageInputs] = useState<Record<string, string>>({});
 
   // API hooks
   const [getVehicleById, { isLoading: isLoadingVehicleDetail }] = useLazyGetVehicleByIdQuery();
   const [updateVehicle, { isLoading: isUpdating }] = useUpdateVehicleMutation();
   const [deleteVehicle, { isLoading: isDeleting }] = useDeleteVehicleMutation();
+  const [uploadImages, { isLoading: isUploadingImages }] = useUploadImagesMutation();
+  const [createVehicle, { isLoading: isCreating }] = useCreateVehicleMutation();
 
   // Build API query parameters
   const queryParams = useMemo(() => {
@@ -317,6 +333,13 @@ export const Models = () => {
         initial_quantity: result.stock_total_quantity,
       });
       setFeatureInput('');
+      setVehicleColorInput(result.vehicle_color.join(', '));
+      setBatteryVariantInput(result.battery_variant.join(', '));
+      setIsAddingSpecification(false);
+      setNewSpecKey('');
+      setNewSpecValue('');
+      setEditingSpecKeys({});
+      setColorImageInputs({});
     } catch (error) {
       console.error('Error fetching vehicle details for edit:', error);
       toast.error('Failed to load vehicle details for editing');
@@ -364,28 +387,212 @@ export const Models = () => {
       initial_quantity: 0,
     });
     setFeatureInput('');
+    setVehicleColorInput('');
+    setBatteryVariantInput('');
+    setSelectedFiles([]);
+    setImagePreviewUrls([]);
+    setUploadedImages([]);
+    setActiveTab('basic');
+    setIsAddingSpecification(false);
+    setNewSpecKey('');
+    setNewSpecValue('');
+    setEditingSpecKeys({});
+    setColorImageInputs({});
     setIsDialogOpen(true);
   };
 
   const addFeature = (feature: string) => {
-    const trimmed = feature.trim();
-    if (!trimmed) return;
+    // Handle comma-separated values
+    const features = feature.split(',').map(f => f.trim()).filter(f => f);
+    if (features.length === 0) return;
+    
     setFormData((prev) => {
-      if (prev.features.includes(trimmed)) return prev;
+      const newFeatures = [...prev.features];
+      features.forEach((trimmed) => {
+        if (!newFeatures.includes(trimmed)) {
+          newFeatures.push(trimmed);
+        }
+      });
       return {
         ...prev,
-        features: [...prev.features, trimmed],
+        features: newFeatures,
       };
     });
   };
 
-  // Handle form submission
-  const handleFormSubmit = async () => {
-    if (!editingVariantId) {
-      toast.error('No variant selected for editing');
+  // Handle image file selection
+  const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    setSelectedFiles((prev) => [...prev, ...files]);
+    
+    // Create preview URLs
+    const newPreviewUrls = files.map(file => URL.createObjectURL(file));
+    setImagePreviewUrls((prev) => [...prev, ...newPreviewUrls]);
+  };
+
+  // Remove uploaded image
+  const removeUploadedImage = (imageId: number) => {
+    setUploadedImages((prev) => prev.filter(img => img.id !== imageId));
+    setFormData((prev) => ({
+      ...prev,
+      image_ids: prev.image_ids.filter(id => id !== imageId),
+    }));
+  };
+
+  // Remove preview image (not yet uploaded)
+  const removePreviewImage = (index: number) => {
+    URL.revokeObjectURL(imagePreviewUrls[index]);
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviewUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Upload images
+  const handleUploadImages = async () => {
+    if (selectedFiles.length === 0) {
+      toast.error('Please select at least one image to upload');
       return;
     }
 
+    try {
+      const result = await uploadImages(selectedFiles).unwrap();
+      setUploadedImages((prev) => [...prev, ...result]);
+      setFormData((prev) => ({
+        ...prev,
+        image_ids: [...prev.image_ids, ...result.map(img => img.id)],
+      }));
+      // Clear selected files and previews after successful upload
+      setSelectedFiles([]);
+      setImagePreviewUrls((prev) => {
+        prev.forEach(url => URL.revokeObjectURL(url));
+        return [];
+      });
+      toast.success(`Successfully uploaded ${result.length} image(s)`);
+    } catch (error: unknown) {
+      console.error('Error uploading images:', error);
+      const errorMessage = error && typeof error === 'object' && 'data' in error && 
+        error.data && typeof error.data === 'object' && 'message' in error.data &&
+        typeof error.data.message === 'string' ? error.data.message : 'Failed to upload images';
+      toast.error(errorMessage);
+    }
+  };
+
+  // Check if all required tabs are completed
+  const isFormComplete = () => {
+    // Basic Info: name, status, price are required
+    if (!formData.name || formData.price <= 0) return false;
+    
+    // Variants: vehicle_color and battery_variant are required
+    if (formData.vehicle_color.length === 0 || formData.battery_variant.length === 0) return false;
+    
+    // Features: at least one feature is required
+    if (formData.features.length === 0) return false;
+    
+    // Specifications: at least one specification is required
+    if (Object.keys(formData.specifications).length === 0) return false;
+    
+    // Images: at least one image should be uploaded or image_ids should be set
+    if (formData.image_ids.length === 0 && uploadedImages.length === 0) return false;
+    
+    return true;
+  };
+
+  // Handle form submission
+  const handleFormSubmit = async () => {
+    // If creating new vehicle
+    if (!editingVariantId) {
+      // Validate required fields
+      if (!isFormComplete()) {
+        toast.error('Please complete all required fields in all tabs before creating the model');
+        return;
+      }
+
+      try {
+        // Prepare request data
+        const requestData: CreateVehicleRequest = {
+          name: formData.name,
+          vehicle_color: formData.vehicle_color,
+          battery_variant: formData.battery_variant,
+          price: formData.price,
+          status: formData.status,
+          description: formData.description,
+          features: formData.features,
+          specifications: formData.specifications,
+        };
+
+        // Only include battery_pricing if it has values, and filter to only include batteries in battery_variant
+        const filteredBatteryPricing: Record<string, number> = {};
+        formData.battery_variant.forEach(battery => {
+          if (formData.battery_pricing[battery] !== undefined) {
+            filteredBatteryPricing[battery] = formData.battery_pricing[battery];
+          }
+        });
+        if (Object.keys(filteredBatteryPricing).length > 0) {
+          requestData.battery_pricing = filteredBatteryPricing;
+        }
+
+        // Only include color_images if it has values, and filter to only include colors in vehicle_color
+        const filteredColorImages: Record<string, number[]> = {};
+        formData.vehicle_color.forEach(color => {
+          if (formData.color_images[color] && formData.color_images[color].length > 0) {
+            filteredColorImages[color] = formData.color_images[color];
+          }
+        });
+        if (Object.keys(filteredColorImages).length > 0) {
+          requestData.color_images = filteredColorImages;
+        }
+
+        // Include image_ids (from uploaded images)
+        if (formData.image_ids.length > 0) {
+          requestData.image_ids = formData.image_ids;
+        }
+
+        // Only include initial_quantity if it's greater than 0
+        if (formData.initial_quantity > 0) {
+          requestData.initial_quantity = formData.initial_quantity;
+        }
+
+        console.log('📤 [CREATE VEHICLE API REQUEST] Request Body:', JSON.stringify(requestData, null, 2));
+
+        const result = await createVehicle(requestData).unwrap();
+        
+        console.log('📥 [CREATE VEHICLE API RESPONSE] Response Data:', JSON.stringify(result, null, 2));
+        
+        toast.success(`Successfully created ${result.length} variant(s)`);
+        setIsDialogOpen(false);
+        setEditingModel(null);
+        setEditingVariantId(null);
+        setEditingVehicleDetail(null);
+        setSelectedFiles([]);
+        setImagePreviewUrls([]);
+        setUploadedImages([]);
+        setActiveTab('basic');
+      setIsAddingSpecification(false);
+      setNewSpecKey('');
+      setNewSpecValue('');
+      setEditingSpecKeys({});
+      setColorImageInputs({});
+      refetch(); // Refresh the list
+      } catch (error: unknown) {
+        console.error('Error creating vehicle:', error);
+        let errorMessage = 'Failed to create model';
+        if (error && typeof error === 'object' && 'data' in error) {
+          const errorData = error.data;
+          if (errorData && typeof errorData === 'object') {
+            if ('message' in errorData && typeof errorData.message === 'string') {
+              errorMessage = errorData.message;
+            } else if ('detail' in errorData && typeof errorData.detail === 'string') {
+              errorMessage = errorData.detail;
+            }
+          }
+        }
+        toast.error(errorMessage);
+      }
+      return;
+    }
+
+    // If updating existing vehicle
     // Validate required fields
     if (!formData.name || formData.vehicle_color.length === 0 || formData.battery_variant.length === 0) {
       toast.error('Please fill in all required fields (Name, Colors, Battery Variants)');
@@ -393,6 +600,10 @@ export const Models = () => {
     }
 
     try {
+      // Debug: Log current formData specifications
+      console.log('📋 [UPDATE VARIANT] Current formData.specifications:', JSON.stringify(formData.specifications, null, 2));
+      console.log('📋 [UPDATE VARIANT] Specifications keys:', Object.keys(formData.specifications));
+      
       // Prepare request data - only include optional fields if they have values
       const requestData: UpdateVehicleRequest = {
         name: formData.name,
@@ -402,17 +613,29 @@ export const Models = () => {
         status: formData.status,
         description: formData.description,
         features: formData.features,
-        specifications: formData.specifications,
+        specifications: { ...formData.specifications }, // Ensure we're sending a copy with all specifications
       };
 
-      // Only include battery_pricing if it has values
-      if (Object.keys(formData.battery_pricing).length > 0) {
-        requestData.battery_pricing = formData.battery_pricing;
+      // Only include battery_pricing if it has values, and filter to only include batteries in battery_variant
+      const filteredBatteryPricing: Record<string, number> = {};
+      formData.battery_variant.forEach(battery => {
+        if (formData.battery_pricing[battery] !== undefined) {
+          filteredBatteryPricing[battery] = formData.battery_pricing[battery];
+        }
+      });
+      if (Object.keys(filteredBatteryPricing).length > 0) {
+        requestData.battery_pricing = filteredBatteryPricing;
       }
 
-      // Only include color_images if it has values
-      if (Object.keys(formData.color_images).length > 0) {
-        requestData.color_images = formData.color_images;
+      // Only include color_images if it has values, and filter to only include colors in vehicle_color
+      const filteredColorImages: Record<string, number[]> = {};
+      formData.vehicle_color.forEach(color => {
+        if (formData.color_images[color] && formData.color_images[color].length > 0) {
+          filteredColorImages[color] = formData.color_images[color];
+        }
+      });
+      if (Object.keys(filteredColorImages).length > 0) {
+        requestData.color_images = filteredColorImages;
       }
 
       // Only include image_ids if it has values
@@ -446,6 +669,11 @@ export const Models = () => {
       setEditingModel(null);
       setEditingVariantId(null);
       setEditingVehicleDetail(null);
+      setIsAddingSpecification(false);
+      setNewSpecKey('');
+      setNewSpecValue('');
+      setEditingSpecKeys({});
+      setColorImageInputs({});
       refetch(); // Refresh the list
     } catch (error: unknown) {
       console.error('Error updating vehicle:', error);
@@ -517,7 +745,7 @@ export const Models = () => {
                   {editingModel ? 'Update model details and specifications' : 'Create a new EV model in the catalog'}
                 </DialogDescription>
               </DialogHeader>
-              <Tabs defaultValue="basic" className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-6">
                   <TabsTrigger value="basic">Basic Info</TabsTrigger>
                   <TabsTrigger value="variants">Variants</TabsTrigger>
@@ -543,15 +771,17 @@ export const Models = () => {
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Model Code</Label>
-                          <Input 
-                            placeholder="EV-RED-75K-ZKZ9H1" 
-                            value={editingVehicleDetail?.model_code || ''}
-                            disabled
-                            className="bg-muted"
-                          />
-                        </div>
+                        {editingVariantId && editingVehicleDetail && (
+                          <div className="space-y-2">
+                            <Label>Model Code</Label>
+                            <Input 
+                              placeholder="EV-RED-75K-ZKZ9H1" 
+                              value={editingVehicleDetail.model_code || ''}
+                              disabled
+                              className="bg-muted"
+                            />
+                          </div>
+                        )}
                         <div className="space-y-2">
                           <Label>Status *</Label>
                           <Select 
@@ -575,8 +805,19 @@ export const Models = () => {
                           <Input 
                             type="number" 
                             placeholder="65000" 
-                            value={formData.price || ''}
-                            onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                            value={formData.price > 0 ? formData.price : ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData({ 
+                                ...formData, 
+                                price: val === '' ? 0 : parseFloat(val) || 0 
+                              });
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value === '') {
+                                setFormData({ ...formData, price: 0 });
+                              }
+                            }}
                           />
                         </div>
                         <div className="space-y-2">
@@ -584,8 +825,19 @@ export const Models = () => {
                           <Input 
                             type="number" 
                             placeholder="25" 
-                            value={formData.initial_quantity || ''}
-                            onChange={(e) => setFormData({ ...formData, initial_quantity: parseInt(e.target.value) || 0 })}
+                            value={formData.initial_quantity > 0 ? formData.initial_quantity : ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData({ 
+                                ...formData, 
+                                initial_quantity: val === '' ? 0 : parseInt(val) || 0 
+                              });
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value === '') {
+                                setFormData({ ...formData, initial_quantity: 0 });
+                              }
+                            }}
                           />
                         </div>
                       </div>
@@ -603,75 +855,254 @@ export const Models = () => {
                 </TabsContent>
                 <TabsContent value="specifications" className="space-y-4">
                   <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {Object.keys(formData.specifications).length > 0 ? (
-                        Object.entries(formData.specifications).map(([key, value]) => (
-                          <div key={key} className="space-y-2">
-                            <Label>{key}</Label>
-                            <Input 
-                              placeholder={value}
-                              value={value}
-                              onChange={(e) => setFormData({
-                                ...formData,
-                                specifications: { ...formData.specifications, [key]: e.target.value }
-                              })}
-                            />
-                          </div>
-                        ))
-                      ) : (
-                        <>
-                          <div className="space-y-2">
-                            <Label>Battery</Label>
-                            <Input 
-                              placeholder="60V × 50AH"
-                              value={formData.specifications['Battery'] || ''}
-                              onChange={(e) => setFormData({
-                                ...formData,
-                                specifications: { ...formData.specifications, 'Battery': e.target.value }
-                              })}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Motor Power</Label>
-                            <Input 
-                              placeholder="48V/60V/72V 1000W"
-                              value={formData.specifications['Motor Power'] || ''}
-                              onChange={(e) => setFormData({
-                                ...formData,
-                                specifications: { ...formData.specifications, 'Motor Power': e.target.value }
-                              })}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Max Speed</Label>
-                            <Input 
-                              placeholder="25 km/h"
-                              value={formData.specifications['Max Speed'] || ''}
-                              onChange={(e) => setFormData({
-                                ...formData,
-                                specifications: { ...formData.specifications, 'Max Speed': e.target.value }
-                              })}
-                            />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const key = prompt('Enter specification key:');
-                        if (key) {
-                          setFormData({
-                            ...formData,
-                            specifications: { ...formData.specifications, [key]: '' }
-                          });
-                        }
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Specification
-                    </Button>
+                    {Object.keys(formData.specifications).length > 0 ? (
+                      <div className="space-y-3">
+                        {Object.entries(formData.specifications).map(([key, value], index) => {
+                          // Use index as stable key to prevent re-mounting when key changes
+                          const displayKey = editingSpecKeys[key] !== undefined ? editingSpecKeys[key] : key;
+                          return (
+                            <div key={`spec-${index}-${key}`} className="flex gap-2 items-end">
+                              <div className="flex-1 space-y-2">
+                                <Label className="text-xs text-muted-foreground">Label</Label>
+                                <Input 
+                                  placeholder="e.g., Battery"
+                                  value={displayKey}
+                                  onChange={(e) => {
+                                    const newKey = e.target.value;
+                                    // Store the temporary key edit without updating the actual specifications
+                                    setEditingSpecKeys(prev => ({
+                                      ...prev,
+                                      [key]: newKey
+                                    }));
+                                  }}
+                                  onBlur={(e) => {
+                                    const newKey = e.target.value.trim();
+                                    const currentKey = key;
+                                    
+                                    // Clear the temporary edit
+                                    setEditingSpecKeys(prev => {
+                                      const updated = { ...prev };
+                                      delete updated[currentKey];
+                                      return updated;
+                                    });
+                                    
+                                    // If key is empty on blur, remove the specification
+                                    if (!newKey) {
+                                      const newSpecifications = { ...formData.specifications };
+                                      delete newSpecifications[currentKey];
+                                      setFormData({
+                                        ...formData,
+                                        specifications: newSpecifications
+                                      });
+                                    } else if (newKey !== currentKey) {
+                                      // Finalize the rename: ensure old key is removed and new key is set
+                                      const newSpecifications: Record<string, string> = {};
+                                      const oldValue = formData.specifications[currentKey];
+                                      
+                                      Object.entries(formData.specifications).forEach(([k, v]) => {
+                                        if (k !== currentKey) {
+                                          newSpecifications[k] = v;
+                                        }
+                                      });
+                                      
+                                      // Add with new key
+                                      newSpecifications[newKey] = oldValue;
+                                      
+                                      setFormData({
+                                        ...formData,
+                                        specifications: newSpecifications
+                                      });
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1 space-y-2">
+                                <Label className="text-xs text-muted-foreground">Value</Label>
+                                <Input 
+                                  placeholder="e.g., 60V × 50AH"
+                                  value={value}
+                                  onChange={(e) => {
+                                    // Use the current key from the map, not from state (which might be stale)
+                                    const currentSpecs = { ...formData.specifications };
+                                    currentSpecs[key] = e.target.value;
+                                    setFormData({
+                                      ...formData,
+                                      specifications: currentSpecs
+                                    });
+                                  }}
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newSpecifications = { ...formData.specifications };
+                                  delete newSpecifications[key];
+                                  setFormData({
+                                    ...formData,
+                                    specifications: newSpecifications
+                                  });
+                                }}
+                                className="mb-0"
+                              >
+                                <X className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>Battery</Label>
+                          <Input 
+                            placeholder="60V × 50AH"
+                            value={formData.specifications['Battery'] || ''}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              specifications: { ...formData.specifications, 'Battery': e.target.value }
+                            })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Motor Power</Label>
+                          <Input 
+                            placeholder="48V/60V/72V 1000W"
+                            value={formData.specifications['Motor Power'] || ''}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              specifications: { ...formData.specifications, 'Motor Power': e.target.value }
+                            })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Max Speed</Label>
+                          <Input 
+                            placeholder="25 km/h"
+                            value={formData.specifications['Max Speed'] || ''}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              specifications: { ...formData.specifications, 'Max Speed': e.target.value }
+                            })}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {isAddingSpecification ? (
+                      <div className="flex gap-2 items-end p-3 border rounded-lg bg-muted/50">
+                        <div className="flex-1 space-y-2">
+                          <Label className="text-xs text-muted-foreground">Label</Label>
+                          <Input 
+                            placeholder="e.g., Battery"
+                            value={newSpecKey}
+                            onChange={(e) => setNewSpecKey(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (newSpecKey.trim()) {
+                                  const trimmedKey = newSpecKey.trim();
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    specifications: { 
+                                      ...prev.specifications, 
+                                      [trimmedKey]: newSpecValue 
+                                    }
+                                  }));
+                                  console.log('✅ [ADD SPEC] Added specification:', trimmedKey, '=', newSpecValue);
+                                  setNewSpecKey('');
+                                  setNewSpecValue('');
+                                  setIsAddingSpecification(false);
+                                }
+                              } else if (e.key === 'Escape') {
+                                setIsAddingSpecification(false);
+                                setNewSpecKey('');
+                                setNewSpecValue('');
+                                setEditingSpecKeys({});
+                              }
+                            }}
+                            autoFocus
+                          />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Label className="text-xs text-muted-foreground">Value</Label>
+                          <Input 
+                            placeholder="e.g., 60V × 50AH"
+                            value={newSpecValue}
+                            onChange={(e) => setNewSpecValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (newSpecKey.trim()) {
+                                  const trimmedKey = newSpecKey.trim();
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    specifications: { 
+                                      ...prev.specifications, 
+                                      [trimmedKey]: newSpecValue 
+                                    }
+                                  }));
+                                  console.log('✅ [ADD SPEC] Added specification:', trimmedKey, '=', newSpecValue);
+                                  setNewSpecKey('');
+                                  setNewSpecValue('');
+                                  setIsAddingSpecification(false);
+                                }
+                              } else if (e.key === 'Escape') {
+                                setIsAddingSpecification(false);
+                                setNewSpecKey('');
+                                setNewSpecValue('');
+                                setEditingSpecKeys({});
+                              }
+                            }}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            if (newSpecKey.trim()) {
+                              const trimmedKey = newSpecKey.trim();
+                              setFormData((prev) => ({
+                                ...prev,
+                                specifications: { 
+                                  ...prev.specifications, 
+                                  [trimmedKey]: newSpecValue 
+                                }
+                              }));
+                              console.log('✅ [ADD SPEC] Added specification:', trimmedKey, '=', newSpecValue);
+                              setNewSpecKey('');
+                              setNewSpecValue('');
+                              setIsAddingSpecification(false);
+                            }
+                          }}
+                          disabled={!newSpecKey.trim()}
+                        >
+                          Add
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setIsAddingSpecification(false);
+                            setNewSpecKey('');
+                            setNewSpecValue('');
+                            setEditingSpecKeys({});
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsAddingSpecification(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Specification
+                      </Button>
+                    )}
                   </div>
                 </TabsContent>
                 <TabsContent value="pricing" className="space-y-4">
@@ -682,8 +1113,19 @@ export const Models = () => {
                         <Input 
                           type="number" 
                           placeholder="65000" 
-                          value={formData.price || ''}
-                          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                          value={formData.price > 0 ? formData.price : ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormData({ 
+                              ...formData, 
+                              price: val === '' ? 0 : parseFloat(val) || 0 
+                            });
+                          }}
+                          onBlur={(e) => {
+                            if (e.target.value === '') {
+                              setFormData({ ...formData, price: 0 });
+                            }
+                          }}
                         />
                       </div>
                     </div>
@@ -698,14 +1140,28 @@ export const Models = () => {
                           <Input
                             type="number"
                             placeholder="Price"
-                            value={formData.battery_pricing[battery] || ''}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              battery_pricing: {
-                                ...formData.battery_pricing,
-                                [battery]: parseFloat(e.target.value) || 0
+                            value={formData.battery_pricing[battery] > 0 ? formData.battery_pricing[battery] : ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormData({
+                                ...formData,
+                                battery_pricing: {
+                                  ...formData.battery_pricing,
+                                  [battery]: val === '' ? 0 : parseFloat(val) || 0
+                                }
+                              });
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value === '') {
+                                setFormData({
+                                  ...formData,
+                                  battery_pricing: {
+                                    ...formData.battery_pricing,
+                                    [battery]: 0
+                                  }
+                                });
                               }
-                            })}
+                            }}
                             className="flex-1"
                           />
                         </div>
@@ -724,7 +1180,7 @@ export const Models = () => {
                         Type a feature and press Enter or comma to add it
                       </p>
                       <Input
-                        placeholder="USB Charging Port, Reverse Gear, Parking Mode"
+                        placeholder="USB Charging Port, Reverse Gear, Parking Mode (comma-separated)"
                         value={featureInput}
                         onChange={(e) => setFeatureInput(e.target.value)}
                         onKeyDown={(e) => {
@@ -766,70 +1222,207 @@ export const Models = () => {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label>Product Images</Label>
+                        <Label>Product Images *</Label>
                         <p className="text-sm text-muted-foreground">
-                          Image IDs are managed here. Images should be uploaded separately and their IDs referenced.
+                          Upload images for the vehicle. Images will be uploaded and their IDs will be automatically assigned.
                         </p>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Image IDs (comma-separated)</Label>
-                      <Input
-                        placeholder="100, 101, 102"
-                        value={formData.image_ids.join(', ')}
-                        onChange={(e) => {
-                          const ids = e.target.value.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-                          setFormData({ ...formData, image_ids: ids });
-                        }}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Current images: {editingVehicleDetail?.images.length || 0}
-                      </p>
-                      {editingVehicleDetail?.images && editingVehicleDetail.images.length > 0 && (
-                        <div className="grid grid-cols-3 gap-4 mt-4">
-                          {editingVehicleDetail.images.map((image) => (
-                            <div key={image.id} className="relative">
-                              <div className="aspect-square rounded-lg overflow-hidden border-2 border-secondary">
-                                <img
-                                  src={image.image_url}
-                                  alt={`Image ${image.id}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <Badge className="absolute top-2 left-2">
-                                ID: {image.id}
-                                {image.is_primary && ' (Primary)'}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Color Images Mapping (Optional)</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Map colors to specific image IDs. Format: color: imageId1, imageId2
-                      </p>
-                      {formData.vehicle_color.map((color) => (
-                        <div key={color} className="flex items-center gap-2">
-                          <Label className="w-24 capitalize">{color}:</Label>
+                    
+                    {/* Image Upload Section */}
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Upload Images</Label>
+                        <div className="flex items-center gap-2">
                           <Input
-                            placeholder="Image IDs (comma-separated)"
-                            value={formData.color_images[color]?.join(', ') || ''}
-                            onChange={(e) => {
-                              const ids = e.target.value.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-                              setFormData({
-                                ...formData,
-                                color_images: {
-                                  ...formData.color_images,
-                                  [color]: ids
-                                }
-                              });
-                            }}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImageFileSelect}
                             className="flex-1"
                           />
+                          <Button
+                            type="button"
+                            onClick={handleUploadImages}
+                            disabled={selectedFiles.length === 0 || isUploadingImages}
+                          >
+                            {isUploadingImages ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Upload
+                              </>
+                            )}
+                          </Button>
                         </div>
-                      ))}
+                        {selectedFiles.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {selectedFiles.length} file(s) selected. Click Upload to upload them.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Image Previews */}
+                      {(imagePreviewUrls.length > 0 || uploadedImages.length > 0) && (
+                        <div className="space-y-2">
+                          <Label>Uploaded Images</Label>
+                          <div className="grid grid-cols-3 gap-4">
+                            {uploadedImages.map((image) => (
+                              <div key={image.id} className="relative">
+                                <div className="aspect-square rounded-lg overflow-hidden border-2 border-secondary">
+                                  <img
+                                    src={image.image_url}
+                                    alt={`Uploaded ${image.id}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <Badge className="absolute top-2 left-2">
+                                  ID: {image.id}
+                                </Badge>
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-2 right-2"
+                                  onClick={() => removeUploadedImage(image.id)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                            {imagePreviewUrls.map((url, index) => (
+                              <div key={index} className="relative">
+                                <div className="aspect-square rounded-lg overflow-hidden border-2 border-secondary">
+                                  <img
+                                    src={url}
+                                    alt={`Preview ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <Badge className="absolute top-2 left-2">
+                                  Pending
+                                </Badge>
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-2 right-2"
+                                  onClick={() => removePreviewImage(index)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Manual Image ID Input (for editing existing vehicles) */}
+                      {editingVehicleDetail && (
+                        <div className="space-y-2">
+                          <Label>Image IDs (comma-separated)</Label>
+                          <Input
+                            placeholder="100, 101, 102"
+                            value={formData.image_ids.join(', ')}
+                            onChange={(e) => {
+                              const ids = e.target.value.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+                              setFormData({ ...formData, image_ids: ids });
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Current images: {editingVehicleDetail?.images.length || 0}
+                          </p>
+                          {editingVehicleDetail?.images && editingVehicleDetail.images.length > 0 && (
+                            <div className="grid grid-cols-3 gap-4 mt-4">
+                              {editingVehicleDetail.images.map((image) => (
+                                <div key={image.id} className="relative">
+                                  <div className="aspect-square rounded-lg overflow-hidden border-2 border-secondary">
+                                    <img
+                                      src={image.image_url}
+                                      alt={`Image ${image.id}`}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <Badge className="absolute top-2 left-2">
+                                    ID: {image.id}
+                                    {image.is_primary && ' (Primary)'}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Color Images Mapping */}
+                      {formData.vehicle_color.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Color Images Mapping (Optional)</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Map colors to specific image IDs. Format: color: imageId1, imageId2
+                          </p>
+                          {formData.vehicle_color.map((color) => {
+                            const displayValue = colorImageInputs[color] !== undefined 
+                              ? colorImageInputs[color] 
+                              : (formData.color_images[color]?.join(', ') || '');
+                            return (
+                              <div key={color} className="flex items-center gap-2">
+                                <Label className="w-24 capitalize">{color}:</Label>
+                                <Input
+                                  placeholder="Image IDs (comma-separated)"
+                                  value={displayValue}
+                                  onChange={(e) => {
+                                    setColorImageInputs(prev => ({
+                                      ...prev,
+                                      [color]: e.target.value
+                                    }));
+                                  }}
+                                  onBlur={(e) => {
+                                    const inputValue = e.target.value;
+                                    const ids = inputValue.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      color_images: {
+                                        ...prev.color_images,
+                                        [color]: ids
+                                      }
+                                    }));
+                                    // Update input to show processed values
+                                    setColorImageInputs(prev => ({
+                                      ...prev,
+                                      [color]: ids.join(', ')
+                                    }));
+                                  }}
+                                  onKeyDown={(e) => {
+                                    // Process on Enter key
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      const inputValue = colorImageInputs[color] || '';
+                                      const ids = inputValue.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        color_images: {
+                                          ...prev.color_images,
+                                          [color]: ids
+                                        }
+                                      }));
+                                      setColorImageInputs(prev => ({
+                                        ...prev,
+                                        [color]: ids.join(', ')
+                                      }));
+                                    }
+                                  }}
+                                  className="flex-1"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </TabsContent>
@@ -842,11 +1435,48 @@ export const Models = () => {
                       </p>
                       <div className="flex gap-2">
                         <Input
-                          placeholder="red, white, blue"
-                          value={formData.vehicle_color.join(', ')}
+                          placeholder="red, white, blue (comma-separated)"
+                          value={vehicleColorInput}
                           onChange={(e) => {
-                            const colors = e.target.value.split(',').map(c => c.trim()).filter(c => c);
-                            setFormData({ ...formData, vehicle_color: colors });
+                            setVehicleColorInput(e.target.value);
+                          }}
+                          onBlur={() => {
+                            // Process comma-separated values when user leaves the field
+                            const colors = vehicleColorInput.split(',').map(c => c.trim()).filter(c => c);
+                            // Clean up color_images to only include colors that are still in vehicle_color
+                            const cleanedColorImages: Record<string, number[]> = {};
+                            colors.forEach(color => {
+                              if (formData.color_images[color]) {
+                                cleanedColorImages[color] = formData.color_images[color];
+                              }
+                            });
+                            setFormData({ 
+                              ...formData, 
+                              vehicle_color: colors,
+                              color_images: cleanedColorImages
+                            });
+                            // Update input to show processed values
+                            setVehicleColorInput(colors.join(', '));
+                          }}
+                          onKeyDown={(e) => {
+                            // Process on Enter key
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const colors = vehicleColorInput.split(',').map(c => c.trim()).filter(c => c);
+                              // Clean up color_images to only include colors that are still in vehicle_color
+                              const cleanedColorImages: Record<string, number[]> = {};
+                              colors.forEach(color => {
+                                if (formData.color_images[color]) {
+                                  cleanedColorImages[color] = formData.color_images[color];
+                                }
+                              });
+                              setFormData({ 
+                                ...formData, 
+                                vehicle_color: colors,
+                                color_images: cleanedColorImages
+                              });
+                              setVehicleColorInput(colors.join(', '));
+                            }
                           }}
                         />
                       </div>
@@ -858,7 +1488,16 @@ export const Models = () => {
                               <button
                                 onClick={() => {
                                   const newColors = formData.vehicle_color.filter((_, i) => i !== idx);
-                                  setFormData({ ...formData, vehicle_color: newColors });
+                                  const removedColor = formData.vehicle_color[idx];
+                                  // Remove the color from color_images if it exists
+                                  const newColorImages = { ...formData.color_images };
+                                  delete newColorImages[removedColor];
+                                  setFormData({ 
+                                    ...formData, 
+                                    vehicle_color: newColors,
+                                    color_images: newColorImages
+                                  });
+                                  setVehicleColorInput(newColors.join(', '));
                                 }}
                                 className="ml-2 hover:text-destructive"
                               >
@@ -876,11 +1515,48 @@ export const Models = () => {
                       </p>
                       <div className="flex gap-2">
                         <Input
-                          placeholder="40kWh, 60kWh, 75kWh"
-                          value={formData.battery_variant.join(', ')}
+                          placeholder="40kWh, 60kWh, 75kWh (comma-separated)"
+                          value={batteryVariantInput}
                           onChange={(e) => {
-                            const batteries = e.target.value.split(',').map(b => b.trim()).filter(b => b);
-                            setFormData({ ...formData, battery_variant: batteries });
+                            setBatteryVariantInput(e.target.value);
+                          }}
+                          onBlur={() => {
+                            // Process comma-separated values when user leaves the field
+                            const batteries = batteryVariantInput.split(',').map(b => b.trim()).filter(b => b);
+                            // Clean up battery_pricing to only include batteries that are still in battery_variant
+                            const cleanedBatteryPricing: Record<string, number> = {};
+                            batteries.forEach(battery => {
+                              if (formData.battery_pricing[battery] !== undefined) {
+                                cleanedBatteryPricing[battery] = formData.battery_pricing[battery];
+                              }
+                            });
+                            setFormData({ 
+                              ...formData, 
+                              battery_variant: batteries,
+                              battery_pricing: cleanedBatteryPricing
+                            });
+                            // Update input to show processed values
+                            setBatteryVariantInput(batteries.join(', '));
+                          }}
+                          onKeyDown={(e) => {
+                            // Process on Enter key
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const batteries = batteryVariantInput.split(',').map(b => b.trim()).filter(b => b);
+                              // Clean up battery_pricing to only include batteries that are still in battery_variant
+                              const cleanedBatteryPricing: Record<string, number> = {};
+                              batteries.forEach(battery => {
+                                if (formData.battery_pricing[battery] !== undefined) {
+                                  cleanedBatteryPricing[battery] = formData.battery_pricing[battery];
+                                }
+                              });
+                              setFormData({ 
+                                ...formData, 
+                                battery_variant: batteries,
+                                battery_pricing: cleanedBatteryPricing
+                              });
+                              setBatteryVariantInput(batteries.join(', '));
+                            }
                           }}
                         />
                       </div>
@@ -899,6 +1575,7 @@ export const Models = () => {
                                     battery_variant: newBatteries,
                                     battery_pricing: newPricing
                                   });
+                                  setBatteryVariantInput(newBatteries.join(', '));
                                 }}
                                 className="ml-2 hover:text-destructive"
                               >
@@ -920,23 +1597,35 @@ export const Models = () => {
                     setEditingModel(null);
                     setEditingVariantId(null);
                     setEditingVehicleDetail(null);
+                    setSelectedFiles([]);
+                    setImagePreviewUrls([]);
+                    setUploadedImages([]);
+                    setActiveTab('basic');
+                    setIsAddingSpecification(false);
+                    setNewSpecKey('');
+                    setNewSpecValue('');
+                    setEditingSpecKeys({});
                   }}
-                  disabled={isUpdating}
+                  disabled={isUpdating || isCreating}
                 >
                   Cancel
                 </Button>
                 <Button 
                   onClick={handleFormSubmit}
-                  disabled={isUpdating || !editingVariantId || !formData.name || formData.vehicle_color.length === 0 || formData.battery_variant.length === 0}
+                  disabled={
+                    isUpdating || 
+                    isCreating || 
+                    (editingVariantId ? (!formData.name || formData.vehicle_color.length === 0 || formData.battery_variant.length === 0) : (activeTab !== 'images' || !isFormComplete()))
+                  }
                 >
-                  {isUpdating ? (
+                  {(isUpdating || isCreating) ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Updating...
+                      {editingVariantId ? 'Updating...' : 'Creating...'}
                     </>
                   ) : (
                     <>
-                      {editingModel ? 'Update' : 'Create'} Variant
+                      {editingVariantId ? 'Update' : 'Create'} {editingVariantId ? 'Variant' : 'Model'}
                     </>
                   )}
                 </Button>

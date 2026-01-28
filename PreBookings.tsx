@@ -33,6 +33,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useGetAdminDashboardQuery } from '@/app/api/reportsApi';
 import { useGetBookingsQuery, useGetBookingDetailQuery, useUpdateBookingStatusMutation } from '@/app/api/bookingApi';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -54,6 +55,7 @@ const getStatusBadge = (status: string) => {
 
 export const PreBookings = () => {
   const { data: dashboardData, isLoading: isLoadingDashboard } = useGetAdminDashboardQuery();
+  const [userType, setUserType] = useState<'normal_users' | 'staff_users' | 'combined'>('combined');
   
   // State for pagination and filtering
   const [page, setPage] = useState(1);
@@ -333,6 +335,15 @@ export const PreBookings = () => {
         </div>
       </div>
 
+      {/* User Type Tabs */}
+      <Tabs value={userType} onValueChange={(v) => setUserType(v as typeof userType)}>
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="combined">Combined</TabsTrigger>
+          <TabsTrigger value="normal_users">Normal Users</TabsTrigger>
+          <TabsTrigger value="staff_users">Staff Users</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         {isLoadingDashboard ? (
@@ -342,86 +353,100 @@ export const PreBookings = () => {
             ))}
           </>
         ) : dashboardData?.pre_bookings ? (
-          <>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Pre-Bookings</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">
-                        {dashboardData.pre_bookings.kpi_cards.total_pre_bookings.toLocaleString()}
-                      </p>
-                    </div>
-                    <ShoppingCart className="h-8 w-8 text-primary opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+          (() => {
+            const preBookingsData = userType === 'combined'
+              ? {
+                  kpi_cards: {
+                    total_pre_bookings: dashboardData.pre_bookings.normal_users.kpi_cards.total_pre_bookings + dashboardData.pre_bookings.staff_users.kpi_cards.total_pre_bookings,
+                    pending: dashboardData.pre_bookings.normal_users.kpi_cards.pending + dashboardData.pre_bookings.staff_users.kpi_cards.pending,
+                    confirmed: dashboardData.pre_bookings.normal_users.kpi_cards.confirmed + dashboardData.pre_bookings.staff_users.kpi_cards.confirmed,
+                    total_amount: dashboardData.pre_bookings.normal_users.kpi_cards.total_amount + dashboardData.pre_bookings.staff_users.kpi_cards.total_amount,
+                  }
+                }
+              : dashboardData.pre_bookings[userType];
+            return (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Total Pre-Bookings</p>
+                          <p className="text-3xl font-bold text-foreground mt-1">
+                            {preBookingsData.kpi_cards.total_pre_bookings.toLocaleString()}
+                          </p>
+                        </div>
+                        <ShoppingCart className="h-8 w-8 text-primary opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Pending</p>
-                      <p className="text-3xl font-bold text-warning mt-1">
-                        {dashboardData.pre_bookings.kpi_cards.pending.toLocaleString()}
-                      </p>
-                    </div>
-                    <Clock className="h-8 w-8 text-warning opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Pending</p>
+                          <p className="text-3xl font-bold text-warning mt-1">
+                            {preBookingsData.kpi_cards.pending.toLocaleString()}
+                          </p>
+                        </div>
+                        <Clock className="h-8 w-8 text-warning opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Confirmed</p>
-                      <p className="text-3xl font-bold text-success mt-1">
-                        {dashboardData.pre_bookings.kpi_cards.confirmed.toLocaleString()}
-                      </p>
-                    </div>
-                    <CheckCircle className="h-8 w-8 text-success opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Confirmed</p>
+                          <p className="text-3xl font-bold text-success mt-1">
+                            {preBookingsData.kpi_cards.confirmed.toLocaleString()}
+                          </p>
+                        </div>
+                        <CheckCircle className="h-8 w-8 text-success opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">
-                        ₹{(dashboardData.pre_bookings.kpi_cards.total_amount / 1000000).toFixed(2)}M
-                      </p>
-                    </div>
-                    <ShoppingCart className="h-8 w-8 text-info opacity-20" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
+                          <p className="text-3xl font-bold text-foreground mt-1">
+                            ₹{(preBookingsData.kpi_cards.total_amount / 1000000).toFixed(2)}M
+                          </p>
+                        </div>
+                        <ShoppingCart className="h-8 w-8 text-info opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </>
+            );
+          })()
         ) : null}
       </div>
 
