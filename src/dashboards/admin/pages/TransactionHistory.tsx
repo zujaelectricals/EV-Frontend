@@ -57,7 +57,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 type TransactionType = 'PAYMENT' | 'COMMISSION' | 'PAYOUT' | 'REFUND' | 'REDEMPTION' | 'WALLET' | string;
 type TransactionStatus = 'Completed' | 'Pending' | 'Failed' | 'Cancelled' | string;
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const DEFAULT_PAGE_SIZE = 20;
 
 const getTypeBadge = (type: TransactionType) => {
   const normalizedType = type.toLowerCase();
@@ -118,6 +119,7 @@ const getStatusBadge = (status: TransactionStatus) => {
 export const TransactionHistory = () => {
   // Server-side pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
   // Dialog state
@@ -128,11 +130,22 @@ export const TransactionHistory = () => {
   const apiParams = {
     sections: 'transaction_history',
     transaction_page: currentPage,
-    transaction_page_size: PAGE_SIZE,
+    transaction_page_size: pageSize,
     ...(statusFilter !== 'all' && { transaction_status: statusFilter }),
   };
 
+  // Console log API params for debugging
+  console.log('[TransactionHistory] API Params:', apiParams);
+
   const { data: reportsData, isLoading, isFetching, isError, error } = useGetComprehensiveReportsQuery(apiParams);
+  
+  // Console log API response
+  console.log('[TransactionHistory] API Response:', { 
+    transactionCount: reportsData?.transaction_history?.all_transactions?.length,
+    pagination: reportsData?.transaction_history?.pagination,
+    isLoading, 
+    isFetching 
+  });
 
   const transactionData = reportsData?.transaction_history;
   // Ensure transactions is always an array - API might return object with results or array directly
@@ -146,7 +159,7 @@ export const TransactionHistory = () => {
   
   // Calculate pagination values - use API values if available, otherwise estimate
   const totalItems = apiPagination?.total_items ?? transactionData?.summary_cards?.total_transactions ?? transactions.length;
-  const totalPages = apiPagination?.total_pages ?? (Math.ceil(totalItems / PAGE_SIZE) || 1);
+  const totalPages = apiPagination?.total_pages ?? (Math.ceil(totalItems / pageSize) || 1);
   const hasNext = apiPagination?.has_next ?? (currentPage < totalPages);
   const hasPrevious = apiPagination?.has_previous ?? (currentPage > 1);
 
@@ -171,6 +184,11 @@ export const TransactionHistory = () => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (value: string) => {
+    setPageSize(Number(value));
+    setCurrentPage(1); // Reset to first page when page size changes
   };
 
   if (isLoading) {
@@ -493,60 +511,75 @@ export const TransactionHistory = () => {
             </TableBody>
           </Table>
 
-          {/* Pagination - Always show when there's data */}
-          {transactions.length > 0 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          {/* Pagination - Always show */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="flex items-center gap-4">
               <div className="text-sm text-muted-foreground">
                 Showing page {currentPage} of {totalPages} ({totalItems} total items)
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={!hasPrevious || isFetching}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handlePageChange(pageNum)}
-                        disabled={isFetching}
-                        className="w-8 h-8 p-0"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={!hasNext || isFetching}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                <span className="text-sm text-muted-foreground">Rows per page:</span>
+                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                  <SelectTrigger className="w-20 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <SelectItem key={size} value={size.toString()}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={!hasPrevious || isFetching}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handlePageChange(pageNum)}
+                      disabled={isFetching}
+                      className="w-8 h-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={!hasNext || isFetching}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

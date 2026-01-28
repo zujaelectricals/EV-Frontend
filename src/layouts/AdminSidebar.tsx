@@ -298,10 +298,21 @@ const adminMenuSections: MenuSection[] = [
 export const AdminSidebar = () => {
   const location = useLocation();
   const { user } = useAppSelector((state) => state.auth);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    // Initialize from localStorage
+    const stored = localStorage.getItem('admin_sidebar_collapsed');
+    return stored === 'true';
+  });
 
   // Use static menu sections without KYC pending count
   const dynamicMenuSections = adminMenuSections;
+  
+  // Store collapsed state in localStorage
+  useEffect(() => {
+    localStorage.setItem('admin_sidebar_collapsed', String(collapsed));
+    // Dispatch custom event for MainLayout to listen
+    window.dispatchEvent(new CustomEvent('adminSidebarCollapsedChange', { detail: { collapsed } }));
+  }, [collapsed]);
 
   // Auto-expand sections based on current route
   const getActiveSection = useCallback(() => {
@@ -561,15 +572,16 @@ export const AdminSidebar = () => {
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "relative flex flex-col border-r border-border transition-all duration-300 glass",
+        "fixed left-0 top-0 flex flex-col border-r border-border/50 transition-all duration-300 z-40",
         collapsed ? "w-16" : "w-72"
       )}
       style={{
         height: "100vh",
         maxHeight: "100vh",
         background:
-          "linear-gradient(135deg, hsl(0 0% 100% / 0.95), hsl(210 40% 98% / 0.9))",
-        backdropFilter: "blur(20px)",
+          "linear-gradient(160deg, rgba(241, 245, 249, 0.98) 0%, rgba(226, 232, 240, 0.95) 25%, rgba(238, 242, 255, 0.96) 50%, rgba(243, 244, 246, 0.97) 75%, rgba(248, 250, 252, 0.98) 100%)",
+        backdropFilter: "blur(24px) saturate(180%)",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.04), inset -1px 0 0 rgba(147, 197, 253, 0.1)",
       }}
     >
       {/* Logo */}

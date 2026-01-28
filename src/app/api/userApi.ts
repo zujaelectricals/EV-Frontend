@@ -124,7 +124,7 @@ export interface NomineeDetailsResponse {
 const transformUserProfile = (profile: UserProfileResponse): User => {
   // Always create distributorInfo if user has a referral_code or is a distributor
   const shouldIncludeDistributorInfo = profile.is_distributor || profile.referral_code;
-  
+
   return {
     id: String(profile.id),
     name: `${profile.first_name} ${profile.last_name}`.trim() || profile.username,
@@ -134,7 +134,7 @@ const transformUserProfile = (profile: UserProfileResponse): User => {
     phone: profile.mobile,
     joinedAt: profile.date_joined,
     kycStatus: profile.kyc_status === 'approved' ? 'verified' : (profile.kyc_status || 'not_submitted'),
-     distributorApplicationStatus: profile.distributor_application_status,
+    distributorApplicationStatus: profile.distributor_application_status,
     distributorInfo: shouldIncludeDistributorInfo ? {
       isDistributor: profile.is_distributor,
       isVerified: profile.kyc_status === 'approved' || profile.kyc_status === 'verified',
@@ -166,7 +166,7 @@ export const userApi = api.injectEndpoints({
     getUserProfile: builder.query<User, void>({
       queryFn: async () => {
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           return {
             error: {
@@ -199,7 +199,7 @@ export const userApi = api.injectEndpoints({
           console.log('📥 [USER PROFILE API] Raw response:', data);
           const transformedUser = transformUserProfile(data);
           console.log('🔄 [USER PROFILE API] Transformed user:', transformedUser);
-          
+
           return { data: transformedUser };
         } catch (error) {
           return {
@@ -217,7 +217,7 @@ export const userApi = api.injectEndpoints({
     getUserProfileRaw: builder.query<UserProfileResponse, void>({
       queryFn: async () => {
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           return {
             error: {
@@ -264,10 +264,10 @@ export const userApi = api.injectEndpoints({
     submitKYC: builder.mutation<KYCSubmissionResponse, KYCSubmissionRequest>({
       queryFn: async (body) => {
         console.log('🔵 [KYC API] ========== Starting KYC submission ==========');
-        
+
         // Get access token from localStorage
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           console.error('❌ [KYC API] No access token found in localStorage');
           return {
@@ -279,7 +279,7 @@ export const userApi = api.injectEndpoints({
         }
 
         // Log token info (first 10 and last 10 chars for security)
-        const tokenPreview = accessToken.length > 20 
+        const tokenPreview = accessToken.length > 20
           ? `${accessToken.substring(0, 10)}...${accessToken.substring(accessToken.length - 10)}`
           : '***';
         console.log('🔵 [KYC API] Access token found in localStorage:', tokenPreview);
@@ -289,7 +289,7 @@ export const userApi = api.injectEndpoints({
           // Create FormData for multipart/form-data
           console.log('🔵 [KYC API] Creating FormData from request body...');
           const formData = new FormData();
-          
+
           // Log request body details
           console.log('📤 [KYC API] Request Body:', {
             pan_number: body.pan_number,
@@ -309,7 +309,7 @@ export const userApi = api.injectEndpoints({
             aadhaar_back: body.aadhaar_back ? `File: ${body.aadhaar_back.name} (${body.aadhaar_back.size} bytes, type: ${body.aadhaar_back.type})` : 'null',
             bank_passbook: body.bank_passbook ? `File: ${body.bank_passbook.name} (${body.bank_passbook.size} bytes, type: ${body.bank_passbook.type})` : 'null',
           });
-          
+
           formData.append('pan_number', body.pan_number);
           formData.append('aadhaar_number', body.aadhaar_number);
           formData.append('address_line1', body.address_line1);
@@ -332,8 +332,8 @@ export const userApi = api.injectEndpoints({
           // Log FormData entries
           console.log('📤 [KYC API] FormData entries:', Array.from(formData.entries()).map(([key, value]) => ({
             key,
-            value: value instanceof File 
-              ? `File: ${value.name} (${value.size} bytes, type: ${value.type})` 
+            value: value instanceof File
+              ? `File: ${value.name} (${value.size} bytes, type: ${value.type})`
               : String(value),
           })));
 
@@ -343,7 +343,7 @@ export const userApi = api.injectEndpoints({
             'Authorization': `Bearer ${tokenPreview}`,
             'Content-Type': 'multipart/form-data (with boundary - set by browser)',
           });
-          
+
           const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -355,7 +355,7 @@ export const userApi = api.injectEndpoints({
 
           console.log('📥 [KYC API] Response status:', response.status, response.statusText);
           console.log('📥 [KYC API] Response headers:', Object.fromEntries(response.headers.entries()));
-          
+
           if (!response.ok) {
             const error = await response.json().catch(() => ({ message: 'Failed to submit KYC' }));
             console.error('❌ [KYC API] Error response:', error);
@@ -387,7 +387,7 @@ export const userApi = api.injectEndpoints({
     updateProfile: builder.mutation<UserProfileResponse, Partial<UserProfileResponse>>({
       queryFn: async (body) => {
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           return {
             error: {
@@ -437,10 +437,10 @@ export const userApi = api.injectEndpoints({
         const isUpdate = !!body.nomineeId;
         const method = isUpdate ? 'PUT' : 'POST';
         console.log(`🔵 [NOMINEE API] ========== Starting Nominee ${isUpdate ? 'update' : 'submission'} ==========`);
-        
+
         // Get access token from localStorage
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           console.error('❌ [NOMINEE API] No access token found in localStorage');
           return {
@@ -452,7 +452,7 @@ export const userApi = api.injectEndpoints({
         }
 
         // Log token info (first 10 and last 10 chars for security)
-        const tokenPreview = accessToken.length > 20 
+        const tokenPreview = accessToken.length > 20
           ? `${accessToken.substring(0, 10)}...${accessToken.substring(accessToken.length - 10)}`
           : '***';
         console.log('🔵 [NOMINEE API] Access token found in localStorage:', tokenPreview);
@@ -461,7 +461,7 @@ export const userApi = api.injectEndpoints({
           // Create FormData for multipart/form-data
           console.log(`🔵 [NOMINEE API] Creating FormData from request body (${method})...`);
           const formData = new FormData();
-          
+
           // Log request body details
           console.log(`📤 [NOMINEE API] Request Body (${method}):`, {
             nomineeId: body.nomineeId,
@@ -479,7 +479,7 @@ export const userApi = api.injectEndpoints({
             id_proof_number: body.id_proof_number,
             id_proof_document: body.id_proof_document ? `File: ${body.id_proof_document.name} (${body.id_proof_document.size} bytes, type: ${body.id_proof_document.type})` : 'null',
           });
-          
+
           formData.append('full_name', body.full_name);
           formData.append('relationship', body.relationship);
           formData.append('date_of_birth', body.date_of_birth);
@@ -499,18 +499,18 @@ export const userApi = api.injectEndpoints({
           // Log FormData entries
           const formDataEntries = Array.from(formData.entries()).map(([key, value]) => ({
             key,
-            value: value instanceof File 
-              ? `File: ${value.name} (${value.size} bytes, type: ${value.type})` 
+            value: value instanceof File
+              ? `File: ${value.name} (${value.size} bytes, type: ${value.type})`
               : String(value),
           }));
           console.log(`📤 [NOMINEE API] FormData entries (${method}):`, formDataEntries);
           console.log(`📤 [NOMINEE API] FormData entries (stringified) (${method}):`, JSON.stringify(formDataEntries, null, 2));
 
           // Use PUT endpoint with ID for updates, POST for new nominees
-          const apiUrl = isUpdate 
+          const apiUrl = isUpdate
             ? `${getApiBaseUrl()}users/nominee/${body.nomineeId}/`
             : `${getApiBaseUrl()}users/nominee/`;
-          
+
           console.log(`🔵 [NOMINEE API] Making ${method} request to:`, apiUrl);
           console.log(`📤 [NOMINEE API] ${method} Request Body Summary:`, {
             url: apiUrl,
@@ -534,7 +534,7 @@ export const userApi = api.injectEndpoints({
             },
             totalFields: formDataEntries.length,
           });
-          
+
           const response = await fetch(apiUrl, {
             method: method,
             headers: {
@@ -546,7 +546,7 @@ export const userApi = api.injectEndpoints({
 
           console.log(`📥 [NOMINEE API] Response status (${method}):`, response.status, response.statusText);
           console.log(`📥 [NOMINEE API] Response headers (${method}):`, Object.fromEntries(response.headers.entries()));
-          
+
           if (!response.ok) {
             const error = await response.json().catch(() => ({ message: `Failed to ${isUpdate ? 'update' : 'submit'} nominee details` }));
             console.error(`❌ [NOMINEE API] Error response (${method}):`, error);
@@ -555,8 +555,8 @@ export const userApi = api.injectEndpoints({
                 status: response.status,
                 data: error,
               } as FetchBaseQueryError,
-              };
-            }
+            };
+          }
 
           const data: NomineeSubmissionResponse = await response.json();
           console.log(`✅ [NOMINEE API] Success! Response data (${method}):`, JSON.stringify(data, null, 2));
@@ -579,9 +579,9 @@ export const userApi = api.injectEndpoints({
     getNomineeDetails: builder.query<NomineeDetails | null, void>({
       queryFn: async () => {
         console.log('🔵 [NOMINEE GET API] ========== Starting Nominee fetch ==========');
-        
+
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           console.error('❌ [NOMINEE GET API] No access token found');
           return {
@@ -595,7 +595,7 @@ export const userApi = api.injectEndpoints({
         try {
           const apiUrl = `${getApiBaseUrl()}users/nominee/`;
           console.log('🔵 [NOMINEE GET API] Making GET request to:', apiUrl);
-          
+
           const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
@@ -618,7 +618,7 @@ export const userApi = api.injectEndpoints({
                 } as FetchBaseQueryError,
               };
             }
-            
+
             const error = await response.json().catch(() => ({ message: 'Failed to fetch nominee details' }));
             console.error('❌ [NOMINEE GET API] Error response:', error);
             return {
@@ -631,12 +631,12 @@ export const userApi = api.injectEndpoints({
 
           const responseData: NomineeDetailsResponse = await response.json();
           console.log('✅ [NOMINEE GET API] Success! Response data:', JSON.stringify(responseData, null, 2));
-          
+
           // Extract the first nominee from results array, or return null if no nominees exist
-          const nomineeData = responseData.results && responseData.results.length > 0 
-            ? responseData.results[0] 
+          const nomineeData = responseData.results && responseData.results.length > 0
+            ? responseData.results[0]
             : null;
-          
+
           console.log('✅ [NOMINEE GET API] Extracted nominee data:', JSON.stringify(nomineeData, null, 2));
           console.log('✅ [NOMINEE GET API] ========== Nominee fetch completed ==========');
           return { data: nomineeData };
@@ -670,7 +670,7 @@ export const userApi = api.injectEndpoints({
     }>({
       queryFn: async (params = {}) => {
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           return {
             error: {
@@ -693,7 +693,7 @@ export const userApi = api.injectEndpoints({
 
           const queryString = queryParams.toString();
           const url = `${getApiBaseUrl()}users/normal/${queryString ? `?${queryString}` : ''}`;
-          
+
           console.log('📤 [USER API - getNormalUsers] Request URL:', url);
           console.log('📤 [USER API - getNormalUsers] Query Params:', params);
 
@@ -709,7 +709,7 @@ export const userApi = api.injectEndpoints({
           if (response.status === 401) {
             console.log('🟡 [USER API - getNormalUsers] Access token expired, attempting to refresh...');
             const refreshData = await refreshAccessToken();
-            
+
             if (refreshData) {
               // Retry the request with new token
               const { accessToken: newAccessToken } = getAuthTokens();
@@ -747,7 +747,7 @@ export const userApi = api.injectEndpoints({
 
           const data = await response.json();
           console.log('📥 [USER API - getNormalUsers] Response:', data);
-          
+
           return { data };
         } catch (error) {
           return {
@@ -770,7 +770,7 @@ export const userApi = api.injectEndpoints({
     getUserById: builder.query<UserProfileResponse, number>({
       queryFn: async (userId) => {
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           return {
             error: {
@@ -793,7 +793,7 @@ export const userApi = api.injectEndpoints({
           if (response.status === 401) {
             console.log('🟡 [USER API - getUserById] Access token expired, attempting to refresh...');
             const refreshData = await refreshAccessToken();
-            
+
             if (refreshData) {
               // Retry the request with new token
               const { accessToken: newAccessToken } = getAuthTokens();
@@ -831,7 +831,7 @@ export const userApi = api.injectEndpoints({
 
           const data: UserProfileResponse = await response.json();
           console.log('📥 [USER API - getUserById] Response:', data);
-          
+
           return { data };
         } catch (error) {
           return {
@@ -846,23 +846,25 @@ export const userApi = api.injectEndpoints({
     }),
 
     // PUT users/{id}/ - Update user by ID (for admin)
-    updateUserById: builder.mutation<UserProfileResponse, { userId: number; data: {
-      first_name: string;
-      last_name: string;
-      email: string;
-      mobile: string;
-      gender: string;
-      date_of_birth: string;
-      address_line1: string;
-      address_line2?: string;
-      city: string;
-      state: string;
-      pincode: string;
-      country?: string;
-    } }>({
+    updateUserById: builder.mutation<UserProfileResponse, {
+      userId: number; data: {
+        first_name: string;
+        last_name: string;
+        email: string;
+        mobile: string;
+        gender: string;
+        date_of_birth: string;
+        address_line1: string;
+        address_line2?: string;
+        city: string;
+        state: string;
+        pincode: string;
+        country?: string;
+      }
+    }>({
       queryFn: async ({ userId, data }) => {
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           return {
             error: {
@@ -891,7 +893,7 @@ export const userApi = api.injectEndpoints({
           if (response.status === 401) {
             console.log('🟡 [USER API - updateUserById] Access token expired, attempting to refresh...');
             const refreshData = await refreshAccessToken();
-            
+
             if (refreshData) {
               // Retry the request with new token
               const { accessToken: newAccessToken } = getAuthTokens();
@@ -932,7 +934,7 @@ export const userApi = api.injectEndpoints({
           const responseData: UserProfileResponse = await response.json();
           console.log('✅ [USER API - updateUserById] Response Status:', response.status);
           console.log('✅ [USER API - updateUserById] Response Data:', JSON.stringify(responseData, null, 2));
-          
+
           return { data: responseData };
         } catch (error) {
           return {
@@ -950,7 +952,7 @@ export const userApi = api.injectEndpoints({
     deleteUserById: builder.mutation<{ success: boolean; message: string }, number>({
       queryFn: async (userId) => {
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           return {
             error: {
@@ -976,7 +978,7 @@ export const userApi = api.injectEndpoints({
           if (response.status === 401) {
             console.log('🟡 [USER API - deleteUserById] Access token expired, attempting to refresh...');
             const refreshData = await refreshAccessToken();
-            
+
             if (refreshData) {
               // Retry the request with new token
               const { accessToken: newAccessToken } = getAuthTokens();
@@ -1025,7 +1027,7 @@ export const userApi = api.injectEndpoints({
 
           console.log('✅ [USER API - deleteUserById] Response Status:', response.status);
           console.log('✅ [USER API - deleteUserById] Response Data:', JSON.stringify(responseData, null, 2));
-          
+
           return { data: responseData };
         } catch (error) {
           return {
@@ -1087,7 +1089,7 @@ export const userApi = api.injectEndpoints({
     }>({
       queryFn: async (params) => {
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           return {
             error: {
@@ -1113,7 +1115,7 @@ export const userApi = api.injectEndpoints({
 
           const queryString = queryParams.toString();
           const url = `${getApiBaseUrl()}users/kyc/list_all/${queryString ? `?${queryString}` : ''}`;
-          
+
           console.log('📤 [USER API - getKYCList] Request URL:', url);
           console.log('📤 [USER API - getKYCList] Query Params:', params);
 
@@ -1129,7 +1131,7 @@ export const userApi = api.injectEndpoints({
           if (response.status === 401) {
             console.log('🟡 [USER API - getKYCList] Access token expired, attempting to refresh...');
             const refreshData = await refreshAccessToken();
-            
+
             if (refreshData) {
               const { accessToken: newAccessToken } = getAuthTokens();
               if (newAccessToken) {
@@ -1185,7 +1187,7 @@ export const userApi = api.injectEndpoints({
     updateKYCStatus: builder.mutation<{ success: boolean; message: string }, { kycId: number; status: 'approved' | 'rejected'; reason?: string }>({
       queryFn: async ({ kycId, status, reason }) => {
         const { accessToken } = getAuthTokens();
-        
+
         if (!accessToken) {
           return {
             error: {
@@ -1217,7 +1219,7 @@ export const userApi = api.injectEndpoints({
           if (response.status === 401) {
             console.log('🟡 [USER API - updateKYCStatus] Access token expired, attempting to refresh...');
             const refreshData = await refreshAccessToken();
-            
+
             if (refreshData) {
               const { accessToken: newAccessToken } = getAuthTokens();
               if (newAccessToken) {

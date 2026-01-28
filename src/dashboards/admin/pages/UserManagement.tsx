@@ -126,14 +126,16 @@ export const UserManagement = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card>
-            <CardContent className="p-6">
+                <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-950/20 dark:via-background dark:to-indigo-950/20 h-full flex flex-col">
+                  <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">11,000</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mt-1">11,000</p>
                 </div>
-                <Users className="h-8 w-8 text-primary opacity-20" />
+                <div className="rounded-full bg-blue-500/10 p-3">
+                  <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -144,14 +146,16 @@ export const UserManagement = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card>
-            <CardContent className="p-6">
+                <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-white to-green-50 dark:from-emerald-950/20 dark:via-background dark:to-green-950/20 h-full flex flex-col">
+                  <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Active Users</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">8,450</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 dark:from-emerald-400 dark:to-green-400 bg-clip-text text-transparent mt-1">8,450</p>
                 </div>
-                <UserCheck className="h-8 w-8 text-success opacity-20" />
+                <div className="rounded-full bg-emerald-500/10 p-3">
+                  <UserCheck className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -162,14 +166,16 @@ export const UserManagement = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card>
-            <CardContent className="p-6">
+                <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-red-50 via-white to-rose-50 dark:from-red-950/20 dark:via-background dark:to-rose-950/20 h-full flex flex-col">
+                  <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">KYC Pending</p>
-                  <p className="text-3xl font-bold text-destructive mt-1">245</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 dark:from-red-400 dark:to-rose-400 bg-clip-text text-transparent mt-1">245</p>
                 </div>
-                <FileCheck className="h-8 w-8 text-destructive opacity-20" />
+                <div className="rounded-full bg-red-500/10 p-3">
+                  <FileCheck className="h-8 w-8 text-red-600 dark:text-red-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -180,14 +186,16 @@ export const UserManagement = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card>
-            <CardContent className="p-6">
+                <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-50 via-white to-gray-50 dark:from-slate-950/20 dark:via-background dark:to-gray-950/20 h-full flex flex-col">
+                  <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Blocked Users</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">125</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-slate-600 to-gray-600 dark:from-slate-400 dark:to-gray-400 bg-clip-text text-transparent mt-1">125</p>
                 </div>
-                <UserX className="h-8 w-8 text-muted-foreground opacity-20" />
+                <div className="rounded-full bg-slate-500/10 p-3">
+                  <UserX className="h-8 w-8 text-slate-600 dark:text-slate-400" />
+                </div>
               </div>
             </CardContent>
           </Card>

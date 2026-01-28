@@ -107,16 +107,18 @@ export const CancelledOrders = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <Card>
-                    <CardContent className="p-6">
+                  <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-red-50 via-white to-rose-50 dark:from-red-950/20 dark:via-background dark:to-rose-950/20 h-full flex flex-col">
+                    <CardContent className="p-6 flex-1 flex flex-col justify-center">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Total Cancelled</p>
-                          <p className="text-3xl font-bold text-foreground mt-1">
+                          <p className="text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 dark:from-red-400 dark:to-rose-400 bg-clip-text text-transparent mt-1">
                             {cancelledData.kpi_cards.total_cancelled.toLocaleString()}
                           </p>
                         </div>
-                        <XCircle className="h-8 w-8 text-destructive opacity-20" />
+                        <div className="rounded-full bg-red-500/10 p-3">
+                          <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -127,16 +129,18 @@ export const CancelledOrders = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <Card>
-                    <CardContent className="p-6">
+                  <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-amber-950/20 dark:via-background dark:to-orange-950/20 h-full flex flex-col">
+                    <CardContent className="p-6 flex-1 flex flex-col justify-center">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
-                          <p className="text-3xl font-bold text-foreground mt-1">
+                          <p className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-400 bg-clip-text text-transparent mt-1">
                             ₹{(cancelledData.kpi_cards.total_amount / 1000000).toFixed(1)}M
                           </p>
                         </div>
-                        <DollarSign className="h-8 w-8 text-warning opacity-20" />
+                        <div className="rounded-full bg-amber-500/10 p-3">
+                          <DollarSign className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -147,16 +151,18 @@ export const CancelledOrders = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <Card>
-                    <CardContent className="p-6">
+                  <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-yellow-50 via-white to-amber-50 dark:from-yellow-950/20 dark:via-background dark:to-amber-950/20 h-full flex flex-col">
+                    <CardContent className="p-6 flex-1 flex flex-col justify-center">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Refund Pending</p>
-                          <p className="text-3xl font-bold text-warning mt-1">
+                          <p className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 dark:from-yellow-400 dark:to-amber-400 bg-clip-text text-transparent mt-1">
                             {cancelledData.kpi_cards.refund_pending.toLocaleString()}
                           </p>
                         </div>
-                        <AlertTriangle className="h-8 w-8 text-warning opacity-20" />
+                        <div className="rounded-full bg-yellow-500/10 p-3">
+                          <AlertTriangle className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -167,16 +173,18 @@ export const CancelledOrders = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                 >
-                  <Card>
-                    <CardContent className="p-6">
+                  <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-cyan-50 via-white to-blue-50 dark:from-cyan-950/20 dark:via-background dark:to-blue-950/20 h-full flex flex-col">
+                    <CardContent className="p-6 flex-1 flex flex-col justify-center">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Cancellation Rate</p>
-                          <p className="text-3xl font-bold text-foreground mt-1">
+                          <p className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent mt-1">
                             {cancelledData.kpi_cards.cancellation_rate.toFixed(1)}%
                           </p>
                         </div>
-                        <TrendingDown className="h-8 w-8 text-info opacity-20" />
+                        <div className="rounded-full bg-cyan-500/10 p-3">
+                          <TrendingDown className="h-8 w-8 text-cyan-600 dark:text-cyan-400" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

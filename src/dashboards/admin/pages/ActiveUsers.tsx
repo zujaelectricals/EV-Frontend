@@ -345,14 +345,16 @@ export const ActiveUsers = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card>
-            <CardContent className="p-6">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-emerald-950/20 dark:via-background dark:to-teal-950/20 h-full flex flex-col">
+            <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Active</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">{totalActive}</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent mt-1">{totalActive}</p>
                 </div>
-                <UserCheck className="h-8 w-8 text-success opacity-20" />
+                <div className="rounded-full bg-emerald-500/10 p-3">
+                  <UserCheck className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -363,14 +365,16 @@ export const ActiveUsers = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card>
-            <CardContent className="p-6">
+            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-cyan-50 via-white to-sky-50 dark:from-cyan-950/20 dark:via-background dark:to-sky-950/20 h-full flex flex-col">
+              <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Distributors</p>
-                  <p className="text-3xl font-bold text-info mt-1">{distributors}</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-sky-600 dark:from-cyan-400 dark:to-sky-400 bg-clip-text text-transparent mt-1">{distributors}</p>
                 </div>
-                <Users className="h-8 w-8 text-info opacity-20" />
+                <div className="rounded-full bg-cyan-500/10 p-3">
+                  <Users className="h-8 w-8 text-cyan-600 dark:text-cyan-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -381,14 +385,16 @@ export const ActiveUsers = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card>
-            <CardContent className="p-6">
+            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-950/20 dark:via-background dark:to-indigo-950/20 h-full flex flex-col">
+              <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Regular Users</p>
-                  <p className="text-3xl font-bold text-primary mt-1">{regularUsers}</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mt-1">{regularUsers}</p>
                 </div>
-                <Users className="h-8 w-8 text-primary opacity-20" />
+                <div className="rounded-full bg-blue-500/10 p-3">
+                  <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -399,14 +405,16 @@ export const ActiveUsers = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card>
-            <CardContent className="p-6">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-green-950/20 dark:via-background dark:to-emerald-950/20 h-full flex flex-col">
+            <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Growth Rate</p>
-                  <p className="text-3xl font-bold text-success mt-1">+12.5%</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent mt-1">+12.5%</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-success opacity-20" />
+                <div className="rounded-full bg-green-500/10 p-3">
+                  <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
+                </div>
               </div>
             </CardContent>
           </Card>

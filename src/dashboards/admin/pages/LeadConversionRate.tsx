@@ -85,14 +85,16 @@ export const LeadConversionRate = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card>
-            <CardContent className="p-6">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-indigo-950/20 dark:via-background dark:to-purple-950/20 h-full flex flex-col">
+            <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Overall Rate</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">70%</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent mt-1">70%</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-primary opacity-20" />
+                <div className="rounded-full bg-indigo-500/10 p-3">
+                  <TrendingUp className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -103,14 +105,16 @@ export const LeadConversionRate = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card>
-            <CardContent className="p-6">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-cyan-50 via-white to-sky-50 dark:from-cyan-950/20 dark:via-background dark:to-sky-950/20 h-full flex flex-col">
+            <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">225</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-sky-600 dark:from-cyan-400 dark:to-sky-400 bg-clip-text text-transparent mt-1">225</p>
                 </div>
-                <Users className="h-8 w-8 text-info opacity-20" />
+                <div className="rounded-full bg-cyan-500/10 p-3">
+                  <Users className="h-8 w-8 text-cyan-600 dark:text-cyan-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -121,14 +125,16 @@ export const LeadConversionRate = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card>
-            <CardContent className="p-6">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-white to-green-50 dark:from-emerald-950/20 dark:via-background dark:to-green-950/20 h-full flex flex-col">
+            <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Converted</p>
-                  <p className="text-3xl font-bold text-success mt-1">155</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 dark:from-emerald-400 dark:to-green-400 bg-clip-text text-transparent mt-1">155</p>
                 </div>
-                <CheckCircle className="h-8 w-8 text-success opacity-20" />
+                <div className="rounded-full bg-emerald-500/10 p-3">
+                  <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -139,14 +145,16 @@ export const LeadConversionRate = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card>
-            <CardContent className="p-6">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-amber-950/20 dark:via-background dark:to-orange-950/20 h-full flex flex-col">
+            <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Target Rate</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">75%</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-400 bg-clip-text text-transparent mt-1">75%</p>
                 </div>
-                <Target className="h-8 w-8 text-warning opacity-20" />
+                <div className="rounded-full bg-amber-500/10 p-3">
+                  <Target className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                </div>
               </div>
             </CardContent>
           </Card>

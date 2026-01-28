@@ -162,14 +162,16 @@ export const PinManagement = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card>
-            <CardContent className="p-6">
+            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-violet-50 via-white to-purple-50 dark:from-violet-950/20 dark:via-background dark:to-purple-950/20 h-full flex flex-col">
+              <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Pins</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">5,250</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 dark:from-violet-400 dark:to-purple-400 bg-clip-text text-transparent mt-1">5,250</p>
                 </div>
-                <Key className="h-8 w-8 text-primary opacity-20" />
+                <div className="rounded-full bg-violet-500/10 p-3">
+                  <Key className="h-8 w-8 text-violet-600 dark:text-violet-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -180,14 +182,16 @@ export const PinManagement = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card>
-            <CardContent className="p-6">
+            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-white to-green-50 dark:from-emerald-950/20 dark:via-background dark:to-green-950/20 h-full flex flex-col">
+              <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Used Pins</p>
-                  <p className="text-3xl font-bold text-success mt-1">3,125</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 dark:from-emerald-400 dark:to-green-400 bg-clip-text text-transparent mt-1">3,125</p>
                 </div>
-                <CheckCircle className="h-8 w-8 text-success opacity-20" />
+                <div className="rounded-full bg-emerald-500/10 p-3">
+                  <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -198,14 +202,16 @@ export const PinManagement = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card>
-            <CardContent className="p-6">
+            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-50 via-white to-yellow-50 dark:from-amber-950/20 dark:via-background dark:to-yellow-950/20 h-full flex flex-col">
+              <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Unused Pins</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">2,125</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 dark:from-amber-400 dark:to-yellow-400 bg-clip-text text-transparent mt-1">2,125</p>
                 </div>
-                <Clock className="h-8 w-8 text-warning opacity-20" />
+                <div className="rounded-full bg-amber-500/10 p-3">
+                  <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -216,14 +222,16 @@ export const PinManagement = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card>
-            <CardContent className="p-6">
+            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-cyan-50 via-white to-blue-50 dark:from-cyan-950/20 dark:via-background dark:to-blue-950/20 h-full flex flex-col">
+              <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Value</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">₹26.25M</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent mt-1">₹26.25M</p>
                 </div>
-                <Key className="h-8 w-8 text-info opacity-20" />
+                <div className="rounded-full bg-cyan-500/10 p-3">
+                  <Key className="h-8 w-8 text-cyan-600 dark:text-cyan-400" />
+                </div>
               </div>
             </CardContent>
           </Card>

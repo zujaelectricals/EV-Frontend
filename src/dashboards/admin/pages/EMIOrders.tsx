@@ -117,16 +117,18 @@ export const EMIOrders = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <Card>
-                    <CardContent className="p-6">
+                <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-indigo-950/20 dark:via-background dark:to-blue-950/20 h-full flex flex-col">
+                  <CardContent className="p-6 flex-1 flex flex-col justify-center">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Total EMI Orders</p>
-                          <p className="text-3xl font-bold text-foreground mt-1">
+                          <p className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 dark:from-indigo-400 dark:to-blue-400 bg-clip-text text-transparent mt-1">
                             {emiData.kpi_cards.total_emi_orders.toLocaleString()}
                           </p>
                         </div>
-                        <CreditCard className="h-8 w-8 text-primary opacity-20" />
+                        <div className="rounded-full bg-indigo-500/10 p-3">
+                          <CreditCard className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -137,16 +139,18 @@ export const EMIOrders = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <Card>
-                    <CardContent className="p-6">
+                <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-teal-50 via-white to-cyan-50 dark:from-teal-950/20 dark:via-background dark:to-cyan-950/20 h-full flex flex-col">
+                  <CardContent className="p-6 flex-1 flex flex-col justify-center">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Active EMIs</p>
-                          <p className="text-3xl font-bold text-info mt-1">
+                          <p className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent mt-1">
                             {emiData.kpi_cards.active_emis.toLocaleString()}
                           </p>
                         </div>
-                        <TrendingUp className="h-8 w-8 text-info opacity-20" />
+                        <div className="rounded-full bg-teal-500/10 p-3">
+                          <TrendingUp className="h-8 w-8 text-teal-600 dark:text-teal-400" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -157,16 +161,18 @@ export const EMIOrders = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <Card>
-                    <CardContent className="p-6">
+                <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-white to-green-50 dark:from-emerald-950/20 dark:via-background dark:to-green-950/20 h-full flex flex-col">
+                  <CardContent className="p-6 flex-1 flex flex-col justify-center">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Monthly Collection</p>
-                          <p className="text-3xl font-bold text-success mt-1">
+                          <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 dark:from-emerald-400 dark:to-green-400 bg-clip-text text-transparent mt-1">
                             ₹{(emiData.kpi_cards.monthly_collection / 1000000).toFixed(1)}M
                           </p>
                         </div>
-                        <DollarSign className="h-8 w-8 text-success opacity-20" />
+                        <div className="rounded-full bg-emerald-500/10 p-3">
+                          <DollarSign className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -177,16 +183,18 @@ export const EMIOrders = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                 >
-                  <Card>
-                    <CardContent className="p-6">
+                <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-amber-950/20 dark:via-background dark:to-orange-950/20 h-full flex flex-col">
+                  <CardContent className="p-6 flex-1 flex flex-col justify-center">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
-                          <p className="text-3xl font-bold text-warning mt-1">
+                          <p className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-400 bg-clip-text text-transparent mt-1">
                             ₹{(emiData.kpi_cards.pending_amount / 1000000).toFixed(1)}M
                           </p>
                         </div>
-                        <Calendar className="h-8 w-8 text-warning opacity-20" />
+                        <div className="rounded-full bg-amber-500/10 p-3">
+                          <Calendar className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

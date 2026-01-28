@@ -33,29 +33,41 @@ import {
 import { useGetComprehensiveReportsQuery } from '@/app/api/reportsApi';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const DEFAULT_PAGE_SIZE = 20;
 
 export const BVLogs = () => {
   // Server-side pagination and filter state
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Build API params with server-side pagination and filtering
   const apiParams = {
     sections: 'bv_logs',
     bv_page: currentPage,
-    bv_page_size: PAGE_SIZE,
+    bv_page_size: pageSize,
     ...(statusFilter !== 'all' && { bv_status: statusFilter }),
   };
 
+  // Console log API params for debugging
+  console.log('[BVLogs] API Params:', apiParams);
+
   const { data: reportsData, isLoading, isFetching, isError, error } = useGetComprehensiveReportsQuery(apiParams);
+  
+  // Console log API response
+  console.log('[BVLogs] API Response:', { 
+    pagination: reportsData?.bv_logs?.pagination,
+    isLoading, 
+    isFetching 
+  });
 
   const bvData = reportsData?.bv_logs;
   const apiPagination = bvData?.pagination;
   
   // Calculate pagination values - use API values if available, otherwise estimate
   const totalItems = apiPagination?.total_items ?? 0;
-  const totalPages = apiPagination?.total_pages ?? (Math.ceil(totalItems / PAGE_SIZE) || 1);
+  const totalPages = apiPagination?.total_pages ?? (Math.ceil(totalItems / pageSize) || 1);
   const hasNext = apiPagination?.has_next ?? (currentPage < totalPages);
   const hasPrevious = apiPagination?.has_previous ?? (currentPage > 1);
   const hasData = (bvData?.bv_type_summary?.length ?? 0) > 0;
@@ -67,6 +79,11 @@ export const BVLogs = () => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (value: string) => {
+    setPageSize(Number(value));
+    setCurrentPage(1); // Reset to first page when page size changes
   };
 
   if (isLoading) {
@@ -286,60 +303,75 @@ export const BVLogs = () => {
               </TableBody>
             </Table>
 
-            {/* Pagination - Always show when there's data */}
-            {hasData && (
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            {/* Pagination - Always show */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="flex items-center gap-4">
                 <div className="text-sm text-muted-foreground">
                   Showing page {currentPage} of {totalPages} ({totalItems} total items)
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={!hasPrevious || isFetching}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum: number;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => handlePageChange(pageNum)}
-                          disabled={isFetching}
-                          className="w-8 h-8 p-0"
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={!hasNext || isFetching}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
+                  <span className="text-sm text-muted-foreground">Rows per page:</span>
+                  <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                    <SelectTrigger className="w-20 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAGE_SIZE_OPTIONS.map((size) => (
+                        <SelectItem key={size} value={size.toString()}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={!hasPrevious || isFetching}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum: number;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        disabled={isFetching}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={!hasNext || isFetching}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </motion.div>
