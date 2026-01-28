@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Leaf, Zap, Award, Users, Target, Heart, TrendingUp, Shield } from 'lucide-react';
+import { Leaf, Zap, Award, Users, Target, Heart, TrendingUp, Shield, Sparkles } from 'lucide-react';
 import { StoreNavbar } from '@/store/StoreNavbar';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -82,15 +82,13 @@ export function AboutUs() {
             </div>
 
             <h1 className="text-5xl lg:text-7xl font-black leading-tight">
-              <span className="text-foreground">Driving a Smarter,</span>
+              <span className="text-foreground">Ride The</span>
               <br />
-              <span className="text-emerald-600 dark:text-emerald-400 bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent">
-                Cleaner Electric Future
-              </span>
+              <span className="text-[#00C2B2]">Electric Wave</span>
             </h1>
 
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Established in 2025, Suja Electric Scooters represents a new standard in electric mobility. Our scooters are thoughtfully engineered and modified for superior performance, durability, and everyday reliability, perfectly suited for Indian road conditions.
+              Experience the perfect blend of style, performance, and sustainability. Our electric scooters are designed for the modern urban explorer.
             </p>
           </motion.div>
         </div>
@@ -114,9 +112,7 @@ export function AboutUs() {
                   smooth riding experience.
                 </p>
                 <p>
-                  Established in 2025, Suja Electric Scooters represents a new standard in electric mobility. Our scooters 
-                  are thoughtfully engineered and modified for superior performance, durability, and everyday reliability, 
-                  perfectly suited for Indian road conditions.
+                  Experience the perfect blend of style, performance, and sustainability. Our electric scooters are designed for the modern urban explorer.
                 </p>
                 <p>
                   Easy EMI Available at very low interest rates, making electric scooters affordable for everyone.
@@ -274,7 +270,9 @@ export function AboutUs() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-400/20 mb-4">
                   <stat.icon className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <div className="text-4xl font-bold text-emerald-600 dark:text-emerald-400 mb-2">
+                <div 
+                  className="text-4xl font-bold bg-gradient-to-r from-[#00BCD4] to-[#00E676] bg-clip-text text-transparent mb-2"
+                >
                   {stat.value}
                 </div>
                 <div className="text-muted-foreground">{stat.label}</div>
@@ -297,22 +295,48 @@ export function AboutUs() {
               <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-400/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             </div>
             <div className="relative z-10 text-center max-w-3xl mx-auto">
-              <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
-                Driving a Smarter, Cleaner Electric Future
+              <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+                <span className="text-foreground">Ride The </span>
+                <span className="text-[#00C2B2]">Electric Wave</span>
               </h2>
               <p className="text-xl text-muted-foreground mb-8">
                 Be part of a sustainable future. Explore our scooters or get in touch to learn more.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Link to="/scooters" className="w-full sm:w-auto">
-                  <Button size="lg" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <Button 
+                    size="lg" 
+                    className="w-full sm:w-auto text-white border-none rounded-full px-8 py-6 group"
+                    style={{
+                      background: 'linear-gradient(to right, #20C9C9 0%, #3ADF77 100%)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(to right, #1BB5B5 0%, #32D06A 100%)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(to right, #20C9C9 0%, #3ADF77 100%)';
+                    }}
+                  >
                     Explore Scooters
-                    <ArrowRight className="ml-2 w-5 h-5" />
+                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
                 <Link to="/contact" className="w-full sm:w-auto">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-emerald-300 dark:border-emerald-400/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-400/10">
+                  <Button 
+                    size="lg" 
+                    className="w-full sm:w-auto text-white border-none rounded-full px-8 py-6 group"
+                    style={{
+                      background: 'linear-gradient(to right, #20C9C9 0%, #3ADF77 100%)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(to right, #1BB5B5 0%, #32D06A 100%)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(to right, #20C9C9 0%, #3ADF77 100%)';
+                    }}
+                  >
                     Contact Us
+                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
               </div>

@@ -92,8 +92,8 @@ export function StoreNavbar() {
 
   const navLinks = [
     { href: '/', label: 'Home' },
-    { href: '/scooters', label: 'Scooters' },
     { href: '/about', label: 'About Us' },
+    { href: '/scooters', label: 'Scooters' },
     { href: '/contact', label: 'Contact' },
     // { href: '/login', label: 'Become a Distributor' },
   ];
@@ -104,7 +104,7 @@ export function StoreNavbar() {
     <nav 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled 
-          ? 'bg-background/70 backdrop-blur-xl border-b border-border/40 py-2 shadow-sm' 
+          ? 'bg-white/95 backdrop-blur-xl border-b border-border/40 py-2 shadow-sm' 
           : 'bg-transparent py-4'
       }`}
     >
@@ -126,25 +126,28 @@ export function StoreNavbar() {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`group relative text-[15px] md:text-[17px] font-medium tracking-[0.2em] uppercase transition-all duration-300 ${
+                className={`group relative text-[16px] md:text-[18px] font-medium transition-all duration-300 ${
                   isActive(link.href)
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'text-[#3CB2B2]'
+                    : 'text-[#424242] hover:text-[#3CB2B2]'
                 }`}
               >
                 <span className="relative z-10">{link.label}</span>
                 
-                {/* Modern Indicator */}
+                {/* Gradient Underline for Active Link */}
                 {isActive(link.href) ? (
                   <motion.div
                     layoutId="nav-indicator"
-                    className="absolute -bottom-2 left-0 right-0 h-[3px] bg-primary rounded-full"
+                    className="absolute -bottom-2 left-0 right-0 h-[2px]"
+                    style={{
+                      background: 'linear-gradient(to right, #3CB2B2 0%, #3CB2B2 50%, #59F09F 50%, #59F09F 100%)'
+                    }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
                   />
                 ) : (
-                  <span className="absolute -bottom-2 left-0 right-0 h-[2px] w-0 bg-primary/40 rounded-full transition-all duration-300 group-hover:w-full" />
+                  <span className="absolute -bottom-2 left-0 right-0 h-[2px] w-0 bg-[#3CB2B2]/40 rounded-full transition-all duration-300 group-hover:w-full" />
                 )}
               </Link>
             ))}
@@ -256,7 +259,7 @@ export function StoreNavbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-background/95 backdrop-blur-2xl border-b border-border/40 overflow-hidden"
+            className="md:hidden bg-white backdrop-blur-2xl border-b border-border/40 overflow-hidden"
           >
             <div className="container mx-auto px-6 py-8 space-y-4">
               {navLinks.map((link, idx) => (
@@ -269,10 +272,10 @@ export function StoreNavbar() {
                   <Link
                     to={link.href}
                     onClick={() => setIsOpen(false)}
-                    className={`block rounded-2xl px-5 py-3.5 text-base font-medium tracking-widest transition-all font-nav ${
+                    className={`block rounded-2xl px-5 py-3.5 text-[16px] md:text-[18px] font-medium tracking-widest transition-all font-nav ${
                       isActive(link.href)
-                        ? 'bg-primary/10 text-primary shadow-sm'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        ? 'bg-[#3CB2B2]/10 text-[#3CB2B2] shadow-sm'
+                        : 'text-[#424242] hover:bg-muted hover:text-[#3CB2B2]'
                     }`}
                   >
                     {link.label}
