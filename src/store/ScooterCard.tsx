@@ -80,22 +80,20 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
       onClick={handleCardClick}
       className="group relative cursor-pointer"
     >
-      {/* Card shell inspired by shoe cards */}
-      <div className="relative rounded-3xl bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50/70 shadow-[0_18px_40px_rgba(15,23,42,0.18)] overflow-visible">
-        {/* Image Section */}
-        <div className="relative h-60 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl rounded-b-none overflow-hidden">
-        <motion.img
-          src={scooter.image}
-          alt={scooter.name}
-          whileHover={{ y: -6 }}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-          onError={(e) => {
-            // Fallback to a placeholder if image fails to load
-            (e.target as HTMLImageElement).src =
-              "https://via.placeholder.com/600x400/cccccc/666666?text=EV+Motorcycle";
-          }}
-        />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
+      {/* Clean card design */}
+      <div className="relative rounded-3xl bg-gradient-to-br from-white via-slate-50/80 to-[#16bf9b]/10 shadow-[0_8px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_12px_40px_rgba(21,176,187,0.18)] transition-shadow duration-300 overflow-hidden">
+        {/* Image Section - Light background */}
+        <div className="relative h-52 bg-gradient-to-br from-slate-100/80 via-gray-50 to-white rounded-t-3xl overflow-hidden">
+          <motion.img
+            src={scooter.image}
+            alt={scooter.name}
+            whileHover={{ scale: 1.05 }}
+            className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                "https://via.placeholder.com/600x400/f8fafc/94a3b8?text=EV+Scooter";
+            }}
+          />
 
           {/* Favorite Icon */}
           <button
@@ -110,12 +108,12 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
                 toast.success("Added to wishlist");
               }
             }}
-            className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 backdrop-blur-md border border-white/40 shadow-sm hover:scale-110 transition-transform duration-200"
+            className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-slate-200/60 shadow-sm hover:scale-110 hover:bg-white transition-all duration-200"
           >
             <Heart
               className={cn(
                 "w-4 h-4 transition-colors",
-                isFavorited ? "fill-destructive text-destructive" : "text-white/80",
+                isFavorited ? "fill-destructive text-destructive" : "text-slate-400 hover:text-slate-600",
               )}
             />
           </button>
@@ -123,12 +121,13 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
           {/* Badges */}
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
             {scooter.isNew && (
-              <span className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-bold rounded-full shadow-md backdrop-blur-sm">
+              <span className="px-3 py-1.5 bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] text-white text-xs font-bold rounded-full shadow-md flex items-center gap-1">
+                <Star className="w-3 h-3" />
                 New
               </span>
             )}
             {discount > 0 && (
-              <span className="px-3 py-1.5 bg-black/60 text-white text-xs font-bold rounded-full shadow-md backdrop-blur-sm">
+              <span className="px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-full shadow-md">
                 {discount}% OFF
               </span>
             )}
@@ -136,50 +135,48 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
         </div>
 
         {/* Bottom content panel */}
-        <div className="relative -mt-6 px-5 pb-5">
-          <div className="relative rounded-3xl bg-white shadow-[0_14px_30px_rgba(15,23,42,0.12)] px-5 pt-5 pb-4">
-            {/* Brand & Name */}
+        <div className="relative bg-white px-5 py-5">
+          {/* Brand & Name */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] mb-1 bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] bg-clip-text text-transparent">
+              {scooter.brand}
+            </p>
+            <h3 className="text-lg font-bold text-slate-900">
+              {scooter.name}
+            </h3>
+          </div>
+
+          {/* Price & CTA */}
+          <div className="mt-4 flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-[0.16em] mb-1">
-                {scooter.brand}
+              {scooter.originalPrice && (
+                <p className="text-xs text-slate-400 line-through mb-0.5">
+                  {formatPrice(scooter.originalPrice)}
+                </p>
+              )}
+              <p className="text-xl font-bold bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] bg-clip-text text-transparent">
+                {formatPrice(scooter.price)}
               </p>
-              <h3 className="text-base sm:text-lg font-semibold text-slate-900">
-                {scooter.name}
-              </h3>
             </div>
 
-            {/* Price & CTA */}
-            <div className="mt-4 flex items-center justify-between">
-              <div>
-                {scooter.originalPrice && (
-                  <p className="text-[11px] text-slate-400 line-through mb-0.5">
-                    {formatPrice(scooter.originalPrice)}
-                  </p>
-                )}
-                <p className="text-lg font-bold text-slate-900">
-                  {formatPrice(scooter.price)}
-                </p>
-              </div>
-
-              <div
-                className="flex-shrink-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-              >
-                <Link to={`/scooters/${scooter.id}`}>
-                  <Button
-                    size="icon"
-                    className={cn(
-                      "rounded-full shadow-[0_10px_25px_rgba(16,185,129,0.45)] hover:shadow-[0_14px_34px_rgba(16,185,129,0.6)]",
-                      scooter.isComingSoon &&
-                        "bg-slate-200 text-slate-700 shadow-none hover:shadow-none",
-                    )}
-                  >
-                    <ArrowUpRight className="w-4 h-4" />
-                  </Button>
-                </Link>
-              </div>
+            <div
+              className="flex-shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <Link to={`/scooters/${scooter.id}`}>
+                <Button
+                  size="icon"
+                  className={cn(
+                    "rounded-full bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] hover:from-[#13a0aa] hover:to-[#14af8b] shadow-[0_8px_20px_rgba(21,176,187,0.4)] hover:shadow-[0_12px_28px_rgba(22,191,155,0.5)] transition-all duration-200",
+                    scooter.isComingSoon &&
+                      "bg-slate-200 bg-none text-slate-700 shadow-none hover:shadow-none hover:bg-slate-300",
+                  )}
+                >
+                  <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

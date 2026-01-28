@@ -58,7 +58,7 @@ export function AboutUs() {
 
   return (
     <div className="min-h-screen bg-background">
-      <StoreNavbar />
+      <StoreNavbar solidBackground />
 
       {/* Hero Section */}
       <section className="relative min-h-[60vh] flex items-center overflow-hidden pt-24">

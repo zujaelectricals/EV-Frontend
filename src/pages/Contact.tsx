@@ -10,49 +10,6 @@ import { toast } from 'sonner';
 import { Footer } from '@/components/Footer';
 import { FloatingPetals } from '@/components/FloatingPetals';
 
-// Floating decorative element component
-const FloatingDot = ({ 
-  color, 
-  size, 
-  top, 
-  left, 
-  right, 
-  bottom, 
-  delay = 0 
-}: { 
-  color: string; 
-  size: number; 
-  top?: string; 
-  left?: string; 
-  right?: string; 
-  bottom?: string; 
-  delay?: number;
-}) => (
-  <motion.div
-    className="absolute rounded-full"
-    style={{
-      width: size,
-      height: size,
-      backgroundColor: color,
-      top,
-      left,
-      right,
-      bottom,
-      opacity: 0.6,
-    }}
-    animate={{
-      y: [0, -10, 0],
-      opacity: [0.4, 0.7, 0.4],
-    }}
-    transition={{
-      duration: 3,
-      repeat: Infinity,
-      delay,
-      ease: "easeInOut",
-    }}
-  />
-);
-
 export function Contact() {
   const [formData, setFormData] = useState({
     name: '',
@@ -121,24 +78,34 @@ export function Contact() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50/50 relative">
+    <div className="min-h-screen relative overflow-hidden bg-white">
       {/* Floating Petals Animation */}
-      <FloatingPetals count={20} />
+      <FloatingPetals count={35} />
       
-      <StoreNavbar />
+      <StoreNavbar solidBackground />
 
       {/* Hero Section - "Let's Start a Conversation" */}
-      <section className="relative pt-32 pb-16 overflow-hidden">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-teal-50/60 via-white to-white" />
+      <section className="relative pt-24 pb-16 overflow-hidden">
+        {/* Curved gradient background - positioned below navbar */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 140% 70% at 50% 0%, rgba(153, 246, 228, 0.5) 0%, transparent 50%),
+              radial-gradient(ellipse 100% 60% at 20% 5%, rgba(167, 243, 208, 0.4) 0%, transparent 45%),
+              radial-gradient(ellipse 80% 50% at 85% 0%, rgba(94, 234, 212, 0.35) 0%, transparent 40%),
+              radial-gradient(ellipse 60% 40% at 50% 20%, rgba(204, 251, 241, 0.3) 0%, transparent 50%)
+            `,
+          }}
+        />
         
-        {/* Floating decorative elements */}
-        <FloatingDot color="#14b8a6" size={8} top="20%" left="15%" delay={0} />
-        <FloatingDot color="#f97316" size={10} top="30%" right="20%" delay={0.5} />
-        <FloatingDot color="#14b8a6" size={6} top="60%" left="25%" delay={1} />
-        <FloatingDot color="#f97316" size={8} bottom="20%" right="15%" delay={1.5} />
-        <FloatingDot color="#94a3b8" size={12} top="40%" right="10%" delay={0.3} />
-        <FloatingDot color="#14b8a6" size={6} bottom="30%" left="10%" delay={0.8} />
+        {/* Additional soft gradient overlay for depth */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `linear-gradient(180deg, rgba(240, 253, 250, 0.6) 0%, rgba(255, 255, 255, 0) 60%)`,
+          }}
+        />
 
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
@@ -168,7 +135,7 @@ export function Contact() {
               <span 
                 className="bg-clip-text text-transparent"
                 style={{
-                  backgroundImage: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                  backgroundImage: 'linear-gradient(to right, #15b0bb 0%, #16bf9b 100%)',
                 }}
               >
                 Conversation
@@ -184,10 +151,50 @@ export function Contact() {
 
       {/* Contact Info Cards - 4 in a row */}
       <section className="py-12 relative overflow-hidden">
-        {/* More floating elements */}
-        <FloatingDot color="#f97316" size={8} top="10%" right="25%" delay={0.2} />
-        <FloatingDot color="#14b8a6" size={10} bottom="20%" left="20%" delay={0.7} />
-        <FloatingDot color="#94a3b8" size={8} top="50%" right="5%" delay={1.2} />
+        {/* CSS for animated border */}
+        <style>{`
+          @keyframes borderRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .animated-border-card {
+            position: relative;
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+          }
+          .animated-border-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+              from 0deg,
+              transparent 0deg 60deg,
+              #14b8a6 60deg 120deg,
+              transparent 120deg 180deg,
+              #10b981 180deg 240deg,
+              transparent 240deg 300deg,
+              #0d9488 300deg 360deg
+            );
+            animation: borderRotate 4s linear infinite;
+            opacity: 1;
+          }
+          .animated-border-card::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: white;
+            border-radius: calc(1rem - 2px);
+            z-index: 1;
+          }
+          .animated-border-card .card-content {
+            position: relative;
+            z-index: 2;
+          }
+        `}</style>
 
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -198,32 +205,35 @@ export function Contact() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
+                whileHover={{ scale: 1.02, y: -5 }}
                 className="group"
               >
                 <div
-                  className="relative p-6 bg-white rounded-2xl transition-all duration-300 hover:shadow-lg"
+                  className="animated-border-card p-6 transition-all duration-300"
                   style={{
                     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-                    border: '1px solid rgba(0, 0, 0, 0.05)',
+                    border: '1px solid rgba(0, 0, 0, 0.08)',
                   }}
                 >
-                  {/* Icon */}
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-                    style={{
-                      background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-                    }}
-                  >
-                    <card.icon className="w-6 h-6 text-white" />
+                  <div className="card-content">
+                    {/* Icon */}
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110"
+                      style={{
+                        background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                      }}
+                    >
+                      <card.icon className="w-6 h-6 text-white" />
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="font-semibold text-gray-900 mb-2">{card.title}</h3>
+
+                    {/* Content lines */}
+                    {card.lines.map((line, idx) => (
+                      <p key={idx} className="text-sm text-gray-500">{line}</p>
+                    ))}
                   </div>
-
-                  {/* Title */}
-                  <h3 className="font-semibold text-gray-900 mb-2">{card.title}</h3>
-
-                  {/* Content lines */}
-                  {card.lines.map((line, idx) => (
-                    <p key={idx} className="text-sm text-gray-500">{line}</p>
-                  ))}
                 </div>
               </motion.div>
             ))}
@@ -233,12 +243,6 @@ export function Contact() {
 
       {/* Main Contact Section - Form + Sidebar */}
       <section className="py-16 relative overflow-hidden">
-        {/* Floating elements */}
-        <FloatingDot color="#14b8a6" size={8} top="5%" left="30%" delay={0.4} />
-        <FloatingDot color="#f97316" size={6} top="15%" right="35%" delay={0.9} />
-        <FloatingDot color="#14b8a6" size={10} bottom="10%" left="15%" delay={1.4} />
-        <FloatingDot color="#94a3b8" size={8} bottom="30%" right="25%" delay={0.6} />
-
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-5 gap-8">
             {/* Contact Form - Takes 3 columns */}

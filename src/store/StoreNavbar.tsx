@@ -21,7 +21,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 
-export function StoreNavbar() {
+interface StoreNavbarProps {
+  solidBackground?: boolean;
+}
+
+export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
@@ -103,7 +107,7 @@ export function StoreNavbar() {
   return (
     <nav 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled 
+        isScrolled || solidBackground
           ? 'bg-white/95 backdrop-blur-xl border-b border-border/40 py-2 shadow-sm' 
           : 'bg-transparent py-4'
       }`}
