@@ -178,7 +178,6 @@ export const inventoryApi = api.injectEndpoints({
     getVehicles: builder.query<InventoryResponse, InventoryQueryParams | void>({
       queryFn: async (params = {}) => {
         try {
-          const { accessToken } = getAuthTokens();
           const baseUrl = getApiBaseUrl();
           
           // Build query string
@@ -203,41 +202,11 @@ export const inventoryApi = api.injectEndpoints({
             'Content-Type': 'application/json',
           };
           
-          if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
-          }
-          
-          let response = await fetch(url, {
+          // No token required for this GET endpoint
+          const response = await fetch(url, {
             method: 'GET',
             headers,
           });
-          
-          // Handle 401 Unauthorized - try to refresh token
-          if (response.status === 401) {
-            console.log('🟡 [INVENTORY API] Access token expired, attempting to refresh...');
-            const refreshData = await refreshAccessToken();
-            
-            if (refreshData) {
-              // Retry the request with new token
-              const { accessToken } = getAuthTokens();
-              if (accessToken) {
-                headers['Authorization'] = `Bearer ${accessToken}`;
-                response = await fetch(url, {
-                  method: 'GET',
-                  headers,
-                });
-              }
-            } else {
-              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
-              const errorData = await response.json().catch(() => ({}));
-              return {
-                error: {
-                  status: response.status,
-                  data: errorData,
-                },
-              };
-            }
-          }
           
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -268,7 +237,6 @@ export const inventoryApi = api.injectEndpoints({
     getStock: builder.query<StockDetailResponse, number>({
       queryFn: async (variantId) => {
         try {
-          const { accessToken } = getAuthTokens();
           const baseUrl = getApiBaseUrl();
           const url = `${baseUrl}inventory/stock/${variantId}/`;
           
@@ -276,41 +244,11 @@ export const inventoryApi = api.injectEndpoints({
             'Content-Type': 'application/json',
           };
           
-          if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
-          }
-          
-          let response = await fetch(url, {
+          // No token required for this GET endpoint
+          const response = await fetch(url, {
             method: 'GET',
             headers,
           });
-          
-          // Handle 401 Unauthorized - try to refresh token
-          if (response.status === 401) {
-            console.log('🟡 [STOCK API] Access token expired, attempting to refresh...');
-            const refreshData = await refreshAccessToken();
-            
-            if (refreshData) {
-              // Retry the request with new token
-              const { accessToken } = getAuthTokens();
-              if (accessToken) {
-                headers['Authorization'] = `Bearer ${accessToken}`;
-                response = await fetch(url, {
-                  method: 'GET',
-                  headers,
-                });
-              }
-            } else {
-              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
-              const errorData = await response.json().catch(() => ({}));
-              return {
-                error: {
-                  status: response.status,
-                  data: errorData,
-                },
-              };
-            }
-          }
           
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -341,7 +279,6 @@ export const inventoryApi = api.injectEndpoints({
     getVehicleById: builder.query<VehicleDetailResponse, number>({
       queryFn: async (variantId) => {
         try {
-          const { accessToken } = getAuthTokens();
           const baseUrl = getApiBaseUrl();
           const url = `${baseUrl}inventory/vehicles/${variantId}/`;
           
@@ -349,41 +286,11 @@ export const inventoryApi = api.injectEndpoints({
             'Content-Type': 'application/json',
           };
           
-          if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
-          }
-          
-          let response = await fetch(url, {
+          // No token required for this GET endpoint
+          const response = await fetch(url, {
             method: 'GET',
             headers,
           });
-          
-          // Handle 401 Unauthorized - try to refresh token
-          if (response.status === 401) {
-            console.log('🟡 [VEHICLE DETAIL API] Access token expired, attempting to refresh...');
-            const refreshData = await refreshAccessToken();
-            
-            if (refreshData) {
-              // Retry the request with new token
-              const { accessToken } = getAuthTokens();
-              if (accessToken) {
-                headers['Authorization'] = `Bearer ${accessToken}`;
-                response = await fetch(url, {
-                  method: 'GET',
-                  headers,
-                });
-              }
-            } else {
-              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
-              const errorData = await response.json().catch(() => ({}));
-              return {
-                error: {
-                  status: response.status,
-                  data: errorData,
-                },
-              };
-            }
-          }
           
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));

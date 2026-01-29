@@ -132,7 +132,7 @@ export const ReferralLink = () => {
             <div className="p-4 bg-primary/5 rounded-lg">
               <p className="text-sm text-muted-foreground mb-2">Referral Bonus</p>
               <p className="text-lg font-semibold text-foreground">
-                ₹1,000 per referral (after 10% TDS)
+                ₹1,000 per referral (after TDS)
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Earn ₹1,000 for each person who pre-books using your referral code

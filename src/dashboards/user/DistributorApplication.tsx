@@ -777,7 +777,19 @@ export function DistributorApplication() {
                     className="mt-1 flex-shrink-0"
                   />
                   <label htmlFor="terms-checkbox" className="cursor-pointer text-sm flex-1">
-                    I understand and accept the Terms & Conditions *
+                    I understand and accept the{' '}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleViewTerms();
+                      }}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Terms & Conditions
+                    </button>
+                    {' '}*
                   </label>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">

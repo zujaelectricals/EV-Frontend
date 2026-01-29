@@ -11,7 +11,7 @@ import { StoreNavbar } from './StoreNavbar';
 import { PreBookingModal } from './components/PreBookingModal';
 import { useAppSelector } from '@/app/hooks';
 import { Footer } from '@/components/Footer';
-import { useGetStockQuery } from '@/app/api/inventoryApi';
+import { useGetStockQuery, useGetVehiclesQuery } from '@/app/api/inventoryApi';
 import { Scooter } from './ScooterCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
@@ -66,10 +66,44 @@ export function ScooterDetailPage() {
     { skip: !variantId }
   );
 
+  // Fetch inventory list to validate variants exist in the inventory API
+  const { data: inventoryData } = useGetVehiclesQuery(
+    { page: 1, page_size: 100 },
+    { skip: !stockData?.vehicle_name }
+  );
+
   // Reset selected image index when stockData changes
   useEffect(() => {
     setSelectedImageIndex(0);
   }, [stockData?.id]);
+
+  // Filter other_variants to only include variants that exist in the inventory API response
+  // and exclude the current variant being viewed
+  const filteredOtherVariants = useMemo(() => {
+    if (!stockData?.other_variants || !stockData?.id || !inventoryData?.results) {
+      return [];
+    }
+
+    // Find the vehicle group for the current vehicle
+    const vehicleGroup = inventoryData.results.find(
+      group => group.name === stockData.vehicle_name
+    );
+
+    if (!vehicleGroup) {
+      // If vehicle group not found, return empty array
+      return [];
+    }
+
+    // Get valid variant IDs from the inventory API response
+    const validVariantIds = new Set(vehicleGroup.variants.map(v => v.id));
+
+    // Filter other_variants to:
+    // 1. Exclude the current variant (stockData.id)
+    // 2. Only include variants that exist in the inventory API response
+    return stockData.other_variants.filter(variant => 
+      variant.id !== stockData.id && validVariantIds.has(variant.id)
+    );
+  }, [stockData?.other_variants, stockData?.id, stockData?.vehicle_name, inventoryData?.results]);
 
   // Create scooter object from stock data if available
   const scooter = useMemo<Scooter | null>(() => {
@@ -730,7 +764,7 @@ export function ScooterDetailPage() {
           </motion.div>
 
           {/* Other Variants Section */}
-          {stockData && stockData.other_variants && stockData.other_variants.length > 0 && (
+          {stockData && filteredOtherVariants && filteredOtherVariants.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -745,7 +779,7 @@ export function ScooterDetailPage() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {stockData.other_variants.map((variant, index) => {
+                {filteredOtherVariants.map((variant, index) => {
                   const variantId = `vehicle-${stockData.vehicle_name?.toLowerCase().replace(/\s+/g, '-') || 'variant'}-${variant.id}`;
                   return (
                     <motion.div

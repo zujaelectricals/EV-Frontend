@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { addToWishlist, removeFromWishlist } from "@/app/slices/wishlistSlice";
 import { toast } from "sonner";
+import { VehicleGroup, VehicleVariant } from "@/app/api/inventoryApi";
 
 export interface Scooter {
   id: string;
@@ -42,8 +43,8 @@ export interface Scooter {
   description?: string;
   category?: "scooter" | "loader";
   specifications?: Record<string, string>;
-  vehicleGroup?: any;
-  variant?: any;
+  vehicleGroup?: VehicleGroup;
+  variant?: VehicleVariant;
 }
 
 interface ScooterCardProps {
