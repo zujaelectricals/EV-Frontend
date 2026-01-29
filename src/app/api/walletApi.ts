@@ -1,4 +1,7 @@
 import { api } from './baseApi';
+import { getAuthTokens, refreshAccessToken } from './baseApi';
+import { getApiBaseUrl } from '../../lib/config';
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
 export interface WalletBalance {
   type: 'main' | 'binary' | 'pool' | 'redemption' | 'emi';
@@ -17,6 +20,39 @@ export interface Transaction {
   walletType: string;
   status: 'completed' | 'pending' | 'failed';
   createdAt: string;
+}
+
+// Wallet Transaction API Response Interface
+export interface WalletTransaction {
+  id: number;
+  user_name: string;
+  user_email: string;
+  wallet: number;
+  transaction_type: string;
+  amount: string;
+  balance_before: string;
+  balance_after: string;
+  description: string;
+  reference_id: number | null;
+  reference_type: string | null;
+  created_at: string;
+  tds_amount: string;
+}
+
+export interface WalletTransactionsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: WalletTransaction[];
+}
+
+export interface GetWalletTransactionsParams {
+  page?: number;
+  page_size?: number;
+  user_id?: number;
+  transaction_type?: string;
+  start_date?: string; // YYYY-MM-DD format
+  end_date?: string; // YYYY-MM-DD format
 }
 
 const mockWallets: WalletBalance[] = [
@@ -50,7 +86,114 @@ export const walletApi = api.injectEndpoints({
         return { data: mockTransactions.slice(0, limit) };
       },
     }),
+    getWalletTransactions: builder.query<WalletTransactionsResponse, GetWalletTransactionsParams | void>({
+      queryFn: async (params) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          
+          // Build query string
+          const queryParams = new URLSearchParams();
+          if (params && typeof params === 'object') {
+            if (params.page) queryParams.append('page', params.page.toString());
+            if (params.page_size) queryParams.append('page_size', params.page_size.toString());
+            if (params.user_id) queryParams.append('user_id', params.user_id.toString());
+            if (params.transaction_type) queryParams.append('transaction_type', params.transaction_type);
+            if (params.start_date) queryParams.append('start_date', params.start_date);
+            if (params.end_date) queryParams.append('end_date', params.end_date);
+          }
+          
+          const queryString = queryParams.toString();
+          const url = `${baseUrl}wallet/transactions/${queryString ? `?${queryString}` : ''}`;
+          
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          console.log('📤 [WALLET TRANSACTIONS API] ========================================');
+          console.log('📤 [WALLET TRANSACTIONS API] Request URL:', url);
+          console.log('📤 [WALLET TRANSACTIONS API] Request Method: GET');
+          console.log('📤 [WALLET TRANSACTIONS API] Query Params:', JSON.stringify(params || {}, null, 2));
+          console.log('📤 [WALLET TRANSACTIONS API] ========================================');
+          
+          let response = await fetch(url, {
+            method: 'GET',
+            headers,
+          });
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [WALLET TRANSACTIONS API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                console.log('🔄 [WALLET TRANSACTIONS API] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'GET',
+                  headers,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [WALLET TRANSACTIONS API] Error Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              data: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              } as FetchBaseQueryError,
+            };
+          }
+          
+          const data = await response.json();
+          console.log('✅ [WALLET TRANSACTIONS API] Success Response:', data);
+          
+          return { data };
+        } catch (error) {
+          console.error('❌ [WALLET TRANSACTIONS API] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        const page = queryArgs?.page || 1;
+        const page_size = queryArgs?.page_size || 20;
+        const user_id = queryArgs?.user_id || '';
+        const transaction_type = queryArgs?.transaction_type || '';
+        const start_date = queryArgs?.start_date || '';
+        const end_date = queryArgs?.end_date || '';
+        return `${endpointName}(${JSON.stringify({ page, page_size, user_id, transaction_type, start_date, end_date })})`;
+      },
+      providesTags: ['Wallet'],
+    }),
   }),
 });
 
-export const { useGetWalletsQuery, useGetTransactionsQuery } = walletApi;
+export const { useGetWalletsQuery, useGetTransactionsQuery, useGetWalletTransactionsQuery } = walletApi;

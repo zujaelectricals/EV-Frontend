@@ -234,9 +234,68 @@ export function KYCModal({ isOpen, onClose }: KYCModalProps) {
         return typeof err === 'object' && err !== null && 'message' in err && !('status' in err);
       };
       
+      // Helper function to parse Django REST Framework error format
+      const parseErrorData = (data: unknown): { message: string; fieldErrors: Record<string, string> } => {
+        const fieldErrors: Record<string, string> = {};
+        let message = 'Failed to submit KYC documents';
+        
+        if (!data || typeof data !== 'object') {
+          return { message, fieldErrors };
+        }
+        
+        // Check for a direct message field
+        if ('message' in data && typeof data.message === 'string') {
+          message = data.message;
+        }
+        
+        // Parse Django-style field errors (field_name: [error1, error2, ...])
+        const errorObj = data as Record<string, unknown>;
+        const errorMessages: string[] = [];
+        
+        for (const [field, value] of Object.entries(errorObj)) {
+          if (field === 'message' || field === 'detail') {
+            // Skip message/detail fields, already handled
+            if (typeof value === 'string' && !message.includes('Failed to submit')) {
+              message = value;
+            }
+            continue;
+          }
+          
+          // Handle array of error messages (Django REST Framework format)
+          if (Array.isArray(value) && value.length > 0) {
+            const fieldError = value[0];
+            if (typeof fieldError === 'string') {
+              fieldErrors[field] = fieldError;
+              errorMessages.push(`${field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: ${fieldError}`);
+            }
+          } 
+          // Handle single string error
+          else if (typeof value === 'string') {
+            fieldErrors[field] = value;
+            errorMessages.push(`${field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: ${value}`);
+          }
+          // Handle non-field error objects
+          else if (typeof value === 'object' && value !== null) {
+            const nestedError = parseErrorData(value);
+            if (nestedError.message && !nestedError.message.includes('Failed to submit')) {
+              errorMessages.push(nestedError.message);
+            }
+            Object.assign(fieldErrors, nestedError.fieldErrors);
+          }
+        }
+        
+        // Use parsed field errors if available
+        if (errorMessages.length > 0) {
+          message = errorMessages.join('. ');
+        }
+        
+        return { message, fieldErrors };
+      };
+      
       let errorStatus: number | string | undefined;
       let errorData: unknown;
       let errorMessage = 'Failed to submit KYC documents';
+      let fieldErrors: Record<string, string> = {};
       
       if (isFetchBaseQueryError(error)) {
         errorStatus = error.status;
@@ -246,11 +305,14 @@ export function KYCModal({ isOpen, onClose }: KYCModalProps) {
           data: errorData,
         });
         
-        // Try to extract message from error data
-        if (errorData && typeof errorData === 'object' && 'message' in errorData) {
-          errorMessage = String(errorData.message);
-        } else if (errorData) {
-          errorMessage = String(errorData);
+        // Parse error data to extract messages and field errors
+        const parsed = parseErrorData(errorData);
+        errorMessage = parsed.message;
+        fieldErrors = parsed.fieldErrors;
+        
+        // Set field-specific errors in form state
+        if (Object.keys(fieldErrors).length > 0) {
+          setErrors(fieldErrors);
         }
       } else if (isSerializedError(error)) {
         errorMessage = error.message || 'Failed to submit KYC documents';

@@ -143,7 +143,7 @@ export const ReferralLink = () => {
       </div>
 
       {/* How It Works */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>How Referral System Works</CardTitle>
         </CardHeader>
@@ -195,7 +195,7 @@ export const ReferralLink = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 };

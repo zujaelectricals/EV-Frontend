@@ -1162,7 +1162,7 @@ export const BinaryTreeView = () => {
       </Dialog>
 
       {/* Pair Matching Info */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>How Team Network Works</CardTitle>
         </CardHeader>
@@ -1204,7 +1204,7 @@ export const BinaryTreeView = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 };

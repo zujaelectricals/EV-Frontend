@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, AlertCircle, CheckCircle, Info, Calendar, Wallet, Users, Eye, Download } from 'lucide-react';
+import { X, AlertCircle, Info, Calendar, Wallet, Eye, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ import { addBooking, updateBooking } from '@/app/slices/bookingSlice';
 import { updatePreBooking } from '@/app/slices/authSlice';
 import { addPayout } from '@/app/slices/payoutSlice';
 import { useAddReferralNodeMutation } from '@/app/api/binaryApi';
-import { useCreateBookingMutation, useMakePaymentMutation } from '@/app/api/bookingApi';
+import { useCreateBookingMutation, useMakePaymentMutation, BookingResponse } from '@/app/api/bookingApi';
 import { toast } from 'sonner';
 import { Scooter } from '../ScooterCard';
 import { PaymentGateway } from './PaymentGateway';
@@ -63,7 +63,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [selectedBatteryVariant, setSelectedBatteryVariant] = useState<string>('');
   
   // Store booking response
-  const [bookingResponse, setBookingResponse] = useState<any>(null);
+  const [bookingResponse, setBookingResponse] = useState<BookingResponse | null>(null);
 
   // Sync inputValue when preBookingAmount changes externally
   useEffect(() => {
@@ -205,7 +205,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     }
 
     if (!termsAccepted) {
-      toast.error('Please accept the terms and conditions');
+      toast.error('Please accept the Terms and Conditions');
       return;
     }
 
@@ -270,9 +270,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       setShowPaymentGateway(true);
       
       // Don't reset ref here - keep it true until payment completes or modal closes
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('🔴 [PRE-BOOK] Booking API Error:', error);
-      const errorMessage = error?.data?.detail || error?.data?.message || 'Failed to create booking. Please try again.';
+      const errorMessage = (error as { data?: { detail?: string; message?: string } })?.data?.detail || 
+                          (error as { data?: { detail?: string; message?: string } })?.data?.message || 
+                          'Failed to create booking. Please try again.';
       toast.error(errorMessage);
       // Reset submission state on error
       isSubmittingRef.current = false;
@@ -353,7 +355,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       }
 
       // Create local booking object from API response
-      let localBooking = {
+      const localBooking = {
         id: booking.id.toString(),
         vehicleId: scooter.id,
         vehicleName: scooter.name,
@@ -364,13 +366,15 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         totalPaid: parseFloat(booking.total_paid),
         paymentMethod,
         emiPlan,
-        paymentDueDate: booking.expires_at,
+        paymentDueDate: booking.expires_at as string,
         paymentStatus: 'partial' as const,
         isActiveBuyer: true,
         redemptionPoints,
         redemptionEligible: false,
-        bookedAt: booking.created_at,
-        referredBy: booking.referred_by || undefined,
+        bookedAt: booking.created_at as string,
+        referredBy: booking.referred_by && typeof booking.referred_by === 'object' 
+          ? String(booking.referred_by.id) 
+          : undefined,
         referralBonus: referralBonus > 0 ? referralBonus : undefined,
         tdsDeducted: referralBonus > 0 ? tdsDeducted : undefined,
         addedToTeamNetwork: false,
@@ -444,9 +448,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       setIsBookingInProgress(false);
       
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('🔴 [PAYMENT] Payment Processing Error:', error);
-      const errorMessage = error?.data?.detail || error?.data?.message || 'Failed to process payment. Please try again.';
+      const errorMessage = (error as { data?: { detail?: string; message?: string } })?.data?.detail || 
+                          (error as { data?: { detail?: string; message?: string } })?.data?.message || 
+                          'Failed to process payment. Please try again.';
       toast.error(errorMessage);
       // Reset submission state on payment error
       isSubmittingRef.current = false;
@@ -679,7 +685,15 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                   htmlFor="termsAccepted"
                   className="text-sm cursor-pointer leading-relaxed"
                 >
-                  I accept the terms and conditions <span className="text-destructive">*</span>
+                  I accept the{' '}
+                  <button
+                    type="button"
+                    onClick={handleViewBookingTerms}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Terms and Conditions
+                  </button>
+                  {' '}<span className="text-destructive">*</span>
                 </Label>
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
@@ -707,80 +721,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
             </div>
             {!termsAccepted && (
               <p className="text-xs text-destructive ml-6">
-                You must accept the terms and conditions to proceed
+                You must accept the Terms and Conditions to proceed
               </p>
             )}
           </div>
 
-          {/* Join Distribution Program Section */}
-          {isDistributorEligible && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="p-5 bg-success/10 border-2 border-success/30 rounded-xl space-y-4"
-            >
-              {!joinDistributorProgram ? (
-                // Show simple opt-in option when eligible but not opted in
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="joinDistributor"
-                    checked={joinDistributorProgram}
-                    onCheckedChange={(checked) => setJoinDistributorProgram(checked as boolean)}
-                  />
-                  <Label
-                    htmlFor="joinDistributor"
-                    className="text-sm font-medium cursor-pointer flex items-center gap-2"
-                  >
-                    <Users className="w-4 h-4 text-success" />
-                    Yes, I want to join the distribution program
-                  </Label>
-                  <Badge className="bg-success text-success-foreground ml-auto">Eligible</Badge>
-                </div>
-              ) : (
-                // Show full eligibility form when user opts in
-                <>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-foreground">Join Distribution Program</h3>
-                    <Badge className="bg-success text-success-foreground">Eligible</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    With a booking of ₹{DISTRIBUTOR_ELIGIBILITY_AMOUNT.toLocaleString()} or more, you can join our distribution program and earn commissions!
-                  </p>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
-                      <span>Earn commissions on referrals</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
-                      <span>Access to exclusive distributor portal</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
-                      <span>Priority support and training</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2 pt-2 border-t border-success/20">
-                    <Checkbox
-                      id="joinDistributor"
-                      checked={joinDistributorProgram}
-                      onCheckedChange={(checked) => setJoinDistributorProgram(checked as boolean)}
-                    />
-                    <Label
-                      htmlFor="joinDistributor"
-                      className="text-sm font-medium cursor-pointer flex items-center gap-2"
-                    >
-                      <Users className="w-4 h-4 text-success" />
-                      Yes, I want to join the distribution program
-                    </Label>
-                  </div>
-                </>
-              )}
-            </motion.div>
-          )}
 
           {/* Payment Summary */}
           <div className="p-4 bg-muted/30 rounded-lg space-y-3">
@@ -835,7 +780,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
           {/* Payment Method */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Payment Method for Remaining Amount</Label>
-            <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
+            <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'full' | 'emi' | 'flexible')}>
               <div className={`flex items-center space-x-3 p-4 border rounded-xl transition-colors ${
                 paymentMethod === 'full' ? 'border-primary bg-primary/5' : 'border-border'
               }`}>

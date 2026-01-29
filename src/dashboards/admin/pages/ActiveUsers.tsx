@@ -95,7 +95,9 @@ const mapApiUserToExtended = (apiUser: UserProfileResponse): UserExtended => {
     email: apiUser.email,
     phone: apiUser.mobile || 'N/A',
     role: apiUser.is_distributor ? 'distributor' : 'user',
-    status: apiUser.is_active_buyer ? 'active' : 'inactive',
+    // Default to 'active' if is_active_buyer is not explicitly false
+    // Since this is the Active Users page, assume users returned by API are active
+    status: apiUser.is_active_buyer === false ? 'inactive' : 'active',
     kycStatus,
     emailVerified: true, // Assuming verified if email exists
     phoneVerified: !!apiUser.mobile,
@@ -272,12 +274,25 @@ export const ActiveUsers = () => {
   // Map API users to UserExtended format
   const users = useMemo(() => {
     if (!usersResponse?.results) return [];
-    return usersResponse.results.map(mapApiUserToExtended);
+    const mappedUsers = usersResponse.results.map(mapApiUserToExtended);
+    console.log('🔍 [ActiveUsers] Mapped users:', mappedUsers);
+    console.log('🔍 [ActiveUsers] Users with status:', mappedUsers.map(u => ({ id: u.id, name: u.name, status: u.status, is_active_buyer: usersResponse.results.find(r => String(r.id) === u.id)?.is_active_buyer })));
+    return mappedUsers;
   }, [usersResponse]);
 
-  // Filter only by active status (search is now handled server-side)
+  // Show all users returned by API (API handles filtering)
+  // Note: Removed client-side filtering by status since API should return appropriate users
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => user.status === 'active');
+    console.log('🔍 [ActiveUsers] All users from API:', users.length);
+    console.log('🔍 [ActiveUsers] Users breakdown:', {
+      total: users.length,
+      active: users.filter(u => u.status === 'active').length,
+      inactive: users.filter(u => u.status === 'inactive').length,
+      distributors: users.filter(u => u.role === 'distributor').length,
+      regular: users.filter(u => u.role === 'user').length,
+    });
+    // Return all users - API is responsible for filtering
+    return users;
   }, [users]);
 
   // Calculate stats from current page results (for display)
@@ -285,9 +300,9 @@ export const ActiveUsers = () => {
   const totalActive = usersResponse?.count || 0;
   const totalPages = usersResponse ? Math.ceil(usersResponse.count / pageSize) : 0;
 
-  // Count distributors and regular users from current page
-  const distributors = users.filter((u) => u.role === 'distributor' && u.status === 'active').length;
-  const regularUsers = users.filter((u) => u.role === 'user' && u.status === 'active').length;
+  // Count distributors and regular users from current page (all users, not just active)
+  const distributors = users.filter((u) => u.role === 'distributor').length;
+  const regularUsers = users.filter((u) => u.role === 'user').length;
 
   if (isLoading) {
     return (

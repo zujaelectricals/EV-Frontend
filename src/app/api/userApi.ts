@@ -265,8 +265,32 @@ export const userApi = api.injectEndpoints({
       queryFn: async (body) => {
         console.log('🔵 [KYC API] ========== Starting KYC submission ==========');
 
+        // Helper function to create FormData from body
+        const createFormData = () => {
+          const formData = new FormData();
+          formData.append('pan_number', body.pan_number);
+          formData.append('aadhaar_number', body.aadhaar_number);
+          formData.append('address_line1', body.address_line1);
+          if (body.address_line2) {
+            formData.append('address_line2', body.address_line2);
+          }
+          formData.append('city', body.city);
+          formData.append('state', body.state);
+          formData.append('pincode', body.pincode);
+          formData.append('country', body.country);
+          formData.append('pan_document', body.pan_document);
+          formData.append('aadhaar_front', body.aadhaar_front);
+          formData.append('aadhaar_back', body.aadhaar_back);
+          formData.append('bank_name', body.bank_name);
+          formData.append('account_number', body.account_number);
+          formData.append('ifsc_code', body.ifsc_code);
+          formData.append('account_holder_name', body.account_holder_name);
+          formData.append('bank_passbook', body.bank_passbook);
+          return formData;
+        };
+
         // Get access token from localStorage
-        const { accessToken } = getAuthTokens();
+        let { accessToken } = getAuthTokens();
 
         if (!accessToken) {
           console.error('❌ [KYC API] No access token found in localStorage');
@@ -286,10 +310,6 @@ export const userApi = api.injectEndpoints({
         console.log('🔵 [KYC API] Token length:', accessToken.length);
 
         try {
-          // Create FormData for multipart/form-data
-          console.log('🔵 [KYC API] Creating FormData from request body...');
-          const formData = new FormData();
-
           // Log request body details
           console.log('📤 [KYC API] Request Body:', {
             pan_number: body.pan_number,
@@ -310,24 +330,9 @@ export const userApi = api.injectEndpoints({
             bank_passbook: body.bank_passbook ? `File: ${body.bank_passbook.name} (${body.bank_passbook.size} bytes, type: ${body.bank_passbook.type})` : 'null',
           });
 
-          formData.append('pan_number', body.pan_number);
-          formData.append('aadhaar_number', body.aadhaar_number);
-          formData.append('address_line1', body.address_line1);
-          if (body.address_line2) {
-            formData.append('address_line2', body.address_line2);
-          }
-          formData.append('city', body.city);
-          formData.append('state', body.state);
-          formData.append('pincode', body.pincode);
-          formData.append('country', body.country);
-          formData.append('pan_document', body.pan_document);
-          formData.append('aadhaar_front', body.aadhaar_front);
-          formData.append('aadhaar_back', body.aadhaar_back);
-          formData.append('bank_name', body.bank_name);
-          formData.append('account_number', body.account_number);
-          formData.append('ifsc_code', body.ifsc_code);
-          formData.append('account_holder_name', body.account_holder_name);
-          formData.append('bank_passbook', body.bank_passbook);
+          // Create FormData for multipart/form-data
+          console.log('🔵 [KYC API] Creating FormData from request body...');
+          let formData = createFormData();
 
           // Log FormData entries
           console.log('📤 [KYC API] FormData entries:', Array.from(formData.entries()).map(([key, value]) => ({
@@ -344,7 +349,7 @@ export const userApi = api.injectEndpoints({
             'Content-Type': 'multipart/form-data (with boundary - set by browser)',
           });
 
-          const response = await fetch(apiUrl, {
+          let response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -355,6 +360,60 @@ export const userApi = api.injectEndpoints({
 
           console.log('📥 [KYC API] Response status:', response.status, response.statusText);
           console.log('📥 [KYC API] Response headers:', Object.fromEntries(response.headers.entries()));
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [KYC API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [KYC API] Retrying request with new token...');
+                
+                // Recreate FormData (can't reuse after being sent)
+                formData = createFormData();
+                
+                // Log retry FormData entries
+                console.log('📤 [KYC API] Retry FormData entries:', Array.from(formData.entries()).map(([key, value]) => ({
+                  key,
+                  value: value instanceof File
+                    ? `File: ${value.name} (${value.size} bytes, type: ${value.type})`
+                    : String(value),
+                })));
+
+                response = await fetch(apiUrl, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    // Don't set Content-Type - browser will set it with boundary
+                  },
+                  body: formData,
+                });
+
+                console.log('📥 [KYC API] Retry response status:', response.status, response.statusText);
+              } else {
+                // Refresh succeeded but no new token found
+                const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+                return {
+                  error: {
+                    status: 401,
+                    data: error,
+                  } as FetchBaseQueryError,
+                };
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
 
           if (!response.ok) {
             const error = await response.json().catch(() => ({ message: 'Failed to submit KYC' }));
@@ -372,6 +431,7 @@ export const userApi = api.injectEndpoints({
           console.log('✅ [KYC API] ========== KYC submission completed ==========');
           return { data };
         } catch (error) {
+          console.error('❌ [KYC API] Fetch error:', error);
           return {
             error: {
               status: 'FETCH_ERROR' as const,
