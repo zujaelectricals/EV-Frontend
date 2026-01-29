@@ -733,7 +733,7 @@ export function MyOrders() {
                         {booking.remainingAmount > 0 && (
                           <Button
                             size="sm"
-                            className="w-full sm:w-auto text-xs sm:text-sm"
+                            className="w-full sm:w-auto text-xs sm:text-sm bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 shadow-md shadow-emerald-500/25"
                             onClick={() =>
                               handlePayMore(booking.id, booking.remainingAmount)
                             }

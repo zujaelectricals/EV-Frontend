@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Users, Award, Search, Filter, ArrowUpDown, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -117,6 +118,12 @@ export const TeamPerformance = () => {
     if (!binaryTree) return [];
     return extractTeamMembers(binaryTree);
   }, [binaryTree]);
+
+  // When there are no team members (same as Team Network empty state), redirect to Team Network
+  const hasTeamMembers = ((binaryStats?.leftCount ?? 0) + (binaryStats?.rightCount ?? 0)) > 0;
+  if (binaryStats !== undefined && !hasTeamMembers) {
+    return <Navigate to="/distributor/binary-tree" replace />;
+  }
 
   // Calculate metrics
   const totalMembers = teamMembers.length || distributorInfo?.totalReferrals || 0;

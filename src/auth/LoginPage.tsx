@@ -719,11 +719,10 @@ export const LoginPage = () => {
               <div
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage:
-                    "url(https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=1200&h=1600&fit=crop&q=80)",
+                  backgroundImage: "url(/pic2.jpeg)",
                 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-800/85 to-slate-900/90" />
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-slate-800/45 to-slate-900/50" />
 
               <div className="relative z-10 flex flex-col justify-center items-start p-12 text-white w-full">
                 <div className="absolute top-12 left-12 w-8 h-8 border-l-2 border-t-2 border-white/30" />
@@ -1404,11 +1403,10 @@ export const LoginPage = () => {
               <div
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                 style={{
-                  backgroundImage:
-                    "url(https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=1200&h=1600&fit=crop&q=80)",
+                  backgroundImage: "url(/pic2.jpeg)",
                 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-800/85 to-slate-900/90" />
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-slate-800/45 to-slate-900/50" />
 
               <div className="relative z-10 flex flex-col justify-center items-start p-12 text-white w-full">
                 <div className="absolute top-12 left-12 w-8 h-8 border-l-2 border-t-2 border-white/30" />

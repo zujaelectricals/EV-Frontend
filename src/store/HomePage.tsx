@@ -25,6 +25,9 @@ import { useGetVehiclesQuery } from "@/app/api/inventoryApi";
 import { mapVehicleGroupsToScooters } from "./utils/vehicleMapper";
 import { FloatingPetals } from "@/components/FloatingPetals";
 
+// Hero background image URL (public folder; encode for spaces/special chars)
+const HERO_BG_URL = encodeURI("/ChatGPT Image Jan 29, 2026, 12_31_29 PM.png");
+
 // HomePage component
 export function HomePage() {
   // Scroll to top on mount to prevent stutter - use requestAnimationFrame for smoother transition
@@ -300,16 +303,13 @@ export function HomePage() {
           scale: heroScale,
         }}
       >
-        {/* Background Video */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover z-0"
-        >
-          <source src="/Banner_videos/video1.mp4" type="video/mp4" />
-        </video>
+        {/* Hero background image */}
+        <img
+          src={HERO_BG_URL}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover object-center z-0"
+          aria-hidden
+        />
         
         {/* Overlay for text readability */}
         <div
@@ -414,7 +414,7 @@ export function HomePage() {
                     className="text-center"
                   >
                     <div 
-                      className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-[#00BCD4] to-[#00E676] bg-clip-text text-transparent drop-shadow-sm"
+                      className={`text-2xl lg:text-3xl font-bold bg-clip-text text-transparent drop-shadow-sm ${stat.label === "Customer Rating" ? "bg-gradient-to-r from-[#22c4ac] to-[#2dd188]" : "bg-gradient-to-r from-[#00BCD4] to-[#00E676]"}`}
                       style={{ textShadow: '0 0 20px rgba(255,255,255,0.5)' }}
                     >
                       {formatAnimatedValue(animatedStats[i])}

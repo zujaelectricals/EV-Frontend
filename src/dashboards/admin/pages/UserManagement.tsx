@@ -229,7 +229,7 @@ export const UserManagement = () => {
           <Tabs defaultValue="all" className="w-full">
             <TabsList>
               <TabsTrigger value="all">All Users</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="active" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md">Active</TabsTrigger>
               <TabsTrigger value="blocked">Blocked</TabsTrigger>
               <TabsTrigger value="kyc-pending">KYC Pending</TabsTrigger>
             </TabsList>

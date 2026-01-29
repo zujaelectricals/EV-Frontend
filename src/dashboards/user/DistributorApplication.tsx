@@ -605,7 +605,7 @@ export function DistributorApplication() {
                         setIsKYCModalOpen(true);
                         console.log('🟢 [KYC BUTTON] Modal state set to true');
                       }} 
-                      className="mt-2"
+                      className="mt-2 bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 shadow-md shadow-emerald-500/25"
                       size="lg"
                     >
                       <Shield className="w-4 h-4 mr-2" />

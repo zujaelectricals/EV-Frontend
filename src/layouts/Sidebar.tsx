@@ -34,6 +34,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
+import { useGetBinaryStatsQuery } from '@/app/api/binaryApi';
 import { cn } from '@/lib/utils';
 import { AdminSidebar } from './AdminSidebar';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
@@ -201,6 +202,13 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
     );
   };
 
+  // Binary stats: used to hide "Team Performance" when there are no team members
+  const distributorId = user?.id || '';
+  const { data: binaryStats } = useGetBinaryStatsQuery(distributorId, {
+    skip: !distributorId || !isVerifiedDistributor || isExplicitlyNotDistributor,
+  });
+  const hasTeamMembers = ((binaryStats?.leftCount ?? 0) + (binaryStats?.rightCount ?? 0)) > 0;
+
   // Get menu items based on user role
   const getMenuItems = (): MenuItem[] => {
     if (user?.role === 'staff') {
@@ -208,7 +216,12 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
     } else if (isVerifiedDistributor && !isExplicitlyNotDistributor) {
       // Filter out "Become Authorized Partner" for verified distributors
       const filteredUserMenuItems = userMenuItems.filter(item => item.path !== '/become-distributor');
-      return [...filteredUserMenuItems, ...distributorMenuItems];
+      const items = [...filteredUserMenuItems, ...distributorMenuItems];
+      // Hide "Team Performance" when there are no team members (match Team Network empty state)
+      if (!hasTeamMembers) {
+        return items.filter(item => item.path !== '/distributor/team');
+      }
+      return items;
     } else {
       return userMenuItems;
     }

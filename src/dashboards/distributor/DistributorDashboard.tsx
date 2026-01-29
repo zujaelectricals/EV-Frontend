@@ -7,7 +7,7 @@ import {
   DollarSign,
   TrendingUp,
   TrendingDown,
-  Wallet,
+  Package,
   Link as LinkIcon,
   Copy,
   ArrowRight,
@@ -87,94 +87,137 @@ export const DistributorDashboard = () => {
 
   return (
     <div className="space-y-8">
-      {/* All KPA Cards Grid */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Authorized Partner Dashboard</h1>
+        <p className="text-muted-foreground mt-1">
+          Overview of your referrals, earnings, and quick actions
+        </p>
+      </div>
+
+      {/* All KPI Cards Grid */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4"
       >
         <StatsCard
           title="Total Referrals"
           value={(binaryStats?.totalReferrals || 0).toLocaleString()}
           icon={Users}
           variant="primary"
+          transitionDelay={0}
         />
         <StatsCard
           title="Total Pairs"
           value={(binaryStats?.totalPairs || 0).toString()}
           icon={GitBranch}
           variant="info"
-        />
-        <StatsCard
-          title="Reserve Wallet"
-          value={`₹${(binaryStats?.poolMoney || user?.distributorInfo?.poolMoney || 0).toLocaleString()}`}
-          icon={DollarSign}
-          variant="warning"
+          transitionDelay={0.05}
         />
         <StatsCard
           title="Total Gross Earnings"
           value={`₹${totalGross.toLocaleString()}`}
           icon={DollarSign}
           variant="primary"
+          transitionDelay={0.1}
         />
         <StatsCard
           title="Total TDS Deducted"
           value={`₹${totalTDS.toLocaleString()}`}
           icon={TrendingDown}
           variant="warning"
+          transitionDelay={0.15}
         />
       </motion.div>
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="grid md:grid-cols-2 lg:grid-cols-2 gap-4"
+      >
         <Link to="/distributor/binary-tree">
           <motion.div
-            whileHover={{ scale: 1.02, y: -4 }}
-            className="glass-card flex items-center gap-4 rounded-xl p-6 transition-all hover:border-primary/50"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            whileHover={{ scale: 1.02, y: -6 }}
+            className="group relative flex items-center gap-4 rounded-2xl border-2 border-[#18b3b2]/20 bg-gradient-to-br from-white to-[#f0fdfa]/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-[#18b3b2]/40 hover:shadow-xl hover:shadow-emerald-500/15"
           >
-            <div className="rounded-xl bg-primary/20 p-4">
-              <GitBranch className="h-6 w-6 text-primary" />
+            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-[#18b3b2] to-[#22cc7b] opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="rounded-xl bg-gradient-to-br from-[#18b3b2]/20 to-[#22cc7b]/20 p-4">
+              <GitBranch className="h-6 w-6 text-[#0d9488]" />
             </div>
-            <div>
-              <p className="font-semibold text-foreground">Team Network</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-foreground">Team Network</p>
               <p className="text-sm text-muted-foreground">View network</p>
             </div>
-            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground" />
+            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-[#18b3b2]" />
           </motion.div>
         </Link>
 
-        <Link to="/distributor/pool-wallet">
+        <Link to="/distributor/orders">
           <motion.div
-            whileHover={{ scale: 1.02, y: -4 }}
-            className="glass-card flex items-center gap-4 rounded-xl p-6 transition-all hover:border-primary/50"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            whileHover={{ scale: 1.02, y: -6 }}
+            className="group relative flex items-center gap-4 rounded-2xl border-2 border-amber-400/20 bg-gradient-to-br from-white to-amber-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-amber-400/40 hover:shadow-xl hover:shadow-amber-500/15"
           >
-            <div className="rounded-xl bg-warning/20 p-4">
-              <DollarSign className="h-6 w-6 text-warning" />
+            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-amber-400 to-orange-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="rounded-xl bg-gradient-to-br from-amber-400/20 to-orange-400/20 p-4">
+              <Package className="h-6 w-6 text-amber-600" />
             </div>
-            <div>
-              <p className="font-semibold text-foreground">Pool Money</p>
-              <p className="text-sm text-muted-foreground">Manage withdrawals</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-foreground">Order History</p>
+              <p className="text-sm text-muted-foreground">View and manage orders</p>
             </div>
-            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground" />
+            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-amber-600" />
           </motion.div>
         </Link>
 
         <Link to="/distributor/payouts">
           <motion.div
-            whileHover={{ scale: 1.02, y: -4 }}
-            className="glass-card flex items-center gap-4 rounded-xl p-6 transition-all hover:border-primary/50"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            whileHover={{ scale: 1.02, y: -6 }}
+            className="group relative flex items-center gap-4 rounded-2xl border-2 border-emerald-400/20 bg-gradient-to-br from-white to-emerald-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-[#22cc7b]/40 hover:shadow-xl hover:shadow-emerald-500/15"
           >
-            <div className="rounded-xl bg-success/20 p-4">
-              <TrendingUp className="h-6 w-6 text-success" />
+            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-[#18b3b2] to-[#22cc7b] opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="rounded-xl bg-gradient-to-br from-[#18b3b2]/20 to-[#22cc7b]/20 p-4">
+              <TrendingUp className="h-6 w-6 text-emerald-600" />
             </div>
-            <div>
-              <p className="font-semibold text-foreground">Payouts</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-foreground">Payouts</p>
               <p className="text-sm text-muted-foreground">View history</p>
             </div>
-            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground" />
+            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-[#22cc7b]" />
           </motion.div>
         </Link>
-      </div>
+
+        <Link to="/distributor/sales">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            whileHover={{ scale: 1.02, y: -6 }}
+            className="group relative flex items-center gap-4 rounded-2xl border-2 border-sky-400/20 bg-gradient-to-br from-white to-sky-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-sky-400/40 hover:shadow-xl hover:shadow-sky-500/15"
+          >
+            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-sky-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="rounded-xl bg-gradient-to-br from-sky-400/20 to-blue-500/20 p-4">
+              <TrendingUp className="h-6 w-6 text-sky-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-foreground">Sales Tracking</p>
+              <p className="text-sm text-muted-foreground">Monitor sales and referrals</p>
+            </div>
+            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-sky-600" />
+          </motion.div>
+        </Link>
+      </motion.div>
 
       {/* CTA */}
       {/* <div className="glass-card rounded-xl p-6 text-center">
