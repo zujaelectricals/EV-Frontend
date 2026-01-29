@@ -109,6 +109,10 @@ export default {
           "0%, 100%": { borderColor: "hsl(221 83% 53% / 0.3)" },
           "50%": { borderColor: "hsl(221 83% 53% / 0.6)" },
         },
+        "border-run": {
+          "0%": { transform: "translate(-50%, -50%) rotate(0deg)" },
+          "100%": { transform: "translate(-50%, -50%) rotate(360deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -118,6 +122,7 @@ export default {
         "slide-in-right": "slide-in-right 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "pulse-border": "pulse-border 2s ease-in-out infinite",
+        "border-run": "border-run 3s linear infinite",
       },
       boxShadow: {
         neon: "0 4px 6px -1px hsl(222 47% 11% / 0.1), 0 2px 4px -1px hsl(222 47% 11% / 0.06)",

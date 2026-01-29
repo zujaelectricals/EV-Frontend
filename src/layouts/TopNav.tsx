@@ -209,7 +209,7 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
 
       {/* Actions */}
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* Notifications */}
+        {/* Notification bell icon - commented out
         <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
           <PopoverTrigger asChild>
             <motion.button
@@ -319,6 +319,7 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
             )}
           </PopoverContent>
         </Popover>
+        */}
 
         {/* Settings - Hidden on mobile */}
         {!isMobile && (

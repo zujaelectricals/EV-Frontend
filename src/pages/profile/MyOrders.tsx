@@ -480,18 +480,18 @@ export function MyOrders() {
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4 gap-2">
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
-            <TabsTrigger value="all" className="text-xs sm:text-sm">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto p-1.5 rounded-xl bg-muted/50 border border-border/70 shadow-sm">
+            <TabsTrigger value="all" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">
               All
               {activeBookingsData?.count !== undefined && (
                 <span className="ml-1 text-[10px]">({activeBookingsData.count})</span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="pending" className="text-xs sm:text-sm">Pending</TabsTrigger>
-            <TabsTrigger value="active" className="text-xs sm:text-sm">Active</TabsTrigger>
-            <TabsTrigger value="completed" className="text-xs sm:text-sm">Completed</TabsTrigger>
-            <TabsTrigger value="cancelled" className="text-xs sm:text-sm">Cancelled</TabsTrigger>
-            <TabsTrigger value="expired" className="text-xs sm:text-sm">Expired</TabsTrigger>
+            <TabsTrigger value="pending" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">Pending</TabsTrigger>
+            <TabsTrigger value="active" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">Active</TabsTrigger>
+            <TabsTrigger value="completed" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">Completed</TabsTrigger>
+            <TabsTrigger value="cancelled" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">Cancelled</TabsTrigger>
+            <TabsTrigger value="expired" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">Expired</TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="flex items-center gap-2">
@@ -506,21 +506,21 @@ export function MyOrders() {
             <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${(isLoadingBookings || isFetching) ? 'animate-spin' : ''}`} />
           </Button>
           <Link to="/scooters">
-            <Button size="sm" className="text-xs sm:text-sm">Browse Vehicles</Button>
+            <Button size="sm" className="bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 text-xs sm:text-sm">Browse Vehicles</Button>
           </Link>
         </div>
       </div>
 
       {isLoadingBookings ? (
-        <Card>
-          <CardContent className="py-8 text-center">
+        <Card className="border-0 shadow-lg shadow-slate-200/50">
+          <CardContent className="py-12 text-center">
             <LoadingSpinner text="Loading orders..." size="md" />
           </CardContent>
         </Card>
       ) : bookingsError ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <Package className="w-10 h-10 mx-auto mb-3 text-destructive" />
+        <Card className="border-0 shadow-lg shadow-slate-200/50 ring-2 ring-destructive/20">
+          <CardContent className="py-10 text-center">
+            <Package className="w-12 h-12 mx-auto mb-3 text-destructive" />
             <h3 className="text-lg font-semibold text-foreground mb-2">
               Error loading orders
             </h3>
@@ -530,22 +530,37 @@ export function MyOrders() {
           </CardContent>
         </Card>
       ) : displayBookings.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <Package className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              No orders found
-            </h3>
-            <p className="text-muted-foreground mb-4 text-sm">
-              {statusFilter !== "all" 
-                ? `No ${statusFilter.replace(/-/g, ' ')} orders found. Try selecting a different filter.`
-                : "Start shopping to see your orders here"}
-            </p>
-            <Link to="/scooters">
-              <Button size="sm">Browse Vehicles</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Card className="overflow-hidden border-0 shadow-xl shadow-slate-200/50 bg-gradient-to-b from-white to-slate-50/50 ring-2 ring-[#18b3b2]/20">
+            <CardContent className="py-12 sm:py-14 text-center">
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.15, type: "spring", stiffness: 200 }}
+                className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-[#18b3b2]/15 to-[#22cc7b]/15 mb-4"
+              >
+                <Package className="w-8 h-8 sm:w-10 sm:h-10 text-[#18b3b2]" />
+              </motion.div>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+                No orders found
+              </h3>
+              <p className="text-muted-foreground mb-6 text-sm max-w-sm mx-auto">
+                {statusFilter !== "all" 
+                  ? `No ${statusFilter.replace(/-/g, ' ')} orders found. Try selecting a different filter.`
+                  : "Start shopping to see your orders here"}
+              </p>
+              <Link to="/scooters">
+                <Button size="sm" className="bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
+                  Browse Vehicles
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </motion.div>
       ) : (
         <>
           {/* Results Count */}

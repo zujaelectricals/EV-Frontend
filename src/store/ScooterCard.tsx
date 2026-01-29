@@ -80,10 +80,14 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
       onClick={handleCardClick}
       className="group relative cursor-pointer"
     >
-      {/* Clean card design */}
-      <div className="relative rounded-3xl bg-gradient-to-br from-white via-slate-50/80 to-[#16bf9b]/10 shadow-[0_8px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_12px_40px_rgba(21,176,187,0.18)] transition-shadow duration-300 overflow-hidden">
+      {/* Gradient inspired card */}
+      <div className="relative rounded-[30px] bg-gradient-to-br from-[#f4fdff] via-[#f7faff] to-white border border-white/80 shadow-[0_20px_40px_rgba(15,23,42,0.12)] hover:shadow-[0_25px_50px_rgba(21,176,187,0.25)] transition-shadow duration-300 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-6 -right-6 h-36 w-36 bg-gradient-to-br from-[#15b0bb]/40 to-transparent blur-[50px]" />
+          <div className="absolute bottom-0 left-0 h-20 w-20 bg-gradient-to-br from-[#16bf9b]/30 to-transparent blur-[60px]" />
+        </div>
         {/* Image Section - Light background */}
-        <div className="relative h-52 bg-gradient-to-br from-slate-100/80 via-gray-50 to-white rounded-t-3xl overflow-hidden">
+        <div className="relative h-52 bg-gradient-to-b from-[#e7fbff] via-white to-transparent rounded-t-[26px] overflow-hidden border-b border-white/60">
           <motion.img
             src={scooter.image}
             alt={scooter.name}
@@ -135,48 +139,52 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
         </div>
 
         {/* Bottom content panel */}
-        <div className="relative bg-white px-5 py-5">
-          {/* Brand & Name */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] mb-1 bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] bg-clip-text text-transparent">
-              {scooter.brand}
-            </p>
-            <h3 className="text-lg font-bold text-slate-900">
-              {scooter.name}
-            </h3>
+        <div className="relative bg-gradient-to-br from-white/90 via-white/70 to-[#e8fcff] px-5 py-5 backdrop-blur-sm overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 opacity-40">
+            <div className="absolute -top-8 right-4 h-24 w-24 rounded-full bg-gradient-to-br from-[#15b0bb]/50 to-transparent blur-[80px]" />
           </div>
-
-          {/* Price & CTA */}
-          <div className="mt-4 flex items-center justify-between">
+          <div className="relative z-10 space-y-4">
+            {/* Brand & Name */}
             <div>
-              {scooter.originalPrice && (
-                <p className="text-xs text-slate-400 line-through mb-0.5">
-                  {formatPrice(scooter.originalPrice)}
-                </p>
-              )}
-              <p className="text-xl font-bold bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] bg-clip-text text-transparent">
-                {formatPrice(scooter.price)}
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] mb-1 bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] bg-clip-text text-transparent">
+                {scooter.brand}
               </p>
+              <h3 className="text-lg font-bold text-slate-900">
+                {scooter.name}
+              </h3>
             </div>
 
-            <div
-              className="flex-shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              <Link to={`/scooters/${scooter.id}`}>
-                <Button
-                  size="icon"
-                  className={cn(
-                    "rounded-full bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] hover:from-[#13a0aa] hover:to-[#14af8b] shadow-[0_8px_20px_rgba(21,176,187,0.4)] hover:shadow-[0_12px_28px_rgba(22,191,155,0.5)] transition-all duration-200",
-                    scooter.isComingSoon &&
-                      "bg-slate-200 bg-none text-slate-700 shadow-none hover:shadow-none hover:bg-slate-300",
-                  )}
-                >
-                  <ArrowUpRight className="w-4 h-4" />
-                </Button>
-              </Link>
+            {/* Price & CTA */}
+            <div className="mt-4 flex items-center justify-between">
+              <div>
+                {scooter.originalPrice && (
+                  <p className="text-xs text-slate-400 line-through mb-0.5">
+                    {formatPrice(scooter.originalPrice)}
+                  </p>
+                )}
+                <p className="text-xl font-bold bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] bg-clip-text text-transparent">
+                  {formatPrice(scooter.price)}
+                </p>
+              </div>
+              <div
+                className="flex-shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <Link to={`/scooters/${scooter.id}`}>
+                  <Button
+                    size="icon"
+                    className={cn(
+                      "rounded-full bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] hover:from-[#13a0aa] hover:to-[#14af8b] shadow-[0_8px_20px_rgba(21,176,187,0.4)] hover:shadow-[0_12px_28px_rgba(22,191,155,0.5)] transition-all duration-200",
+                      scooter.isComingSoon &&
+                        "bg-slate-200 bg-none text-slate-700 shadow-none hover:shadow-none hover:bg-slate-300",
+                    )}
+                  >
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

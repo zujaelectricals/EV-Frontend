@@ -343,7 +343,7 @@ export function HomePage() {
               <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black leading-tight">
                 <span className="text-foreground">Ride The</span>
                 <br />
-                <span className="text-[#00C2B2]">Electric Wave</span>
+                <span className="bg-gradient-to-r from-[#16b0bb] to-[#15bba1] bg-clip-text text-transparent">Electric Wave</span>
               </h1>
 
               <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
@@ -392,8 +392,15 @@ export function HomePage() {
                 </Link>
               </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-4 gap-4 pt-8 border-t border-border/50">
+              {/* Stats - frosted bar and high-contrast text for visibility on video */}
+              <div 
+                className="grid grid-cols-4 gap-4 pt-8 mt-8 border-t-2 border-slate-300/80 rounded-2xl px-6 py-6 -mx-2"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.55)',
+                  backdropFilter: 'blur(12px)',
+                  boxShadow: '0 4px 24px rgba(0, 0, 0, 0.06)',
+                }}
+              >
                 {stats.map((stat, i) => (
                   <motion.div
                     key={i}
@@ -407,11 +414,12 @@ export function HomePage() {
                     className="text-center"
                   >
                     <div 
-                      className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-[#00BCD4] to-[#00E676] bg-clip-text text-transparent"
+                      className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-[#00BCD4] to-[#00E676] bg-clip-text text-transparent drop-shadow-sm"
+                      style={{ textShadow: '0 0 20px rgba(255,255,255,0.5)' }}
                     >
                       {formatAnimatedValue(animatedStats[i])}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-sm font-semibold text-slate-800 mt-1">
                       {stat.label}
                     </div>
                   </motion.div>
@@ -422,7 +430,7 @@ export function HomePage() {
         </div>
       </motion.section>
 
-      {/* Benefits */}
+      {/* Benefits - same animated border effect as Contact section */}
       <motion.section 
         className="relative py-20 overflow-hidden"
         initial={{ opacity: 0, y: 50 }}
@@ -430,6 +438,51 @@ export function HomePage() {
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
       >
+        {/* CSS for animated moving border (same as Contact section) */}
+        <style>{`
+          @keyframes borderRotateBenefits {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .animated-border-card-benefits {
+            position: relative;
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+          }
+          .animated-border-card-benefits::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+              from 0deg,
+              transparent 0deg 60deg,
+              #14b8a6 60deg 120deg,
+              transparent 120deg 180deg,
+              #10b981 180deg 240deg,
+              transparent 240deg 300deg,
+              #0d9488 300deg 360deg
+            );
+            animation: borderRotateBenefits 4s linear infinite;
+            opacity: 1;
+          }
+          .animated-border-card-benefits::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: white;
+            border-radius: calc(1rem - 2px);
+            z-index: 1;
+          }
+          .animated-border-card-benefits .card-content {
+            position: relative;
+            z-index: 2;
+          }
+        `}</style>
+
         {/* Horizontal gradient background - Light teal to white to soft lavender */}
         <div 
           className="absolute inset-0"
@@ -451,55 +504,32 @@ export function HomePage() {
                   duration: 0.4,
                   ease: [0.25, 0.1, 0.25, 1],
                 }}
-                className="group relative"
+                whileHover={{ scale: 1.02, y: -5 }}
+                className="group"
               >
-                {/* Liquid Glass Effect Card - iOS Style */}
-                <div className="relative overflow-hidden rounded-2xl">
-                  {/* Glass background with iOS-style liquid glass effect */}
-                  <div
-                    className="relative p-6 backdrop-blur-2xl rounded-2xl transition-all duration-300 hover:scale-[1.02]"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%)",
-                      border: "1px solid rgba(255, 255, 255, 0.3)",
-                      boxShadow: `
-                        0 8px 32px 0 rgba(16, 185, 129, 0.2),
-                        inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
-                        inset 0 -1px 0 0 rgba(255, 255, 255, 0.1)
-                      `,
-                    }}
-                  >
-                    {/* Subtle inner glow and highlight */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent rounded-2xl pointer-events-none" />
-                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-
-                    {/* Content */}
-                    <div className="relative z-10 flex items-start gap-4">
-                      <div
-                        className="p-3 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, rgba(134, 239, 172, 0.3) 0%, rgba(74, 222, 128, 0.2) 100%)",
-                          backdropFilter: "blur(10px)",
-                          border: "1px solid rgba(255, 255, 255, 0.2)",
-                          boxShadow: "0 4px 16px rgba(134, 239, 172, 0.2)",
-                        }}
-                      >
-                        <benefit.icon className="w-6 h-6 text-emerald-600 drop-shadow-sm" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground mb-1 drop-shadow-sm">
-                          {benefit.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {benefit.desc}
-                        </p>
-                      </div>
+                <div
+                  className="animated-border-card-benefits p-6 transition-all duration-300"
+                  style={{
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+                    border: '1px solid rgba(0, 0, 0, 0.08)',
+                  }}
+                >
+                  <div className="card-content flex items-start gap-4">
+                    <div
+                      className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                      style={{
+                        background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                      }}
+                    >
+                      <benefit.icon className="w-6 h-6 text-white" />
                     </div>
-
-                    {/* Shimmer effect on hover */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer rounded-2xl" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground mb-1">
+                        {benefit.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {benefit.desc}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -523,27 +553,13 @@ export function HomePage() {
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
       >
-        {/* Background Image - Fixed using background-attachment */}
+        {/* Solid gradient background (no image) */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             zIndex: 0,
-            backgroundImage: "url('/Vehicle1.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-            backgroundAttachment: "fixed",
-          }}
-        />
-
-        {/* Enhanced Overlay gradient for readability with more vibrant colors */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            zIndex: 1,
             background:
-              "linear-gradient(135deg, rgba(209, 250, 229, 0.85) 0%, rgba(255, 255, 255, 0.90) 30%, rgba(236, 253, 245, 0.90) 50%, rgba(255, 255, 255, 0.90) 70%, rgba(209, 250, 229, 0.85) 100%)",
-            backgroundAttachment: "fixed",
+              "linear-gradient(135deg, rgba(209, 250, 229, 0.98) 0%, rgba(255, 255, 255, 1) 30%, rgba(236, 253, 245, 1) 50%, rgba(255, 255, 255, 1) 70%, rgba(209, 250, 229, 0.98) 100%)",
           }}
         />
 
@@ -636,7 +652,7 @@ export function HomePage() {
               {/* Designed for Excellence - Main heading */}
               <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black mb-4 sm:mb-6 leading-tight">
                 <span className="text-foreground">Designed for </span>
-                <span className="text-[#00C2B2]">Excellence</span>
+                <span className="bg-gradient-to-r from-[#16b0bb] to-[#15bba1] bg-clip-text text-transparent">Excellence</span>
               </h2>
               
               {/* Subheading */}
@@ -857,8 +873,19 @@ export function HomePage() {
         transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
       >
         <div className="container mx-auto px-4">
-          <div className="rounded-[28px] border border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-950/40 px-6 py-10 sm:px-10 sm:py-12 lg:px-12 lg:py-14 shadow-[0_18px_45px_rgba(15,23,42,0.12)] dark:shadow-[0_18px_55px_rgba(0,0,0,0.6)]">
-            <div className="grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] items-start">
+          <div className="relative overflow-hidden rounded-[28px] border border-slate-200/70 dark:border-slate-800 px-6 py-10 sm:px-10 sm:py-12 lg:px-12 lg:py-14 shadow-[0_18px_45px_rgba(15,23,42,0.12)] dark:shadow-[0_18px_55px_rgba(0,0,0,0.6)]">
+            {/* Background image */}
+            <div
+              className="absolute inset-0 z-0 rounded-[28px]"
+              style={{
+                backgroundImage: "url('/vehicle4.jpg')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            />
+            {/* Overlay for readability */}
+            <div className="absolute inset-0 z-[1] rounded-[28px] bg-white/80 dark:bg-slate-950/80" />
+            <div className="relative z-10 grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] items-start">
             {/* Left: Copy */}
             <motion.div
               initial={{ opacity: 0, y: 24 }}
@@ -872,7 +899,7 @@ export function HomePage() {
               </p>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                 Modern electric mobility,
-                <span className="block text-emerald-600 dark:text-emerald-400">
+                <span className="block bg-gradient-to-r from-[#16b0bb] to-[#15bba1] bg-clip-text text-transparent">
                   backed by real-world reliability.
                 </span>
               </h2>

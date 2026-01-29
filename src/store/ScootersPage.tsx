@@ -14,6 +14,7 @@ import {
 import { ScooterCard } from "./ScooterCard";
 import { StoreNavbar } from "./StoreNavbar";
 import { Footer } from "@/components/Footer";
+import { FloatingPetals } from "@/components/FloatingPetals";
 import { useGetVehiclesQuery } from "@/app/api/inventoryApi";
 import { mapVehicleGroupsToScooters } from "./utils/vehicleMapper";
 import { InlineLoadingSpinner } from "@/components/ui/loading-spinner";
@@ -128,6 +129,7 @@ export function ScootersPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <FloatingPetals count={20} />
       <StoreNavbar solidBackground />
 
       <div className="pt-24 pb-16">
