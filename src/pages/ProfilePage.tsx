@@ -444,7 +444,7 @@ export function ProfilePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background w-full">
+    <div className="min-h-screen w-full bg-gradient-to-b from-slate-50/80 via-background to-background">
       <div className="w-full px-3 sm:px-4 py-4">
         {/* Header Section */}
         <div className="mb-4 sm:mb-6">
@@ -452,7 +452,7 @@ export function ProfilePage() {
             <div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                  <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] bg-clip-text text-transparent">
                     My Account
                   </h1>
                   <Button
@@ -460,7 +460,7 @@ export function ProfilePage() {
                     size="icon"
                     onClick={handleRefresh}
                     disabled={isLoadingProfile}
-                    className="h-8 w-8"
+                    className="h-8 w-8 rounded-full hover:bg-[#18b3b2]/10"
                     title="Refresh profile"
                   >
                     <RefreshCw className={`h-4 w-4 ${isLoadingProfile ? 'animate-spin' : ''}`} />
@@ -477,7 +477,7 @@ export function ProfilePage() {
                     }
                     className={
                       kycStatus === 'verified' || kycStatus === 'approved'
-                        ? 'bg-green-500 hover:bg-green-600'
+                        ? 'bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 shadow-md shadow-emerald-500/25'
                         : ''
                     }
                   >
@@ -490,18 +490,18 @@ export function ProfilePage() {
                 ) : (
                   <Badge
                     variant="destructive"
-                    className="bg-red-500 hover:bg-red-600 text-white"
+                    className="bg-red-500 hover:bg-red-600 text-white shadow-sm"
                   >
                     Not Verified
                   </Badge>
                 )}
               </div>
-              <p className="text-sm sm:text-base text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground tracking-tight">
                 Manage your orders, profile, and preferences
               </p>
             </div>
             {/* Navigation Menu - Scrollable on mobile */}
-            <nav className="flex overflow-x-auto gap-1 sm:gap-2 pb-2 -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-hide">
+            <nav className="flex overflow-x-auto gap-1.5 sm:gap-2 pb-2 -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-hide">
               {profileSections.map((section) => (
                 <button
                   key={section.id}
@@ -509,16 +509,16 @@ export function ProfilePage() {
                     setActiveTab(section.id);
                     setSearchParams({ tab: section.id });
                   }}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0 ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all duration-200 text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0 shadow-sm ${
                     activeTab === section.id
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted"
+                      ? "bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white shadow-md shadow-emerald-500/20"
+                      : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                   }`}
                 >
                   <section.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                   <span className="inline sm:inline">{section.label}</span>
                   {section.count !== undefined && section.count > 0 && (
-                    <Badge variant="secondary" className="text-xs h-4 sm:h-5 px-1 sm:px-1.5">
+                    <Badge variant="secondary" className="text-xs h-4 sm:h-5 px-1 sm:px-1.5 bg-white/90 text-foreground">
                       {section.count}
                     </Badge>
                   )}
@@ -529,7 +529,7 @@ export function ProfilePage() {
         </div>
 
         {/* Profile Section - Horizontal Layout */}
-        <Card className="mb-4"></Card>
+        <div className="mb-4" />
 
         {/* Main Content - Full Width */}
         <div className="w-full">

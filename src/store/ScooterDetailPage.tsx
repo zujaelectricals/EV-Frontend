@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Battery, Gauge, Zap, Shield, Check, Star, 
-  ChevronRight, Clock, Package, ChevronLeft 
+  ChevronRight, Clock, Package, ChevronLeft, Palette 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -402,8 +402,17 @@ export function ScooterDetailPage() {
                 </div> */}
               </div>
 
-              {/* Price & Stock Panel */}
-              <div className="glass-card rounded-3xl border border-border/70 shadow-glass p-6 lg:p-7 space-y-6">
+              {/* Price & Stock Panel — moving border (not fixed) */}
+              <div className="relative rounded-3xl overflow-hidden">
+                {/* Rotating gradient border — animates continuously */}
+                <div
+                  className="absolute left-1/2 top-1/2 z-0 h-[200%] w-[200%] animate-border-run will-change-transform"
+                  style={{
+                    background: 'conic-gradient(from 0deg, #17b0ba, #1cbe9a, #22cb7c, #17b0ba)',
+                  }}
+                  aria-hidden
+                />
+                <div className="glass-card relative z-10 m-[2px] rounded-[calc(1.5rem-2px)] border-0 shadow-glass p-6 lg:p-7 space-y-6 bg-background">
                 {/* Price Row */}
                 <div className="flex items-start justify-between gap-6">
                   <div className="space-y-1">
@@ -473,9 +482,10 @@ export function ScooterDetailPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr),minmax(0,1.1fr)] items-stretch">
-                      {/* Big availability pill */}
-                      <div className="flex flex-col justify-center rounded-2xl bg-emerald-500/5 border border-emerald-500/30 px-5 py-4 text-center">
+                    {/* Three cards in a row, same height — match 2nd image layout */}
+                    <div className="grid grid-cols-1 sm:grid-cols-[1.15fr_0.925fr_0.925fr] gap-3 items-stretch">
+                      {/* Available Units — slightly wider on large screens */}
+                      <div className="flex flex-col justify-center rounded-2xl bg-emerald-500/5 border border-emerald-500/30 px-4 py-5 text-center min-h-[140px] sm:min-h-0">
                         <span className="text-xs font-medium uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-300">
                           Available Units
                         </span>
@@ -510,26 +520,43 @@ export function ScooterDetailPage() {
                         )}
                       </div>
 
-                      {/* Meta list */}
-                      <div className="grid grid-cols-1 gap-3 text-sm">
-                        {stockData.vehicle_colors && stockData.vehicle_colors.length > 0 && (
-                          <div className="flex items-center justify-between rounded-xl bg-card/70 px-4 py-2.5 border border-border/60">
-                            <span className="text-xs text-muted-foreground">Color</span>
-                            <span className="text-sm font-semibold capitalize text-foreground text-right">
-                              {stockData.vehicle_colors.join(', ')}
-                            </span>
+                      {/* Color card */}
+                      {stockData.vehicle_colors && stockData.vehicle_colors.length > 0 && (
+                        <div className="flex flex-col items-center justify-center rounded-2xl bg-card/70 border border-border/60 px-4 py-5 min-h-[140px] sm:min-h-0">
+                          <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-2">
+                            <Palette className="w-4 h-4" />
                           </div>
-                        )}
-                        {stockData.battery_variants && stockData.battery_variants.length > 0 && (
-                          <div className="flex items-center justify-between rounded-xl bg-card/70 px-4 py-2.5 border border-border/60">
-                            <span className="text-xs text-muted-foreground">Battery</span>
-                            <span className="text-sm font-semibold text-foreground text-right">
-                              {stockData.battery_variants.join(', ')}
-                            </span>
+                          <span className="text-xs text-muted-foreground">Color</span>
+                          <span className="text-sm font-semibold capitalize text-foreground mt-0.5">
+                            {stockData.vehicle_colors.join(', ')}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Battery card */}
+                      {stockData.battery_variants && stockData.battery_variants.length > 0 && (
+                        <div className="flex flex-col items-center justify-center rounded-2xl bg-card/70 border border-border/60 px-4 py-5 min-h-[140px] sm:min-h-0">
+                          <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-2">
+                            <Battery className="w-4 h-4" />
                           </div>
-                        )}
-                      </div>
+                          <span className="text-xs text-muted-foreground">Battery</span>
+                          <span className="text-sm font-semibold text-foreground mt-0.5">
+                            {stockData.battery_variants.join(', ')}
+                          </span>
+                        </div>
+                      )}
                     </div>
+                    {(stockData.reserved_quantity != null || stockData.total_quantity != null) && (
+                      <p className="text-xs text-muted-foreground mt-3">
+                        {typeof stockData.reserved_quantity !== 'undefined' && (
+                          <span>{Number(stockData.reserved_quantity).toLocaleString()} reserved</span>
+                        )}
+                        {typeof stockData.reserved_quantity !== 'undefined' && typeof stockData.total_quantity !== 'undefined' && ' • '}
+                        {typeof stockData.total_quantity !== 'undefined' && (
+                          <span>{Number(stockData.total_quantity).toLocaleString()} in stock</span>
+                        )}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-border/60 bg-muted/20 px-4 py-4 lg:px-5 lg:py-5">
@@ -548,22 +575,35 @@ export function ScooterDetailPage() {
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* CTA Button */}
+              {/* CTA Button — pill shape, gradient 15b3b3 to 15be9c, subtle glow */}
               <div>
                 {isAuthenticated ? (
-                  <Button 
-                    onClick={() => setShowPreBookingModal(true)} 
-                    className="w-full text-lg py-6"
+                  <Button
+                    onClick={() => setShowPreBookingModal(true)}
+                    className="w-full text-lg py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 hover:opacity-95 transition-opacity"
+                    style={{
+                      background: 'linear-gradient(to right, #17b0ba, #1cbe9a, #22cb7c)',
+                      boxShadow: '0 4px 14px rgba(23, 176, 186, 0.35), 0 2px 6px rgba(34, 203, 124, 0.25)',
+                    }}
                   >
                     Pre-Book Now
                   </Button>
                 ) : (
                   <Link to={`/login${referralCode ? `?ref=${referralCode}` : ''}`} className="block">
-                    <Button className="w-full text-lg py-6">Login to Pre-Book</Button>
+                    <Button
+                      className="w-full text-lg py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 hover:opacity-95 transition-opacity"
+                      style={{
+                        background: 'linear-gradient(to right, #17b0ba, #1cbe9a, #22cb7c)',
+                        boxShadow: '0 4px 14px rgba(23, 176, 186, 0.35), 0 2px 6px rgba(34, 203, 124, 0.25)',
+                      }}
+                    >
+                      Login to Pre-Book
+                    </Button>
                   </Link>
                 )}
+              </div>
+                </div>
               </div>
             </motion.div>
           </div>

@@ -71,7 +71,7 @@ export function FloatingPetals({ count = 15 }: { count?: number }) {
   }, [count]);
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]">
       {petals.map((petal) => (
         <motion.div
           key={petal.id}
