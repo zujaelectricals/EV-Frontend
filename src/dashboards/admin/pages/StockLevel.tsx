@@ -306,10 +306,10 @@ export const StockLevel = () => {
           <p className="text-muted-foreground mt-1">Monitor inventory levels across warehouses</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          {/* <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
-          </Button>
+          </Button> */}
           <Dialog 
             open={isAdjustmentDialogOpen} 
             onOpenChange={(open) => {

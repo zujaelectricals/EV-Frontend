@@ -11,7 +11,7 @@ import { StoreNavbar } from './StoreNavbar';
 import { PreBookingModal } from './components/PreBookingModal';
 import { useAppSelector } from '@/app/hooks';
 import { Footer } from '@/components/Footer';
-import { useGetStockQuery, useGetVehiclesQuery } from '@/app/api/inventoryApi';
+import { useGetStockQuery, useGetVehiclesQuery, VehicleVariant } from '@/app/api/inventoryApi';
 import { Scooter } from './ScooterCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
@@ -116,6 +116,17 @@ export function ScooterDetailPage() {
       const maxSpeedText = specs['Max Speed'] || specs['Top Speed'] || '0 km/h';
       const topSpeed = maxSpeedText ? parseFloat(maxSpeedText.replace(/[^0-9.]/g, '')) || 0 : 0;
 
+      // Find matching variant from inventoryData if available
+      let matchingVariant: VehicleVariant | undefined;
+      if (inventoryData?.results && stockData.id) {
+        for (const vehicleGroup of inventoryData.results) {
+          if (vehicleGroup.name === stockData.vehicle_name) {
+            matchingVariant = vehicleGroup.variants.find(v => v.id === stockData.id);
+            if (matchingVariant) break;
+          }
+        }
+      }
+
       return {
         id: id || `variant-${stockData.id}`,
         name: stockData.vehicle_name || 'Unknown Vehicle',
@@ -137,11 +148,11 @@ export function ScooterDetailPage() {
         category: 'scooter' as const,
         functions: stockData.features || [],
         specifications: specs,
-        variant: stockData,
+        ...(matchingVariant && { variant: matchingVariant }),
       } as Scooter;
     }
     return null;
-  }, [stockData, id]);
+  }, [stockData, id, inventoryData]);
 
   // Auto-rotate product images every 3 seconds when multiple images are available
   useEffect(() => {
@@ -526,19 +537,19 @@ export function ScooterDetailPage() {
                         <div className="mt-1 text-3xl font-extrabold text-emerald-600 dark:text-emerald-300">
                           {Number(stockData.available_quantity ?? 0).toLocaleString()}
                         </div>
-                        <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-200/90">
+                        {/* <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-200/90">
                           Ready to be reserved instantly
-                        </p>
+                        </p> */}
                         {(stockData.reserved_quantity || stockData.total_quantity) && (
                           <div className="mt-3 flex items-center justify-center gap-3 text-[11px] text-emerald-900/70 dark:text-emerald-100/80">
-                            {typeof stockData.reserved_quantity !== 'undefined' && (
+                            {/* {typeof stockData.reserved_quantity !== 'undefined' && (
                               <span>
                                 <span className="font-semibold">
                                   {Number(stockData.reserved_quantity).toLocaleString()}
                                 </span>{' '}
                                 reserved
                               </span>
-                            )}
+                            )} */}
                             {typeof stockData.total_quantity !== 'undefined' && (
                               <>
                                 <span className="h-1 w-1 rounded-full bg-emerald-500/60" />
@@ -580,7 +591,7 @@ export function ScooterDetailPage() {
                         </div>
                       )}
                     </div>
-                    {(stockData.reserved_quantity != null || stockData.total_quantity != null) && (
+                    {/* {(stockData.reserved_quantity != null || stockData.total_quantity != null) && (
                       <p className="text-xs text-muted-foreground mt-3">
                         {typeof stockData.reserved_quantity !== 'undefined' && (
                           <span>{Number(stockData.reserved_quantity).toLocaleString()} reserved</span>
@@ -590,7 +601,7 @@ export function ScooterDetailPage() {
                           <span>{Number(stockData.total_quantity).toLocaleString()} in stock</span>
                         )}
                       </p>
-                    )}
+                    )} */}
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-border/60 bg-muted/20 px-4 py-4 lg:px-5 lg:py-5">

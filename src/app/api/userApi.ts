@@ -1330,6 +1330,206 @@ export const userApi = api.injectEndpoints({
       },
       invalidatesTags: ['KYC', 'User'],
     }),
+
+    // GET users/distributor-application/list_all/ - List all distributor applications (Admin only)
+    getDistributorApplications: builder.query<{
+      count: number;
+      next: string | null;
+      previous: string | null;
+      results: Array<{
+        id: number;
+        user_email: string;
+        user_username: string;
+        user_full_name: string;
+        reviewed_by: number | null;
+        is_distributor_terms_and_conditions_accepted: boolean;
+        status: 'pending' | 'approved' | 'rejected';
+        company_name: string | null;
+        business_registration_number: string | null;
+        tax_id: string | null;
+        years_in_business: number | null;
+        previous_distribution_experience: string | null;
+        product_interest: string | null;
+        reference_name: string | null;
+        reference_contact: string | null;
+        reference_relationship: string | null;
+        business_license: string | null;
+        tax_documents: string | null;
+        submitted_at: string;
+        reviewed_at: string | null;
+        rejection_reason: string;
+        user: number;
+      }>;
+    }, void>({
+      queryFn: async () => {
+        const { accessToken } = getAuthTokens();
+
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          const url = `${getApiBaseUrl()}users/distributor-application/list_all/`;
+          console.log('📤 [USER API - getDistributorApplications] Request URL:', url);
+
+          let response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - getDistributorApplications] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+
+            if (refreshData) {
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - getDistributorApplications] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                });
+              }
+            } else {
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to fetch distributor applications' }));
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data = await response.json();
+          console.log('📥 [USER API - getDistributorApplications] Response:', JSON.stringify(data, null, 2));
+          return { data };
+        } catch (error) {
+          console.error('❌ [USER API - getDistributorApplications] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      providesTags: ['User'],
+    }),
+
+    // POST users/distributor-application/{id}/update-status/ - Update distributor application status (Admin only)
+    updateDistributorApplicationStatus: builder.mutation<
+      { success: boolean; message: string },
+      { applicationId: number; status: 'approved' | 'rejected'; reason?: string }
+    >({
+      queryFn: async ({ applicationId, status, reason }) => {
+        const { accessToken } = getAuthTokens();
+
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          const requestBody: { status: string; reason?: string } = { status };
+          if (status === 'rejected' && reason) {
+            requestBody.reason = reason;
+          }
+
+          const url = `${getApiBaseUrl()}users/distributor-application/${applicationId}/update-status/`;
+          console.log('📤 [USER API - updateDistributorApplicationStatus] Request URL:', url);
+          console.log('📤 [USER API - updateDistributorApplicationStatus] Request Body:', JSON.stringify(requestBody, null, 2));
+
+          let response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - updateDistributorApplicationStatus] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+
+            if (refreshData) {
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - updateDistributorApplicationStatus] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(requestBody),
+                });
+              }
+            } else {
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: `Failed to ${status} distributor application` }));
+            console.error('❌ [USER API - updateDistributorApplicationStatus] Error Response:', error);
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data = await response.json();
+          console.log('✅ [USER API - updateDistributorApplicationStatus] Response:', JSON.stringify(data, null, 2));
+          return { data };
+        } catch (error) {
+          console.error('❌ [USER API - updateDistributorApplicationStatus] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      invalidatesTags: ['User'],
+    }),
   }),
 });
 
@@ -1346,5 +1546,7 @@ export const {
   useDeleteUserByIdMutation,
   useGetKYCListQuery,
   useUpdateKYCStatusMutation,
+  useGetDistributorApplicationsQuery,
+  useUpdateDistributorApplicationStatusMutation,
 } = userApi;
 

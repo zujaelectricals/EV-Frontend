@@ -472,34 +472,10 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
           </DialogHeader>
 
         <div className="space-y-6">
-          {/* Info Alert */}
-          <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-primary mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground mb-1">
-                  Pre-Booking Benefits
-                </p>
-                <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Minimum ₹{MIN_PRE_BOOKING.toLocaleString()} to pre-book and become an Active Buyer</li>
-                  <li>30 days to pay remaining amount</li>
-                  <li>Pre-book at least ₹{DISTRIBUTOR_ELIGIBILITY_AMOUNT.toLocaleString()} to be eligible for Distributor Program</li>
-                  <li>After 1 year, ₹{DISTRIBUTOR_ELIGIBILITY_AMOUNT.toLocaleString()} (if pre-booked) can be redeemed as points at partner shops</li>
-                  <li>Excess amount (above ₹{DISTRIBUTOR_ELIGIBILITY_AMOUNT.toLocaleString()}) will be refunded after tax deductions</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
           {/* Pre-Booking Amount */}
           <div className="space-y-2">
             <Label htmlFor="preBookingAmount" className="text-base font-semibold">
               Pre-Booking Amount (Minimum ₹{MIN_PRE_BOOKING.toLocaleString()})
-              {!isDistributorEligible && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pre-book at least ₹{DISTRIBUTOR_ELIGIBILITY_AMOUNT.toLocaleString()} to be eligible for Distributor Program
-                </p>
-              )}
             </Label>
             <Input
               id="preBookingAmount"

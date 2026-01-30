@@ -204,6 +204,10 @@ const adminMenuSections: MenuSection[] = [
     value: "users",
     children: [
       { label: "Users", path: "/admin/users/active" },
+      {
+        label: "Partners Management",
+        path: "/admin/users/partners-management",
+      },
       // { label: "Paid Users", path: "/admin/users/paid" },
       // { label: "Blocked Users", path: "/admin/users/blocked" },
       // { label: "Email Unverified", path: "/admin/users/email-unverified" },
@@ -249,10 +253,10 @@ const adminMenuSections: MenuSection[] = [
       { label: "Transaction History", path: "/admin/reports/transactions" },
       { label: "Investment Logs", path: "/admin/reports/investments" },
       { label: "BV Logs", path: "/admin/reports/bv" },
-      { label: "Referral Commission", path: "/admin/reports/referral" },
+      //{ label: "Referral Commission", path: "/admin/reports/referral" },
       { label: "Team Commission", path: "/admin/reports/binary" },
-      { label: "Login History", path: "/admin/reports/login" },
-      { label: "Notification History", path: "/admin/reports/notifications" },
+      //{ label: "Login History", path: "/admin/reports/login" },
+      //{ label: "Notification History", path: "/admin/reports/notifications" },
     ],
   },
   {

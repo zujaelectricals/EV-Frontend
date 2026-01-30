@@ -91,8 +91,18 @@ function extractTeamMembers(
   level = 0,
   position: "left" | "right" = "left",
   parentId?: string,
-  parentName?: string
+  parentName?: string,
+  minDepth?: number,
+  maxDepth?: number
 ): TeamMember[] {
+  // Check depth limits
+  if (minDepth !== undefined && level < minDepth) {
+    // Continue traversing but don't include this level yet
+  } else if (maxDepth !== undefined && level > maxDepth) {
+    // Stop traversing beyond max depth
+    return [];
+  }
+
   if (!node || node.position === "root") {
     const members: TeamMember[] = [];
     if (node?.children.left) {
@@ -102,7 +112,9 @@ function extractTeamMembers(
           level + 1,
           "left",
           node.id,
-          node.name
+          node.name,
+          minDepth,
+          maxDepth
         )
       );
     }
@@ -113,7 +125,9 @@ function extractTeamMembers(
           level + 1,
           "right",
           node.id,
-          node.name
+          node.name,
+          minDepth,
+          maxDepth
         )
       );
     }
@@ -134,7 +148,13 @@ function extractTeamMembers(
     parentName: parentName,
   };
 
-  const members = [member];
+  const members: TeamMember[] = [];
+  
+  // Only include member if it's within depth range
+  if ((minDepth === undefined || level >= minDepth) && (maxDepth === undefined || level <= maxDepth)) {
+    members.push(member);
+  }
+
   if (node.children.left) {
     members.push(
       ...extractTeamMembers(
@@ -142,7 +162,9 @@ function extractTeamMembers(
         level + 1,
         "left",
         node.id,
-        node.name
+        node.name,
+        minDepth,
+        maxDepth
       )
     );
   }
@@ -153,7 +175,9 @@ function extractTeamMembers(
         level + 1,
         "right",
         node.id,
-        node.name
+        node.name,
+        minDepth,
+        maxDepth
       )
     );
   }
@@ -197,7 +221,10 @@ function createParentNameMap(treeStructure: TreeNodeResponse | undefined): Map<n
 // Helper function to extract team members from side_members arrays and direct children
 // Respects the API filtering - only extracts from what the API returns
 function extractTeamMembersFromSideMembers(
-  treeStructure: TreeNodeResponse | undefined
+  treeStructure: TreeNodeResponse | undefined,
+  sideFilter: 'left' | 'right' | 'both' = 'both',
+  minDepth?: number,
+  maxDepth?: number
 ): TeamMember[] {
   if (!treeStructure) {
     return [];
@@ -227,27 +254,44 @@ function extractTeamMembersFromSideMembers(
   };
 
   // Helper function to recursively extract from child nodes (only if side_members not available)
-  const extractFromChild = (child: TreeNodeResponse | null, position: 'left' | 'right', rootNodeId: number) => {
+  const extractFromChild = (child: TreeNodeResponse | null, position: 'left' | 'right', rootNodeId: number, currentLevel: number = 1) => {
     if (!child) return;
+    
+    // Check depth limits
+    if (minDepth !== undefined && currentLevel < minDepth) {
+      // Continue traversing but don't include this level yet
+    } else if (maxDepth !== undefined && currentLevel > maxDepth) {
+      // Stop traversing beyond max depth
+      return;
+    }
+    
+    // Only extract if this position matches the filter
+    if (sideFilter !== 'both' && sideFilter !== position) return;
     
     const nodeId = child.node_id || child.id || child.user_id;
     if (processedNodeIds.has(nodeId)) return; // Avoid duplicates
     processedNodeIds.add(nodeId);
     
-    members.push(nodeToMember(child, position, rootNodeId));
-    
-    // Recursively process children
-    if (child.left_child) {
-      extractFromChild(child.left_child, 'left', nodeId);
+    // Only include member if it's within depth range
+    if ((minDepth === undefined || currentLevel >= minDepth) && (maxDepth === undefined || currentLevel <= maxDepth)) {
+      members.push(nodeToMember(child, position, rootNodeId));
     }
-    if (child.right_child) {
-      extractFromChild(child.right_child, 'right', nodeId);
+    
+    // Recursively process children (respecting the side filter and depth)
+    if (child.left_child && (sideFilter === 'both' || sideFilter === 'left')) {
+      extractFromChild(child.left_child, 'left', nodeId, currentLevel + 1);
+    }
+    if (child.right_child && (sideFilter === 'both' || sideFilter === 'right')) {
+      extractFromChild(child.right_child, 'right', nodeId, currentLevel + 1);
     }
   };
 
   // Helper function to extract members from either array or paginated format
   const extractMembers = (sideMembers: SideMemberNode[] | PaginatedSideMembers | null | undefined, position: 'left' | 'right') => {
     if (!sideMembers) return;
+    
+    // Only extract if this position matches the filter
+    if (sideFilter !== 'both' && sideFilter !== position) return;
 
     let memberArray: SideMemberNode[] = [];
     
@@ -262,6 +306,20 @@ function extractTeamMembersFromSideMembers(
 
     memberArray.forEach((member: SideMemberNode) => {
       if (member) {
+        // Additional safety check: ensure member's side matches filter
+        if (sideFilter !== 'both' && member.side && member.side !== sideFilter) {
+          return;
+        }
+        
+        // Check depth limits
+        const memberLevel = member.level || 0;
+        if (minDepth !== undefined && memberLevel < minDepth) {
+          return;
+        }
+        if (maxDepth !== undefined && memberLevel > maxDepth) {
+          return;
+        }
+        
         const nodeId = member.node_id || member.user_id;
         // Skip if already processed
         if (processedNodeIds.has(nodeId)) return;
@@ -277,7 +335,7 @@ function extractTeamMembersFromSideMembers(
           joinedAt: member.date_joined || member.created_at || new Date().toISOString(),
           position: position,
           pv: parseFloat(member.total_earnings || '0'),
-          level: member.level || 0,
+          level: memberLevel,
           referrals: 0, // Not available in side member structure
           isActive: member.is_active_buyer !== false,
           parentId: parentId ? `node-${parentId}` : undefined,
@@ -290,22 +348,40 @@ function extractTeamMembersFromSideMembers(
 
   const rootNodeId = treeStructure.node_id || treeStructure.id || treeStructure.user_id;
 
-  // Always extract direct children (left_child and right_child) first
-  // These are the immediate children of the root node
-  if (treeStructure.left_child) {
-    extractFromChild(treeStructure.left_child, 'left', rootNodeId);
+  // Extract direct children (left_child and right_child) based on filter
+  // Start at level 1 (children of root are at level 1)
+  if (treeStructure.left_child && (sideFilter === 'both' || sideFilter === 'left')) {
+    extractFromChild(treeStructure.left_child, 'left', rootNodeId, 1);
   }
-  if (treeStructure.right_child) {
-    extractFromChild(treeStructure.right_child, 'right', rootNodeId);
+  if (treeStructure.right_child && (sideFilter === 'both' || sideFilter === 'right')) {
+    extractFromChild(treeStructure.right_child, 'right', rootNodeId, 1);
   }
 
-  // Then extract from side_members (these contain all members on each side, already filtered by the API)
+  // Extract from side_members (these contain all members on each side, already filtered by the API)
   // The API will return null for the filtered-out side when side='left' or side='right'
   // The processedNodeIds Set will prevent duplicates if a node appears in both children and side_members
-  extractMembers(treeStructure.left_side_members, 'left');
-  extractMembers(treeStructure.right_side_members, 'right');
+  if (sideFilter === 'both' || sideFilter === 'left') {
+    extractMembers(treeStructure.left_side_members, 'left');
+  }
+  if (sideFilter === 'both' || sideFilter === 'right') {
+    extractMembers(treeStructure.right_side_members, 'right');
+  }
 
-  return members;
+  // Final safety filter: ensure all members match the selected side and depth
+  return members.filter(member => {
+    // Filter by side
+    if (sideFilter !== 'both' && member.position !== sideFilter) {
+      return false;
+    }
+    // Filter by depth (additional safety check)
+    if (minDepth !== undefined && member.level < minDepth) {
+      return false;
+    }
+    if (maxDepth !== undefined && member.level > maxDepth) {
+      return false;
+    }
+    return true;
+  });
 }
 
 export const BinaryTreeView = () => {
@@ -387,9 +463,11 @@ export const BinaryTreeView = () => {
     // First try to use side_members from the full API response
     if (treeStructure) {
       console.log('BinaryTreeView: Using tree structure with side_members');
+      console.log('BinaryTreeView: Side filter:', sideFilter);
+      console.log('BinaryTreeView: Min depth:', minDepth, 'Max depth:', maxDepth);
       console.log('BinaryTreeView: Left side members:', treeStructure.left_side_members);
       console.log('BinaryTreeView: Right side members:', treeStructure.right_side_members);
-      const members = extractTeamMembersFromSideMembers(treeStructure);
+      const members = extractTeamMembersFromSideMembers(treeStructure, sideFilter, minDepth, maxDepth);
       console.log('BinaryTreeView: Extracted team members from side_members:', members);
       if (members.length > 0) {
         return members;
@@ -400,14 +478,18 @@ export const BinaryTreeView = () => {
     if (binaryTree) {
       console.log('BinaryTreeView: Falling back to binary tree traversal');
       console.log('BinaryTreeView: Binary tree data:', binaryTree);
-      const members = extractTeamMembers(binaryTree);
+      const members = extractTeamMembers(binaryTree, 0, 'left', undefined, undefined, minDepth, maxDepth);
       console.log('BinaryTreeView: Extracted team members from tree:', members);
+      // Filter by side if needed
+      if (sideFilter !== 'both') {
+        return members.filter(m => m.position === sideFilter);
+      }
       return members;
     }
     
     console.log('BinaryTreeView: No data available');
     return [];
-  }, [treeStructure, binaryTree]);
+  }, [treeStructure, binaryTree, sideFilter, minDepth, maxDepth]);
 
   // Use team members directly from server (no client-side filtering)
   const displayMembers = teamMembers;
@@ -686,18 +768,6 @@ export const BinaryTreeView = () => {
       </div>
 
       {/* Binary Account Enablement Status */}
-      {!binaryStats?.binaryActivated && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Network Not Enabled:</strong> You need at least 3 users (not
-            pairs) as referrals in your team network to enable Binary
-            Commission. Once enabled, you'll receive ₹2,000 as an account
-            enablement bonus.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {binaryStats?.binaryActivated && binaryStats?.activationBonus && (
         <Alert className="bg-success/10 border-success/30">
           <Info className="h-4 w-4 text-success" />

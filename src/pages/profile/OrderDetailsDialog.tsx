@@ -630,7 +630,7 @@ export function OrderDetailsDialog({
                       </p>
                     </div>
 
-                    <div>
+                    {/* <div>
                       <p className="text-sm font-semibold text-foreground mb-2">
                         Late Payment Fee:
                       </p>
@@ -640,7 +640,7 @@ export function OrderDetailsDialog({
                       <p className="text-xs text-muted-foreground mt-1">
                         (2% of remaining amount per week overdue, minimum ₹500)
                       </p>
-                    </div>
+                    </div> */}
 
                     <Separator />
 
@@ -664,7 +664,7 @@ export function OrderDetailsDialog({
                             on hold until payment is received.
                           </span>
                         </li>
-                        <li className="flex items-start gap-2">
+                        {/* <li className="flex items-start gap-2">
                           <XCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
                           <span>
                             <strong>After 30 Days:</strong> If payment is not
@@ -680,11 +680,11 @@ export function OrderDetailsDialog({
                             affect your eligibility for future bookings and
                             financing options.
                           </span>
-                        </li>
+                        </li> */}
                       </ul>
                     </div>
 
-                    <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
+                    {/* <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
                       <p className="text-sm font-semibold text-primary mb-1">
                         Recommended Action:
                       </p>
@@ -694,7 +694,7 @@ export function OrderDetailsDialog({
                         support team if you need assistance with payment
                         arrangements.
                       </p>
-                    </div>
+                    </div> */}
                   </div>
                 ) : (
                   <div className="space-y-3">

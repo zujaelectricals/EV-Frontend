@@ -716,14 +716,14 @@ export const Models = () => {
           <p className="text-muted-foreground mt-1">Manage EV product catalog and specifications</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          {/* <Button variant="outline" size="sm">
             <Upload className="h-4 w-4 mr-2" />
             Import
           </Button>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
-          </Button>
+          </Button> */}
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
             setIsDialogOpen(open);
             if (!open) {

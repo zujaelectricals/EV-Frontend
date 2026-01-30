@@ -60,11 +60,11 @@ const distributorMenuItems: MenuItem[] = [
   //{ label: 'Team Matching History', icon: History, path: '/distributor/pair-history' },
   //{ label: 'Earnings & Commissions', icon: DollarSign, path: '/distributor/earnings' },
   { label: 'Team Performance', icon: Users, path: '/distributor/team' },
-  { label: 'Sales Tracking', icon: TrendingUp, path: '/distributor/sales' },
+  //{ label: 'Sales Tracking', icon: TrendingUp, path: '/distributor/sales' },
   { label: 'Order History', icon: Package, path: '/distributor/orders' },
   //{ label: 'Reserve Wallet', icon: Landmark, path: '/distributor/pool-wallet' },
   { label: 'Payout History', icon: ClipboardList, path: '/distributor/payouts' },
-  { label: 'Milestone Tracker', icon: Award, path: '/distributor/milestones' },
+  //{ label: 'Milestone Tracker', icon: Award, path: '/distributor/milestones' },
   //{ label: 'Nominee Management', icon: UserCheck, path: '/distributor/nominee' },
 ];
 
@@ -122,6 +122,14 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
     
     return { isVerifiedDistributor: isVerified, isExplicitlyNotDistributor: isExplicitlyNot };
   }, [user?.isDistributor, user?.distributorInfo?.isDistributor, user?.distributorInfo?.isVerified, user?.distributorInfo?.verificationStatus]);
+
+  // Binary stats: used to hide "Team Performance" when there are no team members
+  // Must be called before any early returns to comply with React Hooks rules
+  const distributorId = user?.id || '';
+  const { data: binaryStats } = useGetBinaryStatsQuery(distributorId, {
+    skip: !distributorId || !isVerifiedDistributor || isExplicitlyNotDistributor,
+  });
+  const hasTeamMembers = ((binaryStats?.leftCount ?? 0) + (binaryStats?.rightCount ?? 0)) > 0;
 
   // Debug logging (remove in production if needed)
   useEffect(() => {
@@ -201,13 +209,6 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
       </Link>
     );
   };
-
-  // Binary stats: used to hide "Team Performance" when there are no team members
-  const distributorId = user?.id || '';
-  const { data: binaryStats } = useGetBinaryStatsQuery(distributorId, {
-    skip: !distributorId || !isVerifiedDistributor || isExplicitlyNotDistributor,
-  });
-  const hasTeamMembers = ((binaryStats?.leftCount ?? 0) + (binaryStats?.rightCount ?? 0)) > 0;
 
   // Get menu items based on user role
   const getMenuItems = (): MenuItem[] => {

@@ -23,6 +23,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useGetComprehensiveReportsQuery } from '@/app/api/reportsApi';
 import { Skeleton } from '@/components/ui/skeleton';
 

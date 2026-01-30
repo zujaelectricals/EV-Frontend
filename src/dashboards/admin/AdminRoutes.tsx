@@ -68,6 +68,7 @@ import { KYCPending } from './pages/KYCPending';
 import { Payouts } from './pages/Payouts';
 import { PaymentManagement } from './pages/PaymentManagement';
 import { SendNotification } from './pages/SendNotification';
+import { PartnersManagement } from './pages/PartnersManagement';
 import { PendingTickets } from './pages/PendingTickets';
 import { AnsweredTickets } from './pages/AnsweredTickets';
 import { ClosedTickets } from './pages/ClosedTickets';
@@ -182,6 +183,7 @@ export const AdminRoutes = () => {
       {/* User Management Routes */}
       <Route path="users" element={<UserManagement />} />
       <Route path="users/active" element={<ActiveUsers />} />
+      <Route path="users/partners-management" element={<PartnersManagement />} />
       <Route path="users/paid" element={<PaidUsers />} />
       <Route path="users/blocked" element={<BlockedUsers />} />
       <Route path="users/email-unverified" element={<EmailUnverified />} />

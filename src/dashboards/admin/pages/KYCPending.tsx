@@ -51,11 +51,14 @@ import {
   useGetKYCListQuery,
   useUpdateKYCStatusMutation,
   useGetUserByIdQuery,
+  type UserProfileResponse,
 } from '@/app/api/userApi';
 import { LoadingSpinner, InlineLoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
+import type { SerializedError } from '@reduxjs/toolkit';
 
 type KYCStatus = 'pending' | 'approved' | 'rejected';
 
@@ -134,7 +137,7 @@ export const KYCPending = () => {
 
   // Build query parameters
   const queryParams = useMemo(() => {
-    const params: any = {
+    const params: Record<string, string | number> = {
       page: currentPage,
       page_size: pageSize,
       ordering,
@@ -212,11 +215,12 @@ export const KYCPending = () => {
             const result = await userApi.endpoints.getUserById.initiate(userId);
             
             if ('data' in result && result.data) {
+              const userData = result.data as UserProfileResponse;
               detailsMap[userId] = {
-                first_name: result.data.first_name || '',
-                last_name: result.data.last_name || '',
-                email: result.data.email || '',
-                mobile: result.data.mobile || undefined,
+                first_name: userData.first_name || '',
+                last_name: userData.last_name || '',
+                email: userData.email || '',
+                mobile: userData.mobile || undefined,
               };
             }
           } catch (error) {
@@ -310,8 +314,16 @@ export const KYCPending = () => {
         setIsViewDialogOpen(false);
         setViewingKYC(null);
       }
-    } catch (error: any) {
-      toast.error(error?.data?.message || error?.data?.detail || 'Failed to approve KYC');
+    } catch (error) {
+      const err = error as FetchBaseQueryError | SerializedError;
+      const errorMessage = 'data' in err && err.data && typeof err.data === 'object' && 'message' in err.data
+        ? (err.data as { message?: string }).message
+        : 'data' in err && err.data && typeof err.data === 'object' && 'detail' in err.data
+        ? (err.data as { detail?: string }).detail
+        : 'message' in err
+        ? err.message
+        : 'Failed to approve KYC';
+      toast.error(errorMessage || 'Failed to approve KYC');
     }
   };
 
@@ -339,8 +351,16 @@ export const KYCPending = () => {
         setIsViewDialogOpen(false);
         setViewingKYC(null);
       }
-    } catch (error: any) {
-      toast.error(error?.data?.message || error?.data?.detail || 'Failed to reject KYC');
+    } catch (error) {
+      const err = error as FetchBaseQueryError | SerializedError;
+      const errorMessage = 'data' in err && err.data && typeof err.data === 'object' && 'message' in err.data
+        ? (err.data as { message?: string }).message
+        : 'data' in err && err.data && typeof err.data === 'object' && 'detail' in err.data
+        ? (err.data as { detail?: string }).detail
+        : 'message' in err
+        ? err.message
+        : 'Failed to reject KYC';
+      toast.error(errorMessage || 'Failed to reject KYC');
     }
   };
 
@@ -513,10 +533,10 @@ export const KYCPending = () => {
               </div>
             </PopoverContent>
           </Popover>
-          <Button variant="outline" size="sm">
+          {/* <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
-          </Button>
+          </Button> */}
         </div>
       </div>
 
