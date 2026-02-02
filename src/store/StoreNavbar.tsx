@@ -98,6 +98,7 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
     { href: '/', label: 'Home' },
     { href: '/about', label: 'About Us' },
     { href: '/scooters', label: 'Scooters' },
+    { href: '/gallery', label: 'Gallery' },
     { href: '/contact', label: 'Contact' },
     // { href: '/login', label: 'Become a Distributor' },
   ];

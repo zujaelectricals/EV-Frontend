@@ -36,6 +36,7 @@ export interface UserProfileResponse {
   carry_forward_right: number;
   is_distributor_terms_and_conditions_accepted: boolean | null;
   distributor_application_status: 'pending' | 'approved' | 'rejected' | null;
+  profile_picture?: string; // URL to the profile picture
 }
 
 // KYC submission request (multipart/form-data)
@@ -443,9 +444,18 @@ export const userApi = api.injectEndpoints({
       invalidatesTags: ['User', 'KYC'],
     }),
 
-    // PUT users/update_profile/ - Update user profile
-    updateProfile: builder.mutation<UserProfileResponse, Partial<UserProfileResponse>>({
+    // PATCH users/update_profile/ - Update user profile (supports multipart/form-data when profile_picture is included)
+    updateProfile: builder.mutation<UserProfileResponse, Partial<UserProfileResponse> & { profile_picture?: File }>({
       queryFn: async (body) => {
+        console.log('🔵 [PROFILE UPDATE API] ========== Starting Profile Update ==========');
+        console.log('🔵 [PROFILE UPDATE API] Request body type check:', {
+          hasProfilePicture: body.profile_picture instanceof File,
+          profilePictureType: typeof body.profile_picture,
+          profilePictureValue: body.profile_picture instanceof File 
+            ? `File: ${body.profile_picture.name} (${body.profile_picture.size} bytes, type: ${body.profile_picture.type})`
+            : body.profile_picture,
+        });
+
         const { accessToken } = getAuthTokens();
 
         if (!accessToken) {
@@ -458,28 +468,164 @@ export const userApi = api.injectEndpoints({
         }
 
         try {
-          const response = await fetch(`${getApiBaseUrl()}users/update_profile/`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-          });
+          const hasProfilePicture = body.profile_picture instanceof File;
+          
+          // If profile_picture is included, use multipart/form-data
+          if (hasProfilePicture) {
+            const formData = new FormData();
+            
+            // Add all text fields to FormData
+            if (body.first_name) formData.append('first_name', body.first_name);
+            if (body.last_name) formData.append('last_name', body.last_name);
+            if (body.email) formData.append('email', body.email);
+            if (body.mobile) formData.append('mobile', body.mobile);
+            if (body.gender) formData.append('gender', body.gender);
+            if (body.date_of_birth) formData.append('date_of_birth', body.date_of_birth);
+            if (body.address_line1) formData.append('address_line1', body.address_line1);
+            if (body.address_line2) formData.append('address_line2', body.address_line2);
+            if (body.city) formData.append('city', body.city);
+            if (body.state) formData.append('state', body.state);
+            if (body.pincode) formData.append('pincode', body.pincode);
+            if (body.country) formData.append('country', body.country);
+            
+            // Add profile picture file - ensure it's a File object
+            if (body.profile_picture instanceof File) {
+              formData.append('profile_picture', body.profile_picture);
+              console.log('📤 [PROFILE UPDATE API] Added profile_picture file to FormData:', {
+                name: body.profile_picture.name,
+                size: body.profile_picture.size,
+                type: body.profile_picture.type,
+              });
+            } else {
+              console.error('❌ [PROFILE UPDATE API] profile_picture is not a File object:', body.profile_picture);
+            }
 
-          if (!response.ok) {
-            const error = await response.json().catch(() => ({ message: 'Failed to update profile' }));
-            return {
-              error: {
-                status: response.status,
-                data: error,
-              } as FetchBaseQueryError,
-            };
+            console.log('📤 [PROFILE UPDATE API] Using multipart/form-data (profile_picture included)');
+            const formDataEntries = Array.from(formData.entries()).map(([key, value]) => ({
+              key,
+              value: value instanceof File
+                ? `File: ${value.name} (${value.size} bytes, type: ${value.type})`
+                : String(value),
+            }));
+            console.log('📤 [PROFILE UPDATE API] FormData entries:', formDataEntries);
+
+            let response = await fetch(`${getApiBaseUrl()}users/update_profile/`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                // Don't set Content-Type - browser will set it with boundary for multipart/form-data
+              },
+              body: formData,
+            });
+
+            // Handle 401 Unauthorized - try to refresh token
+            if (response.status === 401) {
+              console.log('🟡 [PROFILE UPDATE API] Access token expired, attempting to refresh...');
+              const refreshData = await refreshAccessToken();
+
+              if (refreshData) {
+                const { accessToken: newAccessToken } = getAuthTokens();
+                if (newAccessToken) {
+                  console.log('🔄 [PROFILE UPDATE API] Retrying request with new token...');
+                  // Recreate FormData (can't reuse after being sent)
+                  const retryFormData = new FormData();
+                  if (body.first_name) retryFormData.append('first_name', body.first_name);
+                  if (body.last_name) retryFormData.append('last_name', body.last_name);
+                  if (body.email) retryFormData.append('email', body.email);
+                  if (body.mobile) retryFormData.append('mobile', body.mobile);
+                  if (body.gender) retryFormData.append('gender', body.gender);
+                  if (body.date_of_birth) retryFormData.append('date_of_birth', body.date_of_birth);
+                  if (body.address_line1) retryFormData.append('address_line1', body.address_line1);
+                  if (body.address_line2) retryFormData.append('address_line2', body.address_line2);
+                  if (body.city) retryFormData.append('city', body.city);
+                  if (body.state) retryFormData.append('state', body.state);
+                  if (body.pincode) retryFormData.append('pincode', body.pincode);
+                  if (body.country) retryFormData.append('country', body.country);
+                  if (body.profile_picture instanceof File) {
+                    retryFormData.append('profile_picture', body.profile_picture);
+                  }
+
+                  response = await fetch(`${getApiBaseUrl()}users/update_profile/`, {
+                    method: 'PUT',
+                    headers: {
+                      'Authorization': `Bearer ${newAccessToken}`,
+                    },
+                    body: retryFormData,
+                  });
+                }
+              }
+            }
+
+            if (!response.ok) {
+              const error = await response.json().catch(() => ({ message: 'Failed to update profile' }));
+              console.error('❌ [PROFILE UPDATE API] Error response:', error);
+              return {
+                error: {
+                  status: response.status,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+
+            const data: UserProfileResponse = await response.json();
+            console.log('✅ [PROFILE UPDATE API] Profile updated successfully with multipart/form-data');
+            console.log('✅ [PROFILE UPDATE API] ========== Profile Update Completed ==========');
+            return { data };
+          } else {
+            // If no profile_picture, use application/json
+            console.log('📤 [PROFILE UPDATE API] Using application/json (no profile_picture)');
+            // Remove profile_picture from body if it exists but isn't a File
+            const { profile_picture, ...jsonBody } = body;
+            console.log('📤 [PROFILE UPDATE API] Request body:', JSON.stringify(jsonBody, null, 2));
+
+            let response = await fetch(`${getApiBaseUrl()}users/update_profile/`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(jsonBody),
+            });
+
+            // Handle 401 Unauthorized - try to refresh token
+            if (response.status === 401) {
+              console.log('🟡 [PROFILE UPDATE API] Access token expired, attempting to refresh...');
+              const refreshData = await refreshAccessToken();
+
+              if (refreshData) {
+                const { accessToken: newAccessToken } = getAuthTokens();
+                if (newAccessToken) {
+                  console.log('🔄 [PROFILE UPDATE API] Retrying request with new token...');
+                  response = await fetch(`${getApiBaseUrl()}users/update_profile/`, {
+                    method: 'PUT',
+                    headers: {
+                      'Authorization': `Bearer ${newAccessToken}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(jsonBody),
+                  });
+                }
+              }
+            }
+
+            if (!response.ok) {
+              const error = await response.json().catch(() => ({ message: 'Failed to update profile' }));
+              console.error('❌ [PROFILE UPDATE API] Error response:', error);
+              return {
+                error: {
+                  status: response.status,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+
+            const data: UserProfileResponse = await response.json();
+            console.log('✅ [PROFILE UPDATE API] Profile updated successfully with application/json');
+            console.log('✅ [PROFILE UPDATE API] ========== Profile Update Completed ==========');
+            return { data };
           }
-
-          const data: UserProfileResponse = await response.json();
-          return { data };
         } catch (error) {
+          console.error('❌ [PROFILE UPDATE API] Fetch error:', error);
           return {
             error: {
               status: 'FETCH_ERROR' as const,

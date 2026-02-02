@@ -53,6 +53,7 @@ export function Footer() {
             <div className="space-y-2 text-sm text-muted-foreground">
               <Link to="/scooters" className="block transition-colors hover:text-[#15adc1]">All Scooters</Link>
               <Link to="/about" className="block transition-colors hover:text-[#15adc1]">About Us</Link>
+              <Link to="/gallery" className="block transition-colors hover:text-[#15adc1]">Gallery</Link>
               <Link to="/contact" className="block transition-colors hover:text-[#15adc1]">Contact</Link>
               <Link to="/login" className="block transition-colors hover:text-[#15adc1]">My Account</Link>
             </div>

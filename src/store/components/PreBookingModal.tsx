@@ -16,8 +16,9 @@ import { useAddReferralNodeMutation } from '@/app/api/binaryApi';
 import { useCreateBookingMutation, useMakePaymentMutation, BookingResponse } from '@/app/api/bookingApi';
 import { toast } from 'sonner';
 import { Scooter } from '../ScooterCard';
-import { PaymentGateway } from './PaymentGateway';
 import { StockDetailResponse } from '@/app/api/inventoryApi';
+import { useRazorpay } from '@/hooks/useRazorpay';
+import { payForEntity, VerifyPaymentResponse } from '@/services/paymentService';
 
 interface PreBookingModalProps {
   scooter: Scooter;
@@ -50,7 +51,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [selectedTenure, setSelectedTenure] = useState<number>(12);
   const [referralCodeInput, setReferralCodeInput] = useState(referralCode || '');
   const [joinDistributorProgram, setJoinDistributorProgram] = useState(false);
-  const [showPaymentGateway, setShowPaymentGateway] = useState(false);
   
   // Delivery address fields
   const [deliveryCity, setDeliveryCity] = useState('');
@@ -64,6 +64,10 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   
   // Store booking response
   const [bookingResponse, setBookingResponse] = useState<BookingResponse | null>(null);
+  
+  // Razorpay integration
+  const openRazorpayCheckout = useRazorpay();
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Sync inputValue when preBookingAmount changes externally
   useEffect(() => {
@@ -148,8 +152,8 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     if (isBookingInProgress || isCreatingBooking || isSubmittingRef.current || bookingResponse) {
       console.log('🟡 [PRE-BOOK] Submission blocked - already in progress or booking exists');
       if (bookingResponse) {
-        // If booking already exists, just open payment gateway
-        setShowPaymentGateway(true);
+        // If booking already exists, trigger payment again
+        await handleRazorpayPayment(bookingResponse);
       }
       return;
     }
@@ -265,9 +269,9 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       // Store booking response immediately to prevent duplicate calls
       setBookingResponse(response);
       
-      // Open payment gateway after successful booking
+      // Trigger Razorpay payment flow after successful booking
       // Keep isSubmittingRef true until payment is processed to prevent duplicate bookings
-      setShowPaymentGateway(true);
+      await handleRazorpayPayment(response);
       
       // Don't reset ref here - keep it true until payment completes or modal closes
     } catch (error: unknown) {
@@ -296,6 +300,65 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     link.click();
     document.body.removeChild(link);
     toast.success('Booking Terms PDF download started');
+  };
+
+  // Handle Razorpay payment flow
+  const handleRazorpayPayment = async (booking: BookingResponse) => {
+    if (!booking) {
+      toast.error('Booking details not available. Please refresh the page.');
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      // Get user info for prefill
+      const userPrefill = currentUser ? {
+        name: currentUser.name || undefined,
+        email: currentUser.email || undefined,
+        contact: currentUser.phone || undefined,
+      } : undefined;
+
+      // Trigger Razorpay payment flow
+      const paymentResult = await payForEntity(
+        'booking', // entity_type
+        booking.id, // entity_id (booking ID)
+        openRazorpayCheckout,
+        {
+          name: 'EV Nexus',
+          description: `Pre-booking payment for ${scooter.name}`,
+          prefill: userPrefill,
+          onClose: () => {
+            // User closed the modal - reset payment state but keep booking
+            setIsProcessingPayment(false);
+            toast.info('Payment cancelled. You can complete payment later.');
+          },
+          onDismiss: () => {
+            // User dismissed the modal - reset payment state but keep booking
+            setIsProcessingPayment(false);
+            toast.info('Payment cancelled. You can complete payment later.');
+          },
+        }
+      );
+
+      // Payment verified successfully
+      if (paymentResult.success) {
+        // Call the existing handlePaymentSuccess function
+        await handlePaymentSuccess();
+      } else {
+        throw new Error(paymentResult.message || 'Payment verification failed');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Payment failed. Please try again.';
+      
+      // Only show error toast if it's not a user cancellation
+      if (!errorMessage.includes('cancelled') && !errorMessage.includes('closed') && !errorMessage.includes('dismissed')) {
+        toast.error(errorMessage);
+      }
+      
+      // Reset payment processing state
+      setIsProcessingPayment(false);
+    }
   };
 
   const handlePaymentSuccess = async (paymentGatewayRef?: string) => {
@@ -446,6 +509,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       // Reset submission state after successful payment
       isSubmittingRef.current = false;
       setIsBookingInProgress(false);
+      setIsProcessingPayment(false);
       
       onClose();
     } catch (error: unknown) {
@@ -457,6 +521,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       // Reset submission state on payment error
       isSubmittingRef.current = false;
       setIsBookingInProgress(false);
+      setIsProcessingPayment(false);
     }
   };
 
@@ -896,6 +961,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
               disabled={
                 isCreatingBooking ||
                 isBookingInProgress ||
+                isProcessingPayment ||
                 preBookingAmount < MIN_PRE_BOOKING ||
                 !selectedColor ||
                 !selectedBatteryVariant ||
@@ -907,21 +973,15 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 !stockData
               }
             >
-              {isCreatingBooking || isBookingInProgress ? 'Processing...' : 'Pre-Book Now'}
+              {isCreatingBooking || isBookingInProgress || isProcessingPayment 
+                ? (isProcessingPayment ? 'Opening Payment...' : 'Processing...') 
+                : 'Pre-Book Now'}
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
 
-    {/* Payment Gateway Modal */}
-    <PaymentGateway
-      isOpen={showPaymentGateway}
-      onClose={() => setShowPaymentGateway(false)}
-      amount={preBookingAmount}
-      onSuccess={handlePaymentSuccess}
-      vehicleName={scooter.name}
-    />
     </>
   );
 }

@@ -155,6 +155,8 @@ export function ProfilePage() {
     pincode: "",
     country: "India",
   });
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
 
   // Form state for nominee
   const [nomineeFormData, setNomineeFormData] = useState({
@@ -229,6 +231,13 @@ export function ProfilePage() {
         pincode: rawProfileData.pincode || "",
         country: rawProfileData.country || "India",
       });
+      // Set profile picture preview if available
+      if (rawProfileData.profile_picture) {
+        setProfilePicturePreview(rawProfileData.profile_picture);
+      } else {
+        setProfilePicturePreview(null);
+      }
+      setProfilePicture(null); // Reset file input when loading existing data
     }
   }, [rawProfileData, activeTab]);
 
@@ -250,12 +259,38 @@ export function ProfilePage() {
     }
   };
 
+  // Handle profile picture file change
+  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        toast.error("Please upload a valid image file (JPEG, PNG, GIF, or WEBP)");
+        return;
+      }
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > maxSize) {
+        toast.error("Image size must be less than 5MB");
+        return;
+      }
+      setProfilePicture(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicturePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // Prepare the request body (only include fields that are provided)
+      // Prepare the request body with profile picture if provided
       const requestBody: {
         first_name: string;
         last_name: string;
@@ -269,6 +304,7 @@ export function ProfilePage() {
         pincode: string;
         address_line2?: string;
         country?: string;
+        profile_picture?: File;
       } = {
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -289,12 +325,18 @@ export function ProfilePage() {
       if (formData.country) {
         requestBody.country = formData.country;
       }
+      if (profilePicture) {
+        requestBody.profile_picture = profilePicture;
+      }
 
       // Call the update profile API
       await updateProfile(requestBody).unwrap();
       
       // Show success message
       toast.success("Profile updated successfully!");
+      
+      // Clear profile picture file input after successful upload
+      setProfilePicture(null);
       
       // Refetch both profile queries to update the UI and cache
       await Promise.all([refetchProfile(), refetchRawProfile()]);
@@ -896,6 +938,51 @@ export function ProfilePage() {
                         onChange={(e) => handleInputChange("date_of_birth", e.target.value)}
                         className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm sm:text-base"
                       />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Profile Picture <span className="text-muted-foreground text-xs">(Optional - JPEG, PNG, GIF, WEBP, max 5MB)</span></label>
+                    {profilePicturePreview && (
+                      <div className="mb-2 flex items-center gap-4">
+                        <img
+                          src={profilePicturePreview}
+                          alt="Profile preview"
+                          className="w-24 h-24 rounded-full object-cover border-2 border-border"
+                        />
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground mb-1">Current Profile Picture</p>
+                          {profilePicture && (
+                            <p className="text-xs text-muted-foreground">
+                              New: {profilePicture.name} ({(profilePicture.size / 1024).toFixed(2)} KB)
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col items-center gap-2">
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {profilePicture 
+                              ? profilePicture.name 
+                              : profilePicturePreview
+                                ? "Click to change profile picture"
+                                : "Click to upload profile picture"}
+                          </span>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                          onChange={handleProfilePictureChange}
+                          className="hidden"
+                        />
+                      </label>
+                      {profilePicture && (
+                        <p className="text-xs text-muted-foreground">
+                          Selected: {profilePicture.name} ({(profilePicture.size / 1024).toFixed(2)} KB)
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">

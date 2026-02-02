@@ -27,8 +27,9 @@ import { useAppSelector, useAppDispatch } from "@/app/hooks";
 import { updateBooking } from "@/app/slices/bookingSlice";
 import { updatePreBooking } from "@/app/slices/authSlice";
 import { Link } from "react-router-dom";
-import { PaymentGateway } from "@/store/components/PaymentGateway";
 import { toast } from "sonner";
+import { useRazorpay } from "@/hooks/useRazorpay";
+import { payForEntity, VerifyPaymentResponse } from "@/services/paymentService";
 import { useAddReferralNodeMutation } from "@/app/api/binaryApi";
 import { useGetBookingsQuery, useMakePaymentMutation } from "@/app/api/bookingApi";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
@@ -46,16 +47,19 @@ export function MyOrders() {
   const { user } = useAppSelector((state) => state.auth);
   const [addReferralNode] = useAddReferralNodeMutation();
   const [makePayment, { isLoading: isMakingPayment }] = useMakePaymentMutation();
-  const [showPaymentGateway, setShowPaymentGateway] = useState(false);
   const [showPaymentAmountDialog, setShowPaymentAmountDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [customPaymentAmount, setCustomPaymentAmount] = useState<string>("");
   const [maxPaymentAmount, setMaxPaymentAmount] = useState<number>(0);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [refreshKey, setRefreshKey] = useState(0); // Force re-render key
+  
+  // Razorpay integration
+  const openRazorpayCheckout = useRazorpay();
 
   // Map API status to query parameter
   const getApiStatus = (localStatus: string): string | undefined => {
@@ -293,7 +297,7 @@ export function MyOrders() {
     setShowPaymentAmountDialog(true);
   };
 
-  const handleConfirmPaymentAmount = () => {
+  const handleConfirmPaymentAmount = async () => {
     const amount = Number(customPaymentAmount);
     if (isNaN(amount) || amount <= 0) {
       toast.error("Please enter a valid amount");
@@ -307,172 +311,112 @@ export function MyOrders() {
     }
     setPaymentAmount(amount);
     setShowPaymentAmountDialog(false);
-    setShowPaymentGateway(true);
+    
+    // Trigger Razorpay payment flow
+    if (!selectedBooking) {
+      toast.error("Booking not selected");
+      return;
+    }
+    
+    await handleRazorpayAdditionalPayment(selectedBooking, amount);
   };
+  
+  const handleRazorpayAdditionalPayment = async (bookingId: string, amount: number) => {
+    if (!bookingId) {
+      toast.error("Booking ID is required");
+      return;
+    }
 
-  const handleAdditionalPaymentSuccess = async (paymentGatewayRef?: string, paymentMethod: 'online' | 'bank_transfer' | 'cash' | 'wallet' = 'online') => {
-    if (!selectedBooking) return;
+    const booking = bookings.find((b) => b.id === bookingId);
+    if (!booking) {
+      toast.error("Booking not found");
+      return;
+    }
 
-    const booking = bookings.find((b) => b.id === selectedBooking);
-    if (!booking) return;
+    setIsProcessingPayment(true);
 
     try {
-      // Call the make payment API
-      const bookingId = parseInt(selectedBooking, 10);
-      if (isNaN(bookingId)) {
-        toast.error("Invalid booking ID");
-        return;
-      }
+      // Get user info for prefill
+      const userPrefill = user ? {
+        name: user.name || undefined,
+        email: user.email || undefined,
+        contact: user.phone || undefined,
+      } : undefined;
 
-      const paymentResponse = await makePayment({
-        bookingId,
-        paymentData: {
-          amount: paymentAmount,
-          payment_method: paymentMethod,
-        },
-      }).unwrap();
-
-      console.log("✅ [PAYMENT] Payment API response:", paymentResponse);
-
-      // Update local state with API response
-      const newTotalPaid = parseFloat(paymentResponse.total_paid) || 0;
-      const newRemainingAmount = parseFloat(paymentResponse.remaining_amount) || 0;
-      const newPaymentStatus = newRemainingAmount === 0 ? "completed" : "partial";
-
-      // Get previous total paid for distributor eligibility check
-      const previousTotalPaid = booking.totalPaid || booking.preBookingAmount || 0;
-
-      // Check if user should be added to distributor's team network
-      // Conditions:
-      // 1. User has a referral code in the booking
-      // 2. Previous total paid was < 5000
-      // 3. New total paid >= 5000
-      // 4. User hasn't been added to team network yet
-      const shouldAddToTeamNetwork =
-        booking.referredBy &&
-        booking.referredBy.trim() &&
-        previousTotalPaid < DISTRIBUTOR_ELIGIBILITY_AMOUNT &&
-        newTotalPaid >= DISTRIBUTOR_ELIGIBILITY_AMOUNT &&
-        !booking.addedToTeamNetwork;
-
-    let addedToTeamNetwork = booking.addedToTeamNetwork || false;
-
-    if (shouldAddToTeamNetwork && user) {
-      try {
-        // Find distributor ID by referral code - check both current auth and multiple accounts
-        let distributorId: string | null = null;
-
-        // First check current auth data
-        const authDataStr = localStorage.getItem("ev_nexus_auth_data");
-        if (authDataStr) {
-          try {
-            const authData = JSON.parse(authDataStr);
-            if (
-              authData.user?.distributorInfo?.referralCode ===
-                booking.referredBy.trim() &&
-              authData.user?.distributorInfo?.isDistributor === true &&
-              authData.user?.distributorInfo?.isVerified === true
-            ) {
-              distributorId = authData.user.id;
-            }
-          } catch (e) {
-            console.error("Error parsing auth data:", e);
-          }
+      // Trigger Razorpay payment flow with amount for additional payment
+      const paymentResult = await payForEntity(
+        'booking', // entity_type
+        parseInt(bookingId, 10), // entity_id (booking ID)
+        openRazorpayCheckout,
+        {
+          name: 'EV Nexus',
+          description: `Additional payment for ${booking.vehicleName || 'booking'}`,
+          amount: amount, // Amount in rupees for partial payment
+          prefill: userPrefill,
+          onClose: () => {
+            // User closed the modal - reset payment state
+            setIsProcessingPayment(false);
+            toast.info('Payment cancelled. You can try again later.');
+          },
+          onDismiss: () => {
+            // User dismissed the modal - reset payment state
+            setIsProcessingPayment(false);
+            toast.info('Payment cancelled. You can try again later.');
+          },
         }
-
-        // If not found in current auth, check multiple accounts
-        if (!distributorId) {
-          const accountsKey = "ev_nexus_multiple_accounts";
-          const stored = localStorage.getItem(accountsKey);
-          if (stored) {
-            const accounts: Array<{
-              user?: {
-                id?: string;
-                distributorInfo?: {
-                  referralCode?: string;
-                  isDistributor?: boolean;
-                  isVerified?: boolean;
-                };
-              };
-            }> = JSON.parse(stored);
-            const distributor = accounts.find(
-              (acc) =>
-                acc.user?.distributorInfo?.referralCode ===
-                  booking.referredBy?.trim() &&
-                acc.user?.distributorInfo?.isDistributor === true &&
-                acc.user?.distributorInfo?.isVerified === true
-            );
-
-            if (distributor?.user?.id) {
-              distributorId = distributor.user.id;
-            }
-          }
-        }
-
-        if (distributorId) {
-          await addReferralNode({
-            distributorId: distributorId,
-            userId: user.id,
-            userName: user.name,
-            pv: newTotalPaid,
-            referralCode: booking.referredBy.trim(),
-          }).unwrap();
-
-          addedToTeamNetwork = true;
-          toast.success(
-            "You have been added to the distributor's team network!"
-          );
-        }
-      } catch (error) {
-        console.error("Error adding user to binary tree:", error);
-        // Don't fail the payment if this fails
-      }
-    }
-
-    // Update booking
-    dispatch(
-      updateBooking({
-        id: selectedBooking,
-        updates: {
-          totalPaid: newTotalPaid,
-          remainingAmount: newRemainingAmount,
-          paymentStatus: newPaymentStatus,
-          status: newRemainingAmount === 0 ? "confirmed" : booking.status,
-          addedToTeamNetwork: addedToTeamNetwork,
-        },
-      })
-    );
-
-    // Update user pre-booking info if this is their active booking
-    if (user?.preBookingInfo?.vehicleId === booking.vehicleId) {
-      dispatch(
-        updatePreBooking({
-          ...user.preBookingInfo,
-          totalPaid: newTotalPaid,
-          remainingAmount: newRemainingAmount,
-          paymentStatus: newPaymentStatus,
-          isDistributorEligible: newTotalPaid >= DISTRIBUTOR_ELIGIBILITY_AMOUNT, // Update eligibility based on total paid
-        })
       );
+
+      // Payment verified successfully
+      if (paymentResult.success) {
+        // Call the existing handleAdditionalPaymentSuccess function
+        await handleAdditionalPaymentSuccess();
+      } else {
+        throw new Error(paymentResult.message || 'Payment verification failed');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Payment failed. Please try again.';
+      
+      // Only show error toast if it's not a user cancellation
+      if (!errorMessage.includes('cancelled') && !errorMessage.includes('closed') && !errorMessage.includes('dismissed')) {
+        toast.error(errorMessage);
+      }
+      
+      // Reset payment processing state
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handleAdditionalPaymentSuccess = async () => {
+    if (!selectedBooking) {
+      setIsProcessingPayment(false);
+      return;
     }
 
+    try {
+      // Note: Payment has already been processed via Razorpay verify endpoint
+      // The backend should have updated the booking automatically
+      // We just need to refresh the bookings list
+      
       toast.success(
-        `Payment of ₹${paymentAmount.toLocaleString()} processed successfully!`
+        `Payment of ₹${paymentAmount.toLocaleString('en-IN')} processed successfully!`
       );
-      setShowPaymentGateway(false);
+      
+      // Refresh bookings to get updated data
+      await refetch();
+      
+      // Reset states
       setSelectedBooking(null);
       setPaymentAmount(0);
+      setCustomPaymentAmount("");
+      setMaxPaymentAmount(0);
+      setIsProcessingPayment(false);
       
-      // Refetch bookings to get updated data from server
-      await refetch();
+      console.log("✅ [PAYMENT] Payment processed successfully via Razorpay");
     } catch (error) {
-      console.error("❌ [PAYMENT] Error making payment:", error);
-      const errorData = error && typeof error === 'object' && 'data' in error 
-        ? (error as { data?: { message?: string; detail?: string } }).data 
-        : undefined;
-      const errorMessage = errorData?.message || errorData?.detail || "Failed to process payment. Please try again.";
+      console.error("❌ [PAYMENT] Error processing payment:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to refresh booking data. Please refresh the page.";
       toast.error(errorMessage);
-      // Don't close the payment gateway on error so user can retry
+      setIsProcessingPayment(false);
     }
   };
 
@@ -828,26 +772,6 @@ export function MyOrders() {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Gateway for Additional Payments */}
-      {selectedBooking && (
-        <PaymentGateway
-          isOpen={showPaymentGateway}
-          onClose={() => {
-            setShowPaymentGateway(false);
-            setSelectedBooking(null);
-            setPaymentAmount(0);
-            setCustomPaymentAmount("");
-            setMaxPaymentAmount(0);
-          }}
-          amount={paymentAmount}
-          onSuccess={(paymentGatewayRef, paymentMethod) => 
-            handleAdditionalPaymentSuccess(paymentGatewayRef, paymentMethod)
-          }
-          vehicleName={
-            bookings.find((b) => b.id === selectedBooking)?.vehicleName
-          }
-        />
-      )}
 
       {/* Order Details Dialog */}
       <OrderDetailsDialog
