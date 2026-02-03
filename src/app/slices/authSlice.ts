@@ -134,6 +134,15 @@ const setStoredAuth = (accessToken: string | null, refreshToken?: string | null,
           distributorInfo: user.distributorInfo,
           distributorApplicationStatus: user.distributorApplicationStatus,
         };
+        
+        // Store profile picture separately in localStorage if it exists
+        if (user.avatar) {
+          try {
+            localStorage.setItem('ev_nexus_profile_picture', user.avatar);
+          } catch (error) {
+            console.error('Error storing profile picture:', error);
+          }
+        }
       }
       
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
@@ -279,6 +288,15 @@ const authSlice = createSlice({
           action.payload.user
         );
         
+        // Store profile picture separately in localStorage if it exists
+        if (action.payload.user.avatar) {
+          try {
+            localStorage.setItem('ev_nexus_profile_picture', action.payload.user.avatar);
+          } catch (error) {
+            console.error('Error storing profile picture:', error);
+          }
+        }
+        
         // Log if we're using tokens from localStorage (to detect if Redux was stale)
         if (!action.payload.accessToken && !action.payload.token && (latestAuth.accessToken || latestAuth.token)) {
           console.log('🟡 [setCredentials] Using latest tokens from localStorage (no new tokens provided)', {
@@ -302,6 +320,8 @@ const authSlice = createSlice({
       // Clear auth tokens from localStorage
       if (typeof window !== 'undefined') {
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        // Clear profile picture from localStorage
+        localStorage.removeItem('ev_nexus_profile_picture');
       }
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
@@ -319,6 +339,19 @@ const authSlice = createSlice({
             latestAuth.refreshToken || null,
             state.user
           );
+        }
+        
+        // Store profile picture separately in localStorage if it exists
+        if (action.payload.avatar !== undefined) {
+          try {
+            if (action.payload.avatar) {
+              localStorage.setItem('ev_nexus_profile_picture', action.payload.avatar);
+            } else {
+              localStorage.removeItem('ev_nexus_profile_picture');
+            }
+          } catch (error) {
+            console.error('Error storing profile picture:', error);
+          }
         }
       }
     },

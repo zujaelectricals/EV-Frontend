@@ -12,11 +12,11 @@ import {
   Shield,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { logout } from "@/app/slices/authSlice";
 import { useLogoutMutation } from "@/app/api/authApi";
-import { getAuthTokens, api } from "@/app/api/baseApi";
+import { getAuthTokens, api, getProfilePicture, clearProfilePicture } from "@/app/api/baseApi";
 import { clearBookings } from "@/app/slices/bookingSlice";
 import { clearWishlist } from "@/app/slices/wishlistSlice";
 import { clearWallets } from "@/app/slices/walletSlice";
@@ -61,6 +61,14 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
   const isMobile = useIsMobile();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profilePicture, setProfilePictureState] = useState<string | null>(null);
+
+  // Load profile picture from localStorage or Redux state
+  useEffect(() => {
+    const storedPicture = getProfilePicture();
+    const userPicture = user?.avatar;
+    setProfilePictureState(userPicture || storedPicture || null);
+  }, [user?.avatar]);
 
   // Mock notifications - in a real app, these would come from your API/state
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -119,6 +127,9 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
       dispatch(clearWishlist());
       dispatch(clearWallets());
       
+      // Clear profile picture from localStorage
+      clearProfilePicture();
+      
       // Clear RTK Query cache to remove previous user's cached data
       dispatch(api.util.resetApiState());
       
@@ -134,6 +145,9 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
       dispatch(clearBookings());
       dispatch(clearWishlist());
       dispatch(clearWallets());
+      
+      // Clear profile picture from localStorage
+      clearProfilePicture();
       
       // Clear RTK Query cache
       dispatch(api.util.resetApiState());
@@ -382,11 +396,23 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
               whileHover={{ scale: isMobile ? 1 : 1.02 }}
               className="flex items-center gap-1 sm:gap-2 rounded-lg bg-secondary/50 px-2 sm:px-3 py-2"
             >
-              <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary/20">
-                <span className="text-xs sm:text-sm font-medium text-primary">
-                  {user?.name?.charAt(0) || "U"}
-                </span>
-              </div>
+              {profilePicture ? (
+                <img
+                  src={profilePicture}
+                  alt={user?.name || "User"}
+                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-full object-cover border-2 border-primary/20"
+                  onError={() => {
+                    // Fallback to initial if image fails to load
+                    setProfilePictureState(null);
+                  }}
+                />
+              ) : (
+                <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary/20">
+                  <span className="text-xs sm:text-sm font-medium text-primary">
+                    {user?.name?.charAt(0) || "U"}
+                  </span>
+                </div>
+              )}
               <span className="hidden text-sm font-medium sm:block">
                 {user?.name || "User"}
               </span>

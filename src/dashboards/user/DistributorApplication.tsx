@@ -304,7 +304,7 @@ export function DistributorApplication() {
 
 
   // Eligibility check: No ₹5000 requirement, no active buyer requirement
-  // Anyone can become a distributor (KYC verification is still required)
+  // Anyone can become a distributor
   const isEligible = true; // Always eligible - no pre-booking or payment requirements
   
   // Check KYC verification status
@@ -361,14 +361,6 @@ export function DistributorApplication() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    // Validate KYC verification
-    if (!isKYCVerified) {
-      toast.error('KYC verification is required to submit the distributor application. Please complete your KYC verification first.');
-      setIsSubmitting(false);
-      navigate('/profile?tab=kyc');
-      return;
-    }
 
     // Validate terms acceptance and OTP verification
     if (!termsAccepted) {
@@ -513,7 +505,7 @@ export function DistributorApplication() {
 
   // Redirect to profile if already a distributor with an approved distributor application
   // We rely on distributor_application_status from the profile so that:
-  // - If status is null (not applied yet) but KYC is verified, user can see and fill the distributor application form
+  // - If status is null (not applied yet), user can see and fill the distributor application form
   // - If status is approved, we treat the user as an active authorized partner
   const isVerifiedDistributor =
     isDistributor === true && distributorApplicationStatusFromProfile === 'approved';
@@ -552,82 +544,6 @@ export function DistributorApplication() {
     );
   }
 
-  // Check KYC verification - show warning if not verified or approved
-  // Only show KYC button if status is not_submitted, pending, rejected, or verified
-  // If status is 'approved', skip KYC requirement and show distributor form directly
-  const kycStatusValueForCheck = currentUser?.kycStatus as string | null | undefined;
-  if (!isKYCVerified && kycStatusValueForCheck !== 'approved') {
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-warning" />
-              KYC Verification Required
-            </CardTitle>
-            <CardDescription>
-              Complete your KYC verification to apply for the Distributor Program
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <p className="font-semibold mb-2">KYC verification is required to become a Distributor.</p>
-                <p className="mb-3 text-sm">
-                  You need to complete your KYC verification to proceed with the distributor application.
-                </p>
-                {kycStatus === 'not_submitted' && (
-                  <p className="mb-3 text-sm">
-                    Please upload your PAN and Aadhar documents for verification.
-                  </p>
-                )}
-                {kycStatus === 'pending' && (
-                  <p className="mb-3 text-sm">
-                    Your KYC verification is currently under review. Please wait for approval before submitting the distributor application.
-                  </p>
-                )}
-                {kycStatus === 'rejected' && (
-                  <p className="mb-3 text-sm">
-                    Your KYC verification was rejected. Please resubmit your documents with correct information.
-                  </p>
-                )}
-                <div className="mt-4 flex gap-2">
-                  {kycStatus === 'pending' ? (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                      <Shield className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                      <span className="text-yellow-800 dark:text-yellow-200 font-medium">Your KYC is Under Review</span>
-                    </div>
-                  ) : (
-                    <Button 
-                      onClick={() => {
-                        console.log('🔵 [KYC BUTTON] Clicked, opening modal...');
-                        setIsKYCModalOpen(true);
-                        console.log('🟢 [KYC BUTTON] Modal state set to true');
-                      }} 
-                      className="mt-2 bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 shadow-md shadow-emerald-500/25"
-                      size="lg"
-                    >
-                      <Shield className="w-4 h-4 mr-2" />
-                      {kycStatus === 'not_submitted' && 'Submit KYC Documents'}
-                      {kycStatus === 'rejected' && 'Resubmit KYC Documents'}
-                      {kycStatusValueForCheck === 'verified' && 'Update KYC Verification'}
-                    </Button>
-                  )}
-                </div>
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-
-        {/* KYC Modal */}
-        <KYCModal
-          isOpen={isKYCModalOpen}
-          onClose={() => setIsKYCModalOpen(false)}
-        />
-      </div>
-    );
-  }
 
   // Check application status:
   // 1. Primary source: distributor_application_status from users/profile
@@ -637,7 +553,9 @@ export function DistributorApplication() {
     existingApplication?.status ||
     verificationStatus;
 
-  if (applicationStatus === 'pending' || verificationStatus === 'pending') {
+  // Only show pending status if distributorApplicationStatusFromProfile is explicitly 'pending'
+  // Don't show pending for fresh users (when distributorApplicationStatusFromProfile is null)
+  if (distributorApplicationStatusFromProfile === 'pending') {
     return (
       <div className="space-y-6">
         <Card>
@@ -672,7 +590,9 @@ export function DistributorApplication() {
     );
   }
 
-  if (applicationStatus === 'rejected' || verificationStatus === 'rejected') {
+  // Only show rejected status if distributorApplicationStatusFromProfile is explicitly 'rejected'
+  // Don't show rejected for fresh users (when distributorApplicationStatusFromProfile is null)
+  if (distributorApplicationStatusFromProfile === 'rejected') {
     return (
       <div className="space-y-6">
         <Card>
@@ -719,39 +639,19 @@ export function DistributorApplication() {
         </CardHeader>
         <CardContent>
           {/* Eligibility Status Banner */}
-          {isEligible && isKYCVerified ? (
+          {isEligible && (
             <div className="mb-6 p-4 bg-success/10 border border-success/30 rounded-lg">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-success" />
                 <div>
                   <p className="font-semibold text-success">You are eligible to apply!</p>
                   <p className="text-sm text-muted-foreground">
-                    KYC verification is complete. You can proceed with your distributor application.
+                    You can proceed with your distributor application.
                   </p>
                 </div>
               </div>
             </div>
-          ) : !isKYCVerified ? (
-            <div className="mb-6 p-4 bg-warning/10 border border-warning/30 rounded-lg">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-warning" />
-                <div className="flex-1">
-                  <p className="font-semibold text-warning">KYC Verification Required</p>
-                  <p className="text-sm text-muted-foreground">
-                    Please complete your KYC verification to proceed with the distributor application.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-2"
-                    onClick={() => setIsKYCModalOpen(true)}
-                  >
-                    Complete KYC Verification
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Terms & Conditions Section */}
@@ -1030,22 +930,10 @@ export function DistributorApplication() {
               type="submit" 
               className="w-full" 
               size="lg" 
-              disabled={isSubmitting || !termsAccepted || !otpVerified || (!isKYCVerified && kycStatusValueForCheck !== 'approved')}
+              disabled={isSubmitting || !termsAccepted || !otpVerified}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </Button>
-            {!isKYCVerified && kycStatusValueForCheck !== 'approved' && (
-              <p className="text-sm text-destructive text-center">
-                KYC verification is required. Please complete your KYC verification to submit the application.
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto text-destructive underline ml-1"
-                  onClick={() => navigate('/profile?tab=kyc')}
-                >
-                  Complete KYC
-                </Button>
-              </p>
-            )}
             {!termsAccepted && (
               <p className="text-sm text-muted-foreground text-center">
                 Please accept Terms & Conditions to proceed

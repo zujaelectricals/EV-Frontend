@@ -1,5 +1,5 @@
 import { api } from './baseApi';
-import { getAuthTokens, refreshAccessToken } from './baseApi';
+import { getAuthTokens, refreshAccessToken, setProfilePicture } from './baseApi';
 import { getApiBaseUrl } from '../../lib/config';
 import type { User } from '../slices/authSlice';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
@@ -136,17 +136,19 @@ const transformUserProfile = (profile: UserProfileResponse): User => {
     joinedAt: profile.date_joined,
     kycStatus: profile.kyc_status === 'approved' ? 'verified' : (profile.kyc_status || 'not_submitted'),
     distributorApplicationStatus: profile.distributor_application_status,
+    avatar: profile.profile_picture || undefined,
     distributorInfo: shouldIncludeDistributorInfo ? {
       isDistributor: profile.is_distributor,
       isVerified: profile.kyc_status === 'approved' || profile.kyc_status === 'verified',
       // Use distributor_application_status when available, otherwise fall back to KYC status mapping
+      // Only set verificationStatus if distributor_application_status exists, otherwise undefined
       verificationStatus: profile.distributor_application_status
         ? profile.distributor_application_status
         : profile.kyc_status === 'approved' || profile.kyc_status === 'verified'
           ? 'approved'
           : profile.kyc_status === 'rejected'
             ? 'rejected'
-            : 'pending',
+            : undefined,
       referralCode: profile.referral_code || '',
       referredBy: profile.referred_by || undefined,
       leftCount: profile.left_leg_count || 0,
@@ -201,6 +203,22 @@ export const userApi = api.injectEndpoints({
           const transformedUser = transformUserProfile(data);
           console.log('🔄 [USER PROFILE API] Transformed user:', transformedUser);
 
+          // Store profile picture in localStorage if it exists and has changed
+          if (data.profile_picture) {
+            const currentStoredPicture = localStorage.getItem('ev_nexus_profile_picture');
+            if (currentStoredPicture !== data.profile_picture) {
+              setProfilePicture(data.profile_picture);
+              console.log('✅ [USER PROFILE API] Profile picture updated in localStorage');
+            }
+          } else {
+            // Clear profile picture if it's not in the response
+            const currentStoredPicture = localStorage.getItem('ev_nexus_profile_picture');
+            if (currentStoredPicture) {
+              setProfilePicture(null);
+              console.log('✅ [USER PROFILE API] Profile picture cleared from localStorage');
+            }
+          }
+
           return { data: transformedUser };
         } catch (error) {
           return {
@@ -248,6 +266,23 @@ export const userApi = api.injectEndpoints({
           }
 
           const data: UserProfileResponse = await response.json();
+          
+          // Store profile picture in localStorage if it exists and has changed
+          if (data.profile_picture) {
+            const currentStoredPicture = localStorage.getItem('ev_nexus_profile_picture');
+            if (currentStoredPicture !== data.profile_picture) {
+              setProfilePicture(data.profile_picture);
+              console.log('✅ [USER PROFILE RAW API] Profile picture updated in localStorage');
+            }
+          } else {
+            // Clear profile picture if it's not in the response
+            const currentStoredPicture = localStorage.getItem('ev_nexus_profile_picture');
+            if (currentStoredPicture) {
+              setProfilePicture(null);
+              console.log('✅ [USER PROFILE RAW API] Profile picture cleared from localStorage');
+            }
+          }
+          
           return { data };
         } catch (error) {
           return {
@@ -569,6 +604,23 @@ export const userApi = api.injectEndpoints({
 
             const data: UserProfileResponse = await response.json();
             console.log('✅ [PROFILE UPDATE API] Profile updated successfully with multipart/form-data');
+            
+            // Store profile picture in localStorage if it exists and has changed
+            if (data.profile_picture) {
+              const currentStoredPicture = localStorage.getItem('ev_nexus_profile_picture');
+              if (currentStoredPicture !== data.profile_picture) {
+                setProfilePicture(data.profile_picture);
+                console.log('✅ [PROFILE UPDATE API] Profile picture updated in localStorage');
+              }
+            } else {
+              // Clear profile picture if it's not in the response
+              const currentStoredPicture = localStorage.getItem('ev_nexus_profile_picture');
+              if (currentStoredPicture) {
+                setProfilePicture(null);
+                console.log('✅ [PROFILE UPDATE API] Profile picture cleared from localStorage');
+              }
+            }
+            
             console.log('✅ [PROFILE UPDATE API] ========== Profile Update Completed ==========');
             return { data };
           } else {
@@ -621,6 +673,23 @@ export const userApi = api.injectEndpoints({
 
             const data: UserProfileResponse = await response.json();
             console.log('✅ [PROFILE UPDATE API] Profile updated successfully with application/json');
+            
+            // Store profile picture in localStorage if it exists and has changed
+            if (data.profile_picture) {
+              const currentStoredPicture = localStorage.getItem('ev_nexus_profile_picture');
+              if (currentStoredPicture !== data.profile_picture) {
+                setProfilePicture(data.profile_picture);
+                console.log('✅ [PROFILE UPDATE API] Profile picture updated in localStorage');
+              }
+            } else {
+              // Clear profile picture if it's not in the response
+              const currentStoredPicture = localStorage.getItem('ev_nexus_profile_picture');
+              if (currentStoredPicture) {
+                setProfilePicture(null);
+                console.log('✅ [PROFILE UPDATE API] Profile picture cleared from localStorage');
+              }
+            }
+            
             console.log('✅ [PROFILE UPDATE API] ========== Profile Update Completed ==========');
             return { data };
           }

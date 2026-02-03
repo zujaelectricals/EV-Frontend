@@ -12,7 +12,7 @@ import { updateBooking, setBookings, Booking, PaymentMethod } from '@/app/slices
 import { PaymentGateway } from '@/store/components/PaymentGateway';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { useGetBookingsQuery } from '@/app/api/bookingApi';
+import { useGetBookingsQuery, useCancelBookingMutation } from '@/app/api/bookingApi';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { api } from '@/app/api/baseApi';
 
@@ -30,6 +30,7 @@ export function OrderHistory() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [cancelBooking, { isLoading: isCancellingBooking }] = useCancelBookingMutation();
 
   // Map API status to query parameter
   const getApiStatus = (localStatus: string): string | undefined => {
@@ -259,6 +260,42 @@ export function OrderHistory() {
     
     // Refetch bookings to get updated data from server
     await refetch();
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!bookingId) {
+      toast.error("Booking ID is required");
+      return;
+    }
+
+    // Confirm cancellation
+    if (!window.confirm("Are you sure you want to cancel this booking? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const result = await cancelBooking(parseInt(bookingId, 10)).unwrap();
+      
+      toast.success("Booking cancelled successfully");
+      
+      // Refresh bookings to get updated data
+      await refetch();
+      
+      console.log("✅ [CANCEL BOOKING] Booking cancelled successfully:", result);
+    } catch (error: any) {
+      console.error("❌ [CANCEL BOOKING] Error cancelling booking:", error);
+      const errorMessage = error?.data?.message || error?.data?.detail || error?.message || "Failed to cancel booking. Please try again.";
+      toast.error(errorMessage);
+    }
+  };
+
+  // Check if booking can be cancelled
+  const canCancelBooking = (booking: Booking) => {
+    // Don't allow cancellation if already cancelled, delivered, or expired
+    return booking.status !== "cancelled" && 
+           booking.status !== "delivered" && 
+           booking.status !== "expired" &&
+           booking.status !== "refunded";
   };
 
   const selectedBookingData = selectedBooking ? displayBookings.find((b) => b.id === selectedBooking) : null;
@@ -527,6 +564,17 @@ export function OrderHistory() {
                         <Eye className="w-4 h-4 mr-2" />
                         View Details
                       </Button>
+                      {canCancelBooking(booking) && (
+                        <Button
+                          variant="outline"
+                          className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => handleCancelBooking(booking.id)}
+                          disabled={isCancellingBooking}
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          {isCancellingBooking ? "Cancelling..." : "Cancel Booking"}
+                        </Button>
+                      )}
                       {(booking.paymentStatus === 'pending' || 
                         booking.paymentStatus === 'partial' || 
                         booking.paymentStatus === 'overdue') && (

@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { useRazorpay } from "@/hooks/useRazorpay";
 import { payForEntity, VerifyPaymentResponse } from "@/services/paymentService";
 import { useAddReferralNodeMutation } from "@/app/api/binaryApi";
-import { useGetBookingsQuery, useMakePaymentMutation } from "@/app/api/bookingApi";
+import { useGetBookingsQuery, useMakePaymentMutation, useCancelBookingMutation } from "@/app/api/bookingApi";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Booking, PaymentMethod } from "@/app/slices/bookingSlice";
@@ -47,6 +47,7 @@ export function MyOrders() {
   const { user } = useAppSelector((state) => state.auth);
   const [addReferralNode] = useAddReferralNodeMutation();
   const [makePayment, { isLoading: isMakingPayment }] = useMakePaymentMutation();
+  const [cancelBooking, { isLoading: isCancellingBooking }] = useCancelBookingMutation();
   const [showPaymentAmountDialog, setShowPaymentAmountDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
@@ -420,6 +421,41 @@ export function MyOrders() {
     }
   };
 
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!bookingId) {
+      toast.error("Booking ID is required");
+      return;
+    }
+
+    // Confirm cancellation
+    if (!window.confirm("Are you sure you want to cancel this booking? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const result = await cancelBooking(parseInt(bookingId, 10)).unwrap();
+      
+      toast.success("Booking cancelled successfully");
+      
+      // Refresh bookings to get updated data
+      await refetch();
+      
+      console.log("✅ [CANCEL BOOKING] Booking cancelled successfully:", result);
+    } catch (error: any) {
+      console.error("❌ [CANCEL BOOKING] Error cancelling booking:", error);
+      const errorMessage = error?.data?.message || error?.data?.detail || error?.message || "Failed to cancel booking. Please try again.";
+      toast.error(errorMessage);
+    }
+  };
+
+  // Check if booking can be cancelled
+  const canCancelBooking = (booking: Booking) => {
+    // Don't allow cancellation if already cancelled, delivered, or completed
+    return booking.status !== "cancelled" && 
+           booking.status !== "delivered" && 
+           booking.status !== "expired";
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4 gap-2">
@@ -674,6 +710,17 @@ export function MyOrders() {
                         >
                           View Details
                         </Button>
+                        {canCancelBooking(booking) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full sm:w-auto text-xs sm:text-sm text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => handleCancelBooking(booking.id)}
+                            disabled={isCancellingBooking}
+                          >
+                            {isCancellingBooking ? "Cancelling..." : "Cancel Booking"}
+                          </Button>
+                        )}
                         {booking.remainingAmount > 0 && (
                           <Button
                             size="sm"
@@ -688,7 +735,7 @@ export function MyOrders() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex justify-end mt-3">
+                    <div className="flex justify-end gap-2 mt-3">
                       <Button
                         variant="outline"
                         size="sm"
@@ -700,6 +747,17 @@ export function MyOrders() {
                       >
                         View Details
                       </Button>
+                      {canCancelBooking(booking) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs sm:text-sm text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => handleCancelBooking(booking.id)}
+                          disabled={isCancellingBooking}
+                        >
+                          {isCancellingBooking ? "Cancelling..." : "Cancel Booking"}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </CardContent>

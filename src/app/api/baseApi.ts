@@ -20,6 +20,48 @@ export const getAuthTokens = () => {
   return { accessToken: null, refreshToken: null };
 };
 
+// Profile picture storage key
+const PROFILE_PICTURE_STORAGE_KEY = 'ev_nexus_profile_picture';
+
+// Helper function to get profile picture from localStorage
+export const getProfilePicture = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem(PROFILE_PICTURE_STORAGE_KEY);
+    return stored || null;
+  } catch (error) {
+    console.error('Error reading profile picture from localStorage:', error);
+    return null;
+  }
+};
+
+// Helper function to store profile picture in localStorage
+export const setProfilePicture = (profilePictureUrl: string | null): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (profilePictureUrl) {
+      localStorage.setItem(PROFILE_PICTURE_STORAGE_KEY, profilePictureUrl);
+      console.log('✅ [setProfilePicture] Profile picture stored in localStorage');
+    } else {
+      localStorage.removeItem(PROFILE_PICTURE_STORAGE_KEY);
+      console.log('✅ [setProfilePicture] Profile picture removed from localStorage');
+    }
+  } catch (error) {
+    console.error('❌ [setProfilePicture] Error storing profile picture:', error);
+  }
+};
+
+// Helper function to clear profile picture from localStorage
+export const clearProfilePicture = (): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(PROFILE_PICTURE_STORAGE_KEY);
+    console.log('✅ [clearProfilePicture] Profile picture cleared from localStorage');
+  } catch (error) {
+    console.error('❌ [clearProfilePicture] Error clearing profile picture:', error);
+  }
+};
+
 // Interface for minimal user info stored in localStorage
 interface MinimalUserInfo {
   id: string;

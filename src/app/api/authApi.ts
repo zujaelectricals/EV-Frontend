@@ -404,6 +404,7 @@ export const authApi = api.injectEndpoints({
             phone: data.mobile,
             joinedAt: data.date_joined,
             kycStatus: data.kyc_status || 'not_submitted',
+            avatar: data.profile_picture || undefined,
           };
           console.log('🔄 [AUTH API - getCurrentUser] Transformed user:', transformedUser);
           

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { X, AlertCircle, Info, Calendar, Wallet, Eye, Download } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { X, AlertCircle, Info, Calendar, Wallet, Eye, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -37,6 +38,7 @@ const PAYMENT_DUE_DAYS = 30;
 
 export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockData }: PreBookingModalProps) {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const [addReferralNode] = useAddReferralNodeMutation();
   const [createBooking, { isLoading: isCreatingBooking }] = useCreateBookingMutation();
@@ -46,9 +48,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const isSubmittingRef = useRef(false);
   const [preBookingAmount, setPreBookingAmount] = useState(500);
   const [inputValue, setInputValue] = useState('500'); // Local state for input field
-  const [paymentMethod, setPaymentMethod] = useState<'full' | 'emi' | 'flexible'>('full');
-  const [selectedEMI, setSelectedEMI] = useState<string>('12');
-  const [selectedTenure, setSelectedTenure] = useState<number>(12);
   const [referralCodeInput, setReferralCodeInput] = useState(referralCode || '');
   const [joinDistributorProgram, setJoinDistributorProgram] = useState(false);
   
@@ -68,6 +67,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   // Razorpay integration
   const openRazorpayCheckout = useRazorpay();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
 
   // Sync inputValue when preBookingAmount changes externally
   useEffect(() => {
@@ -79,6 +79,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     if (!isOpen) {
       setBookingResponse(null);
       setIsBookingInProgress(false);
+      setIsVerifyingPayment(false);
       isSubmittingRef.current = false;
     }
   }, [isOpen]);
@@ -341,8 +342,17 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         }
       );
 
-      // Payment verified successfully
+      // Payment verified successfully by Razorpay
       if (paymentResult.success) {
+        console.log('✅ [PAYMENT] Razorpay payment verified, showing loading overlay');
+        // Show verification loading immediately after Razorpay payment success
+        setIsProcessingPayment(false);
+        setIsVerifyingPayment(true);
+        
+        // Force a re-render to ensure UI updates
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        console.log('✅ [PAYMENT] Calling handlePaymentSuccess');
         // Call the existing handlePaymentSuccess function
         await handlePaymentSuccess();
       } else {
@@ -364,7 +374,14 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const handlePaymentSuccess = async (paymentGatewayRef?: string) => {
     if (!stockData || !bookingResponse) {
       toast.error('Booking details not available. Please refresh the page.');
+      setIsVerifyingPayment(false);
       return;
+    }
+
+    // Verification loading should already be set from handleRazorpayPayment
+    // But ensure it's set in case this is called directly
+    if (!isVerifyingPayment) {
+      setIsVerifyingPayment(true);
     }
 
     try {
@@ -401,22 +418,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         }));
       }
 
-      // Calculate EMI details if selected
-      let emiPlan = undefined;
-      if (paymentMethod === 'emi' && selectedTenure) {
-        const interest = Math.round(remainingAmount * 0.08); // 8% interest
-        const totalWithInterest = remainingAmount + interest;
-        const monthlyAmount = Math.round(totalWithInterest / selectedTenure);
-        
-        emiPlan = {
-          id: `emi-${selectedTenure}`,
-          months: selectedTenure,
-          monthlyAmount: monthlyAmount,
-          interestRate: 8,
-          totalAmount: totalWithInterest,
-        };
-      }
-
       // Create local booking object from API response
       const localBooking = {
         id: booking.id.toString(),
@@ -427,8 +428,8 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         totalAmount: parseFloat(booking.total_amount),
         remainingAmount: parseFloat(booking.remaining_amount),
         totalPaid: parseFloat(booking.total_paid),
-        paymentMethod,
-        emiPlan,
+        paymentMethod: 'full' as const,
+        emiPlan: undefined,
         paymentDueDate: booking.expires_at as string,
         paymentStatus: 'partial' as const,
         isActiveBuyer: true,
@@ -504,14 +505,38 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       } else if (joinDistributorProgram && isDistributorEligible) {
         successMessage += ' You can now apply for the Distributor Program from your profile.';
       }
-      toast.success(successMessage);
       
       // Reset submission state after successful payment
       isSubmittingRef.current = false;
       setIsBookingInProgress(false);
       setIsProcessingPayment(false);
       
+      console.log('✅ [PAYMENT] Payment processing complete, preparing navigation');
+      
+      // Keep verification loading visible for a moment to show completion
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      console.log('✅ [PAYMENT] Closing modal and navigating');
+      
+      // Close modal first
       onClose();
+      
+      // Small delay before navigation to ensure modal closes smoothly
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
+      // Reset verification state before navigation
+      setIsVerifyingPayment(false);
+      
+      // Navigate to profile page with orders tab
+      console.log('✅ [PAYMENT] Navigating to /profile?tab=orders');
+      navigate('/profile?tab=orders', { replace: true });
+      
+      // Show success toast after navigation
+      setTimeout(() => {
+        toast.success(successMessage, {
+          duration: 4000,
+        });
+      }, 600);
     } catch (error: unknown) {
       console.error('🔴 [PAYMENT] Payment Processing Error:', error);
       const errorMessage = (error as { data?: { detail?: string; message?: string } })?.data?.detail || 
@@ -522,13 +547,101 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       isSubmittingRef.current = false;
       setIsBookingInProgress(false);
       setIsProcessingPayment(false);
+      setIsVerifyingPayment(false);
     }
   };
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      {/* Payment Verification Loading Overlay - Outside Dialog using Portal */}
+      {isVerifyingPayment && typeof window !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[99999] bg-background/98 backdrop-blur-md flex items-center justify-center">
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center justify-center space-y-6 px-8 py-10"
+            >
+              <div className="relative">
+                {/* Outer rotating ring */}
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="w-20 h-20 rounded-full border-4 border-primary/20 border-t-primary"
+                />
+                {/* Inner pulsing circle */}
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-primary/20"
+                />
+                {/* Center spinner */}
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                </motion.div>
+              </div>
+              <div className="text-center space-y-3">
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-xl font-semibold text-foreground"
+                >
+                  Verifying your payment...
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-sm text-muted-foreground max-w-xs"
+                >
+                  Please wait while we confirm your transaction
+                </motion.p>
+                {/* Animated dots */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="flex items-center justify-center gap-1.5 pt-2"
+                >
+                  <motion.span
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
+                    className="w-2 h-2 rounded-full bg-primary"
+                  />
+                  <motion.span
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+                    className="w-2 h-2 rounded-full bg-primary"
+                  />
+                  <motion.span
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
+                    className="w-2 h-2 rounded-full bg-primary"
+                  />
+                </motion.div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>,
+        document.body
+      )}
+
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        // Prevent closing during payment verification
+        if (!open && isVerifyingPayment) {
+          return;
+        }
+        onClose();
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="relative">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">Pre-Book {scooter.name}</DialogTitle>
             <DialogDescription className="sr-only">
@@ -536,10 +649,10 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
             </DialogDescription>
           </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Pre-Booking Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="preBookingAmount" className="text-base font-semibold">
+          <div className="space-y-2.5">
+            <Label htmlFor="preBookingAmount" className="text-base font-semibold text-foreground">
               Pre-Booking Amount (Minimum ₹{MIN_PRE_BOOKING.toLocaleString()})
             </Label>
             <Input
@@ -578,16 +691,16 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 setPreBookingAmount(finalValue);
                 setInputValue(finalValue.toString());
               }}
-              className="text-lg"
+              className="text-lg h-12"
             />
             {preBookingAmount < MIN_PRE_BOOKING && (
-              <p className="text-sm text-destructive flex items-center gap-1">
+              <p className="text-sm text-destructive flex items-center gap-1.5">
                 <AlertCircle className="w-4 h-4" />
                 Minimum amount is ₹{MIN_PRE_BOOKING.toLocaleString()}
               </p>
             )}
             {preBookingAmount > totalAmount && (
-              <p className="text-sm text-destructive flex items-center gap-1">
+              <p className="text-sm text-destructive flex items-center gap-1.5">
                 <AlertCircle className="w-4 h-4" />
                 Pre-booking amount cannot exceed vehicle price (₹{totalAmount.toLocaleString()})
               </p>
@@ -595,77 +708,84 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
           </div>
 
           {/* Referral Code */}
-          <div className="space-y-2">
-            <Label htmlFor="referralCode">Referral Code (Optional)</Label>
+          <div className="space-y-2.5">
+            <Label htmlFor="referralCode" className="text-sm font-medium text-foreground">
+              Referral Code (Optional)
+            </Label>
             <Input
               id="referralCode"
               placeholder="Enter referral code"
               value={referralCodeInput}
               onChange={(e) => setReferralCodeInput(e.target.value)}
+              className="h-11"
             />
             {referralCodeInput && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5" />
                 Referrer will get ₹{REFERRAL_BONUS.toLocaleString()} bonus (after TDS)
               </p>
             )}
           </div>
 
-          {/* Vehicle Color Selection */}
-          {stockData && stockData.vehicle_colors && stockData.vehicle_colors.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="vehicleColor" className="text-base font-semibold">
-                Vehicle Color <span className="text-destructive">*</span>
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {stockData.vehicle_colors.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setSelectedColor(color)}
-                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                      selectedColor === color
-                        ? 'border-primary bg-primary/10 font-semibold'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    {color.charAt(0).toUpperCase() + color.slice(1)}
-                  </button>
-                ))}
+          {/* Vehicle Color and Battery Variant Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Vehicle Color Selection */}
+            {stockData && stockData.vehicle_colors && stockData.vehicle_colors.length > 0 && (
+              <div className="space-y-2.5">
+                <Label htmlFor="vehicleColor" className="text-base font-semibold text-foreground">
+                  Vehicle Color <span className="text-destructive">*</span>
+                </Label>
+                <div className="flex flex-wrap gap-2.5">
+                  {stockData.vehicle_colors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      className={`px-5 py-2.5 rounded-lg border-2 transition-all font-medium ${
+                        selectedColor === color
+                          ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                          : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                      }`}
+                    >
+                      {color.charAt(0).toUpperCase() + color.slice(1)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Battery Variant Selection */}
-          {stockData && stockData.battery_variants && stockData.battery_variants.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="batteryVariant" className="text-base font-semibold">
-                Battery Variant <span className="text-destructive">*</span>
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {stockData.battery_variants.map((variant) => (
-                  <button
-                    key={variant}
-                    type="button"
-                    onClick={() => setSelectedBatteryVariant(variant)}
-                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                      selectedBatteryVariant === variant
-                        ? 'border-primary bg-primary/10 font-semibold'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    {variant}
-                  </button>
-                ))}
+            {/* Battery Variant Selection */}
+            {stockData && stockData.battery_variants && stockData.battery_variants.length > 0 && (
+              <div className="space-y-2.5">
+                <Label htmlFor="batteryVariant" className="text-base font-semibold text-foreground">
+                  Battery Variant <span className="text-destructive">*</span>
+                </Label>
+                <div className="flex flex-wrap gap-2.5">
+                  {stockData.battery_variants.map((variant) => (
+                    <button
+                      key={variant}
+                      type="button"
+                      onClick={() => setSelectedBatteryVariant(variant)}
+                      className={`px-5 py-2.5 rounded-lg border-2 transition-all font-medium ${
+                        selectedBatteryVariant === variant
+                          ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                          : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                      }`}
+                    >
+                      {variant}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Delivery Address */}
-          <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-            <h3 className="font-semibold text-foreground">Delivery Address</h3>
+          <div className="space-y-4 p-5 bg-muted/40 rounded-xl border border-border/50">
+            <h3 className="font-semibold text-foreground text-base">Delivery Address</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="deliveryCity" className="text-sm">
+                <Label htmlFor="deliveryCity" className="text-sm font-medium">
                   City <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -674,10 +794,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                   value={deliveryCity}
                   onChange={(e) => setDeliveryCity(e.target.value)}
                   required
+                  className="h-11"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="deliveryState" className="text-sm">
+                <Label htmlFor="deliveryState" className="text-sm font-medium">
                   State <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -686,10 +807,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                   value={deliveryState}
                   onChange={(e) => setDeliveryState(e.target.value)}
                   required
+                  className="h-11"
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="deliveryPin" className="text-sm">
+                <Label htmlFor="deliveryPin" className="text-sm font-medium">
                   PIN Code <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -702,9 +824,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                   }}
                   maxLength={6}
                   required
+                  className="h-11"
                 />
                 {deliveryPin && !/^\d{6}$/.test(deliveryPin) && (
-                  <p className="text-xs text-destructive">
+                  <p className="text-xs text-destructive flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5" />
                     Please enter a valid 6-digit PIN code
                   </p>
                 )}
@@ -715,12 +839,13 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
           {/* Terms and Conditions */}
           <div className="space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-start space-x-2">
+              <div className="flex items-start space-x-3">
                 <Checkbox
                   id="termsAccepted"
                   checked={termsAccepted}
                   onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
                   required
+                  className="mt-0.5"
                 />
                 <Label
                   htmlFor="termsAccepted"
@@ -737,13 +862,13 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                   {' '}<span className="text-destructive">*</span>
                 </Label>
               </div>
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   onClick={handleViewBookingTerms}
-                  className="h-8 w-8 flex-shrink-0"
+                  className="h-9 w-9 flex-shrink-0"
                   title="View Booking Terms"
                 >
                   <Eye className="h-4 w-4" />
@@ -753,7 +878,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                   variant="ghost"
                   size="icon"
                   onClick={handleDownloadBookingTerms}
-                  className="h-8 w-8 flex-shrink-0"
+                  className="h-9 w-9 flex-shrink-0"
                   title="Download Booking Terms"
                 >
                   <Download className="h-4 w-4" />
@@ -761,7 +886,8 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
               </div>
             </div>
             {!termsAccepted && (
-              <p className="text-xs text-destructive ml-6">
+              <p className="text-xs text-destructive ml-8 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5" />
                 You must accept the Terms and Conditions to proceed
               </p>
             )}
@@ -769,178 +895,59 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
 
 
           {/* Payment Summary */}
-          <div className="p-4 bg-muted/30 rounded-lg space-y-3">
-            <h3 className="font-semibold text-foreground">Payment Summary</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Vehicle Price</span>
-                <span className="font-medium">₹{totalAmount.toLocaleString()}</span>
+          <div className="p-5 bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl border border-border/50 space-y-4">
+            <div className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-foreground text-lg">Payment Summary</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-border/30">
+                <span className="text-sm text-muted-foreground">Vehicle Price</span>
+                <span className="font-semibold text-base text-foreground">₹{totalAmount.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Pre-Booking Amount</span>
-                <span className="font-medium">₹{preBookingAmount.toLocaleString()}</span>
+              <div className="flex justify-between items-center py-2 border-b border-border/30">
+                <span className="text-sm text-muted-foreground">Pre-Booking Amount</span>
+                <span className="font-semibold text-base text-primary">₹{preBookingAmount.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Remaining Amount</span>
-                <span className="font-medium">₹{remainingAmount.toLocaleString()}</span>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm text-muted-foreground">Remaining Amount</span>
+                <span className="font-semibold text-base text-foreground">₹{remainingAmount.toLocaleString()}</span>
               </div>
               {excessAmount > 0 && (
-                <>
-                  <div className="pt-2 border-t border-border/50">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Excess Amount (Refundable)</span>
-                      <span>₹{excessAmount.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Tax & Deductions (15%)</span>
-                      <span>-₹{taxAndDeductions.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-medium pt-1">
-                      <span>Net Refund</span>
-                      <span>₹{refundableAmount.toLocaleString()}</span>
-                    </div>
+                <div className="pt-3 mt-3 border-t border-border/50 space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Excess Amount (Refundable)</span>
+                    <span>₹{excessAmount.toLocaleString()}</span>
                   </div>
-                </>
-              )}
-              <div className="pt-2 border-t border-border/50">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Redemption Points (After 1 year)</span>
-                  <span className="font-medium">
-                    {redemptionPoints > 0 ? `${redemptionPoints.toLocaleString()} points` : 'Not eligible'}
-                  </span>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Tax & Deductions (15%)</span>
+                    <span className="text-destructive">-₹{taxAndDeductions.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold pt-2 border-t border-border/30">
+                    <span className="text-foreground">Net Refund</span>
+                    <span className="text-primary">₹{refundableAmount.toLocaleString()}</span>
+                  </div>
                 </div>
-                {redemptionPoints === 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Pre-book at least ₹{DISTRIBUTOR_ELIGIBILITY_AMOUNT.toLocaleString()} to be eligible
-                  </p>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Payment Method */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Payment Method for Remaining Amount</Label>
-            <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'full' | 'emi' | 'flexible')}>
-              <div className={`flex items-center space-x-3 p-4 border rounded-xl transition-colors ${
-                paymentMethod === 'full' ? 'border-primary bg-primary/5' : 'border-border'
-              }`}>
-                <RadioGroupItem value="full" id="full" />
-                <Label htmlFor="full" className="flex-1 cursor-pointer">
-                  <div className="font-medium">Full Payment</div>
-                  <div className="text-sm text-muted-foreground">
-                    Pay ₹{remainingAmount.toLocaleString()} within 30 days
-                  </div>
-                </Label>
-              </div>
-              <div className={`flex items-center space-x-3 p-4 border rounded-xl transition-colors ${
-                paymentMethod === 'emi' ? 'border-primary bg-primary/5' : 'border-border'
-              }`}>
-                <RadioGroupItem value="emi" id="emi" />
-                <Label htmlFor="emi" className="flex-1 cursor-pointer">
-                  <div className="font-medium">EMI Options</div>
-                  <div className="text-sm text-muted-foreground">
-                    Flexible monthly installments
-                  </div>
-                </Label>
-              </div>
-              <div className={`flex items-center space-x-3 p-4 border rounded-xl transition-colors ${
-                paymentMethod === 'flexible' ? 'border-primary bg-primary/5' : 'border-border'
-              }`}>
-                <RadioGroupItem value="flexible" id="flexible" />
-                <Label htmlFor="flexible" className="flex-1 cursor-pointer">
-                  <div className="font-medium">Flexible Payment</div>
-                  <div className="text-sm text-muted-foreground">
-                    Custom payment schedule (if unable to pay within 30 days)
-                  </div>
-                </Label>
-              </div>
-            </RadioGroup>
-            
-            {/* Flexible Payment Warning */}
-            {paymentMethod === 'flexible' && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="p-4 bg-warning/10 border border-warning/30 rounded-lg"
-              >
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 text-sm">
-                    <p className="font-medium text-foreground mb-1">Important Notice</p>
-                    <p className="text-muted-foreground">
-                      If payment is not completed within 30 days from the pre-booking date, the vehicle price may vary based on current market conditions. The final amount will be calculated at the time of payment completion.
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </div>
-
-          {/* EMI Tenure Selection */}
-          {paymentMethod === 'emi' && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="space-y-3"
-            >
-              <Label className="text-base font-semibold">Select Tenure</Label>
-              <div className="grid grid-cols-3 gap-3">
-                {[12, 18, 24].map((months) => {
-                  const interest = Math.round(remainingAmount * 0.08); // 8% interest
-                  const totalWithInterest = remainingAmount + interest;
-                  const finalMonthly = Math.round(totalWithInterest / months);
-                  
-                  return (
-                    <button
-                      key={months}
-                      type="button"
-                      onClick={() => {
-                        setSelectedEMI(months.toString());
-                        setSelectedTenure(months);
-                      }}
-                      className={`p-4 border rounded-xl transition-all text-left ${
-                        selectedEMI === months.toString()
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <div className="font-semibold text-foreground mb-1">{months} Months</div>
-                      <div className="text-sm text-muted-foreground">
-                        ₹{finalMonthly.toLocaleString()}/month
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Total: ₹{totalWithInterest.toLocaleString()}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Important Notes */}
-          <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
+          {/* Payment Due Date */}
+          <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
             <div className="flex items-start gap-3">
-              <Calendar className="w-5 h-5 text-warning mt-0.5" />
-              <div className="flex-1 text-sm">
-                <p className="font-medium text-foreground mb-1">Payment Due Date</p>
-                <p className="text-muted-foreground">
+              <Calendar className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-foreground mb-1.5">Payment Due Date</p>
+                <p className="text-base font-medium text-foreground mb-2">
                   {paymentDueDate.toLocaleDateString('en-IN', { 
                     day: 'numeric', 
                     month: 'long', 
                     year: 'numeric' 
                   })}
                 </p>
-                {paymentMethod === 'flexible' ? (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    If payment is not completed within 30 days, the vehicle price may vary based on current market conditions.
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    If payment is not completed within 30 days, flexible payment options will be available.
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  If payment is not completed within 30 days, flexible payment options will be available.
+                </p>
               </div>
             </div>
           </div>
@@ -979,6 +986,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
             </Button>
           </div>
         </div>
+          </div>
       </DialogContent>
     </Dialog>
 

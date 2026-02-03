@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { logout, isUserAuthenticated } from '@/app/slices/authSlice';
 import { useLogoutMutation } from '@/app/api/authApi';
-import { getAuthTokens, api } from '@/app/api/baseApi';
+import { getAuthTokens, api, getProfilePicture, clearProfilePicture } from '@/app/api/baseApi';
 import { clearBookings } from '@/app/slices/bookingSlice';
 import { clearWishlist } from '@/app/slices/wishlistSlice';
 import { clearWallets } from '@/app/slices/walletSlice';
@@ -28,6 +28,7 @@ interface StoreNavbarProps {
 export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [profilePicture, setProfilePictureState] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -49,6 +50,13 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
   const authenticated = isAuthenticated || isUserAuthenticated();
   const isDistributor = user?.isDistributor && user?.distributorInfo?.isVerified;
 
+  // Load profile picture from localStorage or Redux state
+  useEffect(() => {
+    const storedPicture = getProfilePicture();
+    const userPicture = user?.avatar;
+    setProfilePictureState(userPicture || storedPicture || null);
+  }, [user?.avatar]);
+
   const [logoutMutation, { isLoading: isLoggingOut }] = useLogoutMutation();
 
   const handleLogout = async () => {
@@ -69,6 +77,9 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
       dispatch(clearWishlist());
       dispatch(clearWallets());
       
+      // Clear profile picture from localStorage
+      clearProfilePicture();
+      
       // Clear RTK Query cache to remove previous user's cached data
       dispatch(api.util.resetApiState());
       
@@ -84,6 +95,9 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
       dispatch(clearBookings());
       dispatch(clearWishlist());
       dispatch(clearWallets());
+      
+      // Clear profile picture from localStorage
+      clearProfilePicture();
       
       // Clear RTK Query cache
       dispatch(api.util.resetApiState());
@@ -165,9 +179,21 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 group outline-none">
                     <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-primary/20 to-transparent group-hover:from-primary/40 transition-all duration-300">
-                      <div className="bg-background rounded-full p-1.5 border border-border/50">
-                        <User className="w-5 h-5 text-foreground/80 group-hover:text-primary transition-colors" />
-                      </div>
+                      {profilePicture ? (
+                        <img
+                          src={profilePicture}
+                          alt={user?.name || "User"}
+                          className="w-7 h-7 rounded-full object-cover border border-border/50"
+                          onError={() => {
+                            // Fallback to initial if image fails to load
+                            setProfilePictureState(null);
+                          }}
+                        />
+                      ) : (
+                        <div className="bg-background rounded-full p-1.5 border border-border/50">
+                          <User className="w-5 h-5 text-foreground/80 group-hover:text-primary transition-colors" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col items-start leading-tight">
                       <span className="text-[13px] font-semibold text-foreground/90">{user?.name?.split(' ')[0] || 'Profile'}</span>

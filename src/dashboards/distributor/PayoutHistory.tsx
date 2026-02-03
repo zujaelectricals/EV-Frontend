@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ClipboardList, DollarSign, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, Wallet, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ClipboardList, DollarSign, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, Wallet, Plus, ChevronLeft, ChevronRight, Shield } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { Payout, PayoutStatus, setPayouts } from '@/app/slices/payoutSlice';
 import { StatsCard } from '@/shared/components/StatsCard';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -31,6 +34,7 @@ import {
 import { toast } from 'sonner';
 import { useGetPayoutsQuery, useCreatePayoutMutation, CreatePayoutRequest } from '@/app/api/payoutApi';
 import { useGetWalletTransactionsQuery, GetWalletTransactionsParams } from '@/app/api/walletApi';
+import { useGetUserProfileQuery } from '@/app/api/userApi';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { api } from '@/app/api/baseApi';
 
@@ -65,6 +69,7 @@ const getTypeLabel = (type: string) => {
 
 export const PayoutHistory = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
   const { payouts } = useAppSelector((state) => state.payout);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -73,6 +78,15 @@ export const PayoutHistory = () => {
   const [showTransactionsDialog, setShowTransactionsDialog] = useState(false);
   const [createPayout, { isLoading: isCreatingPayout }] = useCreatePayoutMutation();
   const [selectedBankIndex, setSelectedBankIndex] = useState<number>(0);
+  
+  // Fetch user profile to check KYC status
+  const { data: profileData } = useGetUserProfileQuery();
+  const currentUser = profileData || user;
+  
+  // Check KYC verification status
+  const kycStatusValue = currentUser?.kycStatus;
+  const kycStatus = kycStatusValue === null ? 'not_submitted' : (kycStatusValue || 'not_submitted');
+  const isKYCVerified = kycStatus === 'verified' || (kycStatusValue as string) === 'approved';
   
   // Transactions state
   const [transactionsPage, setTransactionsPage] = useState(1);
@@ -337,31 +351,60 @@ export const PayoutHistory = () => {
                 <Wallet className="w-4 h-4 mr-2" />
                 Transactions
               </Button>
-              <Button
-                onClick={() => {
-                  // Auto-fill bank details from API response if available
-                  const currentBalance = parseFloat(walletSummary.current_balance || '0');
-                  const defaultBank = bankDetails.length > 0 ? bankDetails[0] : null;
-                  
-                  setSelectedBankIndex(0);
-                  setPayoutForm({
-                    requested_amount: currentBalance > 0 ? currentBalance : 0,
-                    // Auto-fill from bank_details if available
-                    bank_name: defaultBank?.bank_name || '',
-                    account_number: defaultBank?.account_number || '',
-                    ifsc_code: defaultBank?.ifsc_code || '',
-                    account_holder_name: defaultBank?.account_holder_name || user?.name || '',
-                    emi_auto_filled: false,
-                    reason: '',
-                  });
-                  setShowCreatePayoutDialog(true);
-                }}
-                disabled={parseFloat(walletSummary.current_balance || '0') <= 0}
-                className="bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 shadow-md shadow-emerald-500/25"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Payout
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-block">
+                    <Button
+                      onClick={() => {
+                        // Check KYC verification before opening dialog
+                        if (!isKYCVerified) {
+                          toast.error('KYC verification is required to create payouts. Please complete your KYC verification first.');
+                          navigate('/profile?tab=kyc');
+                          return;
+                        }
+                        
+                        // Auto-fill bank details from API response if available
+                        const currentBalance = parseFloat(walletSummary.current_balance || '0');
+                        const defaultBank = bankDetails.length > 0 ? bankDetails[0] : null;
+                        
+                        setSelectedBankIndex(0);
+                        setPayoutForm({
+                          requested_amount: currentBalance > 0 ? currentBalance : 0,
+                          // Auto-fill from bank_details if available
+                          bank_name: defaultBank?.bank_name || '',
+                          account_number: defaultBank?.account_number || '',
+                          ifsc_code: defaultBank?.ifsc_code || '',
+                          account_holder_name: defaultBank?.account_holder_name || user?.name || '',
+                          emi_auto_filled: false,
+                          reason: '',
+                        });
+                        setShowCreatePayoutDialog(true);
+                      }}
+                      disabled={parseFloat(walletSummary.current_balance || '0') <= 0 || !isKYCVerified}
+                      className={`bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 shadow-md shadow-emerald-500/25 ${
+                        !isKYCVerified || parseFloat(walletSummary.current_balance || '0') <= 0
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'hover:opacity-90'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Payout
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {(!isKYCVerified || parseFloat(walletSummary.current_balance || '0') <= 0) && (
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">
+                      {!isKYCVerified ? 'KYC Verification Required' : 'Insufficient Balance'}
+                    </p>
+                    <p className="text-xs">
+                      {!isKYCVerified
+                        ? 'Please complete your KYC verification to create payout requests.'
+                        : 'Your wallet balance is too low to create a payout request.'}
+                    </p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
             </div>
           </CardHeader>
           <CardContent>
@@ -385,6 +428,36 @@ export const PayoutHistory = () => {
                 </p>
               </div>
             </div>
+            
+            {/* KYC Verification Message */}
+            {!isKYCVerified && (
+              <div className="mt-6 p-4 rounded-lg border-2 border-amber-400/60 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 dark:border-amber-500/40">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 dark:bg-amber-500/30 flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-base font-semibold text-amber-900 dark:text-amber-100 mb-1.5">
+                      KYC Verification Required
+                    </h4>
+                    <p className="text-sm text-amber-800 dark:text-amber-200 mb-3 leading-relaxed">
+                      To create payout requests, you must complete your KYC verification first. 
+                      This is a one-time process that helps us ensure secure transactions.
+                    </p>
+                    <Button
+                      onClick={() => navigate('/profile?tab=kyc')}
+                      className="bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-sm hover:shadow-md transition-all"
+                      size="sm"
+                    >
+                      <Shield className="w-4 h-4 mr-2" />
+                      Complete KYC Verification
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -607,6 +680,29 @@ export const PayoutHistory = () => {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            {/* KYC Verification Warning */}
+            {!isKYCVerified && (
+              <Alert variant="destructive">
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-semibold mb-2">KYC Verification Required</p>
+                  <p className="mb-3 text-sm">
+                    KYC verification is required to create payouts. Please complete your KYC verification first.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowCreatePayoutDialog(false);
+                      navigate('/profile?tab=kyc');
+                    }}
+                  >
+                    Complete KYC Verification
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {/* Available Balance Info */}
             {walletSummary && (
               <div className="p-3 bg-muted rounded-lg">
@@ -802,6 +898,14 @@ export const PayoutHistory = () => {
             </Button>
             <Button
               onClick={async () => {
+                // Validate KYC verification
+                if (!isKYCVerified) {
+                  toast.error('KYC verification is required to create payouts. Please complete your KYC verification first.');
+                  setShowCreatePayoutDialog(false);
+                  navigate('/profile?tab=kyc');
+                  return;
+                }
+                
                 // Validation
                 if (!payoutForm.requested_amount || payoutForm.requested_amount <= 0) {
                   toast.error('Please enter a valid amount');
@@ -845,7 +949,7 @@ export const PayoutHistory = () => {
                   toast.error(errorMessage);
                 }
               }}
-              disabled={isCreatingPayout}
+              disabled={isCreatingPayout || !isKYCVerified}
             >
               {isCreatingPayout ? (
                 <>

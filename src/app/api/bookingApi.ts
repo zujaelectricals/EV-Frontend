@@ -849,6 +849,98 @@ export const bookingApi = api.injectEndpoints({
         { type: 'Booking', id: 'LIST-completed' },
       ],
     }),
+    cancelBooking: builder.mutation<BookingResponse, number>({
+      queryFn: async (bookingId) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          const url = `${baseUrl}booking/bookings/${bookingId}/cancel/`;
+          
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          console.log('📤 [CANCEL BOOKING API] Request URL:', url);
+          console.log('📤 [CANCEL BOOKING API] Booking ID:', bookingId);
+          console.log('📤 [CANCEL BOOKING API] Request Headers:', headers);
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers,
+          });
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [CANCEL BOOKING API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                console.log('🔄 [CANCEL BOOKING API] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [CANCEL BOOKING API] Error Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              data: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+          
+          const data = await response.json();
+          console.log('✅ [CANCEL BOOKING API] Success Response:', JSON.stringify(data, null, 2));
+          
+          return { data };
+        } catch (error) {
+          console.error('❌ [CANCEL BOOKING API] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: (result, error, bookingId) => [
+        { type: 'Booking', id: bookingId },
+        { type: 'Booking', id: 'LIST' },
+        { type: 'Booking', id: 'LIST-all' },
+        { type: 'Booking', id: 'LIST-pending' },
+        { type: 'Booking', id: 'LIST-active' },
+        { type: 'Booking', id: 'LIST-completed' },
+        { type: 'Booking', id: 'LIST-cancelled' },
+        { type: 'Booking', id: 'LIST-expired' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -860,6 +952,7 @@ export const {
   useGetBookingDetailQuery,
   useUpdateBookingStatusMutation,
   useGetPaymentsQuery,
-  useAcceptPaymentMutation
+  useAcceptPaymentMutation,
+  useCancelBookingMutation
 } = bookingApi;
 
