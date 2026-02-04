@@ -596,8 +596,8 @@ export function OrderDetailsDialog({
             </CardContent>
           </Card>
 
-          {/* Late Payment Consequences Section */}
-          {(detailedBooking?.expires_at || booking?.paymentDueDate) && 
+          {/* Late Payment Consequences Section - Removed per user request */}
+          {/* {(detailedBooking?.expires_at || booking?.paymentDueDate) && 
            ((detailedBooking ? parseFloat(detailedBooking.remaining_amount || '0') : booking?.remainingAmount || 0) > 0) && (
             <Card
               className={
@@ -630,18 +630,6 @@ export function OrderDetailsDialog({
                       </p>
                     </div>
 
-                    {/* <div>
-                      <p className="text-sm font-semibold text-foreground mb-2">
-                        Late Payment Fee:
-                      </p>
-                      <p className="text-lg font-bold text-destructive">
-                        ₹{lateFeeAmount.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        (2% of remaining amount per week overdue, minimum ₹500)
-                      </p>
-                    </div> */}
-
                     <Separator />
 
                     <div>
@@ -664,37 +652,8 @@ export function OrderDetailsDialog({
                             on hold until payment is received.
                           </span>
                         </li>
-                        {/* <li className="flex items-start gap-2">
-                          <XCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-                          <span>
-                            <strong>After 30 Days:</strong> If payment is not
-                            received within 30 days of the due date, your order
-                            may be cancelled and the pre-booking amount will be
-                            subject to cancellation charges (up to 20%).
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <XCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-                          <span>
-                            <strong>Credit Impact:</strong> Late payments may
-                            affect your eligibility for future bookings and
-                            financing options.
-                          </span>
-                        </li> */}
                       </ul>
                     </div>
-
-                    {/* <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
-                      <p className="text-sm font-semibold text-primary mb-1">
-                        Recommended Action:
-                      </p>
-                      <p className="text-sm text-foreground">
-                        Please make the payment immediately to avoid additional
-                        late fees and potential order cancellation. Contact our
-                        support team if you need assistance with payment
-                        arrangements.
-                      </p>
-                    </div> */}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -761,7 +720,7 @@ export function OrderDetailsDialog({
                 )}
               </CardContent>
             </Card>
-          )}
+          )} */}
 
           {/* Additional Information */}
           {booking && 'redemptionPoints' in booking && booking.redemptionPoints > 0 && (

@@ -1,12 +1,22 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Calendar, DollarSign, Truck, CheckCircle, Clock, XCircle, Eye, CreditCard, Filter, RefreshCw, Search } from 'lucide-react';
+import { Package, Calendar, DollarSign, Truck, CheckCircle, Clock, XCircle, Eye, CreditCard, Filter, RefreshCw, Search, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { updateBooking, setBookings, Booking, PaymentMethod } from '@/app/slices/bookingSlice';
 import { PaymentGateway } from '@/store/components/PaymentGateway';
@@ -31,6 +41,8 @@ export function OrderHistory() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [cancelBooking, { isLoading: isCancellingBooking }] = useCancelBookingMutation();
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
 
   // Map API status to query parameter
   const getApiStatus = (localStatus: string): string | undefined => {
@@ -262,19 +274,20 @@ export function OrderHistory() {
     await refetch();
   };
 
-  const handleCancelBooking = async (bookingId: string) => {
-    if (!bookingId) {
-      toast.error("Booking ID is required");
-      return;
-    }
+  const handleCancelBookingClick = (bookingId: string) => {
+    setBookingToCancel(bookingId);
+    setShowCancelDialog(true);
+  };
 
-    // Confirm cancellation
-    if (!window.confirm("Are you sure you want to cancel this booking? This action cannot be undone.")) {
+  const handleCancelBooking = async () => {
+    if (!bookingToCancel) {
+      toast.error("Booking ID is required");
+      setShowCancelDialog(false);
       return;
     }
 
     try {
-      const result = await cancelBooking(parseInt(bookingId, 10)).unwrap();
+      const result = await cancelBooking(parseInt(bookingToCancel, 10)).unwrap();
       
       toast.success("Booking cancelled successfully");
       
@@ -282,10 +295,15 @@ export function OrderHistory() {
       await refetch();
       
       console.log("✅ [CANCEL BOOKING] Booking cancelled successfully:", result);
+      
+      // Close dialog and reset state
+      setShowCancelDialog(false);
+      setBookingToCancel(null);
     } catch (error: any) {
       console.error("❌ [CANCEL BOOKING] Error cancelling booking:", error);
       const errorMessage = error?.data?.message || error?.data?.detail || error?.message || "Failed to cancel booking. Please try again.";
       toast.error(errorMessage);
+      // Keep dialog open on error so user can retry
     }
   };
 
@@ -568,7 +586,7 @@ export function OrderHistory() {
                         <Button
                           variant="outline"
                           className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={() => handleCancelBooking(booking.id)}
+                          onClick={() => handleCancelBookingClick(booking.id)}
                           disabled={isCancellingBooking}
                         >
                           <XCircle className="w-4 h-4 mr-2" />
@@ -712,6 +730,60 @@ export function OrderHistory() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Cancel Booking Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-xl">Cancel Booking</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 pt-2">
+                <p className="text-base text-foreground">
+                  Are you sure you want to cancel this booking?
+                </p>
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 space-y-2">
+                  <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Important Warnings:
+                  </p>
+                  <ul className="text-sm text-foreground space-y-1.5 list-disc list-inside ml-2">
+                    <li>This action cannot be undone</li>
+                    <li>Your booking will be permanently cancelled</li>
+                    <li>Any paid amounts will be processed for refund as per our refund policy</li>
+                    <li>You will lose your reservation for this vehicle</li>
+                  </ul>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  If you proceed, your booking will be cancelled immediately and you will need to create a new booking if you wish to purchase this vehicle in the future.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowCancelDialog(false);
+                setBookingToCancel(null);
+              }}
+              disabled={isCancellingBooking}
+            >
+              Keep Booking
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelBooking}
+              disabled={isCancellingBooking}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCancellingBooking ? "Cancelling..." : "Yes, Cancel Booking"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

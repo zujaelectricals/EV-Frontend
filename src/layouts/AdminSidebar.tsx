@@ -111,23 +111,23 @@ const adminMenuSections: MenuSection[] = [
   //     },
   //   ],
   // },
-  {
-    label: "Staff Performance",
-    icon: Award,
-    value: "staff-performance",
-    children: [
-      { label: "Staff Targets", path: "/admin/staff-performance/targets" },
-      {
-        label: "Incentives Earned",
-        path: "/admin/staff-performance/incentives",
-      },
-      //{ label: 'Approval Delay Report', path: '/admin/staff-performance/approval-delay' },
-      {
-        label: "Lead Conversion Rate",
-        path: "/admin/staff-performance/conversion",
-      },
-    ],
-  },
+  // {
+  //   label: "Staff Performance",
+  //   icon: Award,
+  //   value: "staff-performance",
+  //   children: [
+  //     { label: "Staff Targets", path: "/admin/staff-performance/targets" },
+  //     {
+  //       label: "Incentives Earned",
+  //       path: "/admin/staff-performance/incentives",
+  //     },
+  //     //{ label: 'Approval Delay Report', path: '/admin/staff-performance/approval-delay' },
+  //     {
+  //       label: "Lead Conversion Rate",
+  //       path: "/admin/staff-performance/conversion",
+  //     },
+  //   ],
+  // },
   {
     label: "EV Inventory",
     icon: Boxes,

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   GitBranch,
@@ -65,6 +65,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { BinaryTreeNode } from "@/binary/components/BinaryTreeNode";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -193,7 +198,8 @@ function countDescendants(node: BinaryNode | null): number {
   return count;
 }
 
-// Helper function to create a lookup map for parent names
+// Helper function to create a lookup map for parent names (fallback for backward compatibility)
+// Note: The API now provides parent_name directly, but we keep this for cases where it might not be available
 function createParentNameMap(treeStructure: TreeNodeResponse | undefined): Map<number, string> {
   const parentMap = new Map<number, string>();
   
@@ -208,6 +214,8 @@ function createParentNameMap(treeStructure: TreeNodeResponse | undefined): Map<n
     
     parentMap.set(node.node_id, node.user_full_name || node.user_username || node.user_email || 'Unknown');
     
+    // When pagination is enabled, left_child and right_child only show direct children (no nested recursion)
+    // So we only need to check direct children
     if (node.left_child) addNodeToMap(node.left_child);
     if (node.right_child) addNodeToMap(node.right_child);
   }
@@ -236,7 +244,8 @@ function extractTeamMembersFromSideMembers(
 
   // Helper function to convert TreeNodeResponse to TeamMember
   const nodeToMember = (node: TreeNodeResponse, position: 'left' | 'right', parentId?: number): TeamMember => {
-    const parentName = parentId ? parentNameMap.get(parentId) : undefined;
+    // Use parent_name from API response if available, otherwise fallback to map lookup
+    const parentName = node.parent_name || (parentId ? parentNameMap.get(parentId) : undefined);
     return {
       id: `node-${node.node_id || node.id || node.user_id}`,
       name: node.user_full_name || node.user_username || node.user_email || 'Unknown',
@@ -253,13 +262,16 @@ function extractTeamMembersFromSideMembers(
     };
   };
 
-  // Helper function to recursively extract from child nodes (only if side_members not available)
+  // Helper function to extract direct children (left_child and right_child)
+  // Note: When pagination is enabled, direct children don't have nested side_members
+  // Nested descendants are accessible through paginated left_side_members and right_side_members
   const extractFromChild = (child: TreeNodeResponse | null, position: 'left' | 'right', rootNodeId: number, currentLevel: number = 1) => {
     if (!child) return;
     
     // Check depth limits
     if (minDepth !== undefined && currentLevel < minDepth) {
-      // Continue traversing but don't include this level yet
+      // Continue but don't include this level yet
+      return;
     } else if (maxDepth !== undefined && currentLevel > maxDepth) {
       // Stop traversing beyond max depth
       return;
@@ -277,12 +289,22 @@ function extractTeamMembersFromSideMembers(
       members.push(nodeToMember(child, position, rootNodeId));
     }
     
-    // Recursively process children (respecting the side filter and depth)
-    if (child.left_child && (sideFilter === 'both' || sideFilter === 'left')) {
-      extractFromChild(child.left_child, 'left', nodeId, currentLevel + 1);
-    }
-    if (child.right_child && (sideFilter === 'both' || sideFilter === 'right')) {
-      extractFromChild(child.right_child, 'right', nodeId, currentLevel + 1);
+    // When pagination is enabled, we don't recursively extract from children
+    // because nested descendants are in side_members (which are already paginated)
+    // However, if pagination is not enabled (backward compatibility), we can still recurse
+    // We check if side_members exist and are paginated - if so, don't recurse
+    const hasPaginatedSideMembers = 
+      (child.left_side_members && typeof child.left_side_members === 'object' && 'results' in child.left_side_members) ||
+      (child.right_side_members && typeof child.right_side_members === 'object' && 'results' in child.right_side_members);
+    
+    // Only recursively process children if pagination is not enabled (backward compatibility)
+    if (!hasPaginatedSideMembers) {
+      if (child.left_child && (sideFilter === 'both' || sideFilter === 'left')) {
+        extractFromChild(child.left_child, 'left', nodeId, currentLevel + 1);
+      }
+      if (child.right_child && (sideFilter === 'both' || sideFilter === 'right')) {
+        extractFromChild(child.right_child, 'right', nodeId, currentLevel + 1);
+      }
     }
   };
 
@@ -326,7 +348,8 @@ function extractTeamMembersFromSideMembers(
         processedNodeIds.add(nodeId);
         
         const parentId = member.parent;
-        const parentName = parentId ? parentNameMap.get(parentId) : undefined;
+        // Use parent_name from API response if available, otherwise fallback to map lookup
+        const parentName = member.parent_name || (parentId ? parentNameMap.get(parentId) : undefined);
         
         members.push({
           id: `node-${nodeId}`,
@@ -336,7 +359,7 @@ function extractTeamMembersFromSideMembers(
           position: position,
           pv: parseFloat(member.total_earnings || '0'),
           level: memberLevel,
-          referrals: 0, // Not available in side member structure
+          referrals: (member.left_count || 0) + (member.right_count || 0), // Use counts from API
           isActive: member.is_active_buyer !== false,
           parentId: parentId ? `node-${parentId}` : undefined,
           parentName: parentName || undefined,
@@ -349,23 +372,43 @@ function extractTeamMembersFromSideMembers(
   const rootNodeId = treeStructure.node_id || treeStructure.id || treeStructure.user_id;
 
   // Extract direct children (left_child and right_child) based on filter
+  // NOTE: Direct children are ALWAYS shown separately and are NOT included in side_members pagination
+  // According to API docs: "Direct children are excluded from side_members count"
   // Start at level 1 (children of root are at level 1)
+  let directChildrenCount = 0;
   if (treeStructure.left_child && (sideFilter === 'both' || sideFilter === 'left')) {
     extractFromChild(treeStructure.left_child, 'left', rootNodeId, 1);
+    directChildrenCount++;
   }
   if (treeStructure.right_child && (sideFilter === 'both' || sideFilter === 'right')) {
     extractFromChild(treeStructure.right_child, 'right', rootNodeId, 1);
+    directChildrenCount++;
   }
 
   // Extract from side_members (these contain all members on each side, already filtered by the API)
   // The API will return null for the filtered-out side when side='left' or side='right'
   // The processedNodeIds Set will prevent duplicates if a node appears in both children and side_members
+  let leftSideMembersCount = 0;
+  let rightSideMembersCount = 0;
   if (sideFilter === 'both' || sideFilter === 'left') {
+    const beforeCount = members.length;
     extractMembers(treeStructure.left_side_members, 'left');
+    leftSideMembersCount = members.length - beforeCount;
   }
   if (sideFilter === 'both' || sideFilter === 'right') {
+    const beforeCount = members.length;
     extractMembers(treeStructure.right_side_members, 'right');
+    rightSideMembersCount = members.length - beforeCount;
   }
+  
+  // Log extraction breakdown for debugging
+  console.log('📊 [Binary Tree Extraction] Breakdown:', {
+    directChildren: directChildrenCount,
+    leftSideMembers: leftSideMembersCount,
+    rightSideMembers: rightSideMembersCount,
+    totalExtracted: members.length,
+    note: 'Direct children are always shown separately and not included in side_members pagination',
+  });
 
   // Final safety filter: ensure all members match the selected side and depth
   return members.filter(member => {
@@ -389,13 +432,14 @@ export const BinaryTreeView = () => {
   const distributorId = user?.id || "";
 
   // Pagination and filtering state - must be declared before use
+  // Default values: page=1, page_size=2, max_depth=2
   const [sideFilter, setSideFilter] = useState<'left' | 'right' | 'both'>('both');
-  const [leftPage, setLeftPage] = useState(1);
-  const [rightPage, setRightPage] = useState(1);
-  const [bothPage, setBothPage] = useState(1); // For when side='both'
-  const [pageSize, setPageSize] = useState(20);
-  const [minDepth, setMinDepth] = useState<number | undefined>(undefined);
-  const [maxDepth, setMaxDepth] = useState<number | undefined>(5);
+  const [leftPage, setLeftPage] = useState(1); // Default: 1 (API default when page_size is provided)
+  const [rightPage, setRightPage] = useState(1); // Default: 1
+  const [bothPage, setBothPage] = useState(1); // Default: 1 (for when side='both')
+  const [pageSize, setPageSize] = useState(2); // Default: 2 (API default: 20, max: 100)
+  const [minDepth, setMinDepth] = useState<number | undefined>(undefined); // Optional, no default
+  const [maxDepth, setMaxDepth] = useState<number | undefined>(2); // Default: 2 (API default: 5)
 
   const { data: binaryTree, isLoading: treeLoading, refetch: refetchTree } = useGetBinaryTreeQuery(
     distributorId,
@@ -406,17 +450,59 @@ export const BinaryTreeView = () => {
   // When side='both', use bothPage; otherwise use the specific side's page
   const currentPage = sideFilter === 'left' ? leftPage : sideFilter === 'right' ? rightPage : bothPage;
   
-  const { data: treeStructure, isLoading: structureLoading, refetch: refetchStructure } = useGetTreeStructureQuery(
-    {
+  // Memoize query parameters to prevent unnecessary API calls and re-renders
+  // This ensures the API is only called when actual parameter values change
+  // Default values: page=1, page_size=20 (matching API defaults)
+  const queryParams = useMemo(() => {
+    const params: {
+      distributorId: string;
+      side: 'left' | 'right' | 'both';
+      page: number;
+      page_size: number;
+      min_depth?: number;
+      max_depth?: number;
+    } = {
       distributorId,
       side: sideFilter,
       page: currentPage,
       page_size: pageSize,
-      min_depth: minDepth,
-      max_depth: maxDepth,
-    },
-    { skip: !distributorId }
+    };
+    
+    // Only include min_depth and max_depth if they are explicitly set
+    // This prevents sending undefined/null values which could cause:
+    // 1. Unnecessary query string parameters
+    // 2. Caching issues (different cache keys for same logical query)
+    // 3. API confusion about whether filters are applied
+    if (minDepth !== undefined && minDepth !== null) {
+      params.min_depth = minDepth;
+    }
+    if (maxDepth !== undefined && maxDepth !== null) {
+      params.max_depth = maxDepth;
+    }
+    
+    return params;
+  }, [distributorId, sideFilter, currentPage, pageSize, minDepth, maxDepth]);
+  
+  const { data: treeStructure, isLoading: structureLoading, refetch: refetchStructure } = useGetTreeStructureQuery(
+    queryParams,
+    { 
+      skip: !distributorId,
+      refetchOnMountOrArgChange: true, // Ensure API is called when page_size or other params change
+    }
   );
+  
+  // Track timing for data processing and display
+  const dataProcessingStartRef = useRef<number | null>(null);
+  
+  useEffect(() => {
+    if (treeStructure && !structureLoading) {
+      const processingStartTime = performance.now();
+      dataProcessingStartRef.current = processingStartTime;
+      performance.mark('binary-tree-data-processing-start');
+      
+      console.log('⏱️ [Binary Tree Component] Data received, starting processing...');
+    }
+  }, [treeStructure, structureLoading]);
   const {
     data: binaryStats,
     isLoading: statsLoading,
@@ -460,6 +546,8 @@ export const BinaryTreeView = () => {
 
   // Extract team members from side_members arrays (preferred) or fallback to tree structure
   const teamMembers = useMemo(() => {
+    const extractionStartTime = performance.now();
+    
     // First try to use side_members from the full API response
     if (treeStructure) {
       console.log('BinaryTreeView: Using tree structure with side_members');
@@ -469,6 +557,12 @@ export const BinaryTreeView = () => {
       console.log('BinaryTreeView: Right side members:', treeStructure.right_side_members);
       const members = extractTeamMembersFromSideMembers(treeStructure, sideFilter, minDepth, maxDepth);
       console.log('BinaryTreeView: Extracted team members from side_members:', members);
+      
+      const extractionEndTime = performance.now();
+      const extractionDuration = extractionEndTime - extractionStartTime;
+      console.log('⏱️ [Binary Tree Component] Data extraction time:', `${extractionDuration.toFixed(2)}ms`);
+      console.log('⏱️ [Binary Tree Component] Extracted members count:', members.length);
+      
       if (members.length > 0) {
         return members;
       }
@@ -480,6 +574,11 @@ export const BinaryTreeView = () => {
       console.log('BinaryTreeView: Binary tree data:', binaryTree);
       const members = extractTeamMembers(binaryTree, 0, 'left', undefined, undefined, minDepth, maxDepth);
       console.log('BinaryTreeView: Extracted team members from tree:', members);
+      
+      const extractionEndTime = performance.now();
+      const extractionDuration = extractionEndTime - extractionStartTime;
+      console.log('⏱️ [Binary Tree Component] Data extraction time (fallback):', `${extractionDuration.toFixed(2)}ms`);
+      
       // Filter by side if needed
       if (sideFilter !== 'both') {
         return members.filter(m => m.position === sideFilter);
@@ -490,6 +589,50 @@ export const BinaryTreeView = () => {
     console.log('BinaryTreeView: No data available');
     return [];
   }, [treeStructure, binaryTree, sideFilter, minDepth, maxDepth]);
+  
+  // Measure total time from API response to display
+  useEffect(() => {
+    if (teamMembers.length > 0 && dataProcessingStartRef.current) {
+      const displayEndTime = performance.now();
+      const totalProcessingTime = displayEndTime - dataProcessingStartRef.current;
+      
+      performance.mark('binary-tree-display-complete');
+      
+      try {
+        performance.measure(
+          'binary-tree-total-processing',
+          'binary-tree-data-processing-start',
+          'binary-tree-display-complete'
+        );
+        const measure = performance.getEntriesByName('binary-tree-total-processing')[0];
+        const totalDuration = measure.duration;
+        
+        console.log('⏱️ [Binary Tree Component] Total processing + display time:', `${totalDuration.toFixed(2)}ms`);
+        console.log('⏱️ [Binary Tree Component] Team members ready for display:', teamMembers.length);
+        
+        // Calculate total time from request start if available
+        try {
+          const apiMeasure = performance.getEntriesByName('binary-tree-api-duration')[0];
+          if (apiMeasure) {
+            const totalTimeFromRequest = apiMeasure.duration + totalDuration;
+            console.log('⏱️ [Binary Tree Component] Total time (API + Processing + Display):', `${totalTimeFromRequest.toFixed(2)}ms`);
+            console.log('📊 [Binary Tree Component] Performance Breakdown:', {
+              'API Response Time': `${apiMeasure.duration.toFixed(2)}ms`,
+              'Data Processing Time': `${totalDuration.toFixed(2)}ms`,
+              'Total Time': `${totalTimeFromRequest.toFixed(2)}ms`,
+            });
+          }
+        } catch (e) {
+          // API timing not available
+        }
+      } catch (error) {
+        console.warn('⏱️ [Binary Tree Component] Performance measurement error:', error);
+      }
+      
+      // Reset ref
+      dataProcessingStartRef.current = null;
+    }
+  }, [teamMembers.length]);
 
   // Use team members directly from server (no client-side filtering)
   const displayMembers = teamMembers;
@@ -983,10 +1126,10 @@ export const BinaryTreeView = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="2">2</SelectItem>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="7">7</SelectItem>
                 <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
@@ -1013,7 +1156,7 @@ export const BinaryTreeView = () => {
                   const value = e.target.value.trim();
                   setMaxDepth(value === '' ? undefined : Number(value));
                 }}
-                placeholder="5"
+                placeholder="2"
                 className="w-[80px] border-[#18b3b2]/25"
               />
             </div>
@@ -1088,22 +1231,34 @@ export const BinaryTreeView = () => {
                           })}
                         </TableCell>
                         <TableCell className="py-4">
-                          <Badge
-                            className={
-                              member.isActive
-                                ? "bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0"
-                                : "bg-slate-200 text-slate-600 border-0"
-                            }
-                          >
-                            {member.isActive ? (
-                              <>
-                                <Activity className="mr-1 h-3 w-3" />
-                                Active
-                              </>
-                            ) : (
-                              "Inactive"
-                            )}
-                          </Badge>
+                          {member.isActive ? (
+                            <Badge
+                              className="bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0"
+                            >
+                              <Activity className="mr-1 h-3 w-3" />
+                              Active
+                            </Badge>
+                          ) : (
+                            <Tooltip delayDuration={300}>
+                              <TooltipTrigger asChild>
+                                <div className="inline-block">
+                                  <Badge
+                                    className="bg-yellow-500 text-yellow-900 border-0 cursor-help hover:bg-yellow-600"
+                                  >
+                                    Inactive
+                                  </Badge>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent 
+                                side="top" 
+                                align="center"
+                                className="max-w-xs"
+                                sideOffset={8}
+                              >
+                                Only active member nodes are eligible for commission earnings.
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1152,7 +1307,7 @@ export const BinaryTreeView = () => {
                         }
                       }}
                       disabled={
-                        (sideFilter === 'both' && (!leftPagination?.previous || bothPage === 1)) ||
+                        (sideFilter === 'both' && leftPagination && rightPagination && (!leftPagination.previous && !rightPagination.previous || bothPage === 1)) ||
                         (sideFilter === 'left' && (!leftPagination?.previous || leftPagination.page === 1)) ||
                         (sideFilter === 'right' && (!rightPagination?.previous || rightPagination.page === 1))
                       }
@@ -1162,8 +1317,8 @@ export const BinaryTreeView = () => {
                       Previous
                     </Button>
                     <span className="text-sm">
-                      {sideFilter === 'both' && leftPagination && (
-                        <>Page {bothPage} of {leftPagination.total_pages}</>
+                      {sideFilter === 'both' && leftPagination && rightPagination && (
+                        <>Page {bothPage} of {Math.max(leftPagination.total_pages, rightPagination.total_pages)}</>
                       )}
                       {sideFilter === 'left' && leftPagination && (
                         <>Page {leftPagination.page} of {leftPagination.total_pages}</>
@@ -1177,7 +1332,10 @@ export const BinaryTreeView = () => {
                       size="sm"
                       onClick={() => {
                         if (sideFilter === 'both') {
-                          setBothPage(prev => Math.min(leftPagination?.total_pages || 1, prev + 1));
+                          const maxPages = leftPagination && rightPagination 
+                            ? Math.max(leftPagination.total_pages, rightPagination.total_pages) 
+                            : leftPagination?.total_pages || rightPagination?.total_pages || 1;
+                          setBothPage(prev => Math.min(maxPages, prev + 1));
                         } else if (sideFilter === 'left') {
                           setLeftPage(prev => Math.min(leftPagination?.total_pages || 1, prev + 1));
                         } else {
@@ -1185,7 +1343,7 @@ export const BinaryTreeView = () => {
                         }
                       }}
                       disabled={
-                        (sideFilter === 'both' && (!leftPagination?.next || bothPage === (leftPagination?.total_pages || 1))) ||
+                        (sideFilter === 'both' && leftPagination && rightPagination && (!leftPagination.next && !rightPagination.next || bothPage === Math.max(leftPagination.total_pages, rightPagination.total_pages))) ||
                         (sideFilter === 'left' && (!leftPagination?.next || leftPagination.page === leftPagination.total_pages)) ||
                         (sideFilter === 'right' && (!rightPagination?.next || rightPagination.page === rightPagination.total_pages))
                       }

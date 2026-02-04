@@ -10,6 +10,7 @@ import {
   XCircle,
   Wallet,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAppSelector, useAppDispatch } from "@/app/hooks";
 import { updateBooking } from "@/app/slices/bookingSlice";
 import { updatePreBooking } from "@/app/slices/authSlice";
@@ -58,6 +69,8 @@ export function MyOrders() {
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [refreshKey, setRefreshKey] = useState(0); // Force re-render key
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
   
   // Razorpay integration
   const openRazorpayCheckout = useRazorpay();
@@ -421,19 +434,20 @@ export function MyOrders() {
     }
   };
 
-  const handleCancelBooking = async (bookingId: string) => {
-    if (!bookingId) {
-      toast.error("Booking ID is required");
-      return;
-    }
+  const handleCancelBookingClick = (bookingId: string) => {
+    setBookingToCancel(bookingId);
+    setShowCancelDialog(true);
+  };
 
-    // Confirm cancellation
-    if (!window.confirm("Are you sure you want to cancel this booking? This action cannot be undone.")) {
+  const handleCancelBooking = async () => {
+    if (!bookingToCancel) {
+      toast.error("Booking ID is required");
+      setShowCancelDialog(false);
       return;
     }
 
     try {
-      const result = await cancelBooking(parseInt(bookingId, 10)).unwrap();
+      const result = await cancelBooking(parseInt(bookingToCancel, 10)).unwrap();
       
       toast.success("Booking cancelled successfully");
       
@@ -441,10 +455,15 @@ export function MyOrders() {
       await refetch();
       
       console.log("✅ [CANCEL BOOKING] Booking cancelled successfully:", result);
+      
+      // Close dialog and reset state
+      setShowCancelDialog(false);
+      setBookingToCancel(null);
     } catch (error: any) {
       console.error("❌ [CANCEL BOOKING] Error cancelling booking:", error);
       const errorMessage = error?.data?.message || error?.data?.detail || error?.message || "Failed to cancel booking. Please try again.";
       toast.error(errorMessage);
+      // Keep dialog open on error so user can retry
     }
   };
 
@@ -710,17 +729,18 @@ export function MyOrders() {
                         >
                           View Details
                         </Button>
-                        {canCancelBooking(booking) && (
+                        {/* Cancel Booking button commented out - users should not be able to cancel bookings currently */}
+                        {/* {canCancelBooking(booking) && (
                           <Button
                             variant="outline"
                             size="sm"
                             className="w-full sm:w-auto text-xs sm:text-sm text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => handleCancelBooking(booking.id)}
+                            onClick={() => handleCancelBookingClick(booking.id)}
                             disabled={isCancellingBooking}
                           >
                             {isCancellingBooking ? "Cancelling..." : "Cancel Booking"}
                           </Button>
-                        )}
+                        )} */}
                         {booking.remainingAmount > 0 && (
                           <Button
                             size="sm"
@@ -747,17 +767,18 @@ export function MyOrders() {
                       >
                         View Details
                       </Button>
-                      {canCancelBooking(booking) && (
+                      {/* Cancel Booking button commented out - users should not be able to cancel bookings currently */}
+                      {/* {canCancelBooking(booking) && (
                         <Button
                           variant="outline"
                           size="sm"
                           className="text-xs sm:text-sm text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={() => handleCancelBooking(booking.id)}
+                          onClick={() => handleCancelBookingClick(booking.id)}
                           disabled={isCancellingBooking}
                         >
                           {isCancellingBooking ? "Cancelling..." : "Cancel Booking"}
                         </Button>
-                      )}
+                      )} */}
                     </div>
                   )}
                 </CardContent>
@@ -838,6 +859,60 @@ export function MyOrders() {
         booking={selectedBookingForDetails}
         bookingId={selectedBookingForDetails?.id ? parseInt(selectedBookingForDetails.id, 10) : null}
       />
+
+      {/* Cancel Booking Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-xl">Cancel Booking</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 pt-2">
+                <p className="text-base text-foreground">
+                  Are you sure you want to cancel this booking?
+                </p>
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 space-y-2">
+                  <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Important Warnings:
+                  </p>
+                  <ul className="text-sm text-foreground space-y-1.5 list-disc list-inside ml-2">
+                    <li>This action cannot be undone</li>
+                    <li>Your booking will be permanently cancelled</li>
+                    <li>Any paid amounts will be processed for refund as per our refund policy</li>
+                    <li>You will lose your reservation for this vehicle</li>
+                  </ul>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  If you proceed, your booking will be cancelled immediately and you will need to create a new booking if you wish to purchase this vehicle in the future.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowCancelDialog(false);
+                setBookingToCancel(null);
+              }}
+              disabled={isCancellingBooking}
+            >
+              Keep Booking
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelBooking}
+              disabled={isCancellingBooking}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCancellingBooking ? "Cancelling..." : "Yes, Cancel Booking"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

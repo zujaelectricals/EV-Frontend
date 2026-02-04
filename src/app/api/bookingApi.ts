@@ -24,22 +24,70 @@ export interface MakePaymentRequest {
   payment_method: 'online' | 'bank_transfer' | 'cash' | 'wallet';
 }
 
+// User details interface for payment response
+export interface PaymentUserDetails {
+  id: number;
+  fullname: string;
+  email: string;
+  mobile: string;
+  username: string;
+  profile_picture_url: string | null;
+}
+
+// Refund details interface
+export interface RefundDetails {
+  refund_id: string;
+  refund_amount: string;
+  refund_status: string;
+  refund_created_at: number; // Unix timestamp
+  refund_notes: {
+    original_order_id?: string;
+    refund_reason?: string;
+  };
+  refund_speed: string | null;
+  original_amount: string;
+  balance_amount: string;
+}
+
 // Payment response interface
 export interface PaymentResponse {
   id: number;
   booking_number: string;
   booking_id?: number; // Booking ID for accept_payment endpoint
   booking?: number; // Alternative field name for booking ID
+  user_details: PaymentUserDetails;
+  refund_details: RefundDetails | null;
   amount: string;
   payment_method: 'online' | 'bank_transfer' | 'cash' | 'wallet';
+  transaction_id?: string;
   status: string;
   payment_date: string;
+  completed_at?: string;
+  notes?: string;
+  user: number;
 }
 
 // Payments list response interface
 export interface PaymentsListResponse {
   count: number;
+  next: string | null;
+  previous: string | null;
   results: PaymentResponse[];
+}
+
+// Refund request interface
+export interface RefundRequest {
+  payment_id: string; // Razorpay payment_id from Payment model
+  amount?: number | null; // Optional: Amount in rupees for partial refund (null/omitted = full refund)
+}
+
+// Refund response interface
+export interface RefundResponse {
+  refund_id: string;
+  payment_id: string;
+  amount: number; // Refund amount in paise
+  status: string;
+  message: string;
 }
 
 // Accept payment request interface
@@ -941,6 +989,103 @@ export const bookingApi = api.injectEndpoints({
         { type: 'Booking', id: 'LIST-expired' },
       ],
     }),
+    createRefund: builder.mutation<RefundResponse, RefundRequest>({
+      queryFn: async (refundData) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = getApiBaseUrl();
+          const url = `${baseUrl}payments/refund/`;
+          
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          const requestBody: RefundRequest = {
+            payment_id: refundData.payment_id,
+          };
+          
+          // Only include amount if provided (for partial refund)
+          if (refundData.amount !== undefined && refundData.amount !== null) {
+            requestBody.amount = refundData.amount;
+          }
+          
+          console.log('📤 [REFUND API] Request URL:', url);
+          console.log('📤 [REFUND API] Request Body:', JSON.stringify(requestBody, null, 2));
+          console.log('📤 [REFUND API] Request Headers:', headers);
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBody),
+          });
+          
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [REFUND API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                console.log('🔄 [REFUND API] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify(requestBody),
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [REFUND API] Error Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              data: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+          
+          const data = await response.json();
+          console.log('✅ [REFUND API] Success Response:', JSON.stringify(data, null, 2));
+          
+          return { data };
+        } catch (error) {
+          console.error('❌ [REFUND API] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: [
+        { type: 'Booking', id: 'PAYMENTS' },
+        { type: 'Booking', id: 'LIST' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -953,6 +1098,7 @@ export const {
   useUpdateBookingStatusMutation,
   useGetPaymentsQuery,
   useAcceptPaymentMutation,
-  useCancelBookingMutation
+  useCancelBookingMutation,
+  useCreateRefundMutation
 } = bookingApi;
 

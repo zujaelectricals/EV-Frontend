@@ -1,5 +1,6 @@
 import { api } from './baseApi';
 import { BinaryPair } from '@/app/slices/binarySlice';
+import { getApiBaseUrl } from '../../lib/config';
 
 export interface BinaryNode {
   id: string;
@@ -46,11 +47,18 @@ export interface SideMemberNode {
   total_bookings: number;
   total_binary_pairs: number;
   total_earnings: string;
+  total_referrals?: number;
+  total_amount?: string;
+  tds_current?: string;
+  net_amount_total?: string;
   parent: number | null;
+  parent_name?: string | null; // Parent name from API
   side: 'left' | 'right' | null;
   level: number;
   left_count: number;
   right_count: number;
+  counts_for_activation?: boolean;
+  eligible_for_pairing?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -92,15 +100,20 @@ export interface TreeNodeResponse {
   tds_current: string;
   net_amount_total: string;
   parent: number | null;
+  parent_name?: string | null; // Parent name from API
   side: 'left' | 'right' | null;
   level: number;
   left_count: number;
   right_count: number;
   binary_commission_activated: boolean;
   activation_timestamp: string | null;
+  counts_for_activation?: boolean;
+  eligible_for_pairing?: boolean;
+  // When pagination is enabled, left_child and right_child only show direct children (no nested recursion)
   left_child: TreeNodeResponse | null;
   right_child: TreeNodeResponse | null;
   // Can be either array (backward compatibility) or paginated object
+  // When pagination is enabled, these are PaginatedSideMembers
   left_side_members: SideMemberNode[] | PaginatedSideMembers | null;
   right_side_members: SideMemberNode[] | PaginatedSideMembers | null;
   created_at: string;
@@ -806,21 +819,103 @@ export const binaryApi = api.injectEndpoints({
     >({
       query: ({ side, page, page_size, min_depth, max_depth }) => {
         const params = new URLSearchParams();
-        if (side) params.append('side', side);
-        if (page !== undefined && page !== null) params.append('page', page.toString());
-        if (page_size !== undefined && page_size !== null) params.append('page_size', page_size.toString());
-        if (min_depth !== undefined && min_depth !== null) params.append('min_depth', min_depth.toString());
-        if (max_depth !== undefined && max_depth !== null) params.append('max_depth', max_depth.toString());
+        
+        // Always include side (defaults to 'both' if not provided)
+        if (side) {
+          params.append('side', side);
+        }
+        
+        // Always include page and page_size when provided to ensure pagination
+        // API defaults: page=1 if page_size is provided, page_size=20
+        // We always send explicit values for consistency and proper caching
+        if (page !== undefined && page !== null) {
+          params.append('page', page.toString());
+        }
+        if (page_size !== undefined && page_size !== null) {
+          params.append('page_size', page_size.toString());
+        }
+        
+        // Only include depth filters if they are explicitly set
+        // This prevents sending unnecessary parameters
+        if (min_depth !== undefined && min_depth !== null) {
+          params.append('min_depth', min_depth.toString());
+        }
+        if (max_depth !== undefined && max_depth !== null) {
+          params.append('max_depth', max_depth.toString());
+        }
         
         const queryString = params.toString();
         const url = queryString 
           ? `binary/nodes/tree_structure/?${queryString}`
           : 'binary/nodes/tree_structure/';
         
+        // Console log the actual API endpoint URL being called
+        const baseUrl = getApiBaseUrl();
+        const fullUrl = `${baseUrl}${url}`;
+        const requestStartTime = performance.now();
+        const requestTimestamp = new Date().toISOString();
+        
+        console.log('🌐 [Binary Tree API] Raw endpoint URL:', fullUrl);
+        console.log('🌐 [Binary Tree API] Query parameters:', {
+          side,
+          page,
+          page_size,
+          min_depth,
+          max_depth,
+          queryString,
+        });
+        console.log('⏱️ [Binary Tree API] Request started at:', requestTimestamp);
+        console.log('⏱️ [Binary Tree API] Performance mark: request-start');
+        
+        // Store start time for later measurement
+        performance.mark('binary-tree-request-start');
+        
         return {
           url,
           method: 'GET',
         };
+      },
+      // Transform response to measure API response time
+      transformResponse: (response: TreeNodeResponse, meta, arg) => {
+        const responseEndTime = performance.now();
+        const responseTimestamp = new Date().toISOString();
+        
+        // Measure time from request start
+        try {
+          performance.mark('binary-tree-response-received');
+          performance.measure(
+            'binary-tree-api-duration',
+            'binary-tree-request-start',
+            'binary-tree-response-received'
+          );
+          const measure = performance.getEntriesByName('binary-tree-api-duration')[0];
+          const apiDuration = measure.duration;
+          
+          console.log('⏱️ [Binary Tree API] Response received at:', responseTimestamp);
+          console.log('⏱️ [Binary Tree API] API Response Time:', `${apiDuration.toFixed(2)}ms`);
+          console.log('⏱️ [Binary Tree API] Response size:', {
+            left_side_members_count: response.left_side_members 
+              ? (typeof response.left_side_members === 'object' && 'results' in response.left_side_members
+                  ? response.left_side_members.results.length 
+                  : Array.isArray(response.left_side_members) 
+                    ? response.left_side_members.length 
+                    : 0)
+              : 0,
+            right_side_members_count: response.right_side_members 
+              ? (typeof response.right_side_members === 'object' && 'results' in response.right_side_members
+                  ? response.right_side_members.results.length 
+                  : Array.isArray(response.right_side_members) 
+                    ? response.right_side_members.length 
+                    : 0)
+              : 0,
+            has_left_child: !!response.left_child,
+            has_right_child: !!response.right_child,
+          });
+        } catch (error) {
+          console.warn('⏱️ [Binary Tree API] Performance measurement error:', error);
+        }
+        
+        return response;
       },
       // Serialize query args to ensure proper caching for different filter combinations
       serializeQueryArgs: ({ endpointName, queryArgs }) => {

@@ -301,6 +301,55 @@ export const AdminDashboard = () => {
     "hsl(221 83% 53%)",
   ];
 
+  // Get KPI cards data based on user type
+  const getKpiCardsData = () => {
+    if (!dashboardData) return null;
+
+    if (userType === 'combined') {
+      // Use the combined kpi_cards from the response
+      return dashboardData.kpi_cards;
+    } else {
+      // Derive user-type-specific KPIs from other sections
+      const segments = dashboardData.buyer_segments?.[userType];
+      const funnel = dashboardData.sales_funnel?.[userType];
+      
+      if (!segments || !funnel) return dashboardData.kpi_cards;
+
+      return {
+        active_buyers: {
+          value: segments.active_buyers || 0,
+          change: dashboardData.kpi_cards.active_buyers.change,
+          trend: dashboardData.kpi_cards.active_buyers.trend,
+        },
+        total_visitors: {
+          value: funnel[0]?.count || 0,
+          change: dashboardData.kpi_cards.total_visitors.change,
+          trend: dashboardData.kpi_cards.total_visitors.trend,
+        },
+        pre_booked: {
+          value: funnel[2]?.count || 0,
+          conversion: funnel[0]?.count > 0 
+            ? ((funnel[2]?.count || 0) / funnel[0].count * 100) 
+            : 0,
+        },
+        paid_orders: {
+          value: funnel[3]?.count || 0,
+          conversion: funnel[0]?.count > 0 
+            ? ((funnel[3]?.count || 0) / funnel[0].count * 100) 
+            : 0,
+        },
+        delivered: {
+          value: funnel[4]?.count || 0,
+          conversion: funnel[3]?.count > 0 
+            ? ((funnel[4]?.count || 0) / (funnel[3]?.count || 1) * 100) 
+            : 0,
+        },
+      };
+    }
+  };
+
+  const kpiCardsData = getKpiCardsData();
+
   // Transform pre-bookings data
   const getEmiCollectionTrendData = (type: 'normal_users' | 'staff_users' | 'combined') => {
     if (!dashboardData?.emi_orders) return [];
@@ -457,22 +506,22 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col justify-center">
               <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
-                {dashboardData.kpi_cards.active_buyers.value.toLocaleString()}
+                {kpiCardsData?.active_buyers.value.toLocaleString() || 0}
               </div>
               <div className="flex items-center gap-1 mt-1">
-                {dashboardData.kpi_cards.active_buyers.trend === "up" ? (
+                {kpiCardsData?.active_buyers.trend === "up" ? (
                   <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                 ) : (
                   <ArrowDownRight className="h-3 w-3 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 )}
                 <span
                   className={`text-[10px] sm:text-xs ${
-                    dashboardData.kpi_cards.active_buyers.trend === "up"
+                    kpiCardsData?.active_buyers.trend === "up"
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
-                  {dashboardData.kpi_cards.active_buyers.change}% vs last month
+                  {kpiCardsData?.active_buyers.change || 0}% vs last month
                 </span>
               </div>
             </CardContent>
@@ -496,23 +545,23 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col justify-center">
               <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-                {dashboardData.kpi_cards.total_visitors.value.toLocaleString()}
+                {kpiCardsData?.total_visitors.value.toLocaleString() || 0}
               </div>
               <div className="flex items-center gap-1 mt-1">
-                {dashboardData.kpi_cards.total_visitors.trend === "up" ? (
+                {kpiCardsData?.total_visitors.trend === "up" ? (
                   <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                 ) : (
                   <ArrowDownRight className="h-3 w-3 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 )}
                 <span
                   className={`text-[10px] sm:text-xs ${
-                    dashboardData.kpi_cards.total_visitors.trend === "up"
+                    kpiCardsData?.total_visitors.trend === "up"
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
-                  {dashboardData.kpi_cards.total_visitors.trend === "up" ? "+" : ""}
-                  {dashboardData.kpi_cards.total_visitors.change}% from last month
+                  {kpiCardsData?.total_visitors.trend === "up" ? "+" : ""}
+                  {kpiCardsData?.total_visitors.change || 0}% from last month
                 </span>
               </div>
             </CardContent>
@@ -536,10 +585,10 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col justify-center">
               <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-400 bg-clip-text text-transparent">
-                {dashboardData.kpi_cards.pre_booked.value.toLocaleString()}
+                {kpiCardsData?.pre_booked.value.toLocaleString() || 0}
               </div>
               <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                {dashboardData.kpi_cards.pre_booked.conversion}% conversion
+                {kpiCardsData?.pre_booked.conversion?.toFixed(1) || 0}% conversion
               </div>
             </CardContent>
           </Card>
@@ -562,10 +611,10 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col justify-center">
               <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">
-                {dashboardData.kpi_cards.paid_orders.value.toLocaleString()}
+                {kpiCardsData?.paid_orders.value.toLocaleString() || 0}
               </div>
               <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                {dashboardData.kpi_cards.paid_orders.conversion}% conversion
+                {kpiCardsData?.paid_orders.conversion?.toFixed(1) || 0}% conversion
               </div>
             </CardContent>
           </Card>
@@ -588,10 +637,10 @@ export const AdminDashboard = () => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col justify-center">
               <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-cyan-600 to-sky-600 dark:from-cyan-400 dark:to-sky-400 bg-clip-text text-transparent">
-                {dashboardData.kpi_cards.delivered.value.toLocaleString()}
+                {kpiCardsData?.delivered.value.toLocaleString() || 0}
               </div>
               <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                {dashboardData.kpi_cards.delivered.conversion}% conversion
+                {kpiCardsData?.delivered.conversion?.toFixed(1) || 0}% conversion
               </div>
             </CardContent>
           </Card>
@@ -627,7 +676,7 @@ export const AdminDashboard = () => {
                   <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4" />
                   {userType === 'combined' 
                     ? ((dashboardData.booking_trends.normal_users.growth + dashboardData.booking_trends.staff_users.growth) / 2).toFixed(1)
-                    : dashboardData.booking_trends[userType].growth}%
+                    : dashboardData.booking_trends[userType]?.growth?.toFixed(1) || '0.0'}%
                 </span>
               </div>
             </div>

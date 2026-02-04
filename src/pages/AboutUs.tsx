@@ -11,22 +11,22 @@ export function AboutUs() {
     {
       icon: Crosshair,
       title: 'Innovation',
-      desc: 'Pushing boundaries in electric mobility technology',
+      desc: 'Modern manufacturing processes and innovative service models setting new standards in the EV industry',
     },
     {
       icon: Leaf,
       title: 'Sustainability',
-      desc: 'Committed to zero-emission transportation',
+      desc: 'Zero pollution mobility with energy-efficient solutions for a cleaner environment',
     },
     {
       icon: Heart,
-      title: 'Quality',
-      desc: 'Premium materials and exceptional craftsmanship',
+      title: 'Quality & Trust',
+      desc: '43 years of business excellence with strong commitment to quality and customer satisfaction',
     },
     {
       icon: Users,
-      title: 'Community',
-      desc: 'Building a global community of eco-conscious riders',
+      title: 'Accessibility',
+      desc: 'Affordable electric vehicles and sustainable income opportunities for everyone',
     },
   ];
 
@@ -101,7 +101,7 @@ export function AboutUs() {
             </h1>
 
             <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              We're on a mission to revolutionize urban transportation with sustainable, stylish, and smart electric scooters.
+              With 43 years of business excellence and trust, ZUJA began its journey in 1983 in Alappuzha, Kerala, marking its presence in the textile industry with a strong commitment to quality and customer satisfaction. Today, we're revolutionizing urban transportation with sustainable, stylish, and smart electric scooters.
             </p>
           </motion.div>
 
@@ -286,7 +286,7 @@ export function AboutUs() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.45, delay: 0.2 }}
                   >
-                    A World Where Every Ride is{' '}
+                    An Electric Scooter in{' '}
                   </motion.span>
                   <motion.span
                     className="vision-mission-highlight inline-block bg-clip-text text-transparent"
@@ -301,7 +301,7 @@ export function AboutUs() {
                       WebkitTextFillColor: 'transparent',
                     }}
                   >
-                    Sustainable
+                    Every Home
                   </motion.span>
                 </h2>
                 <motion.p
@@ -311,7 +311,7 @@ export function AboutUs() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.45, delay: 0.45 }}
                 >
-                  We envision cities where clean, quiet, and efficient electric scooters are the preferred mode of transportation. Where every journey contributes to a healthier planet and a better quality of life for all.
+                  ZUJA aims to bring electric scooters to every village in India, promoting clean energy, better health, and environmental responsibility. We envision a future where sustainable mobility is accessible to all, contributing to a healthier planet and better quality of life.
                 </motion.p>
               </div>
             </motion.div>
@@ -374,7 +374,7 @@ export function AboutUs() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.45, delay: 0.25 }}
                   >
-                    Making Electric Mobility{' '}
+                    Delivering Excellence in{' '}
                   </motion.span>
                   <motion.span
                     className="vision-mission-highlight inline-block bg-clip-text text-transparent"
@@ -389,7 +389,7 @@ export function AboutUs() {
                       WebkitTextFillColor: 'transparent',
                     }}
                   >
-                    Accessible
+                    Electric Mobility
                   </motion.span>
                 </h2>
                 <motion.p
@@ -399,8 +399,98 @@ export function AboutUs() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.45, delay: 0.5 }}
                 >
-                  To design and deliver the most innovative, reliable, and affordable electric scooters that inspire people to embrace sustainable transportation without compromising on style or performance.
+                  We are committed to delivering energy-efficient solutions, pollution-free mobility, affordable electric vehicles, and sustainable income opportunities. With modern manufacturing processes and innovative service models, we're setting new standards in the EV industry while manufacturing Indian-made lithium-ion batteries and electrical products.
                 </motion.p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Our Journey & Future Plans */}
+      <section className="relative py-20 sm:py-24 overflow-hidden bg-gradient-to-b from-white to-[#f0fafb]">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-20 left-[15%] w-48 h-48 rounded-full bg-teal-100/40 blur-3xl" />
+          <div className="absolute bottom-20 right-[15%] w-56 h-56 rounded-full bg-emerald-100/35 blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12 sm:mb-16"
+          >
+            <p className="text-[#00B0A8] font-semibold text-sm sm:text-base mb-2">Our Journey</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#1a1a2e]">
+              43 Years of{' '}
+              <span
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: 'linear-gradient(90deg, #15b3b3 0%, #15be9c 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                Excellence
+              </span>
+            </h2>
+          </motion.div>
+
+          <div className="max-w-4xl mx-auto space-y-8">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg border border-gray-100"
+            >
+              <h3 className="text-xl sm:text-2xl font-bold text-[#1a1a2e] mb-4">From Textile to Electric Mobility</h3>
+              <p className="text-gray-600 leading-relaxed mb-4">
+                ZUJA began its business journey in 1983 in Alappuzha, Kerala, marking its presence in the textile industry with a strong commitment to quality and customer satisfaction. With 43 years of business experience, the ZUJA brand has built a legacy of trust, reliability, and continuous growth.
+              </p>
+              <p className="text-gray-600 leading-relaxed">
+                Over the years, the company expanded its operations under ZUJA Enterprises, successfully launching and managing multiple business ventures across various sectors. As part of its forward-thinking approach, ZUJA Electric Scooters entered the electric vehicle segment as a distributor, addressing the increasing need for eco-friendly transportation.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg border border-gray-100"
+            >
+              <h3 className="text-xl sm:text-2xl font-bold text-[#1a1a2e] mb-4">Manufacturing Excellence</h3>
+              <p className="text-gray-600 leading-relaxed mb-4">
+                To strengthen innovation and manufacturing capabilities, ZUJA Electrical Innovation Private Limited was established, officially entering the electric scooter manufacturing and marketing sector. The company introduced modern manufacturing processes along with innovative service and marketing models, setting new standards in the EV industry.
+              </p>
+              <p className="text-gray-600 leading-relaxed">
+                ZUJA focuses on the manufacture of Indian-made lithium-ion batteries and electrical products, with a long-term goal of becoming one of India's most trusted EV brands.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-6 sm:p-8 shadow-lg border border-teal-100"
+            >
+              <h3 className="text-xl sm:text-2xl font-bold text-[#1a1a2e] mb-4">Looking Toward the Future</h3>
+              <p className="text-gray-600 leading-relaxed mb-4">
+                Looking toward the future, ZUJA is preparing for global exports while expanding its domestic network. The company has initiated plans to establish showrooms, outlets, and service centers in every taluk across India, ensuring strong after-sales service and customer satisfaction.
+              </p>
+              <div className="flex flex-wrap gap-3 mt-4">
+                <span className="px-4 py-2 bg-white/80 rounded-full text-sm font-medium text-teal-700 border border-teal-200">
+                  Global Exports
+                </span>
+                <span className="px-4 py-2 bg-white/80 rounded-full text-sm font-medium text-teal-700 border border-teal-200">
+                  Pan-India Network
+                </span>
+                <span className="px-4 py-2 bg-white/80 rounded-full text-sm font-medium text-teal-700 border border-teal-200">
+                  Service Excellence
+                </span>
               </div>
             </motion.div>
           </div>
