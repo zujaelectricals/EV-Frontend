@@ -46,7 +46,7 @@ import { PaymentMethods } from "./profile/PaymentMethods";
 import { DistributorOptions } from "./profile/DistributorOptions";
 import { Addresses } from "./profile/Addresses";
 import { KYCVerification } from "./profile/KYCVerification";
-import { useGetUserProfileQuery, useGetUserProfileRawQuery, useUpdateProfileMutation, useSubmitNomineeMutation, useGetNomineeDetailsQuery } from "@/app/api/userApi";
+import { useGetUserProfileQuery, useGetUserProfileRawQuery, useUpdateProfileMutation, useSubmitNomineeMutation, useGetNomineeDetailsQuery, useSubmitNomineeKYCMutation } from "@/app/api/userApi";
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { setCredentials } from "@/app/slices/authSlice";
 import { useGetBookingsQuery } from "@/app/api/bookingApi";
@@ -72,9 +72,9 @@ export function ProfilePage() {
     skip: user?.role === 'admin',
   });
   
-  // Fetch raw profile data for editing (only when settings tab is active) - skip for admin
+  // Fetch raw profile data for editing (only when settings or nominee tab is active) - skip for admin
   const { data: rawProfileData, refetch: refetchRawProfile } = useGetUserProfileRawQuery(undefined, {
-    skip: activeTab !== "settings" || user?.role === 'admin',
+    skip: (activeTab !== "settings" && activeTab !== "nominee") || user?.role === 'admin',
   });
   
   // Update profile mutation
@@ -82,6 +82,9 @@ export function ProfilePage() {
   
   // Submit nominee mutation
   const [submitNominee, { isLoading: isSubmittingNominee }] = useSubmitNomineeMutation();
+  
+  // Submit nominee KYC mutation
+  const [submitNomineeKYC, { isLoading: isSubmittingNomineeKYC }] = useSubmitNomineeKYCMutation();
   
   // Fetch nominee details (only when nominee tab is active) - skip for admin
   const { data: nomineeData, isLoading: isLoadingNominee, error: nomineeError, refetch: refetchNominee } = useGetNomineeDetailsQuery(undefined, {
@@ -466,6 +469,23 @@ export function ProfilePage() {
     }
   };
 
+  // Handle nominee KYC submission
+  const handleSubmitNomineeKYC = async () => {
+    try {
+      const result = await submitNomineeKYC().unwrap();
+      toast.success(result.message || "Nominee KYC submitted successfully!");
+      
+      // Refetch profile and raw profile to update nominee_kyc_status
+      await Promise.all([refetchProfile(), refetchRawProfile()]);
+    } catch (error) {
+      console.error("Error submitting nominee KYC:", error);
+      const errorMessage = error && typeof error === 'object' && 'data' in error 
+        ? (error as { data?: { message?: string } }).data?.message 
+        : undefined;
+      toast.error(errorMessage || "Failed to submit nominee KYC. Please try again.");
+    }
+  };
+
   const profileSections = [
     { id: "orders", label: "My Orders", icon: Package, count: bookingsData?.count || 0 },
     {
@@ -481,7 +501,7 @@ export function ProfilePage() {
     //{ id: "redemption", label: "Redemption Points", icon: Gift },
     { id: "settings", label: "Edit Profile", icon: Settings },
     // ...(isDistributor
-    //   ? [{ id: "distributor", label: "Authorized Partner", icon: Award }]
+    //   ? [{ id: "distributor", label: "ASA(Authorized Sales Associate)", icon: Award }]
     //   : []),
   ];
 
@@ -831,15 +851,57 @@ export function ProfilePage() {
                     </div>
                   </div>
 
-                      <Button 
-                        type="submit" 
-                        className="w-full sm:w-auto mt-6" 
-                        disabled={isSubmittingNominee}
-                      >
-                        {isSubmittingNominee 
-                          ? (isEditingNominee ? "Updating..." : "Submitting...") 
-                          : (isEditingNominee ? "Update Nominee Details" : "Submit Nominee Details")}
-                      </Button>
+                      <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                        <Button 
+                          type="submit" 
+                          className="w-full sm:w-auto" 
+                          disabled={isSubmittingNominee}
+                        >
+                          {isSubmittingNominee 
+                            ? (isEditingNominee ? "Updating..." : "Submitting...") 
+                            : (isEditingNominee ? "Update Nominee Details" : "Submit Nominee Details")}
+                        </Button>
+                      </div>
+                      
+                      {/* Display nominee KYC status */}
+                      {rawProfileData?.nominee_exists && rawProfileData?.nominee_kyc_status && (
+                        <div className="mt-4 p-3 rounded-lg border" style={{
+                          backgroundColor: 
+                            rawProfileData.nominee_kyc_status === 'approved' || rawProfileData.nominee_kyc_status === 'verified'
+                              ? 'rgba(34, 197, 94, 0.1)'
+                              : rawProfileData.nominee_kyc_status === 'pending'
+                                ? 'rgba(251, 191, 36, 0.1)'
+                                : rawProfileData.nominee_kyc_status === 'rejected'
+                                  ? 'rgba(239, 68, 68, 0.1)'
+                                  : 'rgba(156, 163, 175, 0.1)',
+                          borderColor:
+                            rawProfileData.nominee_kyc_status === 'approved' || rawProfileData.nominee_kyc_status === 'verified'
+                              ? 'rgba(34, 197, 94, 0.3)'
+                              : rawProfileData.nominee_kyc_status === 'pending'
+                                ? 'rgba(251, 191, 36, 0.3)'
+                                : rawProfileData.nominee_kyc_status === 'rejected'
+                                  ? 'rgba(239, 68, 68, 0.3)'
+                                  : 'rgba(156, 163, 175, 0.3)',
+                        }}>
+                          <p className="text-sm font-medium">
+                            Nominee KYC Status: <span className="capitalize">{rawProfileData.nominee_kyc_status}</span>
+                          </p>
+                          {rawProfileData.nominee_kyc_status === 'pending' && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Your nominee KYC is under review. Please wait for verification.
+                            </p>
+                          )}
+                          {rawProfileData.nominee_kyc_status === 'approved' || rawProfileData.nominee_kyc_status === 'verified' ? (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Your nominee KYC has been verified successfully.
+                            </p>
+                          ) : rawProfileData.nominee_kyc_status === 'rejected' ? (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Your nominee KYC was rejected. Please contact support for more information.
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
                     </form>
                   </CardContent>
                 </Card>

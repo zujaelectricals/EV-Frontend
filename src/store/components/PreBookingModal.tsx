@@ -36,6 +36,90 @@ const REFERRAL_BONUS = 1000;
 const REDEMPTION_ELIGIBILITY_DAYS = 365; // 1 year
 const PAYMENT_DUE_DAYS = 30;
 
+// Helper function to extract error messages from API responses
+const extractErrorMessage = (error: unknown, defaultMessage: string = 'An error occurred. Please try again.'): string => {
+  if (!error || typeof error !== 'object' || !('data' in error)) {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return defaultMessage;
+  }
+
+  const errorData = (error as { data?: any }).data;
+
+  if (!errorData) {
+    return defaultMessage;
+  }
+
+  if (typeof errorData === 'string') {
+    return errorData;
+  }
+
+  if (typeof errorData !== 'object') {
+    return defaultMessage;
+  }
+
+  // Check for general error messages first
+  if (errorData.detail && typeof errorData.detail === 'string') {
+    return errorData.detail;
+  }
+  
+  if (errorData.message && typeof errorData.message === 'string') {
+    return errorData.message;
+  }
+  
+  if (errorData.error && typeof errorData.error === 'string') {
+    return errorData.error;
+  }
+
+  // Handle field-specific errors (e.g., { referral_code: ['Invalid referral code'] })
+  const fieldErrors: string[] = [];
+
+  // Map API field names to user-friendly names
+  const fieldNameMap: Record<string, string> = {
+    'referral_code': 'Referral Code',
+    'vehicle_model_code': 'Vehicle Model',
+    'vehicle_color': 'Vehicle Color',
+    'battery_variant': 'Battery Variant',
+    'booking_amount': 'Pre-Booking Amount',
+    'total_amount': 'Total Amount',
+    'delivery_city': 'Delivery City',
+    'delivery_state': 'Delivery State',
+    'delivery_pin': 'PIN Code',
+    'terms_accepted': 'Terms and Conditions',
+    'join_distributor_program': 'Distributor Program',
+    'amount': 'Amount',
+    'payment_method': 'Payment Method',
+    'booking_id': 'Booking',
+  };
+
+  // Extract field-specific errors
+  Object.keys(errorData).forEach((key) => {
+    const fieldName = fieldNameMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const fieldError = errorData[key];
+
+    if (Array.isArray(fieldError) && fieldError.length > 0) {
+      // Join multiple errors for the same field
+      fieldErrors.push(`${fieldName}: ${fieldError.join(', ')}`);
+    } else if (typeof fieldError === 'string') {
+      fieldErrors.push(`${fieldName}: ${fieldError}`);
+    } else if (typeof fieldError === 'object' && fieldError !== null) {
+      // Handle nested error objects
+      const nestedErrors = Object.values(fieldError).flat();
+      if (nestedErrors.length > 0) {
+        fieldErrors.push(`${fieldName}: ${nestedErrors.join(', ')}`);
+      }
+    }
+  });
+
+  if (fieldErrors.length > 0) {
+    // Join all field errors with newlines for better readability
+    return fieldErrors.join('\n');
+  }
+
+  return defaultMessage;
+};
+
 export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockData }: PreBookingModalProps) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -209,6 +293,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       return;
     }
 
+    if (!referralCodeInput.trim()) {
+      toast.error('Please enter a referral code');
+      return;
+    }
+
     if (!termsAccepted) {
       toast.error('Please accept the Terms and Conditions');
       return;
@@ -254,7 +343,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         delivery_state: deliveryState.trim(),
         delivery_pin: deliveryPin.trim(),
         terms_accepted: termsAccepted,
-        referral_code: referralCodeInput.trim() || undefined,
+        referral_code: referralCodeInput.trim(),
         join_distributor_program: joinDistributorProgram || undefined,
       };
 
@@ -277,10 +366,14 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       // Don't reset ref here - keep it true until payment completes or modal closes
     } catch (error: unknown) {
       console.error('🔴 [PRE-BOOK] Booking API Error:', error);
-      const errorMessage = (error as { data?: { detail?: string; message?: string } })?.data?.detail || 
-                          (error as { data?: { detail?: string; message?: string } })?.data?.message || 
-                          'Failed to create booking. Please try again.';
-      toast.error(errorMessage);
+      
+      // Extract and format error messages from API response
+      const errorMessage = extractErrorMessage(error, 'Failed to create booking. Please try again.');
+      
+      toast.error(errorMessage, {
+        duration: 5000, // Show for longer since it might contain multiple errors
+      });
+      
       // Reset submission state on error
       isSubmittingRef.current = false;
       setIsBookingInProgress(false);
@@ -503,7 +596,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       if (isAlreadyDistributor) {
         successMessage = 'Pre-booking successful! Your order has been added to your order history.';
       } else if (joinDistributorProgram && isDistributorEligible) {
-        successMessage += ' You can now apply for the Distributor Program from your profile.';
+        successMessage += ' You can now apply for the ASA(Authorized Sales Associate) Program from your profile.';
       }
       
       // Reset submission state after successful payment
@@ -539,10 +632,14 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       }, 600);
     } catch (error: unknown) {
       console.error('🔴 [PAYMENT] Payment Processing Error:', error);
-      const errorMessage = (error as { data?: { detail?: string; message?: string } })?.data?.detail || 
-                          (error as { data?: { detail?: string; message?: string } })?.data?.message || 
-                          'Failed to process payment. Please try again.';
-      toast.error(errorMessage);
+      
+      // Extract and format error messages from API response
+      const errorMessage = extractErrorMessage(error, 'Failed to process payment. Please try again.');
+      
+      toast.error(errorMessage, {
+        duration: 5000, // Show for longer since it might contain multiple errors
+      });
+      
       // Reset submission state on payment error
       isSubmittingRef.current = false;
       setIsBookingInProgress(false);
@@ -710,15 +807,22 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
           {/* Referral Code */}
           <div className="space-y-2.5">
             <Label htmlFor="referralCode" className="text-sm font-medium text-foreground">
-              Referral Code (Optional)
+              Referral Code <span className="text-destructive">*</span>
             </Label>
             <Input
               id="referralCode"
               placeholder="Enter referral code"
               value={referralCodeInput}
               onChange={(e) => setReferralCodeInput(e.target.value)}
+              required
               className="h-11"
             />
+            {!referralCodeInput.trim() && (
+              <p className="text-xs text-destructive flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Referral code is required
+              </p>
+            )}
             {referralCodeInput && (
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5" />
@@ -976,6 +1080,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 !deliveryState.trim() ||
                 !deliveryPin.trim() ||
                 !/^\d{6}$/.test(deliveryPin.trim()) ||
+                !referralCodeInput.trim() ||
                 !termsAccepted ||
                 !stockData
               }

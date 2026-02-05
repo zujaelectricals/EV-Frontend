@@ -105,7 +105,7 @@ export function KYCVerification() {
               <AlertDescription className="text-green-800">
                 <strong>Your KYC has been verified!</strong>
                 <p className="mt-2">
-                  Your identity documents have been successfully verified. You can now apply to become a Distributor if eligible.
+                  Your identity documents have been successfully verified. You can now apply to become an ASA(Authorized Sales Associate) if eligible.
                 </p>
               </AlertDescription>
             </Alert>
@@ -147,10 +147,10 @@ export function KYCVerification() {
               <AlertDescription>
                 <strong>KYC Not Submitted</strong>
                 <p className="mt-2">
-                  Complete your KYC verification to become a Distributor. Please upload your PAN and Aadhar documents.
+                  Complete your KYC verification to become an ASA(Authorized Sales Associate). Please upload your PAN and Aadhar documents.
                 </p>
                 <p className="mt-2 text-sm">
-                  KYC verification is required for distributor eligibility and enhanced account security.
+                  KYC verification is required for ASA(Authorized Sales Associate) eligibility and enhanced account security.
                 </p>
               </AlertDescription>
             </Alert>

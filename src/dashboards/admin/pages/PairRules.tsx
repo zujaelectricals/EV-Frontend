@@ -41,6 +41,7 @@ export const PairRules = () => {
     distributor_application_auto_approve: true,
     payout_approval_needed: true,
     payout_tds_percentage: 0,
+    company_referral_code: 'COMPANY',
   });
 
   // Track if form has been modified
@@ -65,6 +66,7 @@ export const PairRules = () => {
         distributor_application_auto_approve: settings.distributor_application_auto_approve ?? true,
         payout_approval_needed: settings.payout_approval_needed ?? true,
         payout_tds_percentage: settings.payout_tds_percentage ?? 0,
+        company_referral_code: settings.company_referral_code ?? 'COMPANY',
       });
       setIsDirty(false);
     }
@@ -111,6 +113,10 @@ export const PairRules = () => {
       }
       if (formData.payout_tds_percentage < 0 || formData.payout_tds_percentage > 100) {
         toast.error('Payout TDS percentage must be between 0 and 100');
+        return;
+      }
+      if (!formData.company_referral_code || formData.company_referral_code.length < 3 || formData.company_referral_code.length > 20) {
+        toast.error('Company referral code must be between 3 and 20 characters');
         return;
       }
 
@@ -227,17 +233,17 @@ export const PairRules = () => {
           </div>
         </CardContent>
       </Card> 
-      {/* Distributor Application Settings */}
+      {/* ASA(Authorized Sales Associate) Application Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Distributor Application Settings</CardTitle>
+          <CardTitle>ASA(Authorized Sales Associate) Application Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="auto_approve">Auto-Approve Distributor Applications</Label>
+              <Label htmlFor="auto_approve">Auto-Approve ASA(Authorized Sales Associate) Applications</Label>
               <p className="text-xs text-muted-foreground">
-                If enabled, distributor applications will be automatically approved. If disabled, admin/staff approval is required.
+                If enabled, ASA(Authorized Sales Associate) applications will be automatically approved. If disabled, admin/staff approval is required.
               </p>
             </div>
             <Switch
@@ -474,7 +480,7 @@ export const PairRules = () => {
                 }}
               />
               <p className="text-xs text-muted-foreground">
-                Maximum number of binary pairs non-Active Buyer distributors can earn commission for before becoming Active Buyer. 6th+ pairs are blocked until user becomes Active Buyer (default: 5, min: 1)
+                Maximum number of binary pairs non-Active Buyer ASA(Authorized Sales Associate) can earn commission for before becoming Active Buyer. 6th+ pairs are blocked until user becomes Active Buyer (default: 5, min: 1)
               </p>
             </div>
 
@@ -677,6 +683,32 @@ export const PairRules = () => {
             />
             <p className="text-xs text-muted-foreground">
               TDS percentage applied on payout withdrawals (default: 0, meaning no payout TDS, range: 0-100)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Company Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Company Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="company_referral_code">Company Referral Code</Label>
+            <Input
+              id="company_referral_code"
+              type="text"
+              placeholder="Enter company referral code"
+              value={formData.company_referral_code || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                handleChange('company_referral_code', val);
+              }}
+              maxLength={20}
+            />
+            <p className="text-xs text-muted-foreground">
+              Static referral code representing the company (used for first booking in the system, default: "COMPANY", min length: 3, max length: 20)
             </p>
           </div>
         </CardContent>

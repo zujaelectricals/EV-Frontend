@@ -27,6 +27,7 @@ export interface UserProfileResponse {
   referred_by: string | null;
   kyc_status: 'not_submitted' | 'pending' | 'verified' | 'approved' | 'rejected' | null;
   nominee_exists: boolean;
+  nominee_kyc_status: 'not_submitted' | 'pending' | 'verified' | 'approved' | 'rejected' | null;
   date_joined: string;
   binary_commission_active: boolean;
   binary_pairs_matched: number;
@@ -85,6 +86,13 @@ export interface NomineeSubmissionRequest {
 export interface NomineeSubmissionResponse {
   success: boolean;
   message: string;
+}
+
+// Nominee KYC submission response
+export interface NomineeKYCSubmissionResponse {
+  success: boolean;
+  message: string;
+  nominee_kyc_status: 'pending';
 }
 
 // Nominee details response (single nominee object)
@@ -928,6 +936,91 @@ export const userApi = api.injectEndpoints({
       providesTags: ['User'],
     }),
 
+    // POST users/nominee/submit-kyc/ - Submit nominee KYC for verification
+    submitNomineeKYC: builder.mutation<NomineeKYCSubmissionResponse, void>({
+      queryFn: async () => {
+        console.log('🔵 [NOMINEE KYC API] ========== Starting Nominee KYC Submission ==========');
+
+        const { accessToken } = getAuthTokens();
+
+        if (!accessToken) {
+          console.error('❌ [NOMINEE KYC API] No access token found in localStorage');
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          const apiUrl = `${getApiBaseUrl()}users/nominee/submit-kyc/`;
+          console.log('🔵 [NOMINEE KYC API] Making POST request to:', apiUrl);
+
+          let response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [NOMINEE KYC API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+
+            if (refreshData) {
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [NOMINEE KYC API] Retrying request with new token...');
+                response = await fetch(apiUrl, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                });
+              }
+            } else {
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to submit nominee KYC' }));
+            console.error('❌ [NOMINEE KYC API] Error response:', error);
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data: NomineeKYCSubmissionResponse = await response.json();
+          console.log('✅ [NOMINEE KYC API] Success! Response:', data);
+          console.log('✅ [NOMINEE KYC API] ========== Nominee KYC Submission Completed ==========');
+          return { data };
+        } catch (error) {
+          console.error('❌ [NOMINEE KYC API] Fetch error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      invalidatesTags: ['User'],
+    }),
+
     // GET users/normal/ - Get list of normal users (for admin)
     getNormalUsers: builder.query<{
       count: number;
@@ -1322,33 +1415,47 @@ export const userApi = api.injectEndpoints({
       next: string | null;
       previous: string | null;
       results: Array<{
+        kyc_type: string;
         id: number;
+        user_id: number;
+        user_email: string;
+        user_username: string;
+        user_full_name: string;
         reviewed_by: {
           id: number;
           fullname: string;
           email: string;
+          profile_picture_url: string | null;
         } | null;
         status: 'pending' | 'approved' | 'rejected';
-        pan_number: string;
-        aadhaar_number: string;
+        pan_number: string | null;
+        aadhaar_number: string | null;
         address_line1: string;
         address_line2: string;
         city: string;
         state: string;
         pincode: string;
-        country: string;
-        pan_document: string;
-        aadhaar_front: string;
-        aadhaar_back: string;
-        bank_name: string;
-        account_number: string;
-        ifsc_code: string;
-        account_holder_name: string;
-        bank_passbook: string;
+        country: string | null;
+        pan_document: string | null;
+        aadhaar_front: string | null;
+        aadhaar_back: string | null;
+        bank_name: string | null;
+        account_number: string | null;
+        ifsc_code: string | null;
+        account_holder_name: string | null;
+        bank_passbook: string | null;
         submitted_at: string;
         reviewed_at: string | null;
         rejection_reason: string;
-        user: number;
+        // Nominee-specific fields
+        nominee_full_name?: string;
+        relationship?: string;
+        date_of_birth?: string;
+        mobile?: string;
+        email?: string;
+        id_proof_type?: string;
+        id_proof_number?: string;
+        id_proof_document?: string;
       }>;
     }, {
       page?: number;
@@ -1535,6 +1642,176 @@ export const userApi = api.injectEndpoints({
           return { data };
         } catch (error) {
           console.error('❌ [USER API - updateKYCStatus] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      invalidatesTags: ['KYC', 'User'],
+    }),
+
+    // POST users/nominee/{id}/approve/ - Approve nominee KYC (Admin only)
+    approveNomineeKYC: builder.mutation<{ success: boolean; message: string }, { nomineeId: number }>({
+      queryFn: async ({ nomineeId }) => {
+        const { accessToken } = getAuthTokens();
+
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          const requestBody = { status: 'approved' };
+
+          console.log('📤 [USER API - approveNomineeKYC] Request URL:', `${getApiBaseUrl()}users/nominee/${nomineeId}/approve/`);
+          console.log('📤 [USER API - approveNomineeKYC] Request Body:', JSON.stringify(requestBody, null, 2));
+
+          let response = await fetch(`${getApiBaseUrl()}users/nominee/${nomineeId}/approve/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - approveNomineeKYC] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+
+            if (refreshData) {
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - approveNomineeKYC] Retrying request with new token...');
+                response = await fetch(`${getApiBaseUrl()}users/nominee/${nomineeId}/approve/`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(requestBody),
+                });
+              }
+            } else {
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to approve nominee KYC' }));
+            console.error('❌ [USER API - approveNomineeKYC] Error Response:', error);
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data = await response.json();
+          console.log('✅ [USER API - approveNomineeKYC] Response:', JSON.stringify(data, null, 2));
+          return { data };
+        } catch (error) {
+          console.error('❌ [USER API - approveNomineeKYC] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      invalidatesTags: ['KYC', 'User'],
+    }),
+
+    // POST users/nominee/{id}/reject/ - Reject nominee KYC (Admin only)
+    rejectNomineeKYC: builder.mutation<{ success: boolean; message: string }, { nomineeId: number; reason: string }>({
+      queryFn: async ({ nomineeId, reason }) => {
+        const { accessToken } = getAuthTokens();
+
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          const requestBody = { reason };
+
+          console.log('📤 [USER API - rejectNomineeKYC] Request URL:', `${getApiBaseUrl()}users/nominee/${nomineeId}/reject/`);
+          console.log('📤 [USER API - rejectNomineeKYC] Request Body:', JSON.stringify(requestBody, null, 2));
+
+          let response = await fetch(`${getApiBaseUrl()}users/nominee/${nomineeId}/reject/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - rejectNomineeKYC] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+
+            if (refreshData) {
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - rejectNomineeKYC] Retrying request with new token...');
+                response = await fetch(`${getApiBaseUrl()}users/nominee/${nomineeId}/reject/`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(requestBody),
+                });
+              }
+            } else {
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to reject nominee KYC' }));
+            console.error('❌ [USER API - rejectNomineeKYC] Error Response:', error);
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data = await response.json();
+          console.log('✅ [USER API - rejectNomineeKYC] Response:', JSON.stringify(data, null, 2));
+          return { data };
+        } catch (error) {
+          console.error('❌ [USER API - rejectNomineeKYC] Error:', error);
           return {
             error: {
               status: 'FETCH_ERROR' as const,
@@ -1755,12 +2032,15 @@ export const {
   useUpdateProfileMutation,
   useSubmitNomineeMutation,
   useGetNomineeDetailsQuery,
+  useSubmitNomineeKYCMutation,
   useGetNormalUsersQuery,
   useGetUserByIdQuery,
   useUpdateUserByIdMutation,
   useDeleteUserByIdMutation,
   useGetKYCListQuery,
   useUpdateKYCStatusMutation,
+  useApproveNomineeKYCMutation,
+  useRejectNomineeKYCMutation,
   useGetDistributorApplicationsQuery,
   useUpdateDistributorApplicationStatusMutation,
 } = userApi;

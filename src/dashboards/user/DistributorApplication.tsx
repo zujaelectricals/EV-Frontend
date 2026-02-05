@@ -391,7 +391,7 @@ export function DistributorApplication() {
       
       // Check if application was approved
       if (result.status === 'approved') {
-        toast.success('Congratulations! Your distributor application has been approved!');
+        toast.success('Congratulations! Your ASA(Authorized Sales Associate) application has been approved!');
         
         // Fetch user profile again to get updated distributor status
         try {
@@ -506,7 +506,7 @@ export function DistributorApplication() {
   // Redirect to profile if already a distributor with an approved distributor application
   // We rely on distributor_application_status from the profile so that:
   // - If status is null (not applied yet), user can see and fill the distributor application form
-  // - If status is approved, we treat the user as an active authorized partner
+  // - If status is approved, we treat the user as an active ASA(Authorized Sales Associate)
   const isVerifiedDistributor =
     isDistributor === true && distributorApplicationStatusFromProfile === 'approved';
   if (isVerifiedDistributor) {
@@ -517,11 +517,11 @@ export function DistributorApplication() {
             <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center gap-2 text-lg sm:text-xl">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-success flex-shrink-0" />
-                <span className="break-words">Authorized Partner Status: Active</span>
+                <span className="break-words">ASA(Authorized Sales Associate) Status: Active</span>
               </div>
             </CardTitle>
             <CardDescription className="text-sm sm:text-base mt-2">
-              Your authorized partner account is active. Visit your profile to access authorized partner options and manage your authorized partner account.
+              Your ASA(Authorized Sales Associate) account is active. Visit your profile to access ASA(Authorized Sales Associate) options and manage your ASA(Authorized Sales Associate) account.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-auto p-4 sm:p-6 pt-0">
@@ -529,14 +529,14 @@ export function DistributorApplication() {
               onClick={() => window.location.href = '/profile?tab=distributor'} 
               className="w-full sm:w-1/2 text-sm sm:text-base"
             >
-              Go to Authorized Partner Profile
+              Go to ASA(Authorized Sales Associate) Profile
             </Button>
             <Button 
               onClick={() => window.location.href = '/distributor'} 
               variant="outline" 
               className="w-full sm:w-1/2 text-sm sm:text-base"
             >
-              Go to Authorized Partner Dashboard
+              Go to ASA(Authorized Sales Associate) Dashboard
             </Button>
           </CardContent>
         </Card>
@@ -565,7 +565,7 @@ export function DistributorApplication() {
               Application Under Review
             </CardTitle>
             <CardDescription>
-              Your distributor application is being reviewed by our team. You will be notified once the verification is complete.
+              Your ASA(Authorized Sales Associate) application is being reviewed by our team. You will be notified once the verification is complete.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -602,7 +602,7 @@ export function DistributorApplication() {
               Application Rejected
             </CardTitle>
             <CardDescription>
-              Your distributor application was not approved. Please review the requirements and try again.
+              Your ASA(Authorized Sales Associate) application was not approved. Please review the requirements and try again.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -646,7 +646,7 @@ export function DistributorApplication() {
                 <div>
                   <p className="font-semibold text-success">You are eligible to apply!</p>
                   <p className="text-sm text-muted-foreground">
-                    You can proceed with your distributor application.
+                    You can proceed with your Authorized Sales Associate application.
                   </p>
                 </div>
               </div>

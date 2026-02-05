@@ -20,6 +20,7 @@ import {
   Ticket,
   FileText,
   Key,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useAppSelector } from "@/app/hooks";
 import { cn } from "@/lib/utils";
@@ -245,6 +246,13 @@ const adminMenuSections: MenuSection[] = [
   //     { label: "All Tickets", path: "/admin/tickets/all" },
   //   ],
   // },
+  {
+    label: "Gallery",
+    icon: ImageIcon,
+    value: "gallery",
+    path: "/admin/gallery",
+    children: [],
+  },
   {
     label: "Reports",
     icon: FileText,

@@ -567,15 +567,15 @@ export const PaymentManagement = () => {
           }
         }}
       >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Payment Details</DialogTitle>
             <DialogDescription>
               View complete details for payment #{viewingPayment?.id}
             </DialogDescription>
           </DialogHeader>
           {viewingPayment && (
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Payment ID</Label>
@@ -744,7 +744,7 @@ export const PaymentManagement = () => {
               )}
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
               Close
             </Button>

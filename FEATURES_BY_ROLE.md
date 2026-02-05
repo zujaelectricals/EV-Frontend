@@ -15,7 +15,7 @@ This document lists all creation and submission features available to each role 
 - **Features**:
   - Create pre-booking with minimum ₹5000
   - Select payment method (Full, EMI, Flexible)
-  - Enter referral code (optional)
+  - Enter referral code (required)
   - Choose EMI tenure (12, 24, 36 months)
   - Join distributor program option
   - Automatic Active Buyer status assignment

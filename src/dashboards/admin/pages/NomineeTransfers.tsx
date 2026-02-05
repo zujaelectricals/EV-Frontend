@@ -171,7 +171,7 @@ export const NomineeTransfers = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Nominee Transfers</h1>
-        <p className="text-muted-foreground mt-1">Manage reserve wallet transfers to nominees upon authorized partner demise</p>
+        <p className="text-muted-foreground mt-1">Manage reserve wallet transfers to nominees upon ASA(Authorized Sales Associate) demise</p>
       </div>
 
       {/* Summary Cards */}

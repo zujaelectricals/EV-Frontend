@@ -132,7 +132,7 @@ export const ActivePoolBalances = () => {
 
   const handleExport = () => {
     // Create CSV content
-    const headers = ['Distributor Name', 'ID', 'Email', 'Phone', 'Pool Balance', 'Total Withdrawals', 'Last Withdrawal Date', 'Status'];
+    const headers = ['ASA(Authorized Sales Associate) Name', 'ID', 'Email', 'Phone', 'Pool Balance', 'Total Withdrawals', 'Last Withdrawal Date', 'Status'];
     const rows = filteredAndSorted.map(b => [
       b.distributorName,
       b.distributorId,
@@ -183,7 +183,7 @@ export const ActivePoolBalances = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Active Reserve Balances</h1>
-          <p className="text-muted-foreground mt-1">View and manage all authorized partner reserve wallet balances</p>
+          <p className="text-muted-foreground mt-1">View and manage all ASA(Authorized Sales Associate) reserve wallet balances</p>
         </div>
         <Button onClick={handleExport} variant="outline">
           <Download className="h-4 w-4 mr-2" />
@@ -206,7 +206,7 @@ export const ActivePoolBalances = () => {
               <div className="text-2xl font-bold text-foreground">
                 ₹{summaryStats.totalPoolMoney.toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Across all authorized partners</p>
+              <p className="text-xs text-muted-foreground mt-1">Across all ASA(Authorized Sales Associate)</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -225,7 +225,7 @@ export const ActivePoolBalances = () => {
               <div className="text-2xl font-bold text-foreground">
                 ₹{summaryStats.averageBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Per distributor</p>
+              <p className="text-xs text-muted-foreground mt-1">Per ASA(Authorized Sales Associate)</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -237,7 +237,7 @@ export const ActivePoolBalances = () => {
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Active Distributors</CardTitle>
+              <CardTitle className="text-sm font-medium">Active ASA(Authorized Sales Associate)</CardTitle>
               <Users className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
@@ -270,8 +270,8 @@ export const ActivePoolBalances = () => {
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <CardTitle>Distributor Pool Balances</CardTitle>
-              <CardDescription>View and manage pool money balances for all distributors</CardDescription>
+              <CardTitle>ASA(Authorized Sales Associate) Pool Balances</CardTitle>
+              <CardDescription>View and manage pool money balances for all ASA(Authorized Sales Associate)</CardDescription>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative">
@@ -331,14 +331,14 @@ export const ActivePoolBalances = () => {
         <CardContent>
           {filteredAndSorted.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No distributors found matching your filters</p>
+              <p className="text-muted-foreground">No ASA(Authorized Sales Associate) found matching your filters</p>
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <SortableHeader field="distributorName">Distributor Name</SortableHeader>
+                    <SortableHeader field="distributorName">ASA(Authorized Sales Associate) Name</SortableHeader>
                     <TableHead>ID</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
@@ -431,11 +431,11 @@ export const ActivePoolBalances = () => {
         </CardContent>
       </Card>
 
-      {/* Distributor Details Dialog */}
+      {/* ASA(Authorized Sales Associate) Details Dialog */}
       <Dialog open={!!selectedDistributor} onOpenChange={(open) => !open && setSelectedDistributor(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Distributor Pool Details</DialogTitle>
+            <DialogTitle>ASA(Authorized Sales Associate) Pool Details</DialogTitle>
             <DialogDescription>
               Detailed pool money information for {distributorDetails?.distributorName}
             </DialogDescription>
@@ -444,7 +444,7 @@ export const ActivePoolBalances = () => {
             <div className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm text-muted-foreground">Distributor Name</Label>
+                  <Label className="text-sm text-muted-foreground">ASA(Authorized Sales Associate) Name</Label>
                   <p className="font-medium">{distributorDetails.distributorName}</p>
                 </div>
                 <div>

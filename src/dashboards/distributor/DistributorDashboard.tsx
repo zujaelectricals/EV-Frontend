@@ -73,9 +73,9 @@ export const DistributorDashboard = () => {
       <div className="space-y-6">
         <div className="glass-card rounded-2xl p-8 text-center">
           <Award className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-2xl font-bold text-foreground mb-2">Authorized Partner Application Pending</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">ASA(Authorized Sales Associate) Application Pending</h2>
           <p className="text-muted-foreground mb-6">
-            Your authorized partner application is under review. You'll be notified once it's approved.
+            Your ASA(Authorized Sales Associate) application is under review. You'll be notified once it's approved.
           </p>
           <Button onClick={() => navigate('/profile?tab=distributor')}>
             View Application Status
@@ -88,7 +88,7 @@ export const DistributorDashboard = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Authorized Partner Dashboard</h1>
+        <h1 className="text-3xl font-bold text-foreground">ASA(Authorized Sales Associate) Dashboard</h1>
         <p className="text-muted-foreground mt-1">
           Overview of your referrals, earnings, and quick actions
         </p>

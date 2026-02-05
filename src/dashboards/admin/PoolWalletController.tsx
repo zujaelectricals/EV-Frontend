@@ -199,7 +199,7 @@ export const PoolWalletController = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Withdrawal Requests</CardTitle>
-              <CardDescription>Review and approve reserve wallet withdrawal requests from authorized partners</CardDescription>
+              <CardDescription>Review and approve reserve wallet withdrawal requests from ASA(Authorized Sales Associate)</CardDescription>
             </div>
             <Input
               placeholder="Search by name, ID, or reason..."
@@ -237,7 +237,7 @@ export const PoolWalletController = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Request ID</TableHead>
-                      <TableHead>Authorized Partner</TableHead>
+                      <TableHead>ASA(Authorized Sales Associate)</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Reason</TableHead>
                       <TableHead>Description</TableHead>
@@ -305,7 +305,7 @@ export const PoolWalletController = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Request ID</TableHead>
-                      <TableHead>Authorized Partner</TableHead>
+                      <TableHead>ASA(Authorized Sales Associate)</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Reason</TableHead>
                       <TableHead>Processed Date</TableHead>
@@ -342,7 +342,7 @@ export const PoolWalletController = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Request ID</TableHead>
-                      <TableHead>Authorized Partner</TableHead>
+                      <TableHead>ASA(Authorized Sales Associate)</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Reason</TableHead>
                       <TableHead>Admin Comments</TableHead>
@@ -411,7 +411,7 @@ export const PoolWalletController = () => {
           <DialogHeader>
             <DialogTitle>Reject Withdrawal Request</DialogTitle>
             <DialogDescription>
-              Please provide a reason for rejecting this withdrawal request. The reserve wallet will be restored to the authorized partner.
+              Please provide a reason for rejecting this withdrawal request. The reserve wallet will be restored to the ASA(Authorized Sales Associate).
             </DialogDescription>
           </DialogHeader>
           {selectedRequest && (

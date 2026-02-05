@@ -416,7 +416,7 @@ export function OrderDetailsDialog({
                 {detailedBooking?.join_distributor_program && (
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">
-                      Distributor Program
+                      ASA(Authorized Sales Associate) Program
                     </p>
                     <Badge className="bg-primary/10 text-primary border-primary/30">
                       Joined

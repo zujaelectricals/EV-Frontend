@@ -168,12 +168,12 @@ export function ConditionsDialog({ isOpen, onClose, onAccept }: ConditionsDialog
 
           {/* English Section */}
           <TabsContent value="english" className="space-y-6 mt-4">
-            {/* Distributor Incentive Consent */}
+            {/* ASA(Authorized Sales Associate) Incentive Consent */}
             <div className="space-y-4 p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
-              <h3 className="font-semibold text-lg">Distributor Incentive → Vehicle Installment Consent</h3>
+              <h3 className="font-semibold text-lg">ASA(Authorized Sales Associate) Incentive → Vehicle Installment Consent</h3>
               <div className="space-y-3 text-sm">
                 <p>
-                  I am working as a Distributor / Associate at <strong>ZUJA Electric Scooter</strong>,
+                  I am working as an ASA(Authorized Sales Associate) at <strong>ZUJA Electric Scooter</strong>,
                   and I hereby authorize that:
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-4">
@@ -257,7 +257,7 @@ export function ConditionsDialog({ isOpen, onClose, onAccept }: ConditionsDialog
                 <p className="text-sm font-medium mb-2">👉 In case of:</p>
                 <ul className="list-disc list-inside space-y-1 text-sm ml-4 mb-3">
                   <li>Booking cancellation</li>
-                  <li>Distributor activity termination</li>
+                  <li>ASA(Authorized Sales Associate) activity termination</li>
                   <li>No network incentive received</li>
                   <li>Personal reasons for abandoning purchase</li>
                 </ul>
@@ -290,13 +290,13 @@ export function ConditionsDialog({ isOpen, onClose, onAccept }: ConditionsDialog
 
           {/* Malayalam Section */}
           <TabsContent value="malayalam" className="space-y-6 mt-4">
-            {/* Distributor Incentive Consent */}
+            {/* ASA(Authorized Sales Associate) Incentive Consent */}
             <div className="space-y-4 p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
-              <h3 className="font-semibold text-lg">🔹 Distributor Incentive → Vehicle Installment Consent</h3>
+              <h3 className="font-semibold text-lg">🔹 ASA(Authorized Sales Associate) Incentive → Vehicle Installment Consent</h3>
               <div className="space-y-3 text-sm">
                 <p>
                   ഞാൻ <strong>ZUJA Electric Scooter</strong> /<br />
-                  എന്ന സ്ഥാപനത്തിലെ Distributor / Associate ആയി പ്രവർത്തിക്കുന്നതിനാൽ,
+                  എന്ന സ്ഥാപനത്തിലെ ASA(Authorized Sales Associate) ആയി പ്രവർത്തിക്കുന്നതിനാൽ,
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>👉 എനിക്ക് ലഭിക്കുന്ന Eligible Incentives / Bonuses ല്‍ നിന്നും</li>

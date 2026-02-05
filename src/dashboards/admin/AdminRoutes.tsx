@@ -85,6 +85,7 @@ import { DuplicatePANDetection } from './pages/DuplicatePANDetection';
 import { BankAbuseMonitor } from './pages/BankAbuseMonitor';
 import { ReferralFarmingAlerts } from './pages/ReferralFarmingAlerts';
 import { RapidGrowthSuspicion } from './pages/RapidGrowthSuspicion';
+import { Gallery } from './pages/Gallery';
 
 // Placeholder components for nested routes (can be replaced with actual components later)
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -200,6 +201,9 @@ export const AdminRoutes = () => {
       <Route path="tickets/closed" element={<ClosedTickets />} />
       <Route path="tickets/answered" element={<AnsweredTickets />} />
       <Route path="tickets/all" element={<AllTickets />} />
+
+      {/* Gallery Routes */}
+      <Route path="gallery" element={<Gallery />} />
 
       {/* Reports Routes */}
       <Route path="reports" element={<Reports />} />

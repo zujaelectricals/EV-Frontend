@@ -648,7 +648,7 @@ export const LoginPage = () => {
        *
        * Even if the backend flags the user as a distributor, they should only
        * explicitly navigate to distributor views via the UI (e.g. sidebar /
-       * Become Authorized Partner), not immediately after signup.
+       * Become ASA(Authorized Sales Associate)), not immediately after signup.
        */
       navigate("/", { replace: true });
     } catch (err: unknown) {

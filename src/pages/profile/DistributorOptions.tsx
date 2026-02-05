@@ -87,9 +87,9 @@ export function DistributorOptions() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Authorized Partner Options</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">ASA(Authorized Sales Associate) Options</h2>
         <p className="text-sm sm:text-base text-muted-foreground">
-          Manage your authorized partner account and track your earnings
+          Manage your ASA(Authorized Sales Associate) account and track your earnings
         </p>
       </div>
 

@@ -50,11 +50,11 @@ interface MenuItem {
 const userMenuItems: MenuItem[] = [
   { label: 'My Profile', icon: User, path: '/profile' },
   { label: 'Browse Vehicles', icon: Car, path: '/scooters' },
-  { label: 'Become Authorized Partner', icon: UserPlus, path: '/become-distributor' },
+  { label: 'Become ASA(Authorized Sales Associate)', icon: UserPlus, path: '/become-distributor' },
 ];
 
 const distributorMenuItems: MenuItem[] = [
-  { label: 'Authorized Partner Dashboard', icon: LayoutDashboard, path: '/distributor' },
+  { label: 'ASA(Authorized Sales Associate) Dashboard', icon: LayoutDashboard, path: '/distributor' },
   { label: 'Referral Link', icon: LinkIcon, path: '/distributor/referral' },
   { label: 'Team Network', icon: GitBranch, path: '/distributor/binary-tree' },
   //{ label: 'Team Matching History', icon: History, path: '/distributor/pair-history' },
@@ -70,7 +70,7 @@ const distributorMenuItems: MenuItem[] = [
 
 const staffMenuItems: MenuItem[] = [
   { label: 'Lead Management', icon: ClipboardList, path: '/staff/leads' },
-  { label: 'Authorized Partner Verification', icon: UserCheck, path: '/staff/verification' },
+  { label: 'ASA(Authorized Sales Associate) Verification', icon: UserCheck, path: '/staff/verification' },
   { label: 'Targets', icon: Target, path: '/staff/targets' },
   { label: 'Incentives', icon: Gift, path: '/staff/incentives' },
   { label: 'Booking Approvals', icon: CheckSquare, path: '/staff/approvals' },
@@ -81,7 +81,7 @@ const adminMenuItems: MenuItem[] = [
   { label: 'Platform Dashboard', icon: LayoutDashboard, path: '/admin' },
   { label: 'Growth Analytics', icon: TrendingUp, path: '/admin/growth' },
   { label: 'Sales Monitoring', icon: BarChart3, path: '/admin/sales' },
-  { label: 'Authorized Partner Intelligence', icon: Brain, path: '/admin/distributor-intel' },
+  { label: 'ASA(Authorized Sales Associate) Intelligence', icon: Brain, path: '/admin/distributor-intel' },
   { label: 'Staff Performance', icon: Award, path: '/admin/staff-performance' },
   { label: 'Binary Engine Control', icon: Settings, path: '/admin/binary-engine' },
   { label: 'EV Inventory', icon: Boxes, path: '/admin/inventory' },
@@ -215,7 +215,7 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
     if (user?.role === 'staff') {
       return staffMenuItems;
     } else if (isVerifiedDistributor && !isExplicitlyNotDistributor) {
-      // Filter out "Become Authorized Partner" for verified distributors
+      // Filter out "Become ASA(Authorized Sales Associate)" for verified distributors
       const filteredUserMenuItems = userMenuItems.filter(item => item.path !== '/become-distributor');
       const items = [...filteredUserMenuItems, ...distributorMenuItems];
       // Hide "Team Performance" when there are no team members (match Team Network empty state)

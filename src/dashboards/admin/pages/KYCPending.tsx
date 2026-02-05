@@ -50,8 +50,8 @@ import { useAppSelector } from '@/app/hooks';
 import {
   useGetKYCListQuery,
   useUpdateKYCStatusMutation,
-  useGetUserByIdQuery,
-  type UserProfileResponse,
+  useApproveNomineeKYCMutation,
+  useRejectNomineeKYCMutation,
 } from '@/app/api/userApi';
 import { LoadingSpinner, InlineLoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
@@ -63,33 +63,47 @@ import type { SerializedError } from '@reduxjs/toolkit';
 type KYCStatus = 'pending' | 'approved' | 'rejected';
 
 interface KYCApplication {
+  kyc_type: string;
   id: number;
+  user_id: number;
+  user_email: string;
+  user_username: string;
+  user_full_name: string;
   reviewed_by: {
     id: number;
     fullname: string;
     email: string;
+    profile_picture_url: string | null;
   } | null;
   status: KYCStatus;
-  pan_number: string;
-  aadhaar_number: string;
+  pan_number: string | null;
+  aadhaar_number: string | null;
   address_line1: string;
   address_line2: string;
   city: string;
   state: string;
   pincode: string;
-  country: string;
-  pan_document: string;
-  aadhaar_front: string;
-  aadhaar_back: string;
-  bank_name: string;
-  account_number: string;
-  ifsc_code: string;
-  account_holder_name: string;
-  bank_passbook: string;
+  country: string | null;
+  pan_document: string | null;
+  aadhaar_front: string | null;
+  aadhaar_back: string | null;
+  bank_name: string | null;
+  account_number: string | null;
+  ifsc_code: string | null;
+  account_holder_name: string | null;
+  bank_passbook: string | null;
   submitted_at: string;
   reviewed_at: string | null;
   rejection_reason: string;
-  user: number;
+  // Nominee-specific fields
+  nominee_full_name?: string;
+  relationship?: string;
+  date_of_birth?: string;
+  mobile?: string;
+  email?: string;
+  id_proof_type?: string;
+  id_proof_number?: string;
+  id_proof_document?: string;
 }
 
 const getStatusBadge = (status: KYCStatus) => {
@@ -186,70 +200,12 @@ export const KYCPending = () => {
     }
   }, [kycResponse, currentPage, pageSize, queryParams]);
   
-  // Fetch user details for viewing KYC
-  const { data: userDetails } = useGetUserByIdQuery(
-    viewingKYC?.user || 0,
-    { skip: !viewingKYC }
-  );
-
-  // Store user details for all KYC records in current page
-  const [userDetailsMap, setUserDetailsMap] = useState<Record<number, { first_name: string; last_name: string; email: string; mobile?: string }>>({});
-
-  // Fetch user details for all unique user IDs in current page
-  useEffect(() => {
-    if (!kycResponse?.results) return;
-
-    const uniqueUserIds = [...new Set(kycResponse.results.map(kyc => kyc.user))];
-    
-    // Fetch user details for each unique user ID
-    const fetchUserDetails = async () => {
-      // Import userApi to use its endpoints
-      const { userApi } = await import('@/app/api/userApi');
-      
-      const detailsMap: Record<number, { first_name: string; last_name: string; email: string; mobile?: string }> = {};
-      
-      await Promise.all(
-        uniqueUserIds.map(async (userId) => {
-          // Fetch user details
-          try {
-            const result = await userApi.endpoints.getUserById.initiate(userId);
-            
-            if ('data' in result && result.data) {
-              const userData = result.data as UserProfileResponse;
-              detailsMap[userId] = {
-                first_name: userData.first_name || '',
-                last_name: userData.last_name || '',
-                email: userData.email || '',
-                mobile: userData.mobile || undefined,
-              };
-            }
-          } catch (error) {
-            console.error(`Failed to fetch user ${userId}:`, error);
-          }
-        })
-      );
-      
-      // Only update with new data (merge with existing)
-      if (Object.keys(detailsMap).length > 0) {
-        setUserDetailsMap(prev => {
-          const newMap = { ...prev };
-          Object.keys(detailsMap).forEach(userId => {
-            const id = Number(userId);
-            // Only add if not already present
-            if (!newMap[id]) {
-              newMap[id] = detailsMap[id];
-            }
-          });
-          return newMap;
-        });
-      }
-    };
-
-    fetchUserDetails();
-  }, [kycResponse?.results]);
+  // User details are now included in the API response, no need to fetch separately
 
   // Mutations
   const [updateKYCStatus, { isLoading: isUpdatingStatus }] = useUpdateKYCStatusMutation();
+  const [approveNomineeKYC, { isLoading: isApprovingNominee }] = useApproveNomineeKYCMutation();
+  const [rejectNomineeKYC, { isLoading: isRejectingNominee }] = useRejectNomineeKYCMutation();
 
   // Filter KYC applications by search query (client-side for name/email search)
   const filteredApplications = useMemo(() => {
@@ -257,14 +213,20 @@ export const KYCPending = () => {
     
     let filtered = kycResponse.results;
     
-    // Client-side search by PAN/Aadhaar if search query is provided
+    // Client-side search by PAN/Aadhaar/Account Name/User Name if search query is provided
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((kyc) => 
-        kyc.pan_number.toLowerCase().includes(query) ||
-        kyc.aadhaar_number.toLowerCase().includes(query) ||
-        kyc.account_holder_name.toLowerCase().includes(query)
-      );
+      filtered = filtered.filter((kyc) => {
+        const panMatch = kyc.pan_number?.toLowerCase().includes(query) || false;
+        const aadhaarMatch = kyc.aadhaar_number?.toLowerCase().includes(query) || false;
+        const accountNameMatch = kyc.account_holder_name?.toLowerCase().includes(query) || false;
+        const userNameMatch = kyc.user_full_name?.toLowerCase().includes(query) || false;
+        const userEmailMatch = kyc.user_email?.toLowerCase().includes(query) || false;
+        const nomineeNameMatch = kyc.nominee_full_name?.toLowerCase().includes(query) || false;
+        const idProofMatch = kyc.id_proof_number?.toLowerCase().includes(query) || false;
+        
+        return panMatch || aadhaarMatch || accountNameMatch || userNameMatch || userEmailMatch || nomineeNameMatch || idProofMatch;
+      });
     }
     
     return filtered;
@@ -301,11 +263,19 @@ export const KYCPending = () => {
     if (!approvingKYC) return;
 
     try {
-      await updateKYCStatus({
-        kycId: approvingKYC.id,
-        status: 'approved',
-      }).unwrap();
-      toast.success('KYC approved successfully');
+      // Check if this is a nominee KYC
+      if (approvingKYC.kyc_type === 'nominee') {
+        await approveNomineeKYC({
+          nomineeId: approvingKYC.id,
+        }).unwrap();
+        toast.success('Nominee KYC approved successfully');
+      } else {
+        await updateKYCStatus({
+          kycId: approvingKYC.id,
+          status: 'approved',
+        }).unwrap();
+        toast.success('KYC approved successfully');
+      }
       setIsApproveDialogOpen(false);
       setApprovingKYC(null);
       // Refetch the KYC list to update the data
@@ -322,6 +292,8 @@ export const KYCPending = () => {
         ? (err.data as { detail?: string }).detail
         : 'message' in err
         ? err.message
+        : approvingKYC?.kyc_type === 'nominee'
+        ? 'Failed to approve nominee KYC'
         : 'Failed to approve KYC';
       toast.error(errorMessage || 'Failed to approve KYC');
     }
@@ -336,12 +308,21 @@ export const KYCPending = () => {
     if (!rejectingKYC || !rejectionReason.trim()) return;
 
     try {
-      await updateKYCStatus({
-        kycId: rejectingKYC.id,
-        status: 'rejected',
-        reason: rejectionReason.trim(),
-      }).unwrap();
-      toast.success('KYC rejected successfully');
+      // Check if this is a nominee KYC
+      if (rejectingKYC.kyc_type === 'nominee') {
+        await rejectNomineeKYC({
+          nomineeId: rejectingKYC.id,
+          reason: rejectionReason.trim(),
+        }).unwrap();
+        toast.success('Nominee KYC rejected successfully');
+      } else {
+        await updateKYCStatus({
+          kycId: rejectingKYC.id,
+          status: 'rejected',
+          reason: rejectionReason.trim(),
+        }).unwrap();
+        toast.success('KYC rejected successfully');
+      }
       setIsRejectDialogOpen(false);
       setRejectingKYC(null);
       setRejectionReason('');
@@ -359,6 +340,8 @@ export const KYCPending = () => {
         ? (err.data as { detail?: string }).detail
         : 'message' in err
         ? err.message
+        : rejectingKYC?.kyc_type === 'nominee'
+        ? 'Failed to reject nominee KYC'
         : 'Failed to reject KYC';
       toast.error(errorMessage || 'Failed to reject KYC');
     }
@@ -658,42 +641,44 @@ export const KYCPending = () => {
                     </TableRow>
                   ) : (
                     filteredApplications.map((kyc) => {
-                      const userInfo = userDetailsMap[kyc.user];
-                      const userName = userInfo 
-                        ? `${userInfo.first_name || ''} ${userInfo.last_name || ''}`.trim() || userInfo.email
-                        : null;
+                      const userName = kyc.user_full_name || kyc.user_email || `U${kyc.user_id}`;
                       
                       return (
                         <TableRow key={kyc.id}>
                           <TableCell>
                             <div>
-                              {userName ? (
-                                <>
-                                  <p className="font-medium text-foreground">{userName}</p>
-                                  <p className="text-xs text-muted-foreground">U{kyc.user}</p>
-                                </>
-                              ) : (
-                                <p className="font-medium text-foreground">U{kyc.user}</p>
+                              <p className="font-medium text-foreground">{userName}</p>
+                              <p className="text-xs text-muted-foreground">U{kyc.user_id}</p>
+                              {kyc.kyc_type === 'nominee' && kyc.nominee_full_name && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Nominee: {kyc.nominee_full_name}
+                                </p>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            {userInfo ? (
-                              <div className="space-y-1">
-                                <p className="text-sm">{userInfo.email}</p>
-                                {userInfo.mobile && (
-                                  <p className="text-xs text-muted-foreground">{userInfo.mobile}</p>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">-</span>
-                            )}
+                            <div className="space-y-1">
+                              <p className="text-sm">{kyc.user_email}</p>
+                              {kyc.mobile && (
+                                <p className="text-xs text-muted-foreground">{kyc.mobile}</p>
+                              )}
+                            </div>
                           </TableCell>
                         <TableCell>
-                          <code className="text-xs bg-secondary px-2 py-1 rounded">{kyc.aadhaar_number}</code>
+                          {kyc.aadhaar_number ? (
+                            <code className="text-xs bg-secondary px-2 py-1 rounded">{kyc.aadhaar_number}</code>
+                          ) : kyc.id_proof_type === 'Aadhar' && kyc.id_proof_number ? (
+                            <code className="text-xs bg-secondary px-2 py-1 rounded">{kyc.id_proof_number}</code>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
-                          <code className="text-xs bg-secondary px-2 py-1 rounded">{kyc.pan_number}</code>
+                          {kyc.pan_number ? (
+                            <code className="text-xs bg-secondary px-2 py-1 rounded">{kyc.pan_number}</code>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell>{getStatusBadge(kyc.status)}</TableCell>
                         <TableCell>
@@ -718,7 +703,7 @@ export const KYCPending = () => {
                                   size="sm"
                                   className="bg-success hover:bg-success/90"
                                   onClick={() => handleApprove(kyc)}
-                                  disabled={isUpdatingStatus}
+                                  disabled={isUpdatingStatus || isApprovingNominee || isRejectingNominee}
                                 >
                                   <CheckCircle className="h-4 w-4 mr-1" />
                                   Approve
@@ -727,7 +712,7 @@ export const KYCPending = () => {
                                   variant="destructive"
                                   size="sm"
                                   onClick={() => handleReject(kyc)}
-                                  disabled={isUpdatingStatus}
+                                  disabled={isUpdatingStatus || isApprovingNominee || isRejectingNominee}
                                 >
                                   <XCircle className="h-4 w-4 mr-1" />
                                   Reject
@@ -810,8 +795,9 @@ export const KYCPending = () => {
           <DialogHeader>
             <DialogTitle>KYC Review</DialogTitle>
             <DialogDescription>
-              Review KYC documents for User ID: {viewingKYC?.user}
-              {userDetails && ` - ${userDetails.first_name} ${userDetails.last_name}`}
+              Review KYC documents for User ID: {viewingKYC?.user_id}
+              {viewingKYC?.user_full_name && ` - ${viewingKYC.user_full_name}`}
+              {viewingKYC?.kyc_type === 'nominee' && viewingKYC.nominee_full_name && ` (Nominee: ${viewingKYC.nominee_full_name})`}
             </DialogDescription>
           </DialogHeader>
           {viewingKYC && (
@@ -827,31 +813,59 @@ export const KYCPending = () => {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <Label className="text-xs text-muted-foreground">User ID</Label>
-                      <p className="font-medium">U{viewingKYC.user}</p>
+                      <p className="font-medium">U{viewingKYC.user_id}</p>
                     </div>
-                    {userDetails && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Name</Label>
+                      <p className="font-medium">{viewingKYC.user_full_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Email</Label>
+                      <p className="font-medium">{viewingKYC.user_email}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">KYC Type</Label>
+                      <p className="font-medium capitalize">{viewingKYC.kyc_type || 'Standard'}</p>
+                    </div>
+                    {viewingKYC.kyc_type === 'nominee' && (
                       <>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Name</Label>
-                          <p className="font-medium">{userDetails.first_name} {userDetails.last_name}</p>
+                          <Label className="text-xs text-muted-foreground">Nominee Name</Label>
+                          <p className="font-medium">{viewingKYC.nominee_full_name || 'N/A'}</p>
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Email</Label>
-                          <p className="font-medium">{userDetails.email}</p>
+                          <Label className="text-xs text-muted-foreground">Relationship</Label>
+                          <p className="font-medium capitalize">{viewingKYC.relationship || 'N/A'}</p>
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Phone</Label>
-                          <p className="font-medium">{userDetails.mobile || 'N/A'}</p>
+                          <Label className="text-xs text-muted-foreground">Date of Birth</Label>
+                          <p className="font-medium">{viewingKYC.date_of_birth ? new Date(viewingKYC.date_of_birth).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Nominee Email</Label>
+                          <p className="font-medium">{viewingKYC.email || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Nominee Mobile</Label>
+                          <p className="font-medium">{viewingKYC.mobile || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">ID Proof Type</Label>
+                          <p className="font-medium">{viewingKYC.id_proof_type || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">ID Proof Number</Label>
+                          <p className="font-medium">{viewingKYC.id_proof_number || 'N/A'}</p>
                         </div>
                       </>
                     )}
                     <div>
                       <Label className="text-xs text-muted-foreground">Aadhaar Number</Label>
-                      <p className="font-medium">{viewingKYC.aadhaar_number}</p>
+                      <p className="font-medium">{viewingKYC.aadhaar_number || (viewingKYC.id_proof_type === 'Aadhar' ? viewingKYC.id_proof_number || 'N/A' : 'N/A')}</p>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">PAN Number</Label>
-                      <p className="font-medium">{viewingKYC.pan_number}</p>
+                      <p className="font-medium">{viewingKYC.pan_number || 'N/A'}</p>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Status</Label>
@@ -883,103 +897,143 @@ export const KYCPending = () => {
                 </TabsContent>
                 <TabsContent value="documents" className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-2 block">PAN Document</Label>
-                      <div className="border rounded-lg overflow-hidden">
-                        <img
-                          src={viewingKYC.pan_document}
-                          alt="PAN Card"
-                          className="w-full h-48 object-contain bg-secondary"
-                        />
+                    {viewingKYC.pan_document && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-2 block">PAN Document</Label>
+                        <div className="border rounded-lg overflow-hidden">
+                          <img
+                            src={viewingKYC.pan_document}
+                            alt="PAN Card"
+                            className="w-full h-48 object-contain bg-secondary"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2"
+                          onClick={() => window.open(viewingKYC.pan_document!, '_blank')}
+                        >
+                          <ImageIcon className="h-4 w-4 mr-2" />
+                          View Full Size
+                        </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full mt-2"
-                        onClick={() => window.open(viewingKYC.pan_document, '_blank')}
-                      >
-                        <ImageIcon className="h-4 w-4 mr-2" />
-                        View Full Size
-                      </Button>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-2 block">Aadhaar Front</Label>
-                      <div className="border rounded-lg overflow-hidden">
-                        <img
-                          src={viewingKYC.aadhaar_front}
-                          alt="Aadhaar Front"
-                          className="w-full h-48 object-contain bg-secondary"
-                        />
+                    )}
+                    {viewingKYC.aadhaar_front && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-2 block">Aadhaar Front</Label>
+                        <div className="border rounded-lg overflow-hidden">
+                          <img
+                            src={viewingKYC.aadhaar_front}
+                            alt="Aadhaar Front"
+                            className="w-full h-48 object-contain bg-secondary"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2"
+                          onClick={() => window.open(viewingKYC.aadhaar_front!, '_blank')}
+                        >
+                          <ImageIcon className="h-4 w-4 mr-2" />
+                          View Full Size
+                        </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full mt-2"
-                        onClick={() => window.open(viewingKYC.aadhaar_front, '_blank')}
-                      >
-                        <ImageIcon className="h-4 w-4 mr-2" />
-                        View Full Size
-                      </Button>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-2 block">Aadhaar Back</Label>
-                      <div className="border rounded-lg overflow-hidden">
-                        <img
-                          src={viewingKYC.aadhaar_back}
-                          alt="Aadhaar Back"
-                          className="w-full h-48 object-contain bg-secondary"
-                        />
+                    )}
+                    {viewingKYC.aadhaar_back && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-2 block">Aadhaar Back</Label>
+                        <div className="border rounded-lg overflow-hidden">
+                          <img
+                            src={viewingKYC.aadhaar_back}
+                            alt="Aadhaar Back"
+                            className="w-full h-48 object-contain bg-secondary"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2"
+                          onClick={() => window.open(viewingKYC.aadhaar_back!, '_blank')}
+                        >
+                          <ImageIcon className="h-4 w-4 mr-2" />
+                          View Full Size
+                        </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full mt-2"
-                        onClick={() => window.open(viewingKYC.aadhaar_back, '_blank')}
-                      >
-                        <ImageIcon className="h-4 w-4 mr-2" />
-                        View Full Size
-                      </Button>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-2 block">Bank Passbook</Label>
-                      <div className="border rounded-lg overflow-hidden">
-                        <img
-                          src={viewingKYC.bank_passbook}
-                          alt="Bank Passbook"
-                          className="w-full h-48 object-contain bg-secondary"
-                        />
+                    )}
+                    {viewingKYC.id_proof_document && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-2 block">ID Proof Document ({viewingKYC.id_proof_type})</Label>
+                        <div className="border rounded-lg overflow-hidden">
+                          <img
+                            src={viewingKYC.id_proof_document}
+                            alt="ID Proof"
+                            className="w-full h-48 object-contain bg-secondary"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2"
+                          onClick={() => window.open(viewingKYC.id_proof_document!, '_blank')}
+                        >
+                          <ImageIcon className="h-4 w-4 mr-2" />
+                          View Full Size
+                        </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full mt-2"
-                        onClick={() => window.open(viewingKYC.bank_passbook, '_blank')}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        View Full Size
-                      </Button>
-                    </div>
+                    )}
+                    {viewingKYC.bank_passbook && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-2 block">Bank Passbook</Label>
+                        <div className="border rounded-lg overflow-hidden">
+                          <img
+                            src={viewingKYC.bank_passbook}
+                            alt="Bank Passbook"
+                            className="w-full h-48 object-contain bg-secondary"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2"
+                          onClick={() => window.open(viewingKYC.bank_passbook!, '_blank')}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          View Full Size
+                        </Button>
+                      </div>
+                    )}
+                    {!viewingKYC.pan_document && !viewingKYC.aadhaar_front && !viewingKYC.aadhaar_back && !viewingKYC.id_proof_document && !viewingKYC.bank_passbook && (
+                      <div className="col-span-2 text-center text-muted-foreground py-8">
+                        No documents available
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
                 <TabsContent value="bank" className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Account Holder Name</Label>
-                      <p className="font-medium">{viewingKYC.account_holder_name}</p>
+                  {viewingKYC.account_holder_name || viewingKYC.account_number || viewingKYC.ifsc_code || viewingKYC.bank_name ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Account Holder Name</Label>
+                        <p className="font-medium">{viewingKYC.account_holder_name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Account Number</Label>
+                        <p className="font-medium">{viewingKYC.account_number || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">IFSC Code</Label>
+                        <p className="font-medium">{viewingKYC.ifsc_code || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Bank Name</Label>
+                        <p className="font-medium">{viewingKYC.bank_name || 'N/A'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Account Number</Label>
-                      <p className="font-medium">{viewingKYC.account_number}</p>
+                  ) : (
+                    <div className="text-center text-muted-foreground py-8">
+                      No bank details available
                     </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">IFSC Code</Label>
-                      <p className="font-medium">{viewingKYC.ifsc_code}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Bank Name</Label>
-                      <p className="font-medium">{viewingKYC.bank_name}</p>
-                    </div>
-                  </div>
+                  )}
                 </TabsContent>
                 <TabsContent value="address" className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
@@ -1007,7 +1061,7 @@ export const KYCPending = () => {
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Country</Label>
-                      <p className="font-medium">{viewingKYC.country}</p>
+                      <p className="font-medium">{viewingKYC.country || 'N/A'}</p>
                     </div>
                   </div>
                 </TabsContent>
@@ -1033,7 +1087,7 @@ export const KYCPending = () => {
                 <Button
                   className="bg-success hover:bg-success/90"
                   onClick={() => handleApprove(viewingKYC)}
-                  disabled={isUpdatingStatus}
+                  disabled={isUpdatingStatus || isApprovingNominee || isRejectingNominee}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Approve KYC
@@ -1050,23 +1104,29 @@ export const KYCPending = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Approve KYC Application</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to approve the KYC application for User ID: <strong>U{approvingKYC?.user}</strong>?
+              Are you sure you want to approve the KYC application for User ID: <strong>U{approvingKYC?.user_id}</strong>?
+              {approvingKYC?.user_full_name && (
+                <> - <strong>{approvingKYC.user_full_name}</strong></>
+              )}
               <br />
               <br />
               <div className="text-sm space-y-1 mt-2">
-                <p><strong>PAN:</strong> {approvingKYC?.pan_number}</p>
-                <p><strong>Aadhaar:</strong> {approvingKYC?.aadhaar_number}</p>
+                <p><strong>PAN:</strong> {approvingKYC?.pan_number || 'N/A'}</p>
+                <p><strong>Aadhaar:</strong> {approvingKYC?.aadhaar_number || approvingKYC?.id_proof_number || 'N/A'}</p>
+                {approvingKYC?.kyc_type === 'nominee' && approvingKYC.nominee_full_name && (
+                  <p><strong>Nominee:</strong> {approvingKYC.nominee_full_name}</p>
+                )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isUpdatingStatus}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isUpdatingStatus || isApprovingNominee}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmApprove}
-              disabled={isUpdatingStatus}
+              disabled={isUpdatingStatus || isApprovingNominee}
               className="bg-success hover:bg-success/90"
             >
-              {isUpdatingStatus ? (
+              {isUpdatingStatus || isApprovingNominee ? (
                 <>
                   <InlineLoadingSpinner className="mr-2" />
                   Approving...
@@ -1088,18 +1148,27 @@ export const KYCPending = () => {
           <DialogHeader>
             <DialogTitle>Reject KYC Application</DialogTitle>
             <DialogDescription>
-              Provide a reason for rejecting KYC for User ID: <strong>U{rejectingKYC?.user}</strong>
+              Provide a reason for rejecting KYC for User ID: <strong>U{rejectingKYC?.user_id}</strong>
+              {rejectingKYC?.user_full_name && (
+                <> - <strong>{rejectingKYC.user_full_name}</strong></>
+              )}
             </DialogDescription>
           </DialogHeader>
           {rejectingKYC && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">User ID</Label>
-                <p className="font-medium">U{rejectingKYC.user}</p>
+                <p className="font-medium">U{rejectingKYC.user_id}</p>
                 <Label className="text-xs text-muted-foreground">PAN</Label>
-                <p className="font-medium">{rejectingKYC.pan_number}</p>
+                <p className="font-medium">{rejectingKYC.pan_number || 'N/A'}</p>
                 <Label className="text-xs text-muted-foreground">Aadhaar</Label>
-                <p className="font-medium">{rejectingKYC.aadhaar_number}</p>
+                <p className="font-medium">{rejectingKYC.aadhaar_number || rejectingKYC.id_proof_number || 'N/A'}</p>
+                {rejectingKYC.kyc_type === 'nominee' && rejectingKYC.nominee_full_name && (
+                  <>
+                    <Label className="text-xs text-muted-foreground">Nominee</Label>
+                    <p className="font-medium">{rejectingKYC.nominee_full_name}</p>
+                  </>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Rejection Reason *</Label>
@@ -1108,7 +1177,7 @@ export const KYCPending = () => {
                   rows={4}
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  disabled={isUpdatingStatus}
+                  disabled={isUpdatingStatus || isApprovingNominee || isRejectingNominee}
                 />
               </div>
             </div>
@@ -1127,9 +1196,9 @@ export const KYCPending = () => {
             <Button
               variant="destructive"
               onClick={confirmReject}
-              disabled={!rejectionReason.trim() || isUpdatingStatus}
+              disabled={!rejectionReason.trim() || isUpdatingStatus || isRejectingNominee}
             >
-              {isUpdatingStatus ? (
+              {isUpdatingStatus || isRejectingNominee ? (
                 <>
                   <InlineLoadingSpinner className="mr-2" />
                   Rejecting...
