@@ -210,7 +210,7 @@ export const ProfileSwitcher = () => {
     } else if (role === 'staff') {
       return <Badge className="bg-blue-500 text-white text-xs">Staff</Badge>;
     } else if (isDistributor) {
-      return <Badge className="bg-green-500 text-white text-xs">Distributor</Badge>;
+      return <Badge className="bg-pink-500 text-white text-xs">Distributor</Badge>;
     }
     return <Badge className="bg-gray-500 text-white text-xs">User</Badge>;
   };

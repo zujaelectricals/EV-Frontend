@@ -39,7 +39,7 @@ export function KYCVerification() {
       case 'verified':
       case 'approved':
         return (
-          <Badge className="bg-green-500 hover:bg-green-600 text-white">
+          <Badge className="bg-pink-500 hover:bg-pink-600 text-white">
             <CheckCircle className="w-3 h-3 mr-1" />
             Verified
           </Badge>
@@ -100,9 +100,9 @@ export function KYCVerification() {
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
           {/* Status Messages */}
           {(kycStatus === 'verified' || kycStatus === 'approved') && (
-            <Alert className="bg-green-50 border-green-200">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="bg-pink-50 border-pink-200">
+              <CheckCircle className="h-4 w-4 text-pink-600" />
+              <AlertDescription className="text-pink-800">
                 <strong>Your KYC has been verified!</strong>
                 <p className="mt-2">
                   Your identity documents have been successfully verified. You can now apply to become an ASA(Authorized Sales Associate) if eligible.
@@ -161,7 +161,7 @@ export function KYCVerification() {
             {(kycStatus === 'not_submitted' || kycStatus === 'rejected') && (
               <Button
                 onClick={() => setIsKYCModalOpen(true)}
-                className="w-full sm:w-auto bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 shadow-md shadow-emerald-500/25"
+                className="w-full sm:w-auto bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 shadow-md shadow-pink-500/25"
                 size="lg"
               >
                 <Upload className="w-4 h-4 mr-2" />

@@ -20,6 +20,7 @@ import {
   useSubmitDistributorApplicationMutation, 
   useGetDistributorApplicationQuery 
 } from '@/app/api/distributorApi';
+import { useGetDistributorDocumentsQuery, useAcceptDocumentMutation, useVerifyAcceptanceMutation } from '@/app/api/complianceApi';
 import { Booking } from '@/app/slices/bookingSlice';
 import { KYCModal } from '@/components/KYCModal';
 import { useGetBookingsQuery } from '@/app/api/bookingApi';
@@ -108,15 +109,55 @@ export function DistributorApplication() {
   });
   const [userOrders, setUserOrders] = useState<Booking[]>([]);
   
+  // Fetch distributor documents
+  const { data: distributorDocuments, isLoading: isLoadingDocuments } = useGetDistributorDocumentsQuery();
+  
+  // Log API response
+  useEffect(() => {
+    if (distributorDocuments) {
+      console.log('📄 [DISTRIBUTOR APPLICATION] Distributor Documents API Response:', distributorDocuments);
+    }
+  }, [distributorDocuments]);
+  
+  // Find distributor_terms document
+  // Check for document_type and file URL existence (is_active might not be in response)
+  const distributorTermsDocument = distributorDocuments?.find(
+    (doc) => doc.document_type === 'distributor_terms' && doc.file
+  );
+  
+  // Log the filtered distributor terms document and debug info
+  useEffect(() => {
+    if (distributorDocuments) {
+      console.log('📄 [DISTRIBUTOR APPLICATION] All documents:', distributorDocuments);
+      const distributorDocs = distributorDocuments.filter(doc => doc.document_type === 'distributor_terms');
+      console.log('📄 [DISTRIBUTOR APPLICATION] Distributor terms documents found:', distributorDocs);
+      console.log('📄 [DISTRIBUTOR APPLICATION] Distributor terms documents with file:', distributorDocs.filter(doc => doc.file));
+    }
+    if (distributorTermsDocument) {
+      console.log('📄 [DISTRIBUTOR APPLICATION] Distributor Terms Document:', distributorTermsDocument);
+      console.log('📄 [DISTRIBUTOR APPLICATION] Distributor Terms Document URL:', distributorTermsDocument.file);
+    } else if (distributorDocuments) {
+      console.warn('📄 [DISTRIBUTOR APPLICATION] Distributor Terms document not found. Available documents:', 
+        distributorDocuments.map(doc => ({ 
+          type: doc.document_type, 
+          hasFile: !!doc.file, 
+          is_active: 'is_active' in doc ? doc.is_active : undefined 
+        }))
+      );
+    }
+  }, [distributorTermsDocument, distributorDocuments]);
+  
   // Terms & Conditions and OTP state
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
-  const [isSendingOTP, setIsSendingOTP] = useState(false);
+  const [isAcceptingDocument, setIsAcceptingDocument] = useState(false);
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
-  const [sendUniversalOTP] = useSendUniversalOTPMutation();
-  const [verifyUniversalOTP] = useVerifyUniversalOTPMutation();
+  
+  // Document acceptance mutations
+  const [acceptDocument] = useAcceptDocumentMutation();
+  const [verifyAcceptance] = useVerifyAcceptanceMutation();
   
   // Determine identifier (email or mobile) and OTP type
   const getIdentifier = () => {
@@ -155,32 +196,30 @@ export function DistributorApplication() {
     setTermsAccepted(checked);
     
     if (checked) {
-      // Send OTP when checkbox is checked
-      const identifier = getIdentifier();
-      const otpType = getOtpType();
-      
-      if (!identifier) {
-        toast.error('Email or mobile number not found in profile');
+      // Check if document is available
+      if (!distributorTermsDocument) {
+        toast.error('Distributor Terms document is not available. Please try again later.');
         setTermsAccepted(false);
         return;
       }
       
-      setIsSendingOTP(true);
+      setIsAcceptingDocument(true);
       try {
-        await sendUniversalOTP({
-          identifier,
-          otp_type: otpType,
-        }).unwrap();
+        // Call accept API
+        console.log('📄 [DISTRIBUTOR APPLICATION] Accepting document:', distributorTermsDocument.id);
+        await acceptDocument(distributorTermsDocument.id).unwrap();
+        console.log('📄 [DISTRIBUTOR APPLICATION] Document accepted, OTP should be sent');
         setOtpSent(true);
-        toast.success(`OTP sent to your ${otpType === 'email' ? 'email' : 'mobile number'}`);
+        toast.success(`OTP sent to your ${getOtpType() === 'email' ? 'email' : 'mobile number'}`);
       } catch (error: unknown) {
+        console.error('📄 [DISTRIBUTOR APPLICATION] Error accepting document:', error);
         const errorMessage = error && typeof error === 'object' && 'data' in error && 
           error.data && typeof error.data === 'object' && 'message' in error.data &&
-          typeof error.data.message === 'string' ? error.data.message : 'Failed to send OTP';
+          typeof error.data.message === 'string' ? error.data.message : 'Failed to accept terms. Please try again.';
         toast.error(errorMessage);
         setTermsAccepted(false);
       } finally {
-        setIsSendingOTP(false);
+        setIsAcceptingDocument(false);
       }
     } else {
       // Reset OTP state when unchecked
@@ -198,6 +237,11 @@ export function DistributorApplication() {
       return;
     }
     
+    if (!distributorTermsDocument) {
+      toast.error('Distributor Terms document is not available. Please try again later.');
+      return;
+    }
+    
     const identifier = getIdentifier();
     const otpType = getOtpType();
     
@@ -208,15 +252,20 @@ export function DistributorApplication() {
     
     setIsVerifyingOTP(true);
     try {
-      await verifyUniversalOTP({
-        identifier,
-        otp_code: otpCode,
-        otp_type: otpType,
+      console.log('📄 [DISTRIBUTOR APPLICATION] Verifying OTP for document:', distributorTermsDocument.id);
+      await verifyAcceptance({
+        documentId: distributorTermsDocument.id,
+        data: {
+          identifier,
+          otp_code: otpCode,
+          otp_type: otpType,
+        },
       }).unwrap();
       setOtpVerified(true);
       setConditionsAccepted(prev => ({ ...prev, otpVerified: true }));
       toast.success('OTP verified successfully!');
     } catch (error: unknown) {
+      console.error('📄 [DISTRIBUTOR APPLICATION] Error verifying OTP:', error);
       const errorMessage = error && typeof error === 'object' && 'data' in error && 
         error.data && typeof error.data === 'object' && 'message' in error.data &&
         typeof error.data.message === 'string' ? error.data.message : 'Invalid OTP. Please try again.';
@@ -228,18 +277,31 @@ export function DistributorApplication() {
 
   // Handle viewing Terms of Service PDF
   const handleViewTerms = () => {
-    window.open('/Distributor_Terms.pdf', '_blank');
+    if (distributorTermsDocument?.file) {
+      console.log('📄 [DISTRIBUTOR APPLICATION] Opening Distributor Terms document:', distributorTermsDocument.file);
+      window.open(distributorTermsDocument.file, '_blank');
+    } else {
+      console.warn('📄 [DISTRIBUTOR APPLICATION] Distributor Terms document not available from API');
+      toast.error('Distributor Terms document is not available. Please try again later.');
+    }
   };
 
   // Handle downloading Terms of Service PDF
   const handleDownloadTerms = () => {
-    const link = document.createElement('a');
-    link.href = '/Distributor_Terms.pdf';
-    link.download = 'Distributor_Terms.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Terms of Service PDF download started');
+    if (distributorTermsDocument?.file) {
+      console.log('📄 [DISTRIBUTOR APPLICATION] Downloading Distributor Terms document:', distributorTermsDocument.file);
+      const link = document.createElement('a');
+      link.href = distributorTermsDocument.file;
+      link.download = distributorTermsDocument.title || 'Distributor_Terms.pdf';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Terms of Service PDF download started');
+    } else {
+      console.warn('📄 [DISTRIBUTOR APPLICATION] Distributor Terms document not available from API');
+      toast.error('Distributor Terms document is not available. Please try again later.');
+    }
   };
 
   // Use API bookings data, fallback to Redux bookings
@@ -371,6 +433,13 @@ export function DistributorApplication() {
     
     if (!otpVerified) {
       toast.error('Please verify OTP before submitting');
+      setIsSubmitting(false);
+      return;
+    }
+    
+    // Ensure document is available
+    if (!distributorTermsDocument) {
+      toast.error('Distributor Terms document is not available. Please try again later.');
       setIsSubmitting(false);
       return;
     }
@@ -673,7 +742,7 @@ export function DistributorApplication() {
                     id="terms-checkbox"
                     checked={termsAccepted}
                     onCheckedChange={handleTermsCheckboxChange}
-                    disabled={isSendingOTP}
+                    disabled={isAcceptingDocument || otpVerified}
                     className="mt-1 flex-shrink-0"
                   />
                   <label htmlFor="terms-checkbox" className="cursor-pointer text-sm flex-1">
@@ -741,7 +810,7 @@ export function DistributorApplication() {
                       <div className="flex items-start gap-2">
                         <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                         <p className="text-sm text-blue-700 dark:text-blue-300">
-                          OTP has been sent to your registered Mobile and Email
+                          OTP has been sent to your registered {getOtpType() === 'email' ? 'Email' : 'Mobile Number'}
                         </p>
                       </div>
                     </motion.div>
@@ -752,9 +821,9 @@ export function DistributorApplication() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
-                          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                          <AlertDescription className="text-green-700 dark:text-green-300">
+                        <Alert className="bg-pink-50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800">
+                          <CheckCircle className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                          <AlertDescription className="text-pink-700 dark:text-pink-300">
                             OTP verified successfully!
                           </AlertDescription>
                         </Alert>
@@ -805,8 +874,8 @@ export function DistributorApplication() {
                 </motion.div>
               )}
               
-              {termsAccepted && !otpSent && isSendingOTP && (
-                <p className="text-sm text-muted-foreground mt-2">Sending OTP...</p>
+              {termsAccepted && !otpSent && isAcceptingDocument && (
+                <p className="text-sm text-muted-foreground mt-2">Accepting terms...</p>
               )}
             </div>
 
@@ -930,7 +999,7 @@ export function DistributorApplication() {
               type="submit" 
               className="w-full" 
               size="lg" 
-              disabled={isSubmitting || !termsAccepted || !otpVerified}
+              disabled={isSubmitting || !termsAccepted || !otpVerified || !distributorTermsDocument}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </Button>

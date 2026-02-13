@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mail, Lock, Eye, EyeOff, User, Calendar, Phone,
-  ArrowLeft, Sparkles, MapPin, Building, Hash, Shield
+  ArrowLeft, Sparkles, MapPin, Building, Hash, Shield, Link as LinkIcon
 } from "lucide-react";
-import { useNavigate, useLocation, Navigate } from "react-router-dom";
+import { useNavigate, useLocation, Navigate, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { setCredentials, isUserAuthenticated } from "@/app/slices/authSlice";
 import { clearNonAuthStorage, updateAuthTokens } from "@/app/api/baseApi";
@@ -29,6 +29,8 @@ interface SignupFormData {
   mobile: string;
   gender: string;
   date_of_birth: string;
+  pan_card: string;
+  referral_code: string;
   address_line1: string;
   address_line2: string;
   city: string;
@@ -57,6 +59,8 @@ export const LoginPage = () => {
     mobile: '',
     gender: '',
     date_of_birth: '',
+    pan_card: '',
+    referral_code: '',
     address_line1: '',
     address_line2: '',
     city: '',
@@ -78,6 +82,7 @@ export const LoginPage = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const [signup, { isLoading: isSigningUp }] = useSignupMutation();
@@ -85,8 +90,40 @@ export const LoginPage = () => {
   const [sendOTP, { isLoading: isSendingOTP }] = useSendOTPMutation();
   const [verifyOTP, { isLoading: isVerifyingOTP }] = useVerifyOTPMutation();
 
+  // Track if referral code came from URL
+  const [referralCodeFromUrl, setReferralCodeFromUrl] = useState(false);
+
   const from =
     (location.state as { from?: { pathname?: string } })?.from?.pathname || "/";
+
+  // Handle referral code from URL and localStorage
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    const shouldSignup = searchParams.get('signup') === 'true';
+    
+    // Check localStorage for stored referral code
+    const storedReferralCode = typeof window !== 'undefined' 
+      ? localStorage.getItem('ev_nexus_referral_code') 
+      : null;
+    
+    // Priority: URL param > localStorage
+    const referralCodeToUse = refCode || storedReferralCode;
+    
+    if (referralCodeToUse) {
+      if (refCode) {
+        setReferralCodeFromUrl(true);
+        // Store in localStorage if from URL
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ev_nexus_referral_code', refCode);
+          console.log('✅ [SIGNUP] Stored referral code from URL in localStorage:', refCode);
+        }
+      }
+      setSignupData((prev) => ({ ...prev, referral_code: referralCodeToUse }));
+      if (shouldSignup) {
+        setIsSignupMode(true);
+      }
+    }
+  }, [searchParams]);
 
   if (isAuthenticated || isUserAuthenticated()) {
     let redirectPath = "/";
@@ -380,6 +417,16 @@ export const LoginPage = () => {
           newErrors.date_of_birth = 'You must be at least 18 years old';
         }
       }
+
+      if (!signupData.pan_card.trim()) {
+        newErrors.pan_card = 'PAN card is required';
+      } else if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(signupData.pan_card)) {
+        newErrors.pan_card = 'PAN card must be in format: 5 letters, 4 digits, 1 letter (e.g., ABCDE1234F)';
+      }
+
+      if (!signupData.referral_code.trim()) {
+        newErrors.referral_code = 'Referral code is required';
+      }
     } else if (step === 2) {
       // Validate Address Information
       if (!signupData.address_line1.trim()) {
@@ -441,6 +488,8 @@ export const LoginPage = () => {
         mobile: signupData.mobile.trim(),
         gender: signupData.gender,
         date_of_birth: signupData.date_of_birth,
+        pan_card: signupData.pan_card.trim().toUpperCase(),
+        referral_code: signupData.referral_code.trim(),
         address_line1: signupData.address_line1.trim(),
         address_line2: signupData.address_line2.trim() || undefined,
         city: signupData.city.trim(),
@@ -452,6 +501,12 @@ export const LoginPage = () => {
       console.log('🔵 [SIGNUP] Request Body:', JSON.stringify(signupPayload, null, 2));
       const result = await signup(signupPayload).unwrap();
       console.log('🟢 [SIGNUP] Response:', JSON.stringify(result, null, 2));
+      
+      // Store referral code in localStorage after successful signup
+      if (signupPayload.referral_code && typeof window !== 'undefined') {
+        localStorage.setItem('ev_nexus_referral_code', signupPayload.referral_code);
+        console.log('✅ [SIGNUP] Stored referral code in localStorage after signup:', signupPayload.referral_code);
+      }
       
       setSignupToken(result.signup_token);
       setShowOTPVerification(true);
@@ -483,6 +538,8 @@ export const LoginPage = () => {
             'mobile': 'mobile',
             'gender': 'gender',
             'date_of_birth': 'date_of_birth',
+            'pan_card': 'pan_card',
+            'referral_code': 'referral_code',
             'address_line1': 'address_line1',
             'address_line2': 'address_line2',
             'city': 'city',
@@ -1030,6 +1087,8 @@ export const LoginPage = () => {
                               'mobile': 'Mobile',
                               'gender': 'Gender',
                               'date_of_birth': 'Date of Birth',
+                              'pan_card': 'PAN Card',
+                              'referral_code': 'Referral Code',
                               'address_line1': 'Address Line 1',
                               'address_line2': 'Address Line 2',
                               'city': 'City',
@@ -1160,6 +1219,52 @@ export const LoginPage = () => {
                               />
                             </div>
                             {signupErrors.date_of_birth && <p className="text-xs text-red-500">{signupErrors.date_of_birth}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="pan_card" className="text-sm font-medium">PAN Card *</Label>
+                            <div className="relative">
+                              <Hash className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="pan_card"
+                                type="text"
+                                placeholder="ABCDE1234F"
+                                value={signupData.pan_card}
+                                onChange={(e) => {
+                                  const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                                  handleSignupInputChange('pan_card', value);
+                                }}
+                                maxLength={10}
+                                className={`pl-10 h-11 font-mono ${signupErrors.pan_card ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                            </div>
+                            {signupErrors.pan_card && <p className="text-xs text-red-500">{signupErrors.pan_card}</p>}
+                            <p className="text-xs text-gray-500">Format: 5 letters, 4 digits, 1 letter</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="referral_code" className="text-sm font-medium">Referral Code *</Label>
+                            <div className="relative">
+                              <LinkIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <Input
+                                id="referral_code"
+                                type="text"
+                                placeholder="Enter referral code"
+                                value={signupData.referral_code}
+                                onChange={(e) => handleSignupInputChange('referral_code', e.target.value.trim())}
+                                readOnly={referralCodeFromUrl}
+                                className={`pl-10 ${referralCodeFromUrl ? 'pr-24' : ''} h-11 font-mono ${referralCodeFromUrl ? 'bg-gray-50 cursor-not-allowed' : ''} ${signupErrors.referral_code ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                              />
+                              {referralCodeFromUrl && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">From Link</span>
+                                </div>
+                              )}
+                            </div>
+                            {signupErrors.referral_code && <p className="text-xs text-red-500">{signupErrors.referral_code}</p>}
+                            {referralCodeFromUrl && (
+                              <p className="text-xs text-primary">Referral code from your invitation link</p>
+                            )}
                           </div>
                         </div>
                         <p className="text-xs text-gray-500 mt-4">All fields marked with * are mandatory</p>

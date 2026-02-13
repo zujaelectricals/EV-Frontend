@@ -171,14 +171,14 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
         className={cn(
           'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
           isActive
-            ? 'bg-gradient-to-r from-[#18b3b2]/15 to-[#22cc7b]/15 text-[#0d9488] shadow-sm'
+            ? 'bg-gradient-to-r from-pink-500/15 to-rose-500/15 text-pink-600 shadow-sm'
             : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
         )}
       >
         <Icon
           className={cn(
             'h-5 w-5 shrink-0 transition-colors',
-            isActive ? 'text-[#18b3b2]' : 'text-muted-foreground group-hover:text-[#18b3b2]'
+            isActive ? 'text-pink-500' : 'text-muted-foreground group-hover:text-pink-500'
           )}
         />
         {!collapsed && (
@@ -203,7 +203,7 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
         {isActive && (
           <motion.div
             layoutId="activeIndicator"
-            className="absolute right-0 h-8 w-1 rounded-l-full bg-gradient-to-b from-[#18b3b2] to-[#22cc7b]"
+            className="absolute right-0 h-8 w-1 rounded-l-full bg-gradient-to-b from-pink-500 to-rose-500"
           />
         )}
       </Link>
@@ -231,7 +231,7 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
   const sidebarContent = (
     <>
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-[#18b3b2]/30 px-4 bg-gradient-to-r from-[#f0fdfa] to-[#ccfbf1] backdrop-blur-sm shadow-sm">
+      <div className="flex h-16 items-center justify-between border-b border-pink-500/30 px-4 bg-gradient-to-r from-pink-50 to-rose-50 backdrop-blur-sm shadow-sm">
         <Link 
           to={user?.role === 'staff' ? '/staff/leads' : '/'} 
           className="flex items-center gap-2"
@@ -242,7 +242,7 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
         {!isMobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-[#18b3b2]/10 hover:text-[#0d9488] transition-colors"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-pink-500/10 hover:text-pink-600 transition-colors"
           >
             <ChevronLeft className={cn('h-5 w-5 transition-transform', collapsed && 'rotate-180')} />
           </button>
@@ -250,7 +250,7 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-[#f0fdfa]/80 via-[#ecfdf5]/90 to-[#d1fae5]/80">
+      <nav className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-pink-50/80 via-pink-50/90 to-rose-50/80">
         <div className="space-y-1">
           {getMenuItems().map((item) => {
             const menuItem = renderMenuItem(item);
@@ -265,10 +265,10 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
 
       {/* User Info */}
       {!collapsed && user && (
-        <div className="border-t border-[#18b3b2]/25 p-4 bg-gradient-to-b from-transparent to-[#ccfbf1]/50">
-          <div className="flex items-center gap-3 rounded-xl p-3 bg-white/90 border border-[#18b3b2]/20 shadow-md shadow-slate-200/50 ring-1 ring-[#18b3b2]/10">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#18b3b2]/20 to-[#22cc7b]/20">
-              <User className="h-5 w-5 text-[#18b3b2]" />
+        <div className="border-t border-pink-500/25 p-4 bg-gradient-to-b from-transparent to-rose-50/50">
+          <div className="flex items-center gap-3 rounded-xl p-3 bg-white/90 border border-pink-500/20 shadow-md shadow-slate-200/50 ring-1 ring-[#18b3b2]/10">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-pink-500/20 to-rose-500/20">
+              <User className="h-5 w-5 text-pink-500" />
             </div>
             <div className="flex-1 truncate">
               <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
@@ -288,7 +288,7 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex h-full flex-col bg-gradient-to-b from-[#ccfbf1] via-[#f0fdfa] to-[#d1fae5] border-r border-[#18b3b2]/30"
+            className="flex h-full flex-col bg-gradient-to-b from-[#ccfbf1] via-[#f0fdfa] to-rose-50 border-r border-pink-500/30"
           >
             {sidebarContent}
           </motion.div>
@@ -303,8 +303,8 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'relative flex h-screen flex-col border-r border-[#18b3b2]/30 transition-all duration-300',
-        'bg-gradient-to-b from-[#ccfbf1] via-[#f0fdfa] to-[#d1fae5]',
+        'relative flex h-screen flex-col border-r border-pink-500/30 transition-all duration-300',
+        'bg-gradient-to-b from-[#ccfbf1] via-[#f0fdfa] to-rose-50',
         'shadow-[4px_0_28px_-4px_rgba(24,179,178,0.18)]',
         collapsed ? 'w-16' : 'w-64'
       )}

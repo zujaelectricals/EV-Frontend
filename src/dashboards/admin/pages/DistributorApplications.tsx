@@ -39,7 +39,7 @@ const getStatusBadge = (status: string) => {
     case 'pending':
       return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
     case 'approved':
-      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Approved</Badge>;
+      return <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">Approved</Badge>;
     case 'rejected':
       return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Rejected</Badge>;
     default:
@@ -166,9 +166,9 @@ export const DistributorApplications = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Approved</p>
-                  <p className="text-3xl font-bold text-green-600 mt-1">{approvedCount}</p>
+                  <p className="text-3xl font-bold text-pink-600 mt-1">{approvedCount}</p>
                 </div>
-                <CheckCircle className="h-8 w-8 text-green-600 opacity-20" />
+                <CheckCircle className="h-8 w-8 text-pink-600 opacity-20" />
               </div>
             </CardContent>
           </Card>
@@ -382,7 +382,7 @@ export const DistributorApplications = () => {
                                 <div className="border-t pt-4 flex gap-2">
                                   <Button
                                     onClick={() => handleApprove(app.id)}
-                                    className="bg-green-600 hover:bg-green-700"
+                                    className="bg-pink-600 hover:bg-pink-700"
                                   >
                                     <CheckCircle className="h-4 w-4 mr-2" />
                                     Approve
@@ -410,7 +410,7 @@ export const DistributorApplications = () => {
                           <>
                             <Button
                               size="sm"
-                              className="bg-green-600 hover:bg-green-700"
+                              className="bg-pink-600 hover:bg-pink-700"
                               onClick={() => handleApprove(app.id)}
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />

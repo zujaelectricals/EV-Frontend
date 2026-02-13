@@ -15,7 +15,12 @@ import { updatePreBooking } from '@/app/slices/authSlice';
 import { addPayout } from '@/app/slices/payoutSlice';
 import { useAddReferralNodeMutation } from '@/app/api/binaryApi';
 import { useCreateBookingMutation, useMakePaymentMutation, BookingResponse } from '@/app/api/bookingApi';
+import { useGetDistributorDocumentsQuery, useAcceptDocumentMutation, useVerifyAcceptanceMutation } from '@/app/api/complianceApi';
 import { toast } from 'sonner';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Shield } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle } from 'lucide-react';
 import { Scooter } from '../ScooterCard';
 import { StockDetailResponse } from '@/app/api/inventoryApi';
 import { useRazorpay } from '@/hooks/useRazorpay';
@@ -128,11 +133,58 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [createBooking, { isLoading: isCreatingBooking }] = useCreateBookingMutation();
   const [makePayment, { isLoading: isMakingPayment }] = useMakePaymentMutation();
   const [isBookingInProgress, setIsBookingInProgress] = useState(false);
+  
+  // Fetch distributor documents when modal opens
+  const { data: distributorDocuments, isLoading: isLoadingDocuments } = useGetDistributorDocumentsQuery(undefined, {
+    skip: !isOpen, // Only fetch when modal is open
+  });
+  
+  // Log API response
+  useEffect(() => {
+    if (distributorDocuments) {
+      console.log('📄 [PRE-BOOKING] Distributor Documents API Response:', distributorDocuments);
+    }
+  }, [distributorDocuments]);
+  
+  // Find payment_terms document
+  // Check for document_type and file URL existence (is_active might not be in response)
+  const paymentTermsDocument = distributorDocuments?.find(
+    (doc) => doc.document_type === 'payment_terms' && doc.file
+  );
+  
+  // Log the filtered payment terms document and debug info
+  useEffect(() => {
+    if (distributorDocuments) {
+      console.log('📄 [PRE-BOOKING] All documents:', distributorDocuments);
+      const paymentDocs = distributorDocuments.filter(doc => doc.document_type === 'payment_terms');
+      console.log('📄 [PRE-BOOKING] Payment terms documents found:', paymentDocs);
+      console.log('📄 [PRE-BOOKING] Payment terms documents with file:', paymentDocs.filter(doc => doc.file));
+    }
+    if (paymentTermsDocument) {
+      console.log('📄 [PRE-BOOKING] Payment Terms Document:', paymentTermsDocument);
+      console.log('📄 [PRE-BOOKING] Payment Terms Document URL:', paymentTermsDocument.file);
+    } else if (distributorDocuments) {
+      console.warn('📄 [PRE-BOOKING] Payment Terms document not found. Available documents:', 
+        distributorDocuments.map(doc => ({ type: doc.document_type, hasFile: !!doc.file, is_active: (doc as any).is_active }))
+      );
+    }
+  }, [paymentTermsDocument, distributorDocuments]);
   // Use ref to prevent duplicate submissions (refs update synchronously)
   const isSubmittingRef = useRef(false);
   const [preBookingAmount, setPreBookingAmount] = useState(500);
   const [inputValue, setInputValue] = useState('500'); // Local state for input field
-  const [referralCodeInput, setReferralCodeInput] = useState(referralCode || '');
+  
+  // Get referral code from props, localStorage, or empty string
+  const getStoredReferralCode = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ev_nexus_referral_code') || '';
+    }
+    return '';
+  };
+  
+  const [referralCodeInput, setReferralCodeInput] = useState(
+    referralCode || getStoredReferralCode()
+  );
   const [joinDistributorProgram, setJoinDistributorProgram] = useState(false);
   
   // Delivery address fields
@@ -140,6 +192,29 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [deliveryState, setDeliveryState] = useState('');
   const [deliveryPin, setDeliveryPin] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  
+  // Document acceptance and OTP state
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [isAcceptingDocument, setIsAcceptingDocument] = useState(false);
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  
+  // Document acceptance mutations
+  const [acceptDocument] = useAcceptDocumentMutation();
+  const [verifyAcceptance] = useVerifyAcceptanceMutation();
+  
+  // Get user identifier (email or mobile)
+  const getIdentifier = () => {
+    if (currentUser?.email) return currentUser.email;
+    if (currentUser?.phone) return currentUser.phone.replace(/\D/g, '');
+    return '';
+  };
+  
+  const getOtpType = (): 'email' | 'mobile' => {
+    const identifier = getIdentifier();
+    return identifier.includes('@') ? 'email' : 'mobile';
+  };
   
   // Selected vehicle color and battery variant
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -158,6 +233,27 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     setInputValue(preBookingAmount.toString());
   }, [preBookingAmount]);
 
+  // Auto-fill referral code from localStorage when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const storedCode = typeof window !== 'undefined' 
+        ? localStorage.getItem('ev_nexus_referral_code') || ''
+        : '';
+      
+      // Priority: prop > localStorage > empty
+      const codeToUse = referralCode || storedCode;
+      
+      if (codeToUse) {
+        setReferralCodeInput(codeToUse);
+        // Store in localStorage if from prop
+        if (referralCode && typeof window !== 'undefined') {
+          localStorage.setItem('ev_nexus_referral_code', referralCode);
+        }
+        console.log('✅ [PRE-BOOKING] Auto-filled referral code:', codeToUse);
+      }
+    }
+  }, [isOpen, referralCode]);
+
   // Reset booking response and submission state when modal closes
   useEffect(() => {
     if (!isOpen) {
@@ -165,6 +261,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       setIsBookingInProgress(false);
       setIsVerifyingPayment(false);
       isSubmittingRef.current = false;
+      // Reset OTP state
+      setTermsAccepted(false);
+      setOtpSent(false);
+      setOtpVerified(false);
+      setOtpCode('');
     }
   }, [isOpen]);
 
@@ -302,6 +403,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       toast.error('Please accept the Terms and Conditions');
       return;
     }
+    
+    if (!otpVerified) {
+      toast.error('Please verify OTP to proceed');
+      return;
+    }
 
     if (!stockData) {
       toast.error('Vehicle details not available. Please refresh the page.');
@@ -380,20 +486,115 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     }
   };
 
-  // Handle viewing Booking Terms PDF
+  // Handle viewing Payment Terms PDF
   const handleViewBookingTerms = () => {
-    window.open('/Booking_Terms.pdf', '_blank');
+    if (paymentTermsDocument?.file) {
+      console.log('📄 [PRE-BOOKING] Opening Payment Terms document:', paymentTermsDocument.file);
+      window.open(paymentTermsDocument.file, '_blank');
+    } else {
+      console.warn('📄 [PRE-BOOKING] Payment Terms document not available from API');
+      toast.error('Payment Terms document is not available. Please try again later.');
+    }
   };
 
-  // Handle downloading Booking Terms PDF
+  // Handle downloading Payment Terms PDF
   const handleDownloadBookingTerms = () => {
-    const link = document.createElement('a');
-    link.href = '/Booking_Terms.pdf';
-    link.download = 'Booking_Terms.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Booking Terms PDF download started');
+    if (paymentTermsDocument?.file) {
+      console.log('📄 [PRE-BOOKING] Downloading Payment Terms document:', paymentTermsDocument.file);
+      const link = document.createElement('a');
+      link.href = paymentTermsDocument.file;
+      link.download = paymentTermsDocument.title || 'Payment_Terms.pdf';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Payment Terms PDF download started');
+    } else {
+      console.warn('📄 [PRE-BOOKING] Payment Terms document not available from API');
+      toast.error('Payment Terms document is not available. Please try again later.');
+    }
+  };
+  
+  // Handle Terms & Conditions checkbox change
+  const handleTermsCheckboxChange = async (checked: boolean) => {
+    setTermsAccepted(checked);
+    
+    if (checked) {
+      // Check if document is available
+      if (!paymentTermsDocument) {
+        toast.error('Payment Terms document is not available. Please try again later.');
+        setTermsAccepted(false);
+        return;
+      }
+      
+      setIsAcceptingDocument(true);
+      try {
+        // Call accept API
+        console.log('📄 [PRE-BOOKING] Accepting document:', paymentTermsDocument.id);
+        await acceptDocument(paymentTermsDocument.id).unwrap();
+        console.log('📄 [PRE-BOOKING] Document accepted, OTP should be sent');
+        setOtpSent(true);
+        toast.success(`OTP sent to your ${getOtpType() === 'email' ? 'email' : 'mobile number'}`);
+      } catch (error: unknown) {
+        console.error('📄 [PRE-BOOKING] Error accepting document:', error);
+        const errorMessage = error && typeof error === 'object' && 'data' in error && 
+          error.data && typeof error.data === 'object' && 'message' in error.data &&
+          typeof error.data.message === 'string' ? error.data.message : 'Failed to accept terms. Please try again.';
+        toast.error(errorMessage);
+        setTermsAccepted(false);
+      } finally {
+        setIsAcceptingDocument(false);
+      }
+    } else {
+      // Reset OTP state when unchecked
+      setOtpSent(false);
+      setOtpVerified(false);
+      setOtpCode('');
+    }
+  };
+  
+  // Handle OTP verification
+  const handleVerifyOTP = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
+    
+    if (!paymentTermsDocument) {
+      toast.error('Payment Terms document is not available. Please try again later.');
+      return;
+    }
+    
+    const identifier = getIdentifier();
+    const otpType = getOtpType();
+    
+    if (!identifier) {
+      toast.error('Email or mobile number not found in profile');
+      return;
+    }
+    
+    setIsVerifyingOTP(true);
+    try {
+      console.log('📄 [PRE-BOOKING] Verifying OTP for document:', paymentTermsDocument.id);
+      await verifyAcceptance({
+        documentId: paymentTermsDocument.id,
+        data: {
+          identifier,
+          otp_code: otpCode,
+          otp_type: otpType,
+        },
+      }).unwrap();
+      setOtpVerified(true);
+      toast.success('OTP verified successfully!');
+    } catch (error: unknown) {
+      console.error('📄 [PRE-BOOKING] Error verifying OTP:', error);
+      const errorMessage = error && typeof error === 'object' && 'data' in error && 
+        error.data && typeof error.data === 'object' && 'message' in error.data &&
+        typeof error.data.message === 'string' ? error.data.message : 'Invalid OTP. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setIsVerifyingOTP(false);
+    }
   };
 
   // Handle Razorpay payment flow
@@ -573,6 +774,12 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       }
 
       dispatch(addBooking(localBooking));
+
+      // Store referral code in localStorage after successful booking
+      if (referralCodeInput.trim() && typeof window !== 'undefined') {
+        localStorage.setItem('ev_nexus_referral_code', referralCodeInput.trim());
+        console.log('✅ [PRE-BOOKING] Stored referral code in localStorage after booking:', referralCodeInput.trim());
+      }
 
       // Update user pre-booking info
       dispatch(updatePreBooking({
@@ -947,7 +1154,8 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 <Checkbox
                   id="termsAccepted"
                   checked={termsAccepted}
-                  onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                  onCheckedChange={handleTermsCheckboxChange}
+                  disabled={isAcceptingDocument || otpVerified}
                   required
                   className="mt-0.5"
                 />
@@ -994,6 +1202,76 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 <AlertCircle className="w-3.5 h-3.5" />
                 You must accept the Terms and Conditions to proceed
               </p>
+            )}
+            
+            {/* OTP Verification Section */}
+            {otpSent && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mt-4 p-4 border-2 border-primary rounded-lg bg-primary/5 space-y-4"
+              >
+                <div className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  <h4 className="font-semibold text-base">OTP Verification</h4>
+                </div>
+                
+                {otpVerified ? (
+                  <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <AlertDescription className="text-green-700 dark:text-green-300">
+                      OTP verified successfully! You can now proceed.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        OTP has been sent to your registered {getOtpType() === 'email' ? 'Email' : 'Mobile Number'}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Enter OTP *</Label>
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                        <InputOTP
+                          maxLength={6}
+                          value={otpCode}
+                          onChange={(value) => {
+                            const cleaned = value.replace(/\D/g, '').slice(0, 6);
+                            setOtpCode(cleaned);
+                          }}
+                          disabled={otpVerified || isVerifyingOTP}
+                        >
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </div>
+                    </div>
+                    
+                    <Button
+                      type="button"
+                      onClick={handleVerifyOTP}
+                      disabled={otpCode.length !== 6 || isVerifyingOTP}
+                      className="w-full"
+                    >
+                      {isVerifyingOTP ? 'Verifying...' : 'Verify OTP'}
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+            
+            {termsAccepted && !otpSent && isAcceptingDocument && (
+              <p className="text-sm text-muted-foreground ml-8">Accepting terms...</p>
             )}
           </div>
 
@@ -1082,6 +1360,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 !/^\d{6}$/.test(deliveryPin.trim()) ||
                 !referralCodeInput.trim() ||
                 !termsAccepted ||
+                !otpVerified ||
                 !stockData
               }
             >

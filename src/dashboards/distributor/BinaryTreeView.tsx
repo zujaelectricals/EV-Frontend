@@ -1059,8 +1059,8 @@ export const BinaryTreeView = () => {
       </Dialog>
 
       {/* Team Network Table */}
-      <Card className="overflow-hidden border-2 border-[#18b3b2]/20 shadow-xl shadow-slate-200/50 bg-gradient-to-b from-white to-slate-50/30">
-        <CardHeader className="border-b border-[#18b3b2]/20 bg-gradient-to-r from-[#f0fdfa]/50 to-white pb-6">
+      <Card className="overflow-hidden border-2 border-pink-500/20 shadow-xl shadow-slate-200/50 bg-gradient-to-b from-white to-slate-50/30">
+        <CardHeader className="border-b border-pink-500/20 bg-gradient-to-r from-pink-50/50 to-white pb-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <CardTitle className="text-xl">Team Network Structure</CardTitle>
@@ -1075,26 +1075,26 @@ export const BinaryTreeView = () => {
                 size="sm"
                 onClick={handleMatchPairs}
                 disabled={isCheckingPairs}
-                className="flex items-center gap-2 border-[#18b3b2]/40 hover:bg-[#18b3b2]/10 hover:border-[#18b3b2] hover:text-[#0d9488]"
+                className="flex items-center gap-2 border-pink-500/40 hover:bg-pink-500/10 hover:border-pink-500 hover:text-pink-600"
               >
                 <Link2 className="h-4 w-4" />
                 {isCheckingPairs ? "Matching..." : "Match Pairs"}
               </Button>
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setReferralTreeDialogOpen(true)}
-                className="flex items-center gap-2 border-[#18b3b2]/40 hover:bg-[#18b3b2]/10 hover:border-[#18b3b2] hover:text-[#0d9488]"
+                className="flex items-center gap-2 border-pink-500/40 hover:bg-pink-500/10 hover:border-pink-500 hover:text-pink-600"
               >
                 <Network className="h-4 w-4" />
                 Referral Tree
-              </Button>
+              </Button> */}
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
           {/* Server-side Filters */}
-          <div className="flex flex-wrap items-center gap-4 mb-6 p-4 rounded-xl bg-gradient-to-r from-[#f0fdfa]/60 to-slate-50/60 border border-[#18b3b2]/15">
+          <div className="flex flex-wrap items-center gap-4 mb-6 p-4 rounded-xl bg-gradient-to-r from-pink-50/60 to-slate-50/60 border border-pink-500/15">
             <Select
               value={sideFilter}
               onValueChange={(value: 'left' | 'right' | 'both') => {
@@ -1104,7 +1104,7 @@ export const BinaryTreeView = () => {
                 setBothPage(1);
               }}
             >
-              <SelectTrigger className="w-[140px] border-[#18b3b2]/25 bg-white">
+              <SelectTrigger className="w-[140px] border-pink-500/25 bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1122,7 +1122,7 @@ export const BinaryTreeView = () => {
                 setBothPage(1);
               }}
             >
-              <SelectTrigger className="w-[100px] border-[#18b3b2]/25 bg-white">
+              <SelectTrigger className="w-[100px] border-pink-500/25 bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1143,7 +1143,7 @@ export const BinaryTreeView = () => {
                   setMinDepth(value === '' ? undefined : Number(value));
                 }}
                 placeholder="0"
-                className="w-[80px] border-[#18b3b2]/25"
+                className="w-[80px] border-pink-500/25"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -1157,7 +1157,7 @@ export const BinaryTreeView = () => {
                   setMaxDepth(value === '' ? undefined : Number(value));
                 }}
                 placeholder="2"
-                className="w-[80px] border-[#18b3b2]/25"
+                className="w-[80px] border-pink-500/25"
               />
             </div>
           </div>
@@ -1165,35 +1165,35 @@ export const BinaryTreeView = () => {
           {/* Team Members Table */}
           {displayMembers.length > 0 ? (
             <>
-              <div className="rounded-xl overflow-hidden border-2 border-[#18b3b2]/15 shadow-inner bg-white">
+              <div className="rounded-xl overflow-hidden border-2 border-pink-500/15 shadow-inner bg-white">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-b-2 border-[#18b3b2]/30 hover:bg-transparent">
-                      <TableHead className="h-14 bg-gradient-to-r from-[#18b3b2]/15 to-[#22cc7b]/10 font-semibold text-foreground">Name</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-[#18b3b2]/15 to-[#22cc7b]/10 font-semibold text-foreground">Level</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-[#18b3b2]/15 to-[#22cc7b]/10 font-semibold text-foreground">Direct Parent</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-[#18b3b2]/15 to-[#22cc7b]/10 font-semibold text-foreground">Referral Code</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-[#18b3b2]/15 to-[#22cc7b]/10 font-semibold text-foreground">Position</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-[#18b3b2]/15 to-[#22cc7b]/10 font-semibold text-foreground">Joined Date</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-[#18b3b2]/15 to-[#22cc7b]/10 font-semibold text-foreground">Status</TableHead>
+                    <TableRow className="border-b-2 border-pink-500/30 hover:bg-transparent">
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Name</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Level</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Direct Parent</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Referral Code</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Position</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Joined Date</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {displayMembers.map((member, index) => (
                       <TableRow
                         key={member.id}
-                        className={`border-b border-slate-100 transition-colors hover:bg-[#18b3b2]/5 ${index % 2 === 1 ? 'bg-slate-50/50' : ''}`}
+                        className={`border-b border-slate-100 transition-colors hover:bg-pink-500/5 ${index % 2 === 1 ? 'bg-slate-50/50' : ''}`}
                       >
                         <TableCell className="font-medium py-4">
                           <div className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#18b3b2]/10">
-                              <User className="h-4 w-4 text-[#0d9488]" />
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-500/10">
+                              <User className="h-4 w-4 text-pink-600" />
                             </div>
                             {member.name}
                           </div>
                         </TableCell>
                         <TableCell className="py-4">
-                          <Badge variant="outline" className="border-[#18b3b2]/40 bg-[#f0fdfa]/50 text-foreground font-medium">
+                          <Badge variant="outline" className="border-pink-500/40 bg-pink-50/50 text-foreground font-medium">
                             Level {member.level}
                           </Badge>
                         </TableCell>
@@ -1205,7 +1205,7 @@ export const BinaryTreeView = () => {
                         </TableCell>
                         <TableCell className="py-4">
                           {member.referralCode ? (
-                            <code className="text-sm font-mono font-medium px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#18b3b2]/15 to-[#22cc7b]/15 text-[#0d9488] border border-[#18b3b2]/30">
+                            <code className="text-sm font-mono font-medium px-3 py-1.5 rounded-lg bg-gradient-to-r from-pink-500/15 to-rose-500/15 text-pink-600 border border-pink-500/30">
                               {member.referralCode}
                             </code>
                           ) : (
@@ -1216,7 +1216,7 @@ export const BinaryTreeView = () => {
                           <Badge
                             className={
                               member.position === "left"
-                                ? "bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0"
+                                ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0"
                                 : "bg-slate-200 text-slate-700 border-0 font-medium"
                             }
                           >
@@ -1233,7 +1233,7 @@ export const BinaryTreeView = () => {
                         <TableCell className="py-4">
                           {member.isActive ? (
                             <Badge
-                              className="bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0"
+                              className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0"
                             >
                               <Activity className="mr-1 h-3 w-3" />
                               Active
@@ -1268,7 +1268,7 @@ export const BinaryTreeView = () => {
 
               {/* Pagination Controls - Single unified control */}
             {(leftPagination || rightPagination) && (
-              <div className="mt-6 pt-4 border-t border-[#18b3b2]/15">
+              <div className="mt-6 pt-4 border-t border-pink-500/15">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
                     {sideFilter === 'both' && leftPagination && rightPagination && (
@@ -1311,7 +1311,7 @@ export const BinaryTreeView = () => {
                         (sideFilter === 'left' && (!leftPagination?.previous || leftPagination.page === 1)) ||
                         (sideFilter === 'right' && (!rightPagination?.previous || rightPagination.page === 1))
                       }
-                      className="border-[#18b3b2]/30 hover:bg-[#18b3b2]/10 hover:border-[#18b3b2]"
+                      className="border-pink-500/30 hover:bg-pink-500/10 hover:border-pink-500"
                     >
                       <ChevronLeft className="h-4 w-4" />
                       Previous
@@ -1347,7 +1347,7 @@ export const BinaryTreeView = () => {
                         (sideFilter === 'left' && (!leftPagination?.next || leftPagination.page === leftPagination.total_pages)) ||
                         (sideFilter === 'right' && (!rightPagination?.next || rightPagination.page === rightPagination.total_pages))
                       }
-                      className="border-[#18b3b2]/30 hover:bg-[#18b3b2]/10 hover:border-[#18b3b2]"
+                      className="border-pink-500/30 hover:bg-pink-500/10 hover:border-pink-500"
                     >
                       Next
                       <ChevronRight className="h-4 w-4" />
@@ -1359,7 +1359,7 @@ export const BinaryTreeView = () => {
 
               {/* Show pagination info when no pagination is available (backward compatibility) */}
               {!leftPagination && !rightPagination && treeStructure && (
-                <div className="mt-6 pt-4 border-t border-[#18b3b2]/15">
+                <div className="mt-6 pt-4 border-t border-pink-500/15">
                   <div className="text-sm text-muted-foreground text-center py-2 rounded-lg bg-slate-50/80">
                     Showing all {displayMembers.length} members (pagination not enabled)
                   </div>
@@ -1383,9 +1383,9 @@ export const BinaryTreeView = () => {
         open={referralTreeDialogOpen}
         onOpenChange={setReferralTreeDialogOpen}
       >
-        <DialogContent className="max-w-6xl max-h-[90vh] p-0 overflow-hidden border-2 border-[#18b3b2]/20 shadow-2xl bg-gradient-to-b from-white to-slate-50/50">
-          <DialogHeader className="px-6 py-5 border-b border-[#18b3b2]/20 bg-gradient-to-r from-[#f0fdfa]/80 to-white">
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] bg-clip-text text-transparent">
+        <DialogContent className="max-w-6xl max-h-[90vh] p-0 overflow-hidden border-2 border-pink-500/20 shadow-2xl bg-gradient-to-b from-white to-slate-50/50">
+          <DialogHeader className="px-6 py-5 border-b border-pink-500/20 bg-gradient-to-r from-pink-50/80 to-white">
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">
               Referral Tree Structure
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -1402,8 +1402,8 @@ export const BinaryTreeView = () => {
               {binaryTree ? (
                 <BinaryTreeNode node={binaryTree} depth={0} />
               ) : (
-                <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl bg-gradient-to-b from-slate-50 to-white border-2 border-dashed border-[#18b3b2]/20">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#18b3b2]/15 to-[#22cc7b]/15 mb-4">
+                <div className="flex flex-col items-center justify-center py-16 px-8 rounded-2xl bg-gradient-to-b from-slate-50 to-white border-2 border-dashed border-pink-500/20">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-rose-500/15 mb-4">
                     <GitBranch className="h-8 w-8 text-[#18b3b2]" />
                   </div>
                   <p className="text-base font-medium text-foreground">No referral tree data available</p>

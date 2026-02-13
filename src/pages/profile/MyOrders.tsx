@@ -505,7 +505,7 @@ export function MyOrders() {
             <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${(isLoadingBookings || isFetching) ? 'animate-spin' : ''}`} />
           </Button>
           <Link to="/scooters">
-            <Button size="sm" className="bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 text-xs sm:text-sm">Browse Vehicles</Button>
+            <Button size="sm" className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 text-xs sm:text-sm">Browse Vehicles</Button>
           </Link>
         </div>
       </div>
@@ -534,7 +534,7 @@ export function MyOrders() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Card className="overflow-hidden border-0 shadow-xl shadow-slate-200/50 bg-gradient-to-b from-white to-slate-50/50 ring-2 ring-[#18b3b2]/20">
+          <Card className="overflow-hidden border-0 shadow-xl shadow-slate-200/50 bg-gradient-to-b from-white to-slate-50/50 ring-2 ring-pink-500/20">
             <CardContent className="py-12 sm:py-14 text-center">
               <motion.div
                 initial={{ scale: 0.9 }}
@@ -542,7 +542,7 @@ export function MyOrders() {
                 transition={{ delay: 0.15, type: "spring", stiffness: 200 }}
                 className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-[#18b3b2]/15 to-[#22cc7b]/15 mb-4"
               >
-                <Package className="w-8 h-8 sm:w-10 sm:h-10 text-[#18b3b2]" />
+                <Package className="w-8 h-8 sm:w-10 sm:h-10 text-pink-500" />
               </motion.div>
               <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
                 No orders found
@@ -553,7 +553,7 @@ export function MyOrders() {
                   : "Start shopping to see your orders here"}
               </p>
               <Link to="/scooters">
-                <Button size="sm" className="bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
+                <Button size="sm" className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 shadow-lg shadow-pink-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
                   Browse Vehicles
                 </Button>
               </Link>
@@ -744,7 +744,7 @@ export function MyOrders() {
                         {booking.remainingAmount > 0 && (
                           <Button
                             size="sm"
-                            className="w-full sm:w-auto text-xs sm:text-sm bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 shadow-md shadow-emerald-500/25"
+                            className="w-full sm:w-auto text-xs sm:text-sm bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 shadow-md shadow-pink-500/25"
                             onClick={() =>
                               handlePayMore(booking.id, booking.remainingAmount)
                             }

@@ -10,13 +10,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 text-white shadow-[0_10px_25px_rgba(16,185,129,0.25)] hover:shadow-[0_15px_35px_rgba(16,185,129,0.35)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-95",
+          "bg-gradient-to-r from-pink-500 via-pink-400 to-pink-600 text-white shadow-[0_10px_25px_rgba(236,72,153,0.25)] hover:shadow-[0_15px_35px_rgba(236,72,153,0.35)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-95",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
           "border border-input bg-background hover:bg-accent hover:text-accent-foreground hover:-translate-y-0.5 active:translate-y-0 active:scale-95",
         secondary:
-          "bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-600 text-white hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-95",
+          "bg-gradient-to-r from-pink-400 via-pink-300 to-pink-600 text-white hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-95",
         ghost:
           "hover:bg-accent hover:text-accent-foreground hover:-translate-y-0.5 active:translate-y-0 active:scale-95",
         link: "text-primary underline-offset-4 hover:underline",

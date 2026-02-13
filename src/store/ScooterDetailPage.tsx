@@ -482,7 +482,7 @@ export function ScooterDetailPage() {
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold capitalize ${
                           stockData.status === 'available'
-                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                            ? 'bg-pink-500/10 text-pink-700 dark:text-pink-300'
                             : stockData.status === 'out_of_stock'
                             ? 'bg-red-500/10 text-red-600 dark:text-red-400'
                             : 'bg-muted text-muted-foreground'
@@ -491,7 +491,7 @@ export function ScooterDetailPage() {
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${
                             stockData.status === 'available'
-                              ? 'bg-emerald-500'
+                              ? 'bg-pink-500'
                               : stockData.status === 'out_of_stock'
                               ? 'bg-red-500'
                               : 'bg-gray-400'
@@ -530,18 +530,18 @@ export function ScooterDetailPage() {
                     {/* Three cards in a row, same height — match 2nd image layout */}
                     <div className="grid grid-cols-1 sm:grid-cols-[1.15fr_0.925fr_0.925fr] gap-3 items-stretch">
                       {/* Available Units — slightly wider on large screens */}
-                      <div className="flex flex-col justify-center rounded-2xl bg-emerald-500/5 border border-emerald-500/30 px-4 py-5 text-center min-h-[140px] sm:min-h-0">
-                        <span className="text-xs font-medium uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-300">
+                      <div className="flex flex-col justify-center rounded-2xl bg-pink-500/5 border border-pink-500/30 px-4 py-5 text-center min-h-[140px] sm:min-h-0">
+                        <span className="text-xs font-medium uppercase tracking-[0.18em] text-pink-600 dark:text-pink-300">
                           Available Units
                         </span>
-                        <div className="mt-1 text-3xl font-extrabold text-emerald-600 dark:text-emerald-300">
+                        <div className="mt-1 text-3xl font-extrabold text-pink-600 dark:text-pink-300">
                           {Number(stockData.available_quantity ?? 0).toLocaleString()}
                         </div>
-                        {/* <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-200/90">
+                        {/* <p className="mt-1 text-[11px] text-pink-700/80 dark:text-pink-200/90">
                           Ready to be reserved instantly
                         </p> */}
                         {(stockData.reserved_quantity || stockData.total_quantity) && (
-                          <div className="mt-3 flex items-center justify-center gap-3 text-[11px] text-emerald-900/70 dark:text-emerald-100/80">
+                          <div className="mt-3 flex items-center justify-center gap-3 text-[11px] text-pink-900/70 dark:text-pink-100/80">
                             {/* {typeof stockData.reserved_quantity !== 'undefined' && (
                               <span>
                                 <span className="font-semibold">
@@ -552,7 +552,7 @@ export function ScooterDetailPage() {
                             )} */}
                             {typeof stockData.total_quantity !== 'undefined' && (
                               <>
-                                <span className="h-1 w-1 rounded-full bg-emerald-500/60" />
+                                <span className="h-1 w-1 rounded-full bg-pink-500/60" />
                                 <span>
                                   <span className="font-semibold">
                                     {Number(stockData.total_quantity).toLocaleString()}
@@ -568,7 +568,7 @@ export function ScooterDetailPage() {
                       {/* Color card */}
                       {stockData.vehicle_colors && stockData.vehicle_colors.length > 0 && (
                         <div className="flex flex-col items-center justify-center rounded-2xl bg-card/70 border border-border/60 px-4 py-5 min-h-[140px] sm:min-h-0">
-                          <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-2">
+                          <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400 mb-2">
                             <Palette className="w-4 h-4" />
                           </div>
                           <span className="text-xs text-muted-foreground">Color</span>
@@ -581,7 +581,7 @@ export function ScooterDetailPage() {
                       {/* Battery card */}
                       {stockData.battery_variants && stockData.battery_variants.length > 0 && (
                         <div className="flex flex-col items-center justify-center rounded-2xl bg-card/70 border border-border/60 px-4 py-5 min-h-[140px] sm:min-h-0">
-                          <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-2">
+                          <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-pink-500/10 text-pink-600 dark:text-pink-400 mb-2">
                             <Battery className="w-4 h-4" />
                           </div>
                           <span className="text-xs text-muted-foreground">Battery</span>
@@ -683,9 +683,9 @@ export function ScooterDetailPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="group relative flex items-center gap-3 p-4 lg:p-5 bg-card/70 border border-border/70 rounded-2xl shadow-sm hover:shadow-lg hover:border-emerald-400/70 hover:-translate-y-1 transition-all duration-200"
+                      className="group relative flex items-center gap-3 p-4 lg:p-5 bg-card/70 border border-border/70 rounded-2xl shadow-sm hover:shadow-lg hover:border-pink-400/70 hover:-translate-y-1 transition-all duration-200"
                     >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-200">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-500/10 text-pink-600 group-hover:bg-pink-500 group-hover:text-white transition-colors duration-200">
                         <Check className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
@@ -711,7 +711,7 @@ export function ScooterDetailPage() {
                       .map(([label, value], i) => (
                         <div
                           key={i}
-                          className="flex items-start justify-between gap-4 p-4 lg:p-5 bg-muted/40 rounded-2xl border border-border/70 hover:border-emerald-400/70 hover:bg-background/90 hover:shadow-md transition-all duration-200"
+                          className="flex items-start justify-between gap-4 p-4 lg:p-5 bg-muted/40 rounded-2xl border border-border/70 hover:border-pink-400/70 hover:bg-background/90 hover:shadow-md transition-all duration-200"
                         >
                           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                             {label}
@@ -728,7 +728,7 @@ export function ScooterDetailPage() {
                       .map(([label, value], i) => (
                         <div
                           key={i}
-                          className="flex items-start justify-between gap-4 p-4 lg:p-5 bg-muted/40 rounded-2xl border border-border/70 hover:border-emerald-400/70 hover:bg-background/90 hover:shadow-md transition-all duration-200"
+                          className="flex items-start justify-between gap-4 p-4 lg:p-5 bg-muted/40 rounded-2xl border border-border/70 hover:border-pink-400/70 hover:bg-background/90 hover:shadow-md transition-all duration-200"
                         >
                           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                             {label}
@@ -755,7 +755,7 @@ export function ScooterDetailPage() {
               <TabsContent value="reviews" className="mt-8">
                 <div className="max-w-2xl mx-auto">
                   <div className="glass-card rounded-3xl px-8 py-10 text-center border border-border/70">
-                    <div className="inline-flex items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] mb-4">
+                    <div className="inline-flex items-center justify-center rounded-full bg-pink-500/10 text-pink-600 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] mb-4">
                       <Star className="w-4 h-4 mr-1" />
                       Reviews
                     </div>
@@ -801,7 +801,7 @@ export function ScooterDetailPage() {
                       onClick={() => navigate(`/scooters/${variantId}`)}
                       className="group relative cursor-pointer"
                     >
-                      <div className="relative rounded-3xl bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50/70 shadow-[0_18px_40px_rgba(15,23,42,0.18)] overflow-visible">
+                      <div className="relative rounded-3xl bg-gradient-to-br from-slate-100 via-slate-50 to-pink-50/70 shadow-[0_18px_40px_rgba(15,23,42,0.18)] overflow-visible">
                         {/* Image Section */}
                         <div className="relative h-56 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl rounded-b-none overflow-hidden">
                           <motion.img
@@ -820,7 +820,7 @@ export function ScooterDetailPage() {
                             <span
                               className={`px-3 py-1.5 text-xs font-semibold rounded-full shadow-md ${
                                 variant.status === 'available'
-                                  ? 'bg-emerald-500 text-white'
+                                  ? 'bg-pink-500 text-white'
                                   : variant.status === 'out_of_stock'
                                   ? 'bg-red-500 text-white'
                                   : 'bg-slate-600 text-white'
@@ -876,7 +876,7 @@ export function ScooterDetailPage() {
                                 <p className="text-xs text-slate-400 uppercase tracking-[0.16em] mb-0.5">
                                   Ex‑showroom
                                 </p>
-                                <div className="text-xl font-bold text-emerald-600">
+                                <div className="text-xl font-bold text-pink-600">
                                   ₹{parseFloat(variant.price || '0').toLocaleString()}
                                 </div>
                               </div>

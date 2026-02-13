@@ -24,16 +24,16 @@ export const StatsCard = ({
 }: StatsCardProps) => {
   const cardVariants = {
     default: 'border-border bg-white shadow-lg shadow-slate-200/50',
-    primary: 'border-[#18b3b2]/30 bg-gradient-to-br from-white to-[#f0fdfa]/30 shadow-lg shadow-emerald-500/10',
-    success: 'border-emerald-400/30 bg-gradient-to-br from-white to-emerald-50/30 shadow-lg shadow-emerald-500/10',
+    primary: 'border-pink-500/30 bg-gradient-to-br from-white to-pink-50/30 shadow-lg shadow-pink-500/10',
+    success: 'border-pink-400/30 bg-gradient-to-br from-white to-pink-50/30 shadow-lg shadow-pink-500/10',
     warning: 'border-amber-400/30 bg-gradient-to-br from-white to-amber-50/30 shadow-lg shadow-amber-500/10',
     info: 'border-sky-400/30 bg-gradient-to-br from-white to-sky-50/30 shadow-lg shadow-sky-500/10',
   };
 
   const iconVariants = {
     default: 'bg-muted text-foreground',
-    primary: 'bg-gradient-to-br from-[#18b3b2]/20 to-[#22cc7b]/20 text-[#0d9488]',
-    success: 'bg-gradient-to-br from-emerald-400/20 to-emerald-600/20 text-emerald-600',
+    primary: 'bg-gradient-to-br from-pink-500/20 to-rose-500/20 text-pink-600',
+    success: 'bg-gradient-to-br from-pink-400/20 to-pink-600/20 text-pink-600',
     warning: 'bg-gradient-to-br from-amber-400/20 to-orange-400/20 text-amber-600',
     info: 'bg-gradient-to-br from-sky-400/20 to-blue-500/20 text-sky-600',
   };
@@ -46,7 +46,7 @@ export const StatsCard = ({
       whileHover={{ y: -6, transition: { duration: 0.2 } }}
       className={cn(
         'relative overflow-hidden rounded-2xl border-2 p-6 transition-all h-full',
-        'ring-2 ring-transparent hover:ring-[#18b3b2]/20',
+        'ring-2 ring-transparent hover:ring-pink-500/20',
         cardVariants[variant]
       )}
     >
@@ -54,8 +54,8 @@ export const StatsCard = ({
       <div
         className={cn(
           'absolute left-0 top-0 h-full w-1 rounded-l-2xl',
-          variant === 'primary' && 'bg-gradient-to-b from-[#18b3b2] to-[#22cc7b]',
-          variant === 'success' && 'bg-gradient-to-b from-emerald-400 to-emerald-600',
+          variant === 'primary' && 'bg-gradient-to-b from-pink-500 to-rose-500',
+          variant === 'success' && 'bg-gradient-to-b from-pink-400 to-pink-600',
           variant === 'warning' && 'bg-gradient-to-b from-amber-400 to-orange-400',
           variant === 'info' && 'bg-gradient-to-b from-sky-400 to-blue-500',
           variant === 'default' && 'bg-gradient-to-b from-slate-300 to-slate-400'
@@ -65,8 +65,8 @@ export const StatsCard = ({
       <div
         className={cn(
           'absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-15 blur-3xl',
-          variant === 'primary' && 'bg-[#18b3b2]',
-          variant === 'success' && 'bg-emerald-500',
+          variant === 'primary' && 'bg-pink-500',
+          variant === 'success' && 'bg-pink-500',
           variant === 'warning' && 'bg-amber-500',
           variant === 'info' && 'bg-sky-500'
         )}

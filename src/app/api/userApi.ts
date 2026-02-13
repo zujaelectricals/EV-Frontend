@@ -24,6 +24,7 @@ export interface UserProfileResponse {
   is_distributor: boolean;
   is_active_buyer: boolean;
   referral_code: string;
+  referral_link?: string;
   referred_by: string | null;
   kyc_status: 'not_submitted' | 'pending' | 'verified' | 'approved' | 'rejected' | null;
   nominee_exists: boolean;

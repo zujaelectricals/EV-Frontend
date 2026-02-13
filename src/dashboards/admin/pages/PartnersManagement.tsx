@@ -31,7 +31,7 @@ const getStatusBadge = (status: string) => {
   switch (status) {
     case 'approved':
       return (
-        <Badge className="bg-green-600 hover:bg-green-700 text-white border-0 px-2 py-0.5 text-xs font-medium flex items-center gap-1.5 h-6">
+        <Badge className="bg-pink-600 hover:bg-pink-700 text-white border-0 px-2 py-0.5 text-xs font-medium flex items-center gap-1.5 h-6">
           <CheckCircle2 className="h-3 w-3" />
           <span>Approved</span>
         </Badge>
@@ -147,14 +147,14 @@ export const PartnersManagement = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+        <Card className="bg-gradient-to-r from-pink-50 to-rose-50 border-pink-200">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Applications</p>
-                <p className="text-3xl font-bold text-green-700 mt-1">{totalCount}</p>
+                <p className="text-3xl font-bold text-pink-700 mt-1">{totalCount}</p>
               </div>
-              <Users className="h-12 w-12 text-green-600 opacity-50" />
+              <Users className="h-12 w-12 text-pink-600 opacity-50" />
             </div>
           </CardContent>
         </Card>
@@ -231,7 +231,7 @@ export const PartnersManagement = () => {
                           size="sm"
                           onClick={() => handleApproveClick(app.id)}
                           disabled={isUpdating}
-                          className="bg-green-600 hover:bg-green-700 text-white h-7 px-3 text-xs"
+                          className="bg-pink-600 hover:bg-pink-700 text-white h-7 px-3 text-xs"
                         >
                           <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
                           Approve
@@ -260,7 +260,7 @@ export const PartnersManagement = () => {
             <AlertDialogAction
               onClick={handleApprove}
               disabled={isUpdating}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-pink-600 hover:bg-pink-700"
             >
               {isUpdating ? 'Approving...' : 'Approve'}
             </AlertDialogAction>

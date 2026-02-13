@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DollarSign, Search, CheckCircle, Calendar as CalendarIcon, Eye, RotateCcw, User as UserIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -94,6 +94,39 @@ export const PaymentManagement = () => {
   const [acceptPayment, { isLoading: isAccepting }] = useAcceptPaymentMutation();
   const [createRefund, { isLoading: isRefunding }] = useCreateRefundMutation();
 
+  // Normalize payments response - handle both array and paginated response formats
+  const payments = useMemo(() => {
+    if (!paymentsResponse) return [];
+    
+    // If response is an array directly
+    if (Array.isArray(paymentsResponse)) {
+      return paymentsResponse;
+    }
+    
+    // If response is a paginated object with results
+    if (paymentsResponse && typeof paymentsResponse === 'object' && 'results' in paymentsResponse) {
+      return paymentsResponse.results || [];
+    }
+    
+    return [];
+  }, [paymentsResponse]);
+
+  const paymentsCount = useMemo(() => {
+    if (!paymentsResponse) return 0;
+    
+    // If response is an array directly
+    if (Array.isArray(paymentsResponse)) {
+      return paymentsResponse.length;
+    }
+    
+    // If response is a paginated object with count
+    if (paymentsResponse && typeof paymentsResponse === 'object' && 'count' in paymentsResponse) {
+      return paymentsResponse.count || 0;
+    }
+    
+    return 0;
+  }, [paymentsResponse]);
+
   // Console log API request and response
   useEffect(() => {
     console.log('📤 [PAYMENT MANAGEMENT Component] ========================================');
@@ -106,35 +139,36 @@ export const PaymentManagement = () => {
       console.log('📥 [PAYMENT MANAGEMENT Component] GET Payments Response');
       console.log('📥 [PAYMENT MANAGEMENT Component] Response (Formatted):', JSON.stringify(paymentsResponse, null, 2));
       console.log('📥 [PAYMENT MANAGEMENT Component] Response (Raw):', paymentsResponse);
-      console.log('📥 [PAYMENT MANAGEMENT Component] Payments Count:', paymentsResponse.count);
-      console.log('📥 [PAYMENT MANAGEMENT Component] Payments Results:', paymentsResponse.results);
+      console.log('📥 [PAYMENT MANAGEMENT Component] Is Array:', Array.isArray(paymentsResponse));
+      console.log('📥 [PAYMENT MANAGEMENT Component] Payments Count:', paymentsCount);
+      console.log('📥 [PAYMENT MANAGEMENT Component] Payments Results:', payments);
       console.log('📥 [PAYMENT MANAGEMENT Component] ========================================');
     }
-  }, [paymentsResponse]);
+  }, [paymentsResponse, payments, paymentsCount]);
 
   // Filter non-completed payments
-  const nonCompletedPayments = paymentsResponse?.results?.filter(
+  const nonCompletedPayments = payments.filter(
     (payment) => payment.status.toLowerCase() !== 'completed'
-  ) || [];
+  );
 
-  const completedPayments = paymentsResponse?.results?.filter(
+  const completedPayments = payments.filter(
     (payment) => payment.status.toLowerCase() === 'completed'
-  ) || [];
+  );
 
   // Calculate stats
-  const refundedPayments = paymentsResponse?.results?.filter(
+  const refundedPayments = payments.filter(
     (payment) => payment.refund_details !== null
-  ) || [];
+  );
 
   const stats = {
-    total: paymentsResponse?.count || 0,
+    total: paymentsCount,
     pending: nonCompletedPayments.length,
     completed: completedPayments.length,
     refunded: refundedPayments.length,
-    totalAmount: paymentsResponse?.results?.reduce(
+    totalAmount: payments.reduce(
       (sum, p) => sum + parseFloat(p.amount || '0'),
       0
-    ) || 0,
+    ),
     totalRefunded: refundedPayments.reduce(
       (sum, p) => sum + parseFloat(p.refund_details?.refund_amount || '0'),
       0
@@ -448,14 +482,14 @@ export const PaymentManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {!paymentsResponse?.results || paymentsResponse.results.length === 0 ? (
+                {payments.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No payments found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paymentsResponse.results.map((payment) => (
+                  payments.map((payment) => (
                     <TableRow key={payment.id}>
                       <TableCell>
                         <span className="font-medium">#{payment.id}</span>

@@ -181,7 +181,7 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "success":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-pink-500" />;
       case "warning":
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
       case "error":

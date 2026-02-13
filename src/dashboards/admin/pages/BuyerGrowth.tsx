@@ -71,7 +71,7 @@ export const BuyerGrowth = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-white to-green-50 dark:from-emerald-950/20 dark:via-background dark:to-green-950/20 h-full flex flex-col">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20 h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Active Buyers</CardTitle>
               <div className="rounded-full bg-emerald-500/10 p-2">
@@ -79,7 +79,7 @@ export const BuyerGrowth = () => {
               </div>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-center">
-              <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 dark:from-emerald-400 dark:to-green-400 bg-clip-text text-transparent">6,100</div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 dark:from-rose-400 dark:to-pink-400 bg-clip-text text-transparent">6,100</div>
               <div className="text-xs text-muted-foreground mt-1">55.5% of total</div>
             </CardContent>
           </Card>

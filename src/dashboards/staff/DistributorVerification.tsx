@@ -30,7 +30,7 @@ const getStatusBadge = (status: string) => {
         Pending
       </Badge>;
     case 'approved':
-      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+      return <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">
         <CheckCircle className="w-3 h-3 mr-1" />
         Approved
       </Badge>;
@@ -218,7 +218,7 @@ export const DistributorVerification = () => {
                   key={app.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-green-100 bg-green-50/50 border-green-200/50 transition-colors"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-pink-100 bg-pink-50/50 border-pink-200/50 transition-colors"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
@@ -329,7 +329,7 @@ export const DistributorVerification = () => {
                 </div>
               </div>
               {selectedApplication.status === 'approved' && selectedApplication.reviewedAt && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>Reviewed Date</Label>

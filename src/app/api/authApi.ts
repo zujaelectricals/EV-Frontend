@@ -21,6 +21,8 @@ export interface SignupRequest {
   mobile: string;
   gender: string;
   date_of_birth: string;
+  pan_card: string;
+  referral_code: string;
   address_line1: string;
   address_line2?: string;
   city: string;

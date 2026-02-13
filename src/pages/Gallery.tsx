@@ -51,9 +51,20 @@ export function Gallery() {
           throw new Error(`Failed to fetch gallery items: ${response.statusText}`);
         }
 
-        const data: GalleryResponse = await response.json();
+        const data: GalleryResponse | GalleryItem[] = await response.json();
+        
+        // Handle both response formats: array directly or paginated response with results
+        let items: GalleryItem[] = [];
+        if (Array.isArray(data)) {
+          items = data;
+        } else if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
+          items = data.results;
+        } else {
+          throw new Error('Unexpected API response format');
+        }
+        
         // Filter only active items and sort by order
-        const activeItems = data.results
+        const activeItems = items
           .filter(item => item.status)
           .sort((a, b) => a.order - b.order);
         setGalleryItems(activeItems);
@@ -112,7 +123,7 @@ export function Gallery() {
               transition={{ delay: 0.2 }}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full"
               style={{
-                background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
               }}
             >
               <ImageIcon className="w-4 h-4 text-white" />

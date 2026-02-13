@@ -420,15 +420,15 @@ export const ActiveUsers = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-green-950/20 dark:via-background dark:to-emerald-950/20 h-full flex flex-col">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-pink-50 via-white to-rose-50 dark:from-pink-950/20 dark:via-background dark:to-rose-950/20 h-full flex flex-col">
             <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Growth Rate</p>
-                  <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent mt-1">+12.5%</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent mt-1">+12.5%</p>
                 </div>
-                <div className="rounded-full bg-green-500/10 p-3">
-                  <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
+                <div className="rounded-full bg-pink-500/10 p-3">
+                  <TrendingUp className="h-8 w-8 text-pink-600 dark:text-pink-400" />
                 </div>
               </div>
             </CardContent>

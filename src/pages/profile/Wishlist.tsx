@@ -26,7 +26,7 @@ export function Wishlist() {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-end mb-4">
         <Link to="/scooters">
-          <Button size="sm" className="bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 text-xs sm:text-sm shadow-md shadow-emerald-500/20">Continue Shopping</Button>
+          <Button size="sm" className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 text-xs sm:text-sm shadow-md shadow-pink-500/20">Continue Shopping</Button>
         </Link>
       </div>
 
@@ -36,7 +36,7 @@ export function Wishlist() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Card className="overflow-hidden border-0 shadow-xl shadow-slate-200/50 bg-gradient-to-b from-white to-slate-50/50 ring-2 ring-[#18b3b2]/20">
+          <Card className="overflow-hidden border-0 shadow-xl shadow-slate-200/50 bg-gradient-to-b from-white to-slate-50/50 ring-2 ring-pink-500/20">
             <CardContent className="py-12 sm:py-14 text-center">
               <motion.div
                 initial={{ scale: 0.9 }}
@@ -44,12 +44,12 @@ export function Wishlist() {
                 transition={{ delay: 0.15, type: "spring", stiffness: 200 }}
                 className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-[#18b3b2]/15 to-[#22cc7b]/15 mb-4"
               >
-                <Heart className="w-8 h-8 sm:w-10 sm:h-10 text-[#18b3b2]" />
+                <Heart className="w-8 h-8 sm:w-10 sm:h-10 text-pink-500" />
               </motion.div>
               <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Your wishlist is empty</h3>
               <p className="text-sm sm:text-base text-muted-foreground mb-6 max-w-sm mx-auto">Add vehicles you like to your wishlist</p>
               <Link to="/scooters">
-                <Button size="sm" className="bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 text-xs sm:text-sm shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200">Browse Vehicles</Button>
+                <Button size="sm" className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 text-xs sm:text-sm shadow-lg shadow-pink-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200">Browse Vehicles</Button>
               </Link>
             </CardContent>
           </Card>

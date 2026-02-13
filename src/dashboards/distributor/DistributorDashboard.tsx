@@ -144,17 +144,17 @@ export const DistributorDashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
             whileHover={{ scale: 1.02, y: -6 }}
-            className="group relative flex items-center gap-4 rounded-2xl border-2 border-[#18b3b2]/20 bg-gradient-to-br from-white to-[#f0fdfa]/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-[#18b3b2]/40 hover:shadow-xl hover:shadow-emerald-500/15"
+            className="group relative flex items-center gap-4 rounded-2xl border-2 border-pink-500/20 bg-gradient-to-br from-white to-pink-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-pink-500/40 hover:shadow-xl hover:shadow-pink-500/15"
           >
-            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-[#18b3b2] to-[#22cc7b] opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="rounded-xl bg-gradient-to-br from-[#18b3b2]/20 to-[#22cc7b]/20 p-4">
-              <GitBranch className="h-6 w-6 text-[#0d9488]" />
+            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-pink-500 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="rounded-xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 p-4">
+              <GitBranch className="h-6 w-6 text-pink-600" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-foreground">Team Network</p>
               <p className="text-sm text-muted-foreground">View network</p>
             </div>
-            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-[#18b3b2]" />
+            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-pink-500" />
           </motion.div>
         </Link>
 
@@ -184,17 +184,17 @@ export const DistributorDashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
             whileHover={{ scale: 1.02, y: -6 }}
-            className="group relative flex items-center gap-4 rounded-2xl border-2 border-emerald-400/20 bg-gradient-to-br from-white to-emerald-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-[#22cc7b]/40 hover:shadow-xl hover:shadow-emerald-500/15"
+            className="group relative flex items-center gap-4 rounded-2xl border-2 border-pink-400/20 bg-gradient-to-br from-white to-pink-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-rose-500/40 hover:shadow-xl hover:shadow-pink-500/15"
           >
-            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-[#18b3b2] to-[#22cc7b] opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="rounded-xl bg-gradient-to-br from-[#18b3b2]/20 to-[#22cc7b]/20 p-4">
-              <TrendingUp className="h-6 w-6 text-emerald-600" />
+            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-pink-500 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="rounded-xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 p-4">
+              <TrendingUp className="h-6 w-6 text-pink-600" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-foreground">Payouts</p>
               <p className="text-sm text-muted-foreground">View history</p>
             </div>
-            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-[#22cc7b]" />
+            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-rose-500" />
           </motion.div>
         </Link>
 

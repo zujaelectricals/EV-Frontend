@@ -121,7 +121,7 @@ export function Contact() {
               transition={{ delay: 0.2 }}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full"
               style={{
-                background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
               }}
             >
               <MessageSquare className="w-4 h-4 text-white" />
@@ -173,11 +173,11 @@ export function Contact() {
             background: conic-gradient(
               from 0deg,
               transparent 0deg 60deg,
-              #14b8a6 60deg 120deg,
+              #ec4899 60deg 120deg,
               transparent 120deg 180deg,
-              #10b981 180deg 240deg,
+              #f472b6 180deg 240deg,
               transparent 240deg 300deg,
-              #0d9488 300deg 360deg
+              #ec4899 300deg 360deg
             );
             animation: borderRotate 4s linear infinite;
             opacity: 1;
@@ -220,7 +220,7 @@ export function Contact() {
                     <div
                       className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110"
                       style={{
-                        background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                        background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
                       }}
                     >
                       <card.icon className="w-6 h-6 text-white" />
@@ -354,7 +354,7 @@ export function Contact() {
                     style={{
                       background: isSubmitting 
                         ? 'linear-gradient(to right, #9CA3AF 0%, #9CA3AF 100%)'
-                        : 'linear-gradient(to right, #0d9488 0%, #14b8a6 30%, #10b981 70%, #22c55e 100%)',
+                        : 'linear-gradient(to right, #ec4899 0%, #f472b6 30%, #fb7185 70%, #f43f5e 100%)',
                     }}
                   >
                     {isSubmitting ? (
@@ -414,7 +414,7 @@ export function Contact() {
               <div
                 className="relative p-6 rounded-3xl overflow-hidden"
                 style={{
-                  background: 'linear-gradient(135deg, #14b8a6 0%, #10b981 100%)',
+                  background: 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)',
                 }}
               >
                 {/* Decorative elements */}

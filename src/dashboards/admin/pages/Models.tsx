@@ -481,20 +481,36 @@ export const Models = () => {
   // Check if all required tabs are completed
   const isFormComplete = () => {
     // Basic Info: name, status, price are required
-    if (!formData.name || formData.price <= 0) return false;
+    if (!formData.name || formData.price <= 0) {
+      console.log('❌ [Form Validation] Basic Info incomplete:', { name: formData.name, price: formData.price });
+      return false;
+    }
     
     // Variants: vehicle_color and battery_variant are required
-    if (formData.vehicle_color.length === 0 || formData.battery_variant.length === 0) return false;
+    if (formData.vehicle_color.length === 0 || formData.battery_variant.length === 0) {
+      console.log('❌ [Form Validation] Variants incomplete:', { colors: formData.vehicle_color.length, batteries: formData.battery_variant.length });
+      return false;
+    }
     
     // Features: at least one feature is required
-    if (formData.features.length === 0) return false;
+    if (formData.features.length === 0) {
+      console.log('❌ [Form Validation] Features incomplete:', { features: formData.features.length });
+      return false;
+    }
     
     // Specifications: at least one specification is required
-    if (Object.keys(formData.specifications).length === 0) return false;
+    if (Object.keys(formData.specifications).length === 0) {
+      console.log('❌ [Form Validation] Specifications incomplete:', { specs: Object.keys(formData.specifications).length });
+      return false;
+    }
     
     // Images: at least one image should be uploaded or image_ids should be set
-    if (formData.image_ids.length === 0 && uploadedImages.length === 0) return false;
+    if (formData.image_ids.length === 0 && uploadedImages.length === 0) {
+      console.log('❌ [Form Validation] Images incomplete:', { image_ids: formData.image_ids.length, uploadedImages: uploadedImages.length });
+      return false;
+    }
     
+    console.log('✅ [Form Validation] All checks passed');
     return true;
   };
 
@@ -1612,11 +1628,7 @@ export const Models = () => {
                 </Button>
                 <Button 
                   onClick={handleFormSubmit}
-                  disabled={
-                    isUpdating || 
-                    isCreating || 
-                    (editingVariantId ? (!formData.name || formData.vehicle_color.length === 0 || formData.battery_variant.length === 0) : (activeTab !== 'images' || !isFormComplete()))
-                  }
+                  disabled={isUpdating || isCreating}
                 >
                   {(isUpdating || isCreating) ? (
                     <>
@@ -2092,17 +2104,17 @@ export const Models = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-white to-green-50 dark:from-emerald-950/20 dark:via-background dark:to-green-950/20 h-full flex flex-col">
+            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20 h-full flex flex-col">
               <CardContent className="p-6 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Active Models</p>
-                  <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 dark:from-emerald-400 dark:to-green-400 bg-clip-text text-transparent mt-1">
+                  <p className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 dark:from-rose-400 dark:to-pink-400 bg-clip-text text-transparent mt-1">
                     {isLoading ? '...' : models.filter((m) => m.status === 'active').length}
                   </p>
                 </div>
-                <div className="rounded-full bg-emerald-500/10 p-3">
-                  <Package className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+                <div className="rounded-full bg-rose-500/10 p-3">
+                  <Package className="h-8 w-8 text-rose-600 dark:text-rose-400" />
                 </div>
               </div>
             </CardContent>

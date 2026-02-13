@@ -91,7 +91,7 @@ export function AboutUs() {
               <span
                 className="bg-clip-text text-transparent bg-[length:100%_100%]"
                 style={{
-                  backgroundImage: 'linear-gradient(90deg, #15b3b3 0%, #15be9c 100%)',
+                  backgroundImage: 'linear-gradient(90deg, #f472b6 0%, #fb7185 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
@@ -295,7 +295,7 @@ export function AboutUs() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
                     style={{
-                      backgroundImage: 'linear-gradient(90deg, #0d9488 0%, #15b3b3 25%, #15be9c 50%, #15b3b3 75%, #0d9488 100%)',
+                      backgroundImage: 'linear-gradient(90deg, #ec4899 0%, #f472b6 25%, #fb7185 50%, #f472b6 75%, #ec4899 100%)',
                       backgroundSize: '200% auto',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
@@ -362,10 +362,10 @@ export function AboutUs() {
                       animate={{ rotate: [0, 5, -5, 0] }}
                       transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                     >
-                      <Crosshair className="w-6 h-6 text-[#10b981]" />
+                      <Crosshair className="w-6 h-6 text-pink-500" />
                     </motion.div>
                   </motion.div>
-                  <span className="text-lg font-bold text-[#10b981]">Our Mission</span>
+                  <span className="text-lg font-bold text-pink-500">Our Mission</span>
                 </motion.div>
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#1a1a2e] leading-tight mt-4">
                   <motion.span
@@ -383,7 +383,7 @@ export function AboutUs() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
                     style={{
-                      backgroundImage: 'linear-gradient(90deg, #059669 0%, #10b981 25%, #15be9c 50%, #10b981 75%, #059669 100%)',
+                      backgroundImage: 'linear-gradient(90deg, #db2777 0%, #ec4899 25%, #f472b6 50%, #ec4899 75%, #db2777 100%)',
                       backgroundSize: '200% auto',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
@@ -427,7 +427,7 @@ export function AboutUs() {
               <span
                 className="bg-clip-text text-transparent"
                 style={{
-                  backgroundImage: 'linear-gradient(90deg, #15b3b3 0%, #15be9c 100%)',
+                  backgroundImage: 'linear-gradient(90deg, #f472b6 0%, #fb7185 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
@@ -527,13 +527,13 @@ export function AboutUs() {
             margin-top: -100%;
             background: conic-gradient(
               from 0deg,
-              #15b3b3 0deg,
-              #15be9c 60deg,
-              #22d3b0 120deg,
-              #15be9c 180deg,
-              #15b3b3 240deg,
-              #15be9c 300deg,
-              #15b3b3 360deg
+              #f472b6 0deg,
+              #fb7185 60deg,
+              #f43f5e 120deg,
+              #fb7185 180deg,
+              #f472b6 240deg,
+              #fb7185 300deg,
+              #f472b6 360deg
             );
             animation: coreValuesBorderRun 3s linear infinite;
             -webkit-animation: coreValuesBorderRun 3s linear infinite;
@@ -573,7 +573,7 @@ export function AboutUs() {
               <span
                 className="bg-clip-text text-transparent"
                 style={{
-                  backgroundImage: 'linear-gradient(90deg, #15b3b3 0%, #15be9c 100%)',
+                  backgroundImage: 'linear-gradient(90deg, #f472b6 0%, #fb7185 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}

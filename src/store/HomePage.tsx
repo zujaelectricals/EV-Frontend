@@ -303,10 +303,13 @@ export function HomePage() {
           scale: heroScale,
         }}
       >
-        {/* Hero background image */}
-        <img
-          src={HERO_BG_URL}
-          alt=""
+        {/* Hero background video */}
+        <video
+          src="/Banner_videos/Zuja_bg1.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
           className="absolute inset-0 w-full h-full object-cover object-center z-0"
           aria-hidden
         />
@@ -460,11 +463,11 @@ export function HomePage() {
             background: conic-gradient(
               from 0deg,
               transparent 0deg 60deg,
-              #14b8a6 60deg 120deg,
+              #ec4899 60deg 120deg,
               transparent 120deg 180deg,
-              #10b981 180deg 240deg,
+              #f472b6 180deg 240deg,
               transparent 240deg 300deg,
-              #0d9488 300deg 360deg
+              #ec4899 300deg 360deg
             );
             animation: borderRotateBenefits 4s linear infinite;
             opacity: 1;
@@ -518,7 +521,7 @@ export function HomePage() {
                     <div
                       className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
                       style={{
-                        background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                        background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
                       }}
                     >
                       <benefit.icon className="w-6 h-6 text-white" />

@@ -444,7 +444,7 @@ export function ConditionsDialog({ isOpen, onClose, onAccept }: ConditionsDialog
                 />
               </div>
               {mobileNumber && mobileNumber.length === 10 && (
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                <p className="text-xs text-pink-600 dark:text-pink-400 mt-1">
                   ✓ Valid mobile number
                 </p>
               )}
@@ -485,9 +485,9 @@ export function ConditionsDialog({ isOpen, onClose, onAccept }: ConditionsDialog
                 </div>
 
                 {otpVerified ? (
-                  <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
-                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <AlertDescription className="text-green-700 dark:text-green-300">
+                  <Alert className="bg-pink-50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800">
+                    <CheckCircle className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                    <AlertDescription className="text-pink-700 dark:text-pink-300">
                       OTP verified successfully!
                     </AlertDescription>
                   </Alert>

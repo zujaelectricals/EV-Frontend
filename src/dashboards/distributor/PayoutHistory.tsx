@@ -37,6 +37,7 @@ import { useGetWalletTransactionsQuery, GetWalletTransactionsParams } from '@/ap
 import { useGetUserProfileQuery } from '@/app/api/userApi';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { api } from '@/app/api/baseApi';
+import { useSendUniversalOTPMutation, useVerifyUniversalOTPMutation } from '@/app/api/authApi';
 
 const getStatusBadge = (status: PayoutStatus | 'rejected') => {
   switch (status) {
@@ -78,6 +79,15 @@ export const PayoutHistory = () => {
   const [showTransactionsDialog, setShowTransactionsDialog] = useState(false);
   const [createPayout, { isLoading: isCreatingPayout }] = useCreatePayoutMutation();
   const [selectedBankIndex, setSelectedBankIndex] = useState<number>(0);
+  
+  // OTP state
+  const [showOtpDialog, setShowOtpDialog] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpIdentifier, setOtpIdentifier] = useState<string>('');
+  const [otpType, setOtpType] = useState<'email' | 'mobile'>('mobile');
+  const [sendUniversalOTP, { isLoading: isSendingOtp }] = useSendUniversalOTPMutation();
+  const [verifyUniversalOTP, { isLoading: isVerifyingOtp }] = useVerifyUniversalOTPMutation();
   
   // Fetch user profile to check KYC status
   const { data: profileData } = useGetUserProfileQuery();
@@ -381,7 +391,7 @@ export const PayoutHistory = () => {
                         setShowCreatePayoutDialog(true);
                       }}
                       disabled={parseFloat(walletSummary.current_balance || '0') <= 0 || !isKYCVerified}
-                      className={`bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 shadow-md shadow-emerald-500/25 ${
+                      className={`bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 shadow-md shadow-pink-500/25 ${
                         !isKYCVerified || parseFloat(walletSummary.current_balance || '0') <= 0
                           ? 'opacity-50 cursor-not-allowed'
                           : 'hover:opacity-90'
@@ -920,23 +930,31 @@ export const PayoutHistory = () => {
                   return;
                 }
 
+                // Determine identifier (prefer mobile, fallback to email)
+                const identifier = user?.phone || user?.email || '';
+                const otpTypeValue: 'email' | 'mobile' = user?.phone ? 'mobile' : 'email';
+                
+                if (!identifier) {
+                  toast.error('Unable to send OTP: No email or mobile number found');
+                  return;
+                }
+
                 try {
-                  const result = await createPayout(payoutForm).unwrap();
-                  toast.success(result.message || 'Payout request created successfully!');
+                  // Step 1: Send OTP
+                  setOtpIdentifier(identifier);
+                  setOtpType(otpTypeValue);
+                  setOtpCode('');
+                  setOtpSent(false);
+                  
+                  await sendUniversalOTP({
+                    identifier,
+                    otp_type: otpTypeValue,
+                  }).unwrap();
+                  
+                  setOtpSent(true);
                   setShowCreatePayoutDialog(false);
-                  setSelectedBankIndex(0);
-                  const defaultBank = bankDetails.length > 0 ? bankDetails[0] : null;
-                  setPayoutForm({
-                    requested_amount: 0,
-                    bank_name: defaultBank?.bank_name || '',
-                    account_number: defaultBank?.account_number || '',
-                    ifsc_code: defaultBank?.ifsc_code || '',
-                    account_holder_name: defaultBank?.account_holder_name || user?.name || '',
-                    emi_auto_filled: false,
-                    reason: '',
-                  });
-                  // Refresh payouts list
-                  await refetch();
+                  setShowOtpDialog(true);
+                  toast.success(`OTP sent to your ${otpTypeValue === 'mobile' ? 'mobile number' : 'email'}`);
                 } catch (error: unknown) {
                   const errorMessage = 
                     (error && typeof error === 'object' && 'data' in error && 
@@ -944,20 +962,194 @@ export const PayoutHistory = () => {
                      ('message' in error.data || 'detail' in error.data))
                       ? (error.data as { message?: string; detail?: string }).message || 
                         (error.data as { message?: string; detail?: string }).detail || 
-                        'Failed to create payout request'
-                      : 'Failed to create payout request';
+                        'Failed to send OTP'
+                      : 'Failed to send OTP';
                   toast.error(errorMessage);
                 }
               }}
-              disabled={isCreatingPayout || !isKYCVerified}
+              disabled={isCreatingPayout || isSendingOtp || !isKYCVerified}
             >
-              {isCreatingPayout ? (
+              {isCreatingPayout || isSendingOtp ? (
                 <>
                   <LoadingSpinner size="sm" className="mr-2" />
-                  Creating...
+                  {isSendingOtp ? 'Sending OTP...' : 'Creating...'}
                 </>
               ) : (
                 'Create Payout Request'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* OTP Verification Dialog */}
+      <Dialog open={showOtpDialog} onOpenChange={(open) => {
+        if (!open && !isVerifyingOtp && !isCreatingPayout) {
+          setShowOtpDialog(false);
+          setOtpCode('');
+          setOtpSent(false);
+          setShowCreatePayoutDialog(true);
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Verify OTP</DialogTitle>
+            <DialogDescription>
+              Please enter the OTP sent to your {otpType === 'mobile' ? 'mobile number' : 'email'} to confirm the payout request.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="otp_code">
+                OTP Code <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="otp_code"
+                type="text"
+                placeholder="Enter 6-digit OTP"
+                value={otpCode}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setOtpCode(value);
+                }}
+                maxLength={6}
+                disabled={isVerifyingOtp || isCreatingPayout}
+                className="text-center text-2xl tracking-widest"
+                autoFocus
+              />
+              {otpSent && (
+                <p className="text-sm text-muted-foreground">
+                  OTP sent to {otpType === 'mobile' ? otpIdentifier.replace(/(\d{2})(\d{4})(\d{4})/, '$1****$2') : otpIdentifier.replace(/(.{2})(.*)(@.*)/, '$1***$3')}
+                </p>
+              )}
+            </div>
+            
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    setOtpSent(false);
+                    await sendUniversalOTP({
+                      identifier: otpIdentifier,
+                      otp_type: otpType,
+                    }).unwrap();
+                    setOtpSent(true);
+                    setOtpCode('');
+                    toast.success('OTP resent successfully');
+                  } catch (error: unknown) {
+                    const errorMessage = 
+                      (error && typeof error === 'object' && 'data' in error && 
+                       error.data && typeof error.data === 'object' && 
+                       ('message' in error.data || 'detail' in error.data))
+                        ? (error.data as { message?: string; detail?: string }).message || 
+                          (error.data as { message?: string; detail?: string }).detail || 
+                          'Failed to resend OTP'
+                        : 'Failed to resend OTP';
+                    toast.error(errorMessage);
+                  }
+                }}
+                disabled={isSendingOtp || isVerifyingOtp || isCreatingPayout}
+              >
+                {isSendingOtp ? 'Resending...' : 'Resend OTP'}
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!isVerifyingOtp && !isCreatingPayout) {
+                  setShowOtpDialog(false);
+                  setOtpCode('');
+                  setOtpSent(false);
+                  setShowCreatePayoutDialog(true);
+                }
+              }}
+              disabled={isVerifyingOtp || isCreatingPayout}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!otpCode || otpCode.length !== 6) {
+                  toast.error('Please enter a valid 6-digit OTP');
+                  return;
+                }
+
+                try {
+                  // Step 2: Verify OTP
+                  await verifyUniversalOTP({
+                    identifier: otpIdentifier,
+                    otp_code: otpCode,
+                    otp_type: otpType,
+                  }).unwrap();
+                  
+                  toast.success('OTP verified successfully');
+                  
+                  // Step 3: Create payout after successful OTP verification
+                  try {
+                    const result = await createPayout(payoutForm).unwrap();
+                    toast.success(result.message || 'Payout request created successfully!');
+                    setShowOtpDialog(false);
+                    setShowCreatePayoutDialog(false);
+                    setOtpCode('');
+                    setOtpSent(false);
+                    setSelectedBankIndex(0);
+                    const defaultBank = bankDetails.length > 0 ? bankDetails[0] : null;
+                    setPayoutForm({
+                      requested_amount: 0,
+                      bank_name: defaultBank?.bank_name || '',
+                      account_number: defaultBank?.account_number || '',
+                      ifsc_code: defaultBank?.ifsc_code || '',
+                      account_holder_name: defaultBank?.account_holder_name || user?.name || '',
+                      emi_auto_filled: false,
+                      reason: '',
+                    });
+                    // Refresh payouts list
+                    await refetch();
+                  } catch (error: unknown) {
+                    const errorMessage = 
+                      (error && typeof error === 'object' && 'data' in error && 
+                       error.data && typeof error.data === 'object' && 
+                       ('message' in error.data || 'detail' in error.data))
+                        ? (error.data as { message?: string; detail?: string }).message || 
+                          (error.data as { message?: string; detail?: string }).detail || 
+                          'Failed to create payout request'
+                        : 'Failed to create payout request';
+                    toast.error(errorMessage);
+                    // Keep OTP dialog open if payout creation fails
+                  }
+                } catch (error: unknown) {
+                  const errorMessage = 
+                    (error && typeof error === 'object' && 'data' in error && 
+                     error.data && typeof error.data === 'object' && 
+                     ('message' in error.data || 'detail' in error.data))
+                      ? (error.data as { message?: string; detail?: string }).message || 
+                        (error.data as { message?: string; detail?: string }).detail || 
+                        'Invalid OTP. Please try again.'
+                      : 'Invalid OTP. Please try again.';
+                  toast.error(errorMessage);
+                  setOtpCode('');
+                }
+              }}
+              disabled={isVerifyingOtp || isCreatingPayout || !otpCode || otpCode.length !== 6}
+            >
+              {isVerifyingOtp ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  Verifying...
+                </>
+              ) : isCreatingPayout ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  Creating Payout...
+                </>
+              ) : (
+                'Verify & Create Payout'
               )}
             </Button>
           </DialogFooter>

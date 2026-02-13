@@ -13,11 +13,11 @@ interface Petal {
 }
 
 const petalColors = [
-  "rgba(16, 185, 129, 0.3)", // emerald
-  "rgba(6, 182, 212, 0.3)", // cyan
-  "rgba(34, 197, 94, 0.3)", // green
-  "rgba(14, 165, 233, 0.3)", // sky
-  "rgba(59, 130, 246, 0.3)", // blue
+  "rgba(219, 39, 119, 0.3)", // pink
+  "rgba(236, 72, 153, 0.3)", // rose
+  "rgba(244, 114, 182, 0.3)", // light pink
+  "rgba(232, 121, 249, 0.3)", // fuchsia
+  "rgba(192, 132, 252, 0.3)", // purple
 ];
 
 // Petal SVG path

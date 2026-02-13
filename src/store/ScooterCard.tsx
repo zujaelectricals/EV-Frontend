@@ -95,8 +95,7 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
             whileHover={{ scale: 1.05 }}
             className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
             onError={(e) => {
-              (e.target as HTMLImageElement).src =
-                "https://via.placeholder.com/600x400/f8fafc/94a3b8?text=EV+Scooter";
+              (e.target as HTMLImageElement).src = "/placeholder.svg";
             }}
           />
 

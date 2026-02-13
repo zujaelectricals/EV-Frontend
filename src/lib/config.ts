@@ -4,7 +4,7 @@
  */
 
 // Fallback API base URL (for development)
-const DEFAULT_API_BASE_URL = 'http://192.168.1.40:8000/api/';
+const DEFAULT_API_BASE_URL = 'http://192.168.1.41:8000/api/';
 
 /**
  * Get the API base URL from environment variables or fallback to default

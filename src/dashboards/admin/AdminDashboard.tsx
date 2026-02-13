@@ -495,29 +495,29 @@ export const AdminDashboard = () => {
           transition={{ delay: 0.05 }}
           className="relative h-full"
         >
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-emerald-950/20 dark:via-background dark:to-teal-950/20 h-full flex flex-col">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20 h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
               <CardTitle className="text-xs sm:text-sm font-medium">
                 Active Buyers
               </CardTitle>
-              <div className="rounded-full bg-emerald-500/10 p-2">
-                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <div className="rounded-full bg-pink-500/10 p-2">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-pink-600 dark:text-pink-400 flex-shrink-0" />
               </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col justify-center">
-              <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
+              <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">
                 {kpiCardsData?.active_buyers.value.toLocaleString() || 0}
               </div>
               <div className="flex items-center gap-1 mt-1">
                 {kpiCardsData?.active_buyers.trend === "up" ? (
-                  <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                  <ArrowUpRight className="h-3 w-3 text-pink-600 dark:text-pink-400 flex-shrink-0" />
                 ) : (
                   <ArrowDownRight className="h-3 w-3 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 )}
                 <span
                   className={`text-[10px] sm:text-xs ${
                     kpiCardsData?.active_buyers.trend === "up"
-                      ? "text-emerald-600 dark:text-emerald-400"
+                      ? "text-pink-600 dark:text-pink-400"
                       : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
@@ -549,14 +549,14 @@ export const AdminDashboard = () => {
               </div>
               <div className="flex items-center gap-1 mt-1">
                 {kpiCardsData?.total_visitors.trend === "up" ? (
-                  <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                  <ArrowUpRight className="h-3 w-3 text-pink-600 dark:text-pink-400 flex-shrink-0" />
                 ) : (
                   <ArrowDownRight className="h-3 w-3 text-rose-600 dark:text-rose-400 flex-shrink-0" />
                 )}
                 <span
                   className={`text-[10px] sm:text-xs ${
                     kpiCardsData?.total_visitors.trend === "up"
-                      ? "text-emerald-600 dark:text-emerald-400"
+                      ? "text-pink-600 dark:text-pink-400"
                       : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
@@ -600,17 +600,17 @@ export const AdminDashboard = () => {
           transition={{ delay: 0.2 }}
           className="relative h-full"
         >
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-green-950/20 dark:via-background dark:to-emerald-950/20 h-full flex flex-col">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-pink-50 via-white to-rose-50 dark:from-pink-950/20 dark:via-background dark:to-rose-950/20 h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
               <CardTitle className="text-xs sm:text-sm font-medium">
                 Paid Orders
               </CardTitle>
-              <div className="rounded-full bg-green-500/10 p-2">
-                <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+              <div className="rounded-full bg-pink-500/10 p-2">
+                <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-pink-600 dark:text-pink-400 flex-shrink-0" />
               </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col justify-center">
-              <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">
+              <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">
                 {kpiCardsData?.paid_orders.value.toLocaleString() || 0}
               </div>
               <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
@@ -1468,12 +1468,12 @@ export const AdminDashboard = () => {
                     </p>
                   </CardContent>
                 </Card>
-                <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-white to-green-50 dark:from-emerald-950/20 dark:via-background dark:to-green-950/20 h-full flex flex-col">
+                <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20 h-full flex flex-col">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col justify-center">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 dark:from-emerald-400 dark:to-green-400 bg-clip-text text-transparent">
+                    <div className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 dark:from-rose-400 dark:to-pink-400 bg-clip-text text-transparent">
                       {preBookingsData.kpi_cards.confirmed.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -1754,12 +1754,12 @@ export const AdminDashboard = () => {
                       </p>
                     </CardContent>
                   </Card>
-                  <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-green-950/20 dark:via-background dark:to-emerald-950/20 h-full flex flex-col">
+                  <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-pink-50 via-white to-rose-50 dark:from-pink-950/20 dark:via-background dark:to-rose-950/20 h-full flex flex-col">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium">Refund Processed</CardTitle>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col justify-center">
-                      <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">
+                      <div className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">
                         {cancelledData.summary.refund_processed_count.toLocaleString()}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">

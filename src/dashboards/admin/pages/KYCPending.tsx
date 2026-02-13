@@ -234,7 +234,7 @@ export const KYCPending = () => {
 
   // Calculate stats - based on current page results
   const stats = useMemo(() => {
-    if (!kycResponse) return { total: 0, pending: 0, approved: 0, rejected: 0 };
+    if (!kycResponse || !kycResponse.results) return { total: 0, pending: 0, approved: 0, rejected: 0 };
     
     const total = kycResponse.count;
     const pending = kycResponse.results.filter(k => k.status === 'pending').length;

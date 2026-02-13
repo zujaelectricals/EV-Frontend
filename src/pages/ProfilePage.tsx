@@ -27,6 +27,7 @@ import {
   CheckCircle2,
   FileText as FileTextIcon,
   ExternalLink,
+  Copy,
 } from "lucide-react";
 import {
   Card,
@@ -72,9 +73,9 @@ export function ProfilePage() {
     skip: user?.role === 'admin',
   });
   
-  // Fetch raw profile data for editing (only when settings or nominee tab is active) - skip for admin
-  const { data: rawProfileData, refetch: refetchRawProfile } = useGetUserProfileRawQuery(undefined, {
-    skip: (activeTab !== "settings" && activeTab !== "nominee") || user?.role === 'admin',
+  // Fetch raw profile data for editing (only when settings, nominee, or referral tab is active) - skip for admin
+  const { data: rawProfileData, refetch: refetchRawProfile, isLoading: isLoadingRawProfile } = useGetUserProfileRawQuery(undefined, {
+    skip: (activeTab !== "settings" && activeTab !== "nominee" && activeTab !== "referral") || user?.role === 'admin',
   });
   
   // Update profile mutation
@@ -499,6 +500,7 @@ export function ProfilePage() {
     { id: "nominee", label: "Add Nominee", icon: UserPlus },
     //{ id: "addresses", label: "Addresses", icon: MapPin },
     //{ id: "redemption", label: "Redemption Points", icon: Gift },
+    { id: "referral", label: "Referral Link", icon: LinkIcon },
     { id: "settings", label: "Edit Profile", icon: Settings },
     // ...(isDistributor
     //   ? [{ id: "distributor", label: "ASA(Authorized Sales Associate)", icon: Award }]
@@ -514,7 +516,7 @@ export function ProfilePage() {
             <div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] bg-clip-text text-transparent">
+                  <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">
                     My Account
                   </h1>
                   <Button
@@ -522,7 +524,7 @@ export function ProfilePage() {
                     size="icon"
                     onClick={handleRefresh}
                     disabled={isLoadingProfile}
-                    className="h-8 w-8 rounded-full hover:bg-[#18b3b2]/10"
+                    className="h-8 w-8 rounded-full hover:bg-pink-500/10"
                     title="Refresh profile"
                   >
                     <RefreshCw className={`h-4 w-4 ${isLoadingProfile ? 'animate-spin' : ''}`} />
@@ -539,7 +541,7 @@ export function ProfilePage() {
                     }
                     className={
                       kycStatus === 'verified' || kycStatus === 'approved'
-                        ? 'bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 shadow-md shadow-emerald-500/25'
+                        ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 shadow-md shadow-pink-500/25'
                         : ''
                     }
                   >
@@ -573,7 +575,7 @@ export function ProfilePage() {
                   }}
                   className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all duration-200 text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0 shadow-sm ${
                     activeTab === section.id
-                      ? "bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white shadow-md shadow-emerald-500/20"
+                      ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md shadow-pink-500/20"
                       : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                   }`}
                 >
@@ -599,6 +601,66 @@ export function ProfilePage() {
           {activeTab === "wishlist" && <Wishlist />}
           {activeTab === "kyc" && <KYCVerification />}
           {activeTab === "payments" && <PaymentMethods />}
+          {activeTab === "referral" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <LinkIcon className="w-5 h-5 text-primary" />
+                  Your Referral Link
+                </CardTitle>
+                <CardDescription>
+                  Share this link with friends and family to earn referral bonuses. You can start earning even before becoming an ASA(Authorized Sales Associate).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6">
+                {isLoadingRawProfile ? (
+                  <div className="flex items-center justify-center py-8">
+                    <LoadingSpinner text="Loading referral link..." size="md" />
+                  </div>
+                ) : rawProfileData?.referral_link ? (
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={rawProfileData.referral_link}
+                          readOnly
+                          className="w-full px-3 py-2 pr-12 border border-border rounded-md bg-muted text-sm sm:text-base font-mono cursor-text"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            navigator.clipboard.writeText(rawProfileData.referral_link || '');
+                            toast.success('Referral link copied to clipboard!');
+                          }}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                          title="Copy referral link"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                      <p className="text-sm font-medium mb-2">How it works:</p>
+                      <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                        <li>Share your referral link with friends and family</li>
+                        <li>When they sign up using your link, they'll be associated with your account</li>
+                        <li>You'll earn referral bonuses when they make purchases</li>
+                        <li>Start earning even before becoming an ASA(Authorized Sales Associate)</li>
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <LinkIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Referral link will be available after account setup.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
           {activeTab === "nominee" && (
             <>
               {isLoadingNominee ? (
@@ -630,7 +692,7 @@ export function ProfilePage() {
                     <CardTitle className="flex items-center gap-2">
                       {isEditingNominee ? (
                         <>
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          <CheckCircle2 className="w-5 h-5 text-pink-500" />
                           Edit Nominee Details
                         </>
                       ) : (
@@ -1105,6 +1167,43 @@ export function ProfilePage() {
                       />
                     </div>
                   </div>
+                  
+                  {/* Referral Link Section */}
+                  {profileData?.referral_link && (
+                    <div className="space-y-2 pt-4 border-t border-border">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <LinkIcon className="w-4 h-4" />
+                        Your Referral Link
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            value={profileData.referral_link}
+                            readOnly
+                            className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-muted text-sm sm:text-base font-mono cursor-text"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              navigator.clipboard.writeText(profileData.referral_link || '');
+                              toast.success('Referral link copied to clipboard!');
+                            }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                            title="Copy referral link"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Share this link with friends and family to earn referral bonuses
+                      </p>
+                    </div>
+                  )}
+                  
                   <Button 
                     type="submit" 
                     className="w-full sm:w-auto" 

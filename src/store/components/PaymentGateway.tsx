@@ -334,12 +334,12 @@ export function PaymentGateway({ isOpen, onClose, amount, onSuccess, onFailure, 
                       exit={{ opacity: 0, height: 0 }}
                       className="space-y-4"
                     >
-                      <Card className="bg-gradient-to-br from-green-50 to-emerald-50 text-foreground border-green-200">
+                      <Card className="bg-gradient-to-br from-pink-50 to-rose-50 text-foreground border-pink-200">
                         <CardContent className="p-6 space-y-4">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
-                              <div className="w-10 h-10 bg-green-500/20 rounded flex items-center justify-center">
-                                <CreditCard className="w-6 h-6 text-green-700" />
+                              <div className="w-10 h-10 bg-pink-500/20 rounded flex items-center justify-center">
+                                <CreditCard className="w-6 h-6 text-pink-700" />
                               </div>
                               <div>
                                 <p className="text-xs text-muted-foreground">Card Number</p>
@@ -349,7 +349,7 @@ export function PaymentGateway({ isOpen, onClose, amount, onSuccess, onFailure, 
                               </div>
                             </div>
                             {cardNumber && (
-                              <div className="text-xs bg-green-500/20 text-green-700 px-2 py-1 rounded font-medium">
+                              <div className="text-xs bg-pink-500/20 text-pink-700 px-2 py-1 rounded font-medium">
                                 {getCardType(cardNumber)}
                               </div>
                             )}
@@ -361,7 +361,7 @@ export function PaymentGateway({ isOpen, onClose, amount, onSuccess, onFailure, 
                               placeholder="John Doe"
                               value={cardName}
                               onChange={(e) => setCardName(e.target.value.toUpperCase())}
-                              className="bg-white border-green-300 text-foreground placeholder:text-muted-foreground focus:border-green-500"
+                              className="bg-white border-pink-300 text-foreground placeholder:text-muted-foreground focus:border-pink-500"
                             />
                           </div>
                         </CardContent>
@@ -444,10 +444,10 @@ export function PaymentGateway({ isOpen, onClose, amount, onSuccess, onFailure, 
                       exit={{ opacity: 0, height: 0 }}
                       className="space-y-4"
                     >
-                      <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                      <Card className="bg-gradient-to-br from-pink-50 to-rose-50 border-pink-200">
                         <CardContent className="p-6">
                           <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                            <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center">
                               <Smartphone className="w-6 h-6 text-white" />
                             </div>
                             <div>
@@ -477,10 +477,10 @@ export function PaymentGateway({ isOpen, onClose, amount, onSuccess, onFailure, 
                       exit={{ opacity: 0, height: 0 }}
                       className="space-y-4"
                     >
-                      <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                      <Card className="bg-gradient-to-br from-pink-50 to-rose-50 border-pink-200">
                         <CardContent className="p-6">
                           <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                            <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center">
                               <Building2 className="w-6 h-6 text-white" />
                             </div>
                             <div>
@@ -513,10 +513,10 @@ export function PaymentGateway({ isOpen, onClose, amount, onSuccess, onFailure, 
                       exit={{ opacity: 0, height: 0 }}
                       className="space-y-4"
                     >
-                      <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                      <Card className="bg-gradient-to-br from-pink-50 to-rose-50 border-pink-200">
                         <CardContent className="p-6">
                           <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                            <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center">
                               <Wallet className="w-6 h-6 text-white" />
                             </div>
                             <div>
@@ -594,7 +594,7 @@ export function PaymentGateway({ isOpen, onClose, amount, onSuccess, onFailure, 
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring' }}
-                className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6"
+                className="w-20 h-20 bg-pink-500 rounded-full flex items-center justify-center mx-auto mb-6"
               >
                 <CheckCircle className="w-12 h-12 text-white" />
               </motion.div>

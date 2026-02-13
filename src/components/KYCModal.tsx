@@ -714,7 +714,7 @@ export function KYCModal({ isOpen, onClose }: KYCModalProps) {
             <Button
               type="submit"
               disabled={isLoading}
-              className="bg-gradient-to-r from-[#18b3b2] to-[#22cc7b] text-white border-0 hover:opacity-90 shadow-md shadow-emerald-500/25 disabled:opacity-70"
+              className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 shadow-md shadow-pink-500/25 disabled:opacity-70"
             >
               {isLoading ? (
                 <>

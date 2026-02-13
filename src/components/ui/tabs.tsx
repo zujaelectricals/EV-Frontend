@@ -41,8 +41,8 @@ const TabsTrigger = React.forwardRef<
       // Interactions
       "ring-offset-background transition-all duration-200",
       "hover:text-foreground hover:bg-background/70 hover:shadow-sm",
-      "data-[state=active]:bg-background data-[state=active]:text-emerald-600 data-[state=active]:shadow-md",
-      "data-[state=active]:border data-[state=active]:border-emerald-400/60",
+      "data-[state=active]:bg-background data-[state=active]:text-pink-600 data-[state=active]:shadow-md",
+      "data-[state=active]:border data-[state=active]:border-pink-400/60",
       // Focus & disabled
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       "disabled:pointer-events-none disabled:opacity-50",

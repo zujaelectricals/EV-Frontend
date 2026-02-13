@@ -2,7 +2,7 @@ import { Provider } from 'react-redux';
 import { store } from './app/store';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { MainLayout } from './layouts/MainLayout';
 import { LoginPage } from './auth/LoginPage';
@@ -62,6 +62,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   return <MainLayout>{children}</MainLayout>;
+};
+
+// Component to handle referral link redirects
+const ReferralRedirect = () => {
+  const { referralCode } = useParams<{ referralCode: string }>();
+  
+  // Store referral code in localStorage
+  if (referralCode && typeof window !== 'undefined') {
+    localStorage.setItem('ev_nexus_referral_code', referralCode);
+    console.log('✅ [REFERRAL REDIRECT] Stored referral code in localStorage:', referralCode);
+  }
+  
+  return <Navigate to={`/login?ref=${referralCode}&signup=true`} replace />;
 };
 
 // Component to clean up old localStorage keys and manage automatic token refresh
@@ -220,6 +233,9 @@ const AppRoutes = () => {
       <Route path="/about" element={<AboutUs />} />
       <Route path="/gallery" element={<Gallery />} />
       <Route path="/contact" element={<Contact />} />
+      
+      {/* Referral Link Route */}
+      <Route path="/ref/:referralCode" element={<ReferralRedirect />} />
       
       {/* Auth */}
       <Route path="/login" element={<LoginPage />} />
