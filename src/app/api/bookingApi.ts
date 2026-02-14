@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { getAuthTokens, refreshAccessToken } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 
 // Booking request interface
 export interface CreateBookingRequest {
@@ -184,7 +184,7 @@ export const bookingApi = api.injectEndpoints({
       queryFn: async (bookingData) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}booking/bookings/`;
           
           const headers: HeadersInit = {
@@ -279,7 +279,7 @@ export const bookingApi = api.injectEndpoints({
       queryFn: async ({ bookingId, paymentData }) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}booking/bookings/${bookingId}/make_payment/`;
           
           const headers: HeadersInit = {
@@ -378,7 +378,7 @@ export const bookingApi = api.injectEndpoints({
       queryFn: async (params) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           
           // Build query string
           const queryParams = new URLSearchParams();
@@ -541,7 +541,7 @@ export const bookingApi = api.injectEndpoints({
       queryFn: async (bookingId) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}booking/bookings/${bookingId}/`;
           
           const headers: HeadersInit = {
@@ -624,7 +624,7 @@ export const bookingApi = api.injectEndpoints({
       queryFn: async ({ bookingId, status }) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}booking/bookings/${bookingId}/update_status/`;
           
           const headers: HeadersInit = {
@@ -721,7 +721,7 @@ export const bookingApi = api.injectEndpoints({
       queryFn: async () => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}booking/payments/`;
           
           const headers: HeadersInit = {
@@ -803,7 +803,7 @@ export const bookingApi = api.injectEndpoints({
       queryFn: async ({ bookingId, paymentData }) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}booking/bookings/${bookingId}/accept_payment/`;
           
           const headers: HeadersInit = {
@@ -901,7 +901,7 @@ export const bookingApi = api.injectEndpoints({
       queryFn: async (bookingId) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}booking/bookings/${bookingId}/cancel/`;
           
           const headers: HeadersInit = {
@@ -993,7 +993,7 @@ export const bookingApi = api.injectEndpoints({
       queryFn: async (refundData) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}payments/refund/`;
           
           const headers: HeadersInit = {

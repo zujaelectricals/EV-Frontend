@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 import { isTokenExpiredOrExpiringSoon, getTokenExpiryTime } from '../../lib/utils';
 
 // Helper function to get auth tokens from localStorage
@@ -680,7 +680,7 @@ export const refreshAccessToken = async (): Promise<{ access: string; refresh: s
     });
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}auth/refresh/`, {
+      const response = await fetch(`${API_BASE_URL}auth/refresh/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -879,7 +879,7 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
   extraOptions
 ) => {
   const baseQuery = fetchBaseQuery({
-    baseUrl: getApiBaseUrl(),
+    baseUrl: API_BASE_URL,
     prepareHeaders: (headers, { endpoint }) => {
       // Determine if this is a public endpoint using the endpoint name
       // The endpoint name is a string that may contain the path

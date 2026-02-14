@@ -52,7 +52,7 @@ import {
 } from '@/app/api/galleryApi';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
-import { getApiBaseUrl } from '@/lib/config';
+import { API_BASE_URL } from '@/lib/config';
 
 export const Gallery = () => {
   const { data: galleryResponse, isLoading, error, refetch } = useGetGalleryItemsQuery();
@@ -377,7 +377,7 @@ export const Gallery = () => {
     }
     
     // Construct full URL from relative path
-    const baseUrl = getApiBaseUrl().replace('/api/', '');
+    const baseUrl = API_BASE_URL.replace('/api/', '');
     
     // Ensure path starts with / if it doesn't already
     const normalizedPath = trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;

@@ -71,7 +71,7 @@ export function FloatingPetals({ count = 15 }: { count?: number }) {
   }, [count]);
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]" style={{ clipPath: 'inset(50vh 0 0 0)' }}>
       {petals.map((petal) => (
         <motion.div
           key={petal.id}

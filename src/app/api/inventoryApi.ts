@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { getAuthTokens, refreshAccessToken } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 
 // Types based on the API response structure
 export interface VehicleImage {
@@ -178,7 +178,7 @@ export const inventoryApi = api.injectEndpoints({
     getVehicles: builder.query<InventoryResponse, InventoryQueryParams | void>({
       queryFn: async (params = {}) => {
         try {
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           
           // Build query string
           const queryParams = new URLSearchParams();
@@ -237,7 +237,7 @@ export const inventoryApi = api.injectEndpoints({
     getStock: builder.query<StockDetailResponse, number>({
       queryFn: async (variantId) => {
         try {
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}inventory/stock/${variantId}/`;
           
           const headers: HeadersInit = {
@@ -279,7 +279,7 @@ export const inventoryApi = api.injectEndpoints({
     getVehicleById: builder.query<VehicleDetailResponse, number>({
       queryFn: async (variantId) => {
         try {
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}inventory/vehicles/${variantId}/`;
           
           const headers: HeadersInit = {
@@ -322,7 +322,7 @@ export const inventoryApi = api.injectEndpoints({
       queryFn: async ({ id, data }) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}inventory/vehicles/${id}/`;
           
           const headers: HeadersInit = {
@@ -407,7 +407,7 @@ export const inventoryApi = api.injectEndpoints({
       queryFn: async (variantId) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}inventory/vehicles/${variantId}/`;
           
           const headers: HeadersInit = {
@@ -490,7 +490,7 @@ export const inventoryApi = api.injectEndpoints({
       queryFn: async (params = {}) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           
           // Build query string
           const queryParams = new URLSearchParams();
@@ -577,7 +577,7 @@ export const inventoryApi = api.injectEndpoints({
       queryFn: async ({ vehicleId, totalQuantity }) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}inventory/stock/by-vehicle/${vehicleId}/`;
           
           const headers: HeadersInit = {
@@ -664,7 +664,7 @@ export const inventoryApi = api.injectEndpoints({
       queryFn: async (files) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}inventory/images/upload/`;
           
           const formData = new FormData();
@@ -750,7 +750,7 @@ export const inventoryApi = api.injectEndpoints({
       queryFn: async (data) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}inventory/vehicles/`;
           
           const headers: HeadersInit = {

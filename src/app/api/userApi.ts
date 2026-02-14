@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { getAuthTokens, refreshAccessToken, setProfilePicture } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 import type { User } from '../slices/authSlice';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
@@ -39,6 +39,8 @@ export interface UserProfileResponse {
   is_distributor_terms_and_conditions_accepted: boolean | null;
   distributor_application_status: 'pending' | 'approved' | 'rejected' | null;
   profile_picture?: string; // URL to the profile picture
+  days_remaining_for_full_payment?: number;
+  active_buyer_warning?: string;
 }
 
 // KYC submission request (multipart/form-data)
@@ -189,7 +191,7 @@ export const userApi = api.injectEndpoints({
         }
 
         try {
-          const response = await fetch(`${getApiBaseUrl()}users/profile/`, {
+          const response = await fetch(`${API_BASE_URL}users/profile/`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -256,7 +258,7 @@ export const userApi = api.injectEndpoints({
         }
 
         try {
-          const response = await fetch(`${getApiBaseUrl()}users/profile/`, {
+          const response = await fetch(`${API_BASE_URL}users/profile/`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -387,7 +389,7 @@ export const userApi = api.injectEndpoints({
               : String(value),
           })));
 
-          const apiUrl = `${getApiBaseUrl()}users/kyc/`;
+          const apiUrl = `${API_BASE_URL}users/kyc/`;
           console.log('🔵 [KYC API] Making POST request to:', apiUrl);
           console.log('🔵 [KYC API] Request headers:', {
             'Authorization': `Bearer ${tokenPreview}`,
@@ -553,7 +555,7 @@ export const userApi = api.injectEndpoints({
             }));
             console.log('📤 [PROFILE UPDATE API] FormData entries:', formDataEntries);
 
-            let response = await fetch(`${getApiBaseUrl()}users/update_profile/`, {
+            let response = await fetch(`${API_BASE_URL}users/update_profile/`, {
               method: 'PUT',
               headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -589,7 +591,7 @@ export const userApi = api.injectEndpoints({
                     retryFormData.append('profile_picture', body.profile_picture);
                   }
 
-                  response = await fetch(`${getApiBaseUrl()}users/update_profile/`, {
+                  response = await fetch(`${API_BASE_URL}users/update_profile/`, {
                     method: 'PUT',
                     headers: {
                       'Authorization': `Bearer ${newAccessToken}`,
@@ -639,7 +641,7 @@ export const userApi = api.injectEndpoints({
             const { profile_picture, ...jsonBody } = body;
             console.log('📤 [PROFILE UPDATE API] Request body:', JSON.stringify(jsonBody, null, 2));
 
-            let response = await fetch(`${getApiBaseUrl()}users/update_profile/`, {
+            let response = await fetch(`${API_BASE_URL}users/update_profile/`, {
               method: 'PUT',
               headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -657,7 +659,7 @@ export const userApi = api.injectEndpoints({
                 const { accessToken: newAccessToken } = getAuthTokens();
                 if (newAccessToken) {
                   console.log('🔄 [PROFILE UPDATE API] Retrying request with new token...');
-                  response = await fetch(`${getApiBaseUrl()}users/update_profile/`, {
+                  response = await fetch(`${API_BASE_URL}users/update_profile/`, {
                     method: 'PUT',
                     headers: {
                       'Authorization': `Bearer ${newAccessToken}`,
@@ -792,8 +794,8 @@ export const userApi = api.injectEndpoints({
 
           // Use PUT endpoint with ID for updates, POST for new nominees
           const apiUrl = isUpdate
-            ? `${getApiBaseUrl()}users/nominee/${body.nomineeId}/`
-            : `${getApiBaseUrl()}users/nominee/`;
+            ? `${API_BASE_URL}users/nominee/${body.nomineeId}/`
+            : `${API_BASE_URL}users/nominee/`;
 
           console.log(`🔵 [NOMINEE API] Making ${method} request to:`, apiUrl);
           console.log(`📤 [NOMINEE API] ${method} Request Body Summary:`, {
@@ -877,7 +879,7 @@ export const userApi = api.injectEndpoints({
         }
 
         try {
-          const apiUrl = `${getApiBaseUrl()}users/nominee/`;
+          const apiUrl = `${API_BASE_URL}users/nominee/`;
           console.log('🔵 [NOMINEE GET API] Making GET request to:', apiUrl);
 
           const response = await fetch(apiUrl, {
@@ -955,7 +957,7 @@ export const userApi = api.injectEndpoints({
         }
 
         try {
-          const apiUrl = `${getApiBaseUrl()}users/nominee/submit-kyc/`;
+          const apiUrl = `${API_BASE_URL}users/nominee/submit-kyc/`;
           console.log('🔵 [NOMINEE KYC API] Making POST request to:', apiUrl);
 
           let response = await fetch(apiUrl, {
@@ -1061,7 +1063,7 @@ export const userApi = api.injectEndpoints({
           if (params.search) queryParams.append('search', params.search);
 
           const queryString = queryParams.toString();
-          const url = `${getApiBaseUrl()}users/normal/${queryString ? `?${queryString}` : ''}`;
+          const url = `${API_BASE_URL}users/normal/${queryString ? `?${queryString}` : ''}`;
 
           console.log('📤 [USER API - getNormalUsers] Request URL:', url);
           console.log('📤 [USER API - getNormalUsers] Query Params:', params);
@@ -1150,7 +1152,7 @@ export const userApi = api.injectEndpoints({
         }
 
         try {
-          let response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+          let response = await fetch(`${API_BASE_URL}users/${userId}/`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -1168,7 +1170,7 @@ export const userApi = api.injectEndpoints({
               const { accessToken: newAccessToken } = getAuthTokens();
               if (newAccessToken) {
                 console.log('🔄 [USER API - getUserById] Retrying request with new token...');
-                response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+                response = await fetch(`${API_BASE_URL}users/${userId}/`, {
                   method: 'GET',
                   headers: {
                     'Authorization': `Bearer ${newAccessToken}`,
@@ -1245,11 +1247,11 @@ export const userApi = api.injectEndpoints({
 
         try {
           const requestBody = JSON.stringify(data);
-          console.log('📤 [USER API - updateUserById] Request URL:', `${getApiBaseUrl()}users/${userId}/`);
+          console.log('📤 [USER API - updateUserById] Request URL:', `${API_BASE_URL}users/${userId}/`);
           console.log('📤 [USER API - updateUserById] Request Body:', requestBody);
           console.log('📤 [USER API - updateUserById] Request Body (Parsed):', JSON.stringify(data, null, 2));
 
-          let response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+          let response = await fetch(`${API_BASE_URL}users/${userId}/`, {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -1268,7 +1270,7 @@ export const userApi = api.injectEndpoints({
               const { accessToken: newAccessToken } = getAuthTokens();
               if (newAccessToken) {
                 console.log('🔄 [USER API - updateUserById] Retrying request with new token...');
-                response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+                response = await fetch(`${API_BASE_URL}users/${userId}/`, {
                   method: 'PUT',
                   headers: {
                     'Authorization': `Bearer ${newAccessToken}`,
@@ -1332,10 +1334,10 @@ export const userApi = api.injectEndpoints({
         }
 
         try {
-          console.log('📤 [USER API - deleteUserById] Request URL:', `${getApiBaseUrl()}users/${userId}/`);
+          console.log('📤 [USER API - deleteUserById] Request URL:', `${API_BASE_URL}users/${userId}/`);
           console.log('📤 [USER API - deleteUserById] User ID:', userId);
 
-          let response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+          let response = await fetch(`${API_BASE_URL}users/${userId}/`, {
             method: 'DELETE',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -1353,7 +1355,7 @@ export const userApi = api.injectEndpoints({
               const { accessToken: newAccessToken } = getAuthTokens();
               if (newAccessToken) {
                 console.log('🔄 [USER API - deleteUserById] Retrying request with new token...');
-                response = await fetch(`${getApiBaseUrl()}users/${userId}/`, {
+                response = await fetch(`${API_BASE_URL}users/${userId}/`, {
                   method: 'DELETE',
                   headers: {
                     'Authorization': `Bearer ${newAccessToken}`,
@@ -1497,7 +1499,7 @@ export const userApi = api.injectEndpoints({
           if (params.ordering) queryParams.append('ordering', params.ordering);
 
           const queryString = queryParams.toString();
-          const url = `${getApiBaseUrl()}users/kyc/list_all/${queryString ? `?${queryString}` : ''}`;
+          const url = `${API_BASE_URL}users/kyc/list_all/${queryString ? `?${queryString}` : ''}`;
 
           console.log('📤 [USER API - getKYCList] Request URL:', url);
           console.log('📤 [USER API - getKYCList] Query Params:', params);
@@ -1586,10 +1588,10 @@ export const userApi = api.injectEndpoints({
             requestBody.reason = reason;
           }
 
-          console.log('📤 [USER API - updateKYCStatus] Request URL:', `${getApiBaseUrl()}users/kyc/${kycId}/update-status/`);
+          console.log('📤 [USER API - updateKYCStatus] Request URL:', `${API_BASE_URL}users/kyc/${kycId}/update-status/`);
           console.log('📤 [USER API - updateKYCStatus] Request Body:', JSON.stringify(requestBody, null, 2));
 
-          let response = await fetch(`${getApiBaseUrl()}users/kyc/${kycId}/update-status/`, {
+          let response = await fetch(`${API_BASE_URL}users/kyc/${kycId}/update-status/`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -1607,7 +1609,7 @@ export const userApi = api.injectEndpoints({
               const { accessToken: newAccessToken } = getAuthTokens();
               if (newAccessToken) {
                 console.log('🔄 [USER API - updateKYCStatus] Retrying request with new token...');
-                response = await fetch(`${getApiBaseUrl()}users/kyc/${kycId}/update-status/`, {
+                response = await fetch(`${API_BASE_URL}users/kyc/${kycId}/update-status/`, {
                   method: 'POST',
                   headers: {
                     'Authorization': `Bearer ${newAccessToken}`,
@@ -1671,10 +1673,10 @@ export const userApi = api.injectEndpoints({
         try {
           const requestBody = { status: 'approved' };
 
-          console.log('📤 [USER API - approveNomineeKYC] Request URL:', `${getApiBaseUrl()}users/nominee/${nomineeId}/approve/`);
+          console.log('📤 [USER API - approveNomineeKYC] Request URL:', `${API_BASE_URL}users/nominee/${nomineeId}/approve/`);
           console.log('📤 [USER API - approveNomineeKYC] Request Body:', JSON.stringify(requestBody, null, 2));
 
-          let response = await fetch(`${getApiBaseUrl()}users/nominee/${nomineeId}/approve/`, {
+          let response = await fetch(`${API_BASE_URL}users/nominee/${nomineeId}/approve/`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -1692,7 +1694,7 @@ export const userApi = api.injectEndpoints({
               const { accessToken: newAccessToken } = getAuthTokens();
               if (newAccessToken) {
                 console.log('🔄 [USER API - approveNomineeKYC] Retrying request with new token...');
-                response = await fetch(`${getApiBaseUrl()}users/nominee/${nomineeId}/approve/`, {
+                response = await fetch(`${API_BASE_URL}users/nominee/${nomineeId}/approve/`, {
                   method: 'POST',
                   headers: {
                     'Authorization': `Bearer ${newAccessToken}`,
@@ -1756,10 +1758,10 @@ export const userApi = api.injectEndpoints({
         try {
           const requestBody = { reason };
 
-          console.log('📤 [USER API - rejectNomineeKYC] Request URL:', `${getApiBaseUrl()}users/nominee/${nomineeId}/reject/`);
+          console.log('📤 [USER API - rejectNomineeKYC] Request URL:', `${API_BASE_URL}users/nominee/${nomineeId}/reject/`);
           console.log('📤 [USER API - rejectNomineeKYC] Request Body:', JSON.stringify(requestBody, null, 2));
 
-          let response = await fetch(`${getApiBaseUrl()}users/nominee/${nomineeId}/reject/`, {
+          let response = await fetch(`${API_BASE_URL}users/nominee/${nomineeId}/reject/`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -1777,7 +1779,7 @@ export const userApi = api.injectEndpoints({
               const { accessToken: newAccessToken } = getAuthTokens();
               if (newAccessToken) {
                 console.log('🔄 [USER API - rejectNomineeKYC] Retrying request with new token...');
-                response = await fetch(`${getApiBaseUrl()}users/nominee/${nomineeId}/reject/`, {
+                response = await fetch(`${API_BASE_URL}users/nominee/${nomineeId}/reject/`, {
                   method: 'POST',
                   headers: {
                     'Authorization': `Bearer ${newAccessToken}`,
@@ -1867,7 +1869,7 @@ export const userApi = api.injectEndpoints({
         }
 
         try {
-          const url = `${getApiBaseUrl()}users/distributor-application/list_all/`;
+          const url = `${API_BASE_URL}users/distributor-application/list_all/`;
           console.log('📤 [USER API - getDistributorApplications] Request URL:', url);
 
           let response = await fetch(url, {
@@ -1955,7 +1957,7 @@ export const userApi = api.injectEndpoints({
             requestBody.reason = reason;
           }
 
-          const url = `${getApiBaseUrl()}users/distributor-application/${applicationId}/update-status/`;
+          const url = `${API_BASE_URL}users/distributor-application/${applicationId}/update-status/`;
           console.log('📤 [USER API - updateDistributorApplicationStatus] Request URL:', url);
           console.log('📤 [USER API - updateDistributorApplicationStatus] Request Body:', JSON.stringify(requestBody, null, 2));
 

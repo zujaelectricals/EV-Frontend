@@ -1,5 +1,5 @@
 import { api } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 import { getAuthTokens, refreshAccessToken } from './baseApi';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
@@ -92,7 +92,7 @@ export const galleryApi = api.injectEndpoints({
         // Note: We use queryFn to handle FormData manually
         // We don't use baseQuery to avoid Content-Type issues with multipart/form-data
         try {
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const putEndpoint = `gallery/gallery-items/${id}/`;
           const fullPutUrl = `${baseUrl}${putEndpoint}`;
           

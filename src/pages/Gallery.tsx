@@ -4,7 +4,7 @@ import { Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
 import { StoreNavbar } from '@/store/StoreNavbar';
 import { Footer } from '@/components/Footer';
 import { FloatingPetals } from '@/components/FloatingPetals';
-import { getApiBaseUrl } from '@/lib/config';
+import { API_BASE_URL } from '@/lib/config';
 
 interface GalleryItem {
   id: number;
@@ -40,7 +40,7 @@ export function Gallery() {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch(`${getApiBaseUrl()}gallery/gallery-items/`, {
+        const response = await fetch(`${API_BASE_URL}gallery/gallery-items/`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { getAuthTokens, refreshAccessToken } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 import { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
 export interface WalletBalance {
@@ -90,7 +90,7 @@ export const walletApi = api.injectEndpoints({
       queryFn: async (params) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           
           // Build query string
           const queryParams = new URLSearchParams();

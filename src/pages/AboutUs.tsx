@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Eye, Leaf, Heart, Users, Crosshair, Award, ArrowRight, Star } from 'lucide-react';
+import { Sparkles, Eye, Leaf, Heart, Users, Crosshair, Award, ArrowRight } from 'lucide-react';
 import { StoreNavbar } from '@/store/StoreNavbar';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -30,12 +30,6 @@ export function AboutUs() {
     },
   ];
 
-  const stats = [
-    { value: '100K+', label: 'Happy Riders' },
-    { value: '25+', label: 'Countries' },
-    { value: '50+', label: 'Service Centers' },
-    { value: '4.9★', label: 'Customer Rating', showStar: true },
-  ];
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-background">
@@ -146,60 +140,6 @@ export function AboutUs() {
               </div>
             </div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Stats Banner - liquid glass cards on gradient */}
-      <section className="relative py-16 sm:py-20 overflow-hidden">
-        {/* Background: green (left) to teal (right) gradient */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(90deg, #38E09D 0%, #2dd4a8 40%, #22b8a8 70%, #1EADCC 100%)',
-            clipPath: 'ellipse(120% 100% at 50% 0%)',
-          }}
-        />
-        {/* Subtle circular / curved patterns for liquid feel */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-1/2 left-[20%] -translate-y-1/2 w-64 h-64 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute top-1/2 left-[45%] -translate-y-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-white/8 blur-2xl" />
-          <div className="absolute top-1/2 right-[25%] translate-x-1/2 -translate-y-1/2 w-56 h-56 rounded-full bg-white/10 blur-2xl" />
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-7xl mx-auto">
-            {stats.map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="relative rounded-[1.75rem] sm:rounded-[2rem] px-6 py-6 sm:px-8 sm:py-8 text-center text-white overflow-hidden"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.18)',
-                  backdropFilter: 'blur(14px)',
-                  WebkitBackdropFilter: 'blur(14px)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.4)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                }}
-              >
-                {/* Glossy highlight overlay - top-left arc */}
-                <div
-                  className="absolute inset-0 pointer-events-none rounded-[1.75rem] sm:rounded-[2rem]"
-                  style={{
-                    background: 'radial-gradient(ellipse 80% 50% at 20% 15%, rgba(255,255,255,0.35) 0%, transparent 55%)',
-                  }}
-                />
-                <div className="relative z-10">
-                  <div className="text-2xl sm:text-3xl lg:text-4xl font-bold flex items-center justify-center gap-0.5">
-                    {stat.value}
-                    {stat.showStar && <Star className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />}
-                  </div>
-                  <div className="text-sm sm:text-base font-medium mt-1 opacity-95">{stat.label}</div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </section>
 

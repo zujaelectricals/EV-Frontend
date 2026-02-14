@@ -197,7 +197,7 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card/50 px-3 sm:px-6 backdrop-blur-md">
+    <header className="flex h-16 items-center justify-between border-b border-border bg-card/30 px-3 sm:px-6 backdrop-blur-lg">
       {/* Mobile Menu Button */}
       {isMobile && onMenuClick && (
         <Button

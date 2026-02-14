@@ -1,5 +1,5 @@
 import { getAuthTokens, refreshAccessToken } from '@/app/api/baseApi';
-import { getApiBaseUrl } from '@/lib/config';
+import { API_BASE_URL } from '@/lib/config';
 
 // TypeScript interfaces for API requests and responses
 
@@ -59,7 +59,7 @@ async function makeAuthenticatedRequest<T>(
   url: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const baseUrl = getApiBaseUrl();
+  const baseUrl = API_BASE_URL;
   const fullUrl = `${baseUrl}${url.startsWith('/') ? url.slice(1) : url}`;
 
   let { accessToken } = getAuthTokens();

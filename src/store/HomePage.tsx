@@ -73,78 +73,6 @@ export function HomePage() {
     },
   ];
 
-  const stats = useMemo(() => [
-    { value: "50K+", label: "Happy Riders" },
-    { value: "200+", label: "Service Centers" },
-    { value: "15+", label: "Cities Covered" },
-    { value: "4.8★", label: "Customer Rating" },
-  ], []);
-
-  // Parse stat values and create animated counters
-  const parseStatValue = (value: string) => {
-    if (value.includes("K+")) {
-      const num = parseFloat(value.replace("K+", ""));
-      return { target: num, suffix: "K+", isDecimal: false };
-    } else if (value.includes("+")) {
-      const num = parseFloat(value.replace("+", ""));
-      return { target: num, suffix: "+", isDecimal: false };
-    } else if (value.includes("★")) {
-      const num = parseFloat(value.replace("★", ""));
-      return { target: num, suffix: "★", isDecimal: true };
-    }
-    return { target: 0, suffix: "", isDecimal: false };
-  };
-
-  const [animatedStats, setAnimatedStats] = useState([
-    { current: 0, ...parseStatValue(stats[0].value) },
-    { current: 0, ...parseStatValue(stats[1].value) },
-    { current: 0, ...parseStatValue(stats[2].value) },
-    { current: 0, ...parseStatValue(stats[3].value) },
-  ]);
-
-  // Animate stats on mount
-  useEffect(() => {
-    const duration = 2000; // 2 seconds
-    const startTime = Date.now();
-    const parsedStats = stats.map((stat) => parseStatValue(stat.value));
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing function for smooth animation
-      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-
-      setAnimatedStats((prev) => {
-        return prev.map((stat, index) => ({
-          ...stat,
-          current: parsedStats[index].target * easeOutQuart,
-        }));
-      });
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    const animationId = requestAnimationFrame(animate);
-
-    return () => {
-      cancelAnimationFrame(animationId);
-    };
-  }, [stats]);
-
-  // Format animated value for display
-  const formatAnimatedValue = (stat: { current: number; suffix: string; isDecimal: boolean }) => {
-    if (stat.isDecimal) {
-      return `${stat.current.toFixed(1)}${stat.suffix}`;
-    } else if (stat.suffix === "K+") {
-      return `${Math.floor(stat.current)}${stat.suffix}`;
-    } else {
-      return `${Math.floor(stat.current)}${stat.suffix}`;
-    }
-  };
-
   // Ref for Key Features & Services section
   const featuresSectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -305,7 +233,7 @@ export function HomePage() {
       >
         {/* Hero background video */}
         <video
-          src="/Banner_videos/Zuja_bg1.mp4"
+          src="/Banner_videos/Zuja_bg3.mp4"
           autoPlay
           loop
           muted
@@ -372,61 +300,6 @@ export function HomePage() {
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
-                <Link to="/login" className="w-full sm:w-auto">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto text-[#15adc1] group rounded-full px-8 py-6 transition-all"
-                    style={{
-                      background: 'white',
-                      border: '2px solid #15adc1',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'white';
-                      e.currentTarget.style.borderColor = '#15adc1';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'white';
-                      e.currentTarget.style.borderColor = '#15adc1';
-                    }}
-                  >
-                    Book a Test Ride
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" style={{ color: '#15adc1' }} />
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Stats - frosted bar and high-contrast text for visibility on video */}
-              <div 
-                className="grid grid-cols-4 gap-4 pt-8 mt-8 border-t-2 border-slate-300/80 rounded-2xl px-6 py-6 -mx-2"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.55)',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: '0 4px 24px rgba(0, 0, 0, 0.06)',
-                }}
-              >
-                {stats.map((stat, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      delay: 0.2 + i * 0.05,
-                      duration: 0.4,
-                      ease: [0.25, 0.1, 0.25, 1],
-                    }}
-                    className="text-center"
-                  >
-                    <div 
-                      className={`text-2xl lg:text-3xl font-bold bg-clip-text text-transparent drop-shadow-sm ${stat.label === "Customer Rating" ? "bg-gradient-to-r from-[#22c4ac] to-[#2dd188]" : "bg-gradient-to-r from-[#00BCD4] to-[#00E676]"}`}
-                      style={{ textShadow: '0 0 20px rgba(255,255,255,0.5)' }}
-                    >
-                      {formatAnimatedValue(animatedStats[i])}
-                    </div>
-                    <div className="text-sm font-semibold text-slate-800 mt-1">
-                      {stat.label}
-                    </div>
-                  </motion.div>
-                ))}
               </div>
             </motion.div>
           </div>
@@ -556,31 +429,31 @@ export function HomePage() {
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
       >
-        {/* Solid gradient background (no image) */}
+        {/* Solid gradient background - Ultra light pink with yellow accents */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             zIndex: 0,
             background:
-              "linear-gradient(135deg, rgba(209, 250, 229, 0.98) 0%, rgba(255, 255, 255, 1) 30%, rgba(236, 253, 245, 1) 50%, rgba(255, 255, 255, 1) 70%, rgba(209, 250, 229, 0.98) 100%)",
+              "linear-gradient(135deg, rgba(255, 251, 255, 0.98) 0%, rgba(255, 255, 255, 1) 30%, rgba(255, 253, 250, 1) 50%, rgba(255, 255, 255, 1) 70%, rgba(255, 251, 255, 0.98) 100%)",
           }}
         />
 
-        {/* Enhanced Background decorative elements with more dynamic effects */}
+        {/* Enhanced Background decorative elements - Ultra light pink with premium yellow */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ zIndex: 2 }}
         >
-          {/* Larger, more vibrant glowing orbs */}
+          {/* Larger, more vibrant glowing orbs - Ultra light pink with yellow accents */}
           <motion.div
-            className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-emerald-400/20 via-teal-400/15 to-cyan-400/20 rounded-full blur-3xl"
+            className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-pink-100/25 via-amber-100/20 to-rose-100/25 rounded-full blur-3xl"
             style={{
               y: backgroundY1,
               transform: "translateZ(0)",
             }}
             animate={{
               scale: [1, 1.1, 1],
-              opacity: [0.2, 0.3, 0.2],
+              opacity: [0.15, 0.25, 0.15],
             }}
             transition={{
               duration: 8,
@@ -589,14 +462,14 @@ export function HomePage() {
             }}
           />
           <motion.div
-            className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] bg-gradient-to-br from-cyan-400/20 via-teal-400/15 to-emerald-400/20 rounded-full blur-3xl"
+            className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] bg-gradient-to-br from-amber-100/25 via-pink-100/20 to-yellow-100/25 rounded-full blur-3xl"
             style={{
               y: backgroundY2,
               transform: "translateZ(0)",
             }}
             animate={{
               scale: [1, 1.15, 1],
-              opacity: [0.2, 0.35, 0.2],
+              opacity: [0.15, 0.28, 0.15],
             }}
             transition={{
               duration: 10,
@@ -605,12 +478,12 @@ export function HomePage() {
               delay: 1,
             }}
           />
-          {/* Additional smaller accent orbs */}
+          {/* Additional smaller accent orbs with yellow */}
           <motion.div
-            className="absolute top-1/2 right-1/3 w-64 h-64 bg-emerald-300/15 rounded-full blur-2xl"
+            className="absolute top-1/2 right-1/3 w-64 h-64 bg-pink-50/20 rounded-full blur-2xl"
             animate={{
               scale: [1, 1.2, 1],
-              opacity: [0.15, 0.25, 0.15],
+              opacity: [0.12, 0.22, 0.12],
             }}
             transition={{
               duration: 6,
@@ -620,10 +493,10 @@ export function HomePage() {
             }}
           />
           <motion.div
-            className="absolute bottom-1/3 left-1/3 w-72 h-72 bg-cyan-300/15 rounded-full blur-2xl"
+            className="absolute bottom-1/3 left-1/3 w-72 h-72 bg-amber-50/20 rounded-full blur-2xl"
             animate={{
               scale: [1, 1.18, 1],
-              opacity: [0.15, 0.25, 0.15],
+              opacity: [0.12, 0.22, 0.12],
             }}
             transition={{
               duration: 7,
@@ -646,8 +519,8 @@ export function HomePage() {
             >
               {/* Why Choose Zuja - Introductory phrase */}
               <div className="inline-flex items-center gap-2 mb-4 sm:mb-6">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#00C2B2]" />
-                <span className="text-sm sm:text-base text-[#00C2B2] font-medium">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-pink-400" />
+                <span className="text-sm sm:text-base text-pink-500 font-medium">
                   Why Choose Zuja
                 </span>
               </div>
@@ -655,7 +528,7 @@ export function HomePage() {
               {/* Designed for Excellence - Main heading */}
               <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black mb-4 sm:mb-6 leading-tight">
                 <span className="text-foreground">Designed for </span>
-                <span className="bg-gradient-to-r from-[#16b0bb] to-[#15bba1] bg-clip-text text-transparent">Excellence</span>
+                <span className="bg-gradient-to-r from-pink-400 via-amber-400 to-rose-400 bg-clip-text text-transparent">Excellence</span>
               </h2>
               
               {/* Subheading */}
@@ -680,43 +553,43 @@ export function HomePage() {
                     }}
                     className="group relative h-full mx-2 lg:mx-3"
                   >
-                    {/* Glowing background effect */}
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 rounded-3xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-500 -z-10" />
+                    {/* Glowing background effect - Ultra light pink with premium yellow */}
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-200 via-amber-200 to-rose-200 rounded-3xl blur-lg opacity-0 group-hover:opacity-50 transition-opacity duration-500 -z-10" />
                     
                     <div
                       className="relative h-full w-full rounded-3xl p-7 sm:p-8 flex flex-col items-start justify-between gap-6 backdrop-blur-2xl shadow-2xl transition-all duration-500 group-hover:-translate-y-2 group-hover:scale-[1.02] min-h-[280px] sm:min-h-[320px] overflow-hidden"
                       style={{
                         background:
-                          "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(236,253,245,0.95) 50%, rgba(255,255,255,0.95) 100%)",
-                        border: "2px solid rgba(16, 185, 129, 0.2)",
-                        boxShadow: "0 20px 60px rgba(16, 185, 129, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
+                          "linear-gradient(135deg, rgba(255,255,255,0.99) 0%, rgba(255, 251, 255, 0.97) 50%, rgba(255, 253, 250, 0.97) 50%, rgba(255,255,255,0.99) 100%)",
+                        border: "2px solid rgba(251, 191, 36, 0.15)",
+                        boxShadow: "0 20px 60px rgba(251, 191, 36, 0.08), 0 8px 24px rgba(244, 114, 182, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.95)",
                       }}
                     >
-                      {/* Animated gradient overlay on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/0 via-teal-400/0 to-cyan-400/0 group-hover:from-emerald-400/10 group-hover:via-teal-400/10 group-hover:to-cyan-400/10 transition-all duration-500 rounded-3xl" />
+                      {/* Animated gradient overlay on hover - Pink and yellow */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-pink-100/0 via-amber-100/0 to-rose-100/0 group-hover:from-pink-100/6 group-hover:via-amber-100/6 group-hover:to-rose-100/6 transition-all duration-500 rounded-3xl" />
                       
-                      {/* Shimmer effect */}
+                      {/* Premium shimmer effect with yellow accent */}
                       <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out">
-                        <div className="h-full w-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-12" />
+                        <div className="h-full w-full bg-gradient-to-r from-transparent via-amber-50/40 to-transparent skew-x-12" />
                       </div>
 
-                      {/* Icon container with enhanced styling */}
+                      {/* Icon container with ultra light pink and premium yellow */}
                       <motion.div
-                        className="relative inline-flex items-center justify-center rounded-2xl p-4 bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 group-hover:from-emerald-500/30 group-hover:via-teal-500/30 group-hover:to-cyan-500/30 transition-all duration-500"
+                        className="relative inline-flex items-center justify-center rounded-2xl p-4 bg-gradient-to-br from-pink-200/25 via-amber-200/20 to-rose-200/25 group-hover:from-pink-300/30 group-hover:via-amber-300/25 group-hover:to-rose-300/30 transition-all duration-500"
                         style={{
-                          boxShadow: "0 8px 24px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
+                          boxShadow: "0 8px 24px rgba(251, 191, 36, 0.15), 0 4px 12px rgba(244, 114, 182, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
                         }}
                         whileHover={{ rotate: [0, -5, 5, -5, 0], scale: 1.1 }}
                         transition={{ duration: 0.5 }}
                       >
-                        <feature.icon className="w-8 h-8 text-emerald-700 group-hover:text-emerald-600 transition-colors duration-300 drop-shadow-sm" />
-                        {/* Pulsing glow effect */}
-                        <div className="absolute inset-0 rounded-2xl bg-emerald-400/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
+                        <feature.icon className="w-8 h-8 text-pink-500 group-hover:text-amber-500 transition-colors duration-300 drop-shadow-sm" />
+                        {/* Premium pulsing glow effect with yellow */}
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-pink-200/30 via-amber-200/30 to-rose-200/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
                       </motion.div>
 
                       <div className="relative z-10 flex-1 flex flex-col justify-between">
                         <div>
-                          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3 group-hover:text-emerald-700 transition-colors duration-300">
+                          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3 group-hover:text-pink-500 transition-colors duration-300">
                             {feature.title}
                           </h3>
                           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors duration-300">
@@ -725,8 +598,8 @@ export function HomePage() {
                         </div>
                       </div>
 
-                      {/* Decorative corner accent */}
-                      <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-emerald-400/10 to-transparent rounded-tl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      {/* Premium decorative corner accent with yellow */}
+                      <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-amber-200/10 via-pink-200/10 to-transparent rounded-tl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     </div>
                   </motion.div>
                 ))}
@@ -749,43 +622,43 @@ export function HomePage() {
                     }}
                     className="group relative h-full mx-2 lg:mx-3"
                   >
-                    {/* Glowing background effect */}
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 rounded-3xl blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-500 -z-10" />
+                    {/* Glowing background effect - Ultra light pink with premium yellow */}
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-200 via-pink-200 to-rose-200 rounded-3xl blur-lg opacity-0 group-hover:opacity-50 transition-opacity duration-500 -z-10" />
                     
                     <div
                       className="relative h-full w-full rounded-3xl p-7 sm:p-8 flex flex-col items-start justify-between gap-6 backdrop-blur-2xl shadow-2xl transition-all duration-500 group-hover:-translate-y-2 group-hover:scale-[1.02] min-h-[280px] sm:min-h-[320px] overflow-hidden"
                       style={{
                         background:
-                          "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(236,253,245,0.95) 50%, rgba(255,255,255,0.95) 100%)",
-                        border: "2px solid rgba(6, 182, 212, 0.2)",
-                        boxShadow: "0 20px 60px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
+                          "linear-gradient(135deg, rgba(255,255,255,0.99) 0%, rgba(255, 253, 250, 0.97) 50%, rgba(255, 251, 255, 0.97) 50%, rgba(255,255,255,0.99) 100%)",
+                        border: "2px solid rgba(251, 191, 36, 0.15)",
+                        boxShadow: "0 20px 60px rgba(251, 191, 36, 0.08), 0 8px 24px rgba(244, 114, 182, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.95)",
                       }}
                     >
-                      {/* Animated gradient overlay on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/0 via-teal-400/0 to-emerald-400/0 group-hover:from-cyan-400/10 group-hover:via-teal-400/10 group-hover:to-emerald-400/10 transition-all duration-500 rounded-3xl" />
+                      {/* Animated gradient overlay on hover - Pink and yellow */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-amber-100/0 via-pink-100/0 to-rose-100/0 group-hover:from-amber-100/6 group-hover:via-pink-100/6 group-hover:to-rose-100/6 transition-all duration-500 rounded-3xl" />
                       
-                      {/* Shimmer effect */}
+                      {/* Premium shimmer effect with yellow accent */}
                       <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out">
-                        <div className="h-full w-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-12" />
+                        <div className="h-full w-full bg-gradient-to-r from-transparent via-amber-50/40 to-transparent skew-x-12" />
                       </div>
 
-                      {/* Icon container with enhanced styling */}
+                      {/* Icon container with ultra light pink and premium yellow */}
                       <motion.div
-                        className="relative inline-flex items-center justify-center rounded-2xl p-4 bg-gradient-to-br from-cyan-500/20 via-teal-500/20 to-emerald-500/20 group-hover:from-cyan-500/30 group-hover:via-teal-500/30 group-hover:to-emerald-500/30 transition-all duration-500"
+                        className="relative inline-flex items-center justify-center rounded-2xl p-4 bg-gradient-to-br from-amber-200/25 via-pink-200/20 to-rose-200/25 group-hover:from-amber-300/30 group-hover:via-pink-300/25 group-hover:to-rose-300/30 transition-all duration-500"
                         style={{
-                          boxShadow: "0 8px 24px rgba(6, 182, 212, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
+                          boxShadow: "0 8px 24px rgba(251, 191, 36, 0.15), 0 4px 12px rgba(244, 114, 182, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
                         }}
                         whileHover={{ rotate: [0, -5, 5, -5, 0], scale: 1.1 }}
                         transition={{ duration: 0.5 }}
                       >
-                        <service.icon className="w-8 h-8 text-cyan-700 group-hover:text-cyan-600 transition-colors duration-300 drop-shadow-sm" />
-                        {/* Pulsing glow effect */}
-                        <div className="absolute inset-0 rounded-2xl bg-cyan-400/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
+                        <service.icon className="w-8 h-8 text-amber-500 group-hover:text-pink-500 transition-colors duration-300 drop-shadow-sm" />
+                        {/* Premium pulsing glow effect with yellow */}
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-200/30 via-pink-200/30 to-rose-200/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
                       </motion.div>
 
                       <div className="relative z-10 flex-1 flex flex-col justify-between">
                         <div>
-                          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3 group-hover:text-cyan-700 transition-colors duration-300">
+                          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3 group-hover:text-amber-500 transition-colors duration-300">
                             {service.title}
                           </h3>
                           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors duration-300">
@@ -794,8 +667,8 @@ export function HomePage() {
                         </div>
                       </div>
 
-                      {/* Decorative corner accent */}
-                      <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-cyan-400/10 to-transparent rounded-tl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      {/* Premium decorative corner accent with yellow */}
+                      <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-pink-200/10 via-amber-200/10 to-transparent rounded-tl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     </div>
                   </motion.div>
                 ))}
@@ -867,125 +740,6 @@ export function HomePage() {
         </div>
       </motion.section>
 
-      {/* Why Choose Us */}
-      <motion.section 
-        className="relative py-20 bg-gradient-to-b from-background via-slate-50/60 to-background dark:via-slate-900/40"
-        initial={{ opacity: 0, y: 50 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-      >
-        <div className="container mx-auto px-4">
-          <div className="relative overflow-hidden rounded-[28px] border border-slate-200/70 dark:border-slate-800 px-6 py-10 sm:px-10 sm:py-12 lg:px-12 lg:py-14 shadow-[0_18px_45px_rgba(15,23,42,0.12)] dark:shadow-[0_18px_55px_rgba(0,0,0,0.6)]">
-            {/* Background image */}
-            <div
-              className="absolute inset-0 z-0 rounded-[28px]"
-              style={{
-                backgroundImage: "url('/vehicle4.jpg')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            />
-            {/* Overlay for readability */}
-            <div className="absolute inset-0 z-[1] rounded-[28px] bg-white/80 dark:bg-slate-950/80" />
-            <div className="relative z-10 grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] items-start">
-            {/* Left: Copy */}
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="space-y-6"
-            >
-              <p className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 px-4 py-1 text-xs font-semibold tracking-wide uppercase">
-                Why riders trust Suja
-              </p>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                Modern electric mobility,
-                <span className="block bg-gradient-to-r from-[#16b0bb] to-[#15bba1] bg-clip-text text-transparent">
-                  backed by real-world reliability.
-                </span>
-              </h2>
-              <p className="text-base sm:text-lg text-muted-foreground max-w-xl">
-                From engineering and testing to delivery and after‑sales support, every step
-                is designed to feel premium, transparent, and worry‑free for our customers.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2 max-w-xl text-sm text-muted-foreground">
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
-                    <Shield className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Safety-first design</p>
-                    <p>Robust chassis, braking, and battery protection tested for Indian roads.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
-                    <Headphones className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">People-first support</p>
-                    <p>Real humans on chat and phone to help you before and after purchase.</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-              {/* Right: Feature cards */}
-              <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-              >
-                <div className="grid gap-6 md:grid-cols-3">
-                {[
-                  {
-                    icon: Award,
-                    title: "Premium Quality",
-                    desc: "Each scooter is QC-checked across 100+ points and certified by leading labs.",
-                  },
-                  {
-                    icon: Headphones,
-                    title: "24/7 Support",
-                    desc: "Round‑the‑clock assistance for breakdowns, service queries, and ownership help.",
-                  },
-                  {
-                    icon: Shield,
-                    title: "Secure Payments",
-                    desc: "Trusted payment partners, easy EMIs, and clear pricing with no hidden fees.",
-                  },
-                ].map((item, i) => (
-                  <motion.div
-                    key={item.title}
-                    initial={{ opacity: 0, y: 16 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-60px" }}
-                    transition={{ duration: 0.4, delay: 0.08 * i, ease: "easeOut" }}
-                    className="h-full"
-                  >
-                    <div className="h-full rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-900/70 shadow-sm hover:shadow-md transition-shadow duration-200 px-5 py-6 flex flex-col gap-4">
-                      <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                        <item.icon className="h-5 w-5" />
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="text-base font-semibold text-foreground">
-                          {item.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {item.desc}
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-      </motion.section>
 
       {/* CTA Section */}
       <motion.section 

@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { getAuthTokens, refreshAccessToken } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
 // System settings interface matching the API schema
@@ -52,7 +52,7 @@ export const settingsApi = api.injectEndpoints({
                 try {
                     console.log('📤 [SETTINGS API - GET] Fetching system settings...');
 
-                    let response = await fetch(`${getApiBaseUrl()}settings/`, {
+                    let response = await fetch(`${API_BASE_URL}settings/`, {
                         method: 'GET',
                         headers: {
                             'Authorization': `Bearer ${accessToken}`,
@@ -70,7 +70,7 @@ export const settingsApi = api.injectEndpoints({
                             const { accessToken: newAccessToken } = getAuthTokens();
                             if (newAccessToken) {
                                 console.log('🔄 [SETTINGS API - GET] Retrying request with new token...');
-                                response = await fetch(`${getApiBaseUrl()}settings/`, {
+                                response = await fetch(`${API_BASE_URL}settings/`, {
                                     method: 'GET',
                                     headers: {
                                         'Authorization': `Bearer ${newAccessToken}`,
@@ -136,7 +136,7 @@ export const settingsApi = api.injectEndpoints({
                     console.log('📤 [SETTINGS API - PATCH] Updating system settings...');
                     console.log('📤 [SETTINGS API - PATCH] Request body:', body);
 
-                    let response = await fetch(`${getApiBaseUrl()}settings/`, {
+                    let response = await fetch(`${API_BASE_URL}settings/`, {
                         method: 'PATCH',
                         headers: {
                             'Authorization': `Bearer ${accessToken}`,
@@ -155,7 +155,7 @@ export const settingsApi = api.injectEndpoints({
                             const { accessToken: newAccessToken } = getAuthTokens();
                             if (newAccessToken) {
                                 console.log('🔄 [SETTINGS API - PATCH] Retrying request with new token...');
-                                response = await fetch(`${getApiBaseUrl()}settings/`, {
+                                response = await fetch(`${API_BASE_URL}settings/`, {
                                     method: 'PATCH',
                                     headers: {
                                         'Authorization': `Bearer ${newAccessToken}`,

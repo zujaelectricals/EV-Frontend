@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { getAuthTokens, refreshAccessToken } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 import { User, DistributorInfo } from '../slices/authSlice';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
@@ -147,7 +147,7 @@ export const distributorApi = api.injectEndpoints({
             body.is_distributor_terms_and_conditions_accepted.toString()
           );
 
-          let response = await fetch(`${getApiBaseUrl()}users/distributor-application/`, {
+          let response = await fetch(`${API_BASE_URL}users/distributor-application/`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -172,7 +172,7 @@ export const distributorApi = api.injectEndpoints({
                   body.is_distributor_terms_and_conditions_accepted.toString()
                 );
                 
-                response = await fetch(`${getApiBaseUrl()}users/distributor-application/`, {
+                response = await fetch(`${API_BASE_URL}users/distributor-application/`, {
                   method: 'POST',
                   headers: {
                     'Authorization': `Bearer ${newAccessToken}`,

@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { getAuthTokens } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 import type { User, KYCDetails } from '../slices/authSlice';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
@@ -327,7 +327,7 @@ export const authApi = api.injectEndpoints({
         console.log('🔵 [LOGOUT API] Request Body:', JSON.stringify(body, null, 2));
         
         try {
-          const response = await fetch(`${getApiBaseUrl()}auth/logout/`, {
+          const response = await fetch(`${API_BASE_URL}auth/logout/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -376,7 +376,7 @@ export const authApi = api.injectEndpoints({
         }
 
         try {
-          const response = await fetch(`${getApiBaseUrl()}users/profile/`, {
+          const response = await fetch(`${API_BASE_URL}users/profile/`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${accessToken}`,

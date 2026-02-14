@@ -28,6 +28,8 @@ import {
   FileText as FileTextIcon,
   ExternalLink,
   Copy,
+  AlertTriangle,
+  Clock,
 } from "lucide-react";
 import {
   Card,
@@ -73,9 +75,9 @@ export function ProfilePage() {
     skip: user?.role === 'admin',
   });
   
-  // Fetch raw profile data for editing (only when settings, nominee, or referral tab is active) - skip for admin
+  // Fetch raw profile data - always fetch to get days_remaining_for_full_payment and active_buyer_warning - skip for admin
   const { data: rawProfileData, refetch: refetchRawProfile, isLoading: isLoadingRawProfile } = useGetUserProfileRawQuery(undefined, {
-    skip: (activeTab !== "settings" && activeTab !== "nominee" && activeTab !== "referral") || user?.role === 'admin',
+    skip: user?.role === 'admin',
   });
   
   // Update profile mutation
@@ -530,6 +532,20 @@ export function ProfilePage() {
                     <RefreshCw className={`h-4 w-4 ${isLoadingProfile ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>
+                {/* Days Remaining for Full Payment - Striking Display */}
+                {rawProfileData?.days_remaining_for_full_payment !== undefined && rawProfileData.days_remaining_for_full_payment !== null && (
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-orange-500/30 border-2 border-orange-400/50"
+                  >
+                    <Clock className="h-5 w-5 animate-pulse" />
+                    <span className="font-bold text-base sm:text-lg">
+                      {rawProfileData.days_remaining_for_full_payment} {rawProfileData.days_remaining_for_full_payment === 1 ? 'Day' : 'Days'} Remaining
+                    </span>
+                  </motion.div>
+                )}
                 {kycStatus && kycStatus !== 'not_submitted' ? (
                   <Badge
                     variant={
@@ -563,6 +579,20 @@ export function ProfilePage() {
               <p className="text-sm sm:text-base text-muted-foreground tracking-tight">
                 Manage your orders, profile, and preferences
               </p>
+              {/* Active Buyer Warning */}
+              {rawProfileData?.active_buyer_warning && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-center gap-2 px-4 py-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 mt-2"
+                >
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0" />
+                  <p className="text-sm sm:text-base font-medium text-yellow-800 dark:text-yellow-200">
+                    {rawProfileData.active_buyer_warning}
+                  </p>
+                </motion.div>
+              )}
             </div>
             {/* Navigation Menu - Scrollable on mobile */}
             <nav className="flex overflow-x-auto gap-1.5 sm:gap-2 pb-2 -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-hide">

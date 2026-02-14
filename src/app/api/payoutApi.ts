@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { getAuthTokens, refreshAccessToken } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 
 // Payout response interface
 export interface PayoutResponse {
@@ -120,7 +120,7 @@ export const payoutApi = api.injectEndpoints({
       queryFn: async (payoutData) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}payout/`;
           
           const headers: HeadersInit = {
@@ -223,7 +223,7 @@ export const payoutApi = api.injectEndpoints({
       queryFn: async (params) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           
           // Build query string
           const queryParams = new URLSearchParams();
@@ -361,7 +361,7 @@ export const payoutApi = api.injectEndpoints({
       queryFn: async ({ id, notes }) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}payout/${id}/process/`;
           
           const headers: HeadersInit = {
@@ -467,7 +467,7 @@ export const payoutApi = api.injectEndpoints({
       queryFn: async ({ id, transaction_id, notes }) => {
         try {
           const { accessToken } = getAuthTokens();
-          const baseUrl = getApiBaseUrl();
+          const baseUrl = API_BASE_URL;
           const url = `${baseUrl}payout/${id}/complete/`;
           
           const headers: HeadersInit = {

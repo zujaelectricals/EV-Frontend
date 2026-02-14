@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { BinaryPair } from '@/app/slices/binarySlice';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 
 export interface BinaryNode {
   id: string;
@@ -850,7 +850,7 @@ export const binaryApi = api.injectEndpoints({
           : 'binary/nodes/tree_structure/';
         
         // Console log the actual API endpoint URL being called
-        const baseUrl = getApiBaseUrl();
+        const baseUrl = API_BASE_URL;
         const fullUrl = `${baseUrl}${url}`;
         const requestStartTime = performance.now();
         const requestTimestamp = new Date().toISOString();
@@ -1291,6 +1291,28 @@ export const binaryApi = api.injectEndpoints({
         { type: 'BinaryStats' },
       ],
     }),
+    // Get node children for lazy loading
+    getNodeChildren: builder.query<
+      { node_id: number; left_child: TreeNodeResponse | null; right_child: TreeNodeResponse | null },
+      { node_id: number; side?: 'left' | 'right' | 'both' }
+    >({
+      query: ({ node_id, side }) => {
+        const params = new URLSearchParams();
+        params.append('node_id', node_id.toString());
+        
+        if (side) {
+          params.append('side', side);
+        }
+        
+        return {
+          url: `binary/nodes/node_children/?${params.toString()}`,
+          method: 'GET',
+        };
+      },
+      providesTags: (result, error, { node_id }) => [
+        { type: 'Binary', id: `node-${node_id}` },
+      ],
+    }),
   }),
 });
 
@@ -1306,4 +1328,5 @@ export const {
   useMoveNodeMutation,
   useAutoPlacePendingMutation,
   useCheckPairsMutation,
+  useGetNodeChildrenQuery,
 } = binaryApi;

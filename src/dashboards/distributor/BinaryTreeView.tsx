@@ -13,6 +13,9 @@ import {
   Link2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronRight as ChevronRightIcon,
+  Loader2,
 } from "lucide-react";
 import {
   Card,
@@ -30,6 +33,7 @@ import {
   usePositionPendingNodeMutation,
   useAutoPlacePendingMutation,
   useCheckPairsMutation,
+  useGetNodeChildrenQuery,
   type BinaryNode,
   type PendingNode,
   type TreeNodeResponse,
@@ -79,6 +83,7 @@ interface TeamMember {
   id: string;
   name: string;
   userId?: string;
+  nodeId?: number; // Add node_id for lazy loading
   joinedAt: string;
   position: "left" | "right";
   pv: number;
@@ -88,6 +93,9 @@ interface TeamMember {
   parentId?: string;
   parentName?: string;
   referralCode?: string;
+  hasChildren?: boolean; // Indicates if node has children (based on left_count + right_count)
+  isExpanded?: boolean; // Indicates if children are currently loaded and displayed
+  isChild?: boolean; // Indicates if this is a child node loaded via lazy loading
 }
 
 // Helper function to extract team members from binary tree
@@ -246,19 +254,24 @@ function extractTeamMembersFromSideMembers(
   const nodeToMember = (node: TreeNodeResponse, position: 'left' | 'right', parentId?: number): TeamMember => {
     // Use parent_name from API response if available, otherwise fallback to map lookup
     const parentName = node.parent_name || (parentId ? parentNameMap.get(parentId) : undefined);
+    const totalDescendants = (node.left_count || 0) + (node.right_count || 0);
     return {
       id: `node-${node.node_id || node.id || node.user_id}`,
       name: node.user_full_name || node.user_username || node.user_email || 'Unknown',
       userId: node.user_id?.toString(),
+      nodeId: node.node_id || node.id || node.user_id,
       joinedAt: node.date_joined || node.created_at || new Date().toISOString(),
       position: position,
       pv: parseFloat(node.total_earnings || node.total_amount || '0'),
       level: node.level || 0,
-      referrals: (node.left_count || 0) + (node.right_count || 0),
+      referrals: totalDescendants,
       isActive: node.is_active_buyer !== false,
       parentId: parentId ? `node-${parentId}` : undefined,
       parentName: parentName || undefined,
       referralCode: node.referral_code || undefined,
+      hasChildren: totalDescendants > 0,
+      isExpanded: false,
+      isChild: false,
     };
   };
 
@@ -351,19 +364,24 @@ function extractTeamMembersFromSideMembers(
         // Use parent_name from API response if available, otherwise fallback to map lookup
         const parentName = member.parent_name || (parentId ? parentNameMap.get(parentId) : undefined);
         
+        const totalDescendants = (member.left_count || 0) + (member.right_count || 0);
         members.push({
           id: `node-${nodeId}`,
           name: member.user_full_name || member.user_username || member.user_email || 'Unknown',
           userId: member.user_id?.toString(),
+          nodeId: nodeId,
           joinedAt: member.date_joined || member.created_at || new Date().toISOString(),
           position: position,
           pv: parseFloat(member.total_earnings || '0'),
           level: memberLevel,
-          referrals: (member.left_count || 0) + (member.right_count || 0), // Use counts from API
+          referrals: totalDescendants,
           isActive: member.is_active_buyer !== false,
           parentId: parentId ? `node-${parentId}` : undefined,
           parentName: parentName || undefined,
           referralCode: member.referral_code || undefined,
+          hasChildren: totalDescendants > 0,
+          isExpanded: false,
+          isChild: false,
         });
       }
     });
@@ -525,6 +543,159 @@ export const BinaryTreeView = () => {
   // Referral tree dialog state
   const [referralTreeDialogOpen, setReferralTreeDialogOpen] = useState(false);
 
+  // Lazy loading state - track expanded nodes and their children
+  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+  const [loadedChildren, setLoadedChildren] = useState<Map<number, TeamMember[]>>(new Map());
+  const [loadingNodes, setLoadingNodes] = useState<Set<number>>(new Set());
+  const [currentLoadingNodeId, setCurrentLoadingNodeId] = useState<number | null>(null);
+
+  // Query hook for loading node children (only active when currentLoadingNodeId is set)
+  const { data: nodeChildrenData, isLoading: isLoadingChildren } = useGetNodeChildrenQuery(
+    { node_id: currentLoadingNodeId!, side: 'both' },
+    { skip: !currentLoadingNodeId }
+  );
+
+  // Handle loading children when query completes
+  useEffect(() => {
+    if (nodeChildrenData && currentLoadingNodeId) {
+      const children: TeamMember[] = [];
+      const parentNameMap = createParentNameMap(treeStructure);
+      
+      // Helper to convert TreeNodeResponse to TeamMember
+      const nodeToMember = (node: TreeNodeResponse | null, position: 'left' | 'right', parentNodeId: number): TeamMember | null => {
+        if (!node) return null;
+        const parentName = node.parent_name || parentNameMap.get(parentNodeId);
+        const totalDescendants = (node.left_count || 0) + (node.right_count || 0);
+        return {
+          id: `node-${node.node_id}`,
+          name: node.user_full_name || node.user_username || node.user_email || 'Unknown',
+          userId: node.user_id?.toString(),
+          nodeId: node.node_id,
+          joinedAt: node.date_joined || node.created_at || new Date().toISOString(),
+          position: position,
+          pv: parseFloat(node.total_earnings || node.total_amount || '0'),
+          level: node.level || 0,
+          referrals: totalDescendants,
+          isActive: node.is_active_buyer !== false,
+          parentId: `node-${parentNodeId}`,
+          parentName: parentName || undefined,
+          referralCode: node.referral_code || undefined,
+          hasChildren: totalDescendants > 0,
+          isExpanded: false,
+          isChild: true,
+        };
+      };
+
+      if (nodeChildrenData.left_child) {
+        const leftChild = nodeToMember(nodeChildrenData.left_child, 'left', currentLoadingNodeId);
+        if (leftChild) children.push(leftChild);
+      }
+      if (nodeChildrenData.right_child) {
+        const rightChild = nodeToMember(nodeChildrenData.right_child, 'right', currentLoadingNodeId);
+        if (rightChild) children.push(rightChild);
+      }
+
+      // Store children in the map and mark node as expanded atomically
+      setLoadedChildren(prev => {
+        const newMap = new Map(prev);
+        newMap.set(currentLoadingNodeId, children);
+        return newMap;
+      });
+
+      // Mark node as expanded (do this after setting children to ensure state consistency)
+      setExpandedNodes(prev => {
+        const newSet = new Set(prev);
+        newSet.add(currentLoadingNodeId);
+        return newSet;
+      });
+      
+      console.log('✅ [Children Loaded]', {
+        nodeId: currentLoadingNodeId,
+        childrenCount: children.length,
+        children: children.map(c => ({ id: c.nodeId, name: c.name }))
+      });
+      
+      // Clear loading state
+      setLoadingNodes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(currentLoadingNodeId);
+        return newSet;
+      });
+      setCurrentLoadingNodeId(null);
+    }
+  }, [nodeChildrenData, currentLoadingNodeId, treeStructure]);
+
+  // Recursively collapse all nested children of a node
+  const collapseNodeAndChildren = (nodeId: number, expandedNodesSet: Set<number>, loadedChildrenMap: Map<number, TeamMember[]>, processedNodes: Set<number> = new Set(), depth: number = 0) => {
+    // Safety check: prevent infinite recursion
+    if (depth > 100) {
+      console.error('❌ [Collapse] Maximum depth exceeded, stopping recursion at node:', nodeId);
+      return;
+    }
+    
+    // Prevent infinite recursion
+    if (processedNodes.has(nodeId)) {
+      console.warn('⚠️ [Collapse] Circular reference detected, skipping node:', nodeId);
+      return;
+    }
+    
+    processedNodes.add(nodeId);
+    
+    // Remove this node from expanded set
+    expandedNodesSet.delete(nodeId);
+    
+    // Get children of this node
+    const children = loadedChildrenMap.get(nodeId) || [];
+    
+    // Recursively collapse all children
+    children.forEach(child => {
+      if (child.nodeId) {
+        collapseNodeAndChildren(child.nodeId, expandedNodesSet, loadedChildrenMap, processedNodes, depth + 1);
+      }
+    });
+    
+    // Remove children from loaded map
+    loadedChildrenMap.delete(nodeId);
+  };
+
+  // Handle node click to load children
+  const handleNodeClick = (member: TeamMember) => {
+    if (!member.nodeId || !member.hasChildren) return;
+    
+    const nodeId = member.nodeId;
+    const isNestedChild = member.isChild || false;
+    
+    console.log('🖱️ [Node Click]', {
+      nodeId,
+      name: member.name,
+      isNestedChild,
+      isExpanded: expandedNodes.has(nodeId),
+      hasLoadedChildren: loadedChildren.has(nodeId),
+    });
+    
+    // Toggle expansion
+    if (expandedNodes.has(nodeId)) {
+      // Collapse: recursively remove children and mark as not expanded
+      const newExpandedNodes = new Set(expandedNodes);
+      const newLoadedChildren = new Map(loadedChildren);
+      collapseNodeAndChildren(nodeId, newExpandedNodes, newLoadedChildren);
+      setExpandedNodes(newExpandedNodes);
+      setLoadedChildren(newLoadedChildren);
+      console.log('🔽 [Node Collapsed]', { nodeId, name: member.name });
+    } else {
+      // Expand: load children if not already loaded
+      if (!loadedChildren.has(nodeId)) {
+        console.log('⏳ [Loading Children]', { nodeId, name: member.name });
+        setLoadingNodes(prev => new Set(prev).add(nodeId));
+        setCurrentLoadingNodeId(nodeId);
+      } else {
+        // Already loaded, just mark as expanded
+        console.log('✅ [Expanding Already Loaded]', { nodeId, name: member.name });
+        setExpandedNodes(prev => new Set(prev).add(nodeId));
+      }
+    }
+  };
+
   // Helper to get pagination info from side members
   const getPaginationInfo = (sideMembers: SideMemberNode[] | PaginatedSideMembers | null | undefined) => {
     if (!sideMembers) return null;
@@ -634,8 +805,118 @@ export const BinaryTreeView = () => {
     }
   }, [teamMembers.length]);
 
-  // Use team members directly from server (no client-side filtering)
-  const displayMembers = teamMembers;
+  // Merge team members with loaded children from expanded nodes (recursively)
+  const displayMembers = useMemo(() => {
+    const result: TeamMember[] = [];
+    const addedNodeIds = new Set<number>(); // Track added nodes to prevent duplicates
+    const MAX_DEPTH = 100; // Safety limit to prevent infinite recursion
+    
+    // First, collect all node IDs that are children of expanded nodes (to prefer child positions)
+    const childNodeIds = new Set<number>();
+    const processedNodeIds = new Set<number>(); // Track processed nodes to prevent cycles
+    const MAX_COLLECT_DEPTH = 100; // Safety limit
+    
+    const collectChildNodeIds = (parentNodeId: number, depth: number = 0, path: number[] = []) => {
+      // Safety check: prevent infinite recursion
+      if (depth > MAX_COLLECT_DEPTH) {
+        console.error('❌ [Collect Child Nodes] Maximum depth exceeded at node:', parentNodeId);
+        return;
+      }
+      
+      // Prevent cycles: if this node is already in the path, it's a cycle
+      if (path.includes(parentNodeId)) {
+        console.warn('⚠️ [Collect Child Nodes] Circular reference detected at node:', parentNodeId);
+        return;
+      }
+      
+      // Skip if already processed (prevent processing same node multiple times)
+      if (processedNodeIds.has(parentNodeId)) {
+        return;
+      }
+      
+      processedNodeIds.add(parentNodeId);
+      
+      if (expandedNodes.has(parentNodeId)) {
+        const children = loadedChildren.get(parentNodeId) || [];
+        const newPath = [...path, parentNodeId];
+        
+        children.forEach(child => {
+          if (child.nodeId) {
+            childNodeIds.add(child.nodeId);
+            // Recursively collect children of children
+            collectChildNodeIds(child.nodeId, depth + 1, newPath);
+          }
+        });
+      }
+    };
+    
+    // Collect all child node IDs from all expanded nodes
+    expandedNodes.forEach(nodeId => {
+      collectChildNodeIds(nodeId, 0, []);
+    });
+    
+    // Recursive function to add a member and its children if expanded
+    // Uses a path-based approach to detect cycles: track the path from root to current node
+    const addMemberWithChildren = (member: TeamMember, path: number[] = [], depth: number = 0, isFromLazyLoad: boolean = false) => {
+      // Safety check: prevent infinite recursion
+      if (depth > MAX_DEPTH) {
+        console.error('❌ [Display Members] Maximum depth exceeded, stopping recursion at:', member.name, member.nodeId);
+        return;
+      }
+      
+      // Prevent infinite recursion: if this node is already in the current path, it's a cycle
+      if (member.nodeId && path.includes(member.nodeId)) {
+        console.warn('⚠️ [Display Members] Circular reference detected, skipping node:', member.nodeId, member.name, 'Path:', path);
+        return;
+      }
+      
+      // Skip if this node has already been added to the result (prevent duplicates)
+      if (member.nodeId && addedNodeIds.has(member.nodeId)) {
+        // Only log warning if it's not a child node (to reduce noise)
+        if (!isFromLazyLoad) {
+          console.warn('⚠️ [Display Members] Duplicate node detected, skipping:', member.nodeId, member.name);
+        }
+        return;
+      }
+      
+      // If this node is a child of an expanded node, skip it from the initial list
+      // (it will be shown in its proper child position)
+      if (!isFromLazyLoad && member.nodeId && childNodeIds.has(member.nodeId)) {
+        // Skip this node from initial list - it will appear as a child
+        return;
+      }
+      
+      // Mark this node as added
+      if (member.nodeId) {
+        addedNodeIds.add(member.nodeId);
+      }
+      
+      // Add the member itself with updated expansion status
+      const memberWithExpansion: TeamMember = {
+        ...member,
+        isExpanded: member.nodeId ? expandedNodes.has(member.nodeId) : false,
+      };
+      result.push(memberWithExpansion);
+      
+      // If this member is expanded and has loaded children, add them recursively
+      if (member.nodeId && expandedNodes.has(member.nodeId)) {
+        const children = loadedChildren.get(member.nodeId) || [];
+        // Create new path including current node
+        const newPath = member.nodeId ? [...path, member.nodeId] : path;
+        children.forEach(child => {
+          // Recursively add children and their children (mark as from lazy load)
+          addMemberWithChildren(child, newPath, depth + 1, true);
+        });
+      }
+    };
+    
+    // Process all top-level team members (not from lazy load)
+    teamMembers.forEach(member => {
+      addMemberWithChildren(member, [], 0, false);
+    });
+    
+    return result;
+  }, [teamMembers, expandedNodes, loadedChildren]);
 
   const handlePositionPendingNode = async () => {
     if (!selectedPendingNode || !distributorId || !selectedParentId) {
@@ -1102,6 +1383,9 @@ export const BinaryTreeView = () => {
                 setLeftPage(1);
                 setRightPage(1);
                 setBothPage(1);
+                // Clear expanded nodes when filter changes
+                setExpandedNodes(new Set());
+                setLoadedChildren(new Map());
               }}
             >
               <SelectTrigger className="w-[140px] border-pink-500/25 bg-white">
@@ -1120,6 +1404,9 @@ export const BinaryTreeView = () => {
                 setLeftPage(1);
                 setRightPage(1);
                 setBothPage(1);
+                // Clear expanded nodes when page size changes
+                setExpandedNodes(new Set());
+                setLoadedChildren(new Map());
               }}
             >
               <SelectTrigger className="w-[100px] border-pink-500/25 bg-white">
@@ -1141,6 +1428,9 @@ export const BinaryTreeView = () => {
                 onChange={(e) => {
                   const value = e.target.value.trim();
                   setMinDepth(value === '' ? undefined : Number(value));
+                  // Clear expanded nodes when depth filter changes
+                  setExpandedNodes(new Set());
+                  setLoadedChildren(new Map());
                 }}
                 placeholder="0"
                 className="w-[80px] border-pink-500/25"
@@ -1155,6 +1445,9 @@ export const BinaryTreeView = () => {
                 onChange={(e) => {
                   const value = e.target.value.trim();
                   setMaxDepth(value === '' ? undefined : Number(value));
+                  // Clear expanded nodes when depth filter changes
+                  setExpandedNodes(new Set());
+                  setLoadedChildren(new Map());
                 }}
                 placeholder="2"
                 className="w-[80px] border-pink-500/25"
@@ -1179,13 +1472,36 @@ export const BinaryTreeView = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {displayMembers.map((member, index) => (
+                    {displayMembers.map((member, index) => {
+                      const isChild = member.isChild || false;
+                      const hasChildren = member.hasChildren || false;
+                      // Get expansion state from both member object and expandedNodes Set to ensure accuracy
+                      const isExpandedFromSet = member.nodeId ? expandedNodes.has(member.nodeId) : false;
+                      const isExpanded = member.isExpanded !== undefined ? member.isExpanded : isExpandedFromSet;
+                      const isLoading = member.nodeId ? loadingNodes.has(member.nodeId) : false;
+                      const isClickable = hasChildren;
+                      
+                      return (
                       <TableRow
-                        key={member.id}
-                        className={`border-b border-slate-100 transition-colors hover:bg-pink-500/5 ${index % 2 === 1 ? 'bg-slate-50/50' : ''}`}
+                        key={`${member.id}-${member.nodeId || index}`}
+                        className={`border-b border-slate-100 transition-colors ${isClickable ? 'cursor-pointer hover:bg-pink-500/10' : 'hover:bg-pink-500/5'} ${index % 2 === 1 ? 'bg-slate-50/50' : ''} ${isChild ? 'bg-pink-50/30' : ''}`}
+                        onClick={() => isClickable && handleNodeClick(member)}
                       >
                         <TableCell className="font-medium py-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2" style={{ paddingLeft: isChild ? '2rem' : '0' }}>
+                            {hasChildren ? (
+                              <div className="flex items-center justify-center w-5 h-5">
+                                {isLoading ? (
+                                  <Loader2 className="h-4 w-4 text-pink-600 animate-spin" />
+                                ) : isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-pink-600" />
+                                ) : (
+                                  <ChevronRightIcon className="h-4 w-4 text-pink-600" />
+                                )}
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5" /> // Spacer for alignment
+                            )}
                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-500/10">
                               <User className="h-4 w-4 text-pink-600" />
                             </div>
@@ -1261,7 +1577,8 @@ export const BinaryTreeView = () => {
                           )}
                         </TableCell>
                       </TableRow>
-                    ))}
+                    );
+                    })}
                   </TableBody>
                 </Table>
               </div>
