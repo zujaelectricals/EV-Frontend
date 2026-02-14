@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { BinaryPair } from '@/app/slices/binarySlice';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 
 export interface BinaryNode {
   id: string;
