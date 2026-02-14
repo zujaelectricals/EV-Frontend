@@ -1,6 +1,6 @@
 import { api } from './baseApi';
 import { getAuthTokens, refreshAccessToken } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 
 // Payout response interface
 export interface PayoutResponse {
