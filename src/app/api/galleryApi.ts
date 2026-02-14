@@ -1,5 +1,5 @@
 import { api } from './baseApi';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 import { getAuthTokens, refreshAccessToken } from './baseApi';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
