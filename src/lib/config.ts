@@ -5,7 +5,8 @@
 
 // Fallback API base URL (for development)
 const DEFAULT_API_BASE_URL = 'http://192.168.1.41:8000/api/';
-
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL;
 /**
  * Get the API base URL from environment variables or fallback to default
  * Supports both NEXT_PUBLIC_* (Next.js style) and VITE_* (Vite style) environment variables
