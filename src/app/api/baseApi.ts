@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
-import { getApiBaseUrl } from '../../lib/config';
+import { API_BASE_URL } from '../../lib/config';
 import { isTokenExpiredOrExpiringSoon, getTokenExpiryTime } from '../../lib/utils';
 
 // Helper function to get auth tokens from localStorage
