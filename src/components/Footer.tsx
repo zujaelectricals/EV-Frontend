@@ -71,11 +71,11 @@ export function Footer() {
             <h4 className="font-semibold text-foreground mb-4">Contact</h4>
             <div className="space-y-3 text-sm text-muted-foreground">
               <a 
-                href="mailto:Zujaelectricscooters@gmail.com" 
+                href="mailto:zujaelectric@gmail.com" 
                 className="flex items-center gap-3 transition-colors group hover:text-[#15adc1]"
               >
                 <Mail className="w-5 h-5 transition-colors duration-300" style={{ color: '#15adc1' }} />
-                <span>Zujaelectricscooters@gmail.com</span>
+                <span>zujaelectric@gmail.com</span>
               </a>
               <a 
                 href="tel:7356360777" 

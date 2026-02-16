@@ -51,22 +51,22 @@ export function Contact() {
     {
       icon: MapPin,
       title: 'Visit Us',
-      lines: ['123 Electric Avenue', 'Tech City, TC 12345'],
+      lines: ['KUTTIYIDAYIL, ARRATTUVAZHY', 'Alappuzha North, Ambalapuzh A', 'Alappuzha- 688007, Kerala'],
     },
     {
       icon: Phone,
       title: 'Call Us',
-      lines: ['+1 (234) 567-890', '+1 (234) 567-891'],
+      lines: ['7356360777', 'Customer Care'],
     },
     {
       icon: Mail,
       title: 'Email Us',
-      lines: ['info@zuja.com', 'support@zuja.com'],
+      lines: ['zujaelectric@gmail.com'],
     },
     {
       icon: Clock,
       title: 'Working Hours',
-      lines: ['Mon - Fri: 9AM - 6PM', 'Sat: 10AM - 4PM'],
+      lines: ['Mon - Sat: 9AM - 8PM', 'Sunday: Holiday'],
     },
   ];
 
@@ -310,7 +310,7 @@ export function Contact() {
                         value={formData.phone}
                         onChange={handleChange}
                         className="border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-xl h-12"
-                        placeholder="+1 (234) 567-890"
+                        placeholder="7356360777"
                       />
                     </div>
 
@@ -406,7 +406,9 @@ export function Contact() {
                     <MapPin className="w-7 h-7 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">Our Showroom</h3>
-                  <p className="text-gray-600">123 Electric Avenue, Tech City</p>
+                  <p className="text-gray-600">KUTTIYIDAYIL, ARRATTUVAZHY</p>
+                  <p className="text-gray-600">Alappuzha North, Ambalapuzh A</p>
+                  <p className="text-gray-600">Alappuzha- 688007, Kerala</p>
                 </div>
               </div>
 
@@ -451,9 +453,9 @@ export function Contact() {
                 <div>
                   <h4 className="font-semibold text-gray-900">Need Urgent Help?</h4>
                   <p className="text-sm text-gray-600">
-                    Call our 24/7 support:{' '}
-                    <a href="tel:+1234567899" className="text-teal-600 font-medium hover:underline">
-                      +1 (234) 567-899
+                    Call our customer care:{' '}
+                    <a href="tel:7356360777" className="text-teal-600 font-medium hover:underline">
+                      7356360777
                     </a>
                   </p>
                 </div>

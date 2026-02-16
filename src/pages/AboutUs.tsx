@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Eye, Leaf, Heart, Users, Crosshair, Award, ArrowRight } from 'lucide-react';
+import { Sparkles, Eye, Leaf, Heart, Users, Crosshair, Award, ArrowRight, Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { StoreNavbar } from '@/store/StoreNavbar';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -586,6 +586,104 @@ export function AboutUs() {
               </Link>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Contact Information Section */}
+      <section className="relative py-20 sm:py-24 overflow-hidden bg-white">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-20 left-[10%] w-64 h-64 rounded-full bg-teal-100/40 blur-3xl" />
+          <div className="absolute bottom-32 right-[5%] w-48 h-48 rounded-full bg-emerald-100/30 blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12 sm:mb-16"
+          >
+            <p className="text-[#00B0A8] font-semibold text-sm sm:text-base mb-2">Get In Touch</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#1a1a2e]">
+              Contact{' '}
+              <span
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: 'linear-gradient(90deg, #f472b6 0%, #fb7185 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                Us
+              </span>
+            </h2>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300"
+            >
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}>
+                <MapPin className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Visit Us</h3>
+              <p className="text-sm text-gray-600">KUTTIYIDAYIL, ARRATTUVAZHY</p>
+              <p className="text-sm text-gray-600">Alappuzha North, Ambalapuzh A</p>
+              <p className="text-sm text-gray-600">Alappuzha- 688007, Kerala</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300"
+            >
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}>
+                <Phone className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Call Us</h3>
+              <a href="tel:7356360777" className="text-sm text-gray-600 hover:text-[#15adc1] transition-colors">
+                7356360777
+              </a>
+              <p className="text-sm text-gray-500 mt-1">Customer Care</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300"
+            >
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}>
+                <Mail className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Email Us</h3>
+              <a href="mailto:zujaelectric@gmail.com" className="text-sm text-gray-600 hover:text-[#15adc1] transition-colors">
+                zujaelectric@gmail.com
+              </a>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
+              className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300"
+            >
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}>
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Working Hours</h3>
+              <p className="text-sm text-gray-600">Mon - Sat: 9AM - 8PM</p>
+              <p className="text-sm text-gray-600">Sunday: Holiday</p>
+            </motion.div>
+          </div>
         </div>
       </section>
 
