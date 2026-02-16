@@ -35,7 +35,7 @@ export const PairMatchingHistory = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <LoadingSpinner text="Loading pair history..." size="md" />
+        <LoadingSpinner text="Loading Partner Framework history..." size="md" />
       </div>
     );
   }
@@ -100,7 +100,7 @@ export const PairMatchingHistory = () => {
           {pairHistory.length === 0 ? (
             <div className="text-center py-12">
               <History className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No pair matches yet</p>
+              <p className="text-muted-foreground">No Partner Framework matches yet</p>
               <p className="text-sm text-muted-foreground mt-2">
                 Start referring users to both sides of your network to create
                 team matches

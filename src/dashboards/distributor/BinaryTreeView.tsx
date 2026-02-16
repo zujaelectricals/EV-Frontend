@@ -1176,7 +1176,7 @@ export const BinaryTreeView = () => {
           variant="info"
         />
         <StatsCard
-          title="Total Pairs"
+          title="Total Partner Framework"
           value={`${binaryStats?.totalPairs || 0}/${
             binaryStats?.maxPairs || 10
           }`}
@@ -1198,8 +1198,8 @@ export const BinaryTreeView = () => {
           <AlertDescription className="text-success">
             <strong>Team Commission Enabled!</strong> You've received ₹
             {binaryStats.activationBonus.toLocaleString()} as an account
-            enablement bonus. You can now earn ₹2,000 for each new pair (up to
-            10 pairs or ₹20,000).
+            enablement bonus. You can now earn ₹2,000 for each new Partner Framework (up to
+            10 Partner Frameworks or ₹20,000).
           </AlertDescription>
         </Alert>
       )}
@@ -1209,8 +1209,8 @@ export const BinaryTreeView = () => {
           <Info className="h-4 w-4 text-warning" />
           <AlertDescription className="text-warning">
             <strong>Commission Limit Reached:</strong> You've reached the
-            maximum of 10 pairs (₹20,000 commission).{" "}
-            {binaryStats.pairsBeyondLimit} additional pair(s) are being tracked
+            maximum of 10 Partner Frameworks (₹20,000 commission).{" "}
+            {binaryStats.pairsBeyondLimit} additional Partner Framework(s) are being tracked
             but won't generate commission (carry forward).
           </AlertDescription>
         </Alert>
@@ -1359,7 +1359,7 @@ export const BinaryTreeView = () => {
                 className="flex items-center gap-2 border-pink-500/40 hover:bg-pink-500/10 hover:border-pink-500 hover:text-pink-600"
               >
                 <Link2 className="h-4 w-4" />
-                {isCheckingPairs ? "Matching..." : "Match Pairs"}
+                {isCheckingPairs ? "Matching..." : "Match Partner Frameworks"}
               </Button>
               {/* <Button
                 variant="outline"

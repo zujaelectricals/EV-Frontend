@@ -132,6 +132,11 @@ export interface NomineeDetailsResponse {
   results: NomineeDetails[];
 }
 
+// Helper function to check if a value is a File
+const isFile = (value: unknown): value is File => {
+  return value != null && typeof value === 'object' && value instanceof File;
+};
+
 // Helper function to transform UserProfileResponse to User
 const transformUserProfile = (profile: UserProfileResponse): User => {
   // Always create distributorInfo if user has a referral_code or is a distributor
@@ -337,7 +342,7 @@ export const userApi = api.injectEndpoints({
         };
 
         // Get access token from localStorage
-        let { accessToken } = getAuthTokens();
+        const { accessToken } = getAuthTokens();
 
         if (!accessToken) {
           console.error('❌ [KYC API] No access token found in localStorage');
@@ -494,11 +499,14 @@ export const userApi = api.injectEndpoints({
     updateProfile: builder.mutation<UserProfileResponse, Partial<UserProfileResponse> & { profile_picture?: File }>({
       queryFn: async (body) => {
         console.log('🔵 [PROFILE UPDATE API] ========== Starting Profile Update ==========');
+        // Type guard helper
+        const profilePicture = body.profile_picture;
+        const isProfilePictureFile = isFile(profilePicture);
         console.log('🔵 [PROFILE UPDATE API] Request body type check:', {
-          hasProfilePicture: body.profile_picture instanceof File,
+          hasProfilePicture: isProfilePictureFile,
           profilePictureType: typeof body.profile_picture,
-          profilePictureValue: body.profile_picture instanceof File 
-            ? `File: ${body.profile_picture.name} (${body.profile_picture.size} bytes, type: ${body.profile_picture.type})`
+          profilePictureValue: isProfilePictureFile && profilePicture
+            ? `File: ${profilePicture.name} (${profilePicture.size} bytes, type: ${profilePicture.type})`
             : body.profile_picture,
         });
 
@@ -514,10 +522,11 @@ export const userApi = api.injectEndpoints({
         }
 
         try {
-          const hasProfilePicture = body.profile_picture instanceof File;
+          const profilePicture = body.profile_picture;
+          const hasProfilePicture = isFile(profilePicture);
           
           // If profile_picture is included, use multipart/form-data
-          if (hasProfilePicture) {
+          if (hasProfilePicture && profilePicture) {
             const formData = new FormData();
             
             // Add all text fields to FormData
@@ -535,16 +544,12 @@ export const userApi = api.injectEndpoints({
             if (body.country) formData.append('country', body.country);
             
             // Add profile picture file - ensure it's a File object
-            if (body.profile_picture instanceof File) {
-              formData.append('profile_picture', body.profile_picture);
-              console.log('📤 [PROFILE UPDATE API] Added profile_picture file to FormData:', {
-                name: body.profile_picture.name,
-                size: body.profile_picture.size,
-                type: body.profile_picture.type,
-              });
-            } else {
-              console.error('❌ [PROFILE UPDATE API] profile_picture is not a File object:', body.profile_picture);
-            }
+            formData.append('profile_picture', profilePicture);
+            console.log('📤 [PROFILE UPDATE API] Added profile_picture file to FormData:', {
+              name: profilePicture.name,
+              size: profilePicture.size,
+              type: profilePicture.type,
+            });
 
             console.log('📤 [PROFILE UPDATE API] Using multipart/form-data (profile_picture included)');
             const formDataEntries = Array.from(formData.entries()).map(([key, value]) => ({
@@ -587,8 +592,8 @@ export const userApi = api.injectEndpoints({
                   if (body.state) retryFormData.append('state', body.state);
                   if (body.pincode) retryFormData.append('pincode', body.pincode);
                   if (body.country) retryFormData.append('country', body.country);
-                  if (body.profile_picture instanceof File) {
-                    retryFormData.append('profile_picture', body.profile_picture);
+                  if (isFile(profilePicture)) {
+                    retryFormData.append('profile_picture', profilePicture);
                   }
 
                   response = await fetch(`${API_BASE_URL}users/update_profile/`, {

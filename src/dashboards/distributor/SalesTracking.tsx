@@ -91,7 +91,7 @@ export const SalesTracking = () => {
   // Commission breakdown data
   const commissionBreakdown = [
     { name: 'Referral Commission', value: referralCommissionEarned, color: COLORS[0] },
-    { name: 'Pair Commission', value: pairCommissionEarned, color: COLORS[1] },
+    { name: 'Partner Framework Commission', value: pairCommissionEarned, color: COLORS[1] },
     ...(activationBonus > 0 ? [{ name: 'Activation Bonus', value: activationBonus, color: COLORS[2] }] : []),
   ];
 
@@ -312,7 +312,7 @@ export const SalesTracking = () => {
 
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium">Pair Commission</CardTitle>
+                      <CardTitle className="text-sm font-medium">Partner Framework Commission</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-foreground">

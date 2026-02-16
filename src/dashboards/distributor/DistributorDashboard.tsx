@@ -109,7 +109,7 @@ export const DistributorDashboard = () => {
           transitionDelay={0}
         />
         <StatsCard
-          title="Total Pairs"
+          title="Total Partner Framework"
           value={(binaryStats?.totalPairs || 0).toString()}
           icon={GitBranch}
           variant="info"

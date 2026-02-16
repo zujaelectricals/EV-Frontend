@@ -3,6 +3,7 @@ import { Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin } from 'luci
 import { motion } from 'framer-motion';
 
 export function Footer() {
+
   return (
     <footer className="py-12 border-t border-border/50" style={{ backgroundColor: '#f8f8fa' }}>
       <div className="container mx-auto px-4">
@@ -83,13 +84,13 @@ export function Footer() {
                 <Phone className="w-5 h-5 transition-colors duration-300" style={{ color: '#15adc1' }} />
                 <span>7356360777</span>
               </a>
-              <a 
+              {/* <a 
                 href="tel:7736528688" 
                 className="flex items-center gap-3 transition-colors group hover:text-[#15adc1]"
               >
                 <Phone className="w-5 h-5 transition-colors duration-300" style={{ color: '#15adc1' }} />
                 <span>7736528688</span>
-              </a>
+              </a> */}
             </div>
           </div>
         </div>
@@ -101,13 +102,11 @@ export function Footer() {
             <Link to="/privacy-policy" className="transition-colors hover:text-[#15adc1]">
               Privacy Policy
             </Link>
-            <Link to="/terms-of-service" className="transition-colors hover:text-[#15adc1]">
-              Terms of Service
-            </Link>
           </div>
         </div>
       </div>
     </footer>
   );
 }
+
 

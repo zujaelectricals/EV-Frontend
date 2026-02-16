@@ -1181,7 +1181,7 @@ export const PayoutHistory = () => {
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="REFERRAL_BONUS">Referral Bonus</SelectItem>
-                    <SelectItem value="BINARY_PAIR">Binary Pair</SelectItem>
+                    <SelectItem value="BINARY_PAIR">Partner Framework</SelectItem>
                     <SelectItem value="BINARY_INITIAL_BONUS">Binary Initial Bonus</SelectItem>
                     <SelectItem value="DIRECT_USER_COMMISSION">Direct User Commission</SelectItem>
                     <SelectItem value="TDS_DEDUCTION">TDS Deduction</SelectItem>

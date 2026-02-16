@@ -30,6 +30,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AboutUs } from './pages/AboutUs';
 import { Contact } from './pages/Contact';
 import { Gallery } from './pages/Gallery';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { DistributorApplication } from './dashboards/user/DistributorApplication';
 import { RedemptionShop } from './dashboards/user/RedemptionShop';
 import { PoolMoneyWithdrawal } from './dashboards/distributor/PoolMoneyWithdrawal';
@@ -233,6 +234,7 @@ const AppRoutes = () => {
       <Route path="/about" element={<AboutUs />} />
       <Route path="/gallery" element={<Gallery />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       
       {/* Referral Link Route */}
       <Route path="/ref/:referralCode" element={<ReferralRedirect />} />
