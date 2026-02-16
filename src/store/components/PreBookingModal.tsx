@@ -174,16 +174,9 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [preBookingAmount, setPreBookingAmount] = useState(500);
   const [inputValue, setInputValue] = useState('500'); // Local state for input field
   
-  // Get referral code from props, localStorage, or empty string
-  const getStoredReferralCode = () => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('ev_nexus_referral_code') || '';
-    }
-    return '';
-  };
-  
+  // Default referral code to 'COMPANY1'
   const [referralCodeInput, setReferralCodeInput] = useState(
-    referralCode || getStoredReferralCode()
+    referralCode || 'COMPANY1'
   );
   const [joinDistributorProgram, setJoinDistributorProgram] = useState(false);
   
@@ -233,24 +226,13 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     setInputValue(preBookingAmount.toString());
   }, [preBookingAmount]);
 
-  // Auto-fill referral code from localStorage when modal opens
+  // Auto-fill referral code when modal opens (default to 'COMPANY1')
   useEffect(() => {
     if (isOpen) {
-      const storedCode = typeof window !== 'undefined' 
-        ? localStorage.getItem('ev_nexus_referral_code') || ''
-        : '';
-      
-      // Priority: prop > localStorage > empty
-      const codeToUse = referralCode || storedCode;
-      
-      if (codeToUse) {
-        setReferralCodeInput(codeToUse);
-        // Store in localStorage if from prop
-        if (referralCode && typeof window !== 'undefined') {
-          localStorage.setItem('ev_nexus_referral_code', referralCode);
-        }
-        console.log('✅ [PRE-BOOKING] Auto-filled referral code:', codeToUse);
-      }
+      // Priority: prop > default 'COMPANY1'
+      const codeToUse = referralCode || 'COMPANY1';
+      setReferralCodeInput(codeToUse);
+      console.log('✅ [PRE-BOOKING] Auto-filled referral code:', codeToUse);
     }
   }, [isOpen, referralCode]);
 
