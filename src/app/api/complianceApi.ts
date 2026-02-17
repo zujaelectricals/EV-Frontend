@@ -200,6 +200,143 @@ export const complianceApi = api.injectEndpoints({
       },
       invalidatesTags: ['DistributorDocuments'],
     }),
+
+    // Accept distributor document (sends OTP)
+    acceptDocument: builder.mutation<any, number>({
+      queryFn: async (id, _api, _extraOptions, baseQuery) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          if (!accessToken) {
+            return {
+              error: {
+                status: 'CUSTOM_ERROR' as const,
+                error: 'No access token found',
+                data: { message: 'No access token found' },
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const url = `${API_BASE_URL}compliance/distributor-documents/${id}/accept/`;
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              const { accessToken: newToken } = getAuthTokens();
+              response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return {
+              error: {
+                status: response.status,
+                error: errorData.detail || errorData.message || 'Failed to accept document',
+                data: errorData,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const responseData = await response.json().catch(() => ({}));
+          return { data: responseData };
+        } catch (error) {
+          console.error('Accept Document API Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: ['DistributorDocuments'],
+    }),
+
+    // Verify document acceptance with OTP
+    verifyAcceptance: builder.mutation<
+      any,
+      { documentId: number; data: { identifier: string; otp_code: string; otp_type: string } }
+    >({
+      queryFn: async ({ documentId, data }, _api, _extraOptions, baseQuery) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          if (!accessToken) {
+            return {
+              error: {
+                status: 'CUSTOM_ERROR' as const,
+                error: 'No access token found',
+                data: { message: 'No access token found' },
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const url = `${API_BASE_URL}compliance/distributor-documents/${documentId}/verify/`;
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              const { accessToken: newToken } = getAuthTokens();
+              response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+              });
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return {
+              error: {
+                status: response.status,
+                error: errorData.detail || errorData.message || 'Failed to verify acceptance',
+                data: errorData,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const responseData = await response.json().catch(() => ({}));
+          return { data: responseData };
+        } catch (error) {
+          console.error('Verify Acceptance API Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: ['DistributorDocuments'],
+    }),
   }),
 });
 
@@ -207,4 +344,6 @@ export const {
   useGetDistributorDocumentsQuery,
   useCreateDistributorDocumentMutation,
   useDeleteDistributorDocumentMutation,
+  useAcceptDocumentMutation,
+  useVerifyAcceptanceMutation,
 } = complianceApi;
