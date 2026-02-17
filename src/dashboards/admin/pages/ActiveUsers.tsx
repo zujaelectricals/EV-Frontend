@@ -171,6 +171,18 @@ export const ActiveUsers = () => {
   useEffect(() => {
     console.log('🔍 [ActiveUsers] Query params changed:', queryParams);
   }, [queryParams]);
+
+  // Debug: Log response structure
+  useEffect(() => {
+    if (usersResponse) {
+      console.log('🔍 [ActiveUsers] Response structure:', {
+        isArray: Array.isArray(usersResponse),
+        hasResults: !Array.isArray(usersResponse) && 'results' in usersResponse,
+        hasCount: !Array.isArray(usersResponse) && 'count' in usersResponse,
+        response: usersResponse,
+      });
+    }
+  }, [usersResponse]);
   const [viewingUserId, setViewingUserId] = useState<number | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
@@ -272,11 +284,22 @@ export const ActiveUsers = () => {
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserByIdMutation();
 
   // Map API users to UserExtended format
+  // Handle both response formats: array directly or object with results property
   const users = useMemo(() => {
-    if (!usersResponse?.results) return [];
-    const mappedUsers = usersResponse.results.map(mapApiUserToExtended);
+    if (!usersResponse) return [];
+    
+    // Check if response is an array directly
+    const isArrayResponse = Array.isArray(usersResponse);
+    const usersArray = isArrayResponse ? usersResponse : usersResponse.results;
+    
+    if (!usersArray || !Array.isArray(usersArray)) {
+      console.warn('🔍 [ActiveUsers] Invalid response format:', usersResponse);
+      return [];
+    }
+    
+    const mappedUsers = usersArray.map(mapApiUserToExtended);
     console.log('🔍 [ActiveUsers] Mapped users:', mappedUsers);
-    console.log('🔍 [ActiveUsers] Users with status:', mappedUsers.map(u => ({ id: u.id, name: u.name, status: u.status, is_active_buyer: usersResponse.results.find(r => String(r.id) === u.id)?.is_active_buyer })));
+    console.log('🔍 [ActiveUsers] Users with status:', mappedUsers.map(u => ({ id: u.id, name: u.name, status: u.status, is_active_buyer: usersArray.find(r => String(r.id) === u.id)?.is_active_buyer })));
     return mappedUsers;
   }, [usersResponse]);
 
@@ -296,9 +319,26 @@ export const ActiveUsers = () => {
   }, [users]);
 
   // Calculate stats from current page results (for display)
-  // Note: For accurate total counts, you'd need separate API calls
-  const totalActive = usersResponse?.count || 0;
-  const totalPages = usersResponse ? Math.ceil(usersResponse.count / pageSize) : 0;
+  // Handle both response formats: array directly or object with count property
+  const totalActive = useMemo(() => {
+    if (!usersResponse) return 0;
+    // If response is an array, use its length
+    if (Array.isArray(usersResponse)) {
+      return usersResponse.length;
+    }
+    // If response is an object with count, use count
+    return usersResponse.count || users.length;
+  }, [usersResponse, users.length]);
+  
+  const totalPages = useMemo(() => {
+    if (!usersResponse) return 0;
+    // If response is an array, calculate pages from array length
+    if (Array.isArray(usersResponse)) {
+      return Math.ceil(usersResponse.length / pageSize);
+    }
+    // If response is an object with count, use count
+    return usersResponse.count ? Math.ceil(usersResponse.count / pageSize) : 0;
+  }, [usersResponse, pageSize]);
 
   // Count distributors and regular users from current page (all users, not just active)
   const distributors = users.filter((u) => u.role === 'distributor').length;
@@ -613,7 +653,7 @@ export const ActiveUsers = () => {
           </Table>
 
           {/* Pagination */}
-          {usersResponse && usersResponse.count > 0 && (
+          {totalActive > 0 && (
             <div className="flex items-center justify-between mt-4">
               <div className="flex items-center gap-2">
                 <Label className="text-sm">Rows per page:</Label>
@@ -635,7 +675,7 @@ export const ActiveUsers = () => {
                   </SelectContent>
                 </Select>
                 <span className="text-sm text-muted-foreground">
-                  Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, usersResponse.count)} of {usersResponse.count}
+                  Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalActive)} of {totalActive}
                 </span>
               </div>
               <div className="flex items-center gap-2">
