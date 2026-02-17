@@ -21,6 +21,7 @@ import {
   FileText,
   Key,
   Image as ImageIcon,
+  FileCheck,
 } from "lucide-react";
 import { useAppSelector } from "@/app/hooks";
 import { cn } from "@/lib/utils";
@@ -251,6 +252,13 @@ const adminMenuSections: MenuSection[] = [
     icon: ImageIcon,
     value: "gallery",
     path: "/admin/gallery",
+    children: [],
+  },
+  {
+    label: "Documents",
+    icon: FileCheck,
+    value: "documents",
+    path: "/admin/documents",
     children: [],
   },
   {
