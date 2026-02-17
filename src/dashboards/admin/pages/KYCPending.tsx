@@ -192,8 +192,15 @@ export const KYCPending = () => {
   useEffect(() => {
     if (kycResponse) {
       console.log('📥 [KYC Pending Component] API Response:', JSON.stringify(kycResponse, null, 2));
-      console.log('📥 [KYC Pending Component] Total Count:', kycResponse.count);
-      console.log('📥 [KYC Pending Component] Results:', kycResponse.results);
+      console.log('📥 [KYC Pending Component] Response Type:', Array.isArray(kycResponse) ? 'Array' : 'Object');
+      if (Array.isArray(kycResponse)) {
+        console.log('📥 [KYC Pending Component] Array Length:', kycResponse.length);
+        console.log('📥 [KYC Pending Component] Results:', kycResponse);
+      } else {
+        console.log('📥 [KYC Pending Component] Total Count:', kycResponse.count);
+        console.log('📥 [KYC Pending Component] Results:', kycResponse.results);
+        console.log('📥 [KYC Pending Component] Results Length:', kycResponse.results?.length || 0);
+      }
       console.log('📥 [KYC Pending Component] Current Page:', currentPage);
       console.log('📥 [KYC Pending Component] Page Size:', pageSize);
       console.log('📥 [KYC Pending Component] Query Params:', queryParams);
@@ -209,9 +216,11 @@ export const KYCPending = () => {
 
   // Filter KYC applications by search query (client-side for name/email search)
   const filteredApplications = useMemo(() => {
-    if (!kycResponse?.results) return [];
+    if (!kycResponse) return [];
     
-    let filtered = kycResponse.results;
+    // Handle both paginated response format and direct array format
+    const results = Array.isArray(kycResponse) ? kycResponse : (kycResponse.results || []);
+    let filtered = results;
     
     // Client-side search by PAN/Aadhaar/Account Name/User Name if search query is provided
     if (searchQuery.trim()) {
@@ -230,16 +239,19 @@ export const KYCPending = () => {
     }
     
     return filtered;
-  }, [kycResponse?.results, searchQuery]);
+  }, [kycResponse, searchQuery]);
 
   // Calculate stats - based on current page results
   const stats = useMemo(() => {
-    if (!kycResponse || !kycResponse.results) return { total: 0, pending: 0, approved: 0, rejected: 0 };
+    if (!kycResponse) return { total: 0, pending: 0, approved: 0, rejected: 0 };
     
-    const total = kycResponse.count;
-    const pending = kycResponse.results.filter(k => k.status === 'pending').length;
-    const approved = kycResponse.results.filter(k => k.status === 'approved').length;
-    const rejected = kycResponse.results.filter(k => k.status === 'rejected').length;
+    // Handle both paginated response format and direct array format
+    const results = Array.isArray(kycResponse) ? kycResponse : (kycResponse.results || []);
+    const total = Array.isArray(kycResponse) ? kycResponse.length : (kycResponse.count || 0);
+    
+    const pending = results.filter(k => k.status === 'pending').length;
+    const approved = results.filter(k => k.status === 'approved').length;
+    const rejected = results.filter(k => k.status === 'rejected').length;
     
     return {
       total,
@@ -360,7 +372,9 @@ export const KYCPending = () => {
     setCurrentPage(1);
   };
 
-  const totalPages = kycResponse ? Math.ceil(kycResponse.count / pageSize) : 0;
+  const totalPages = kycResponse 
+    ? Math.ceil((Array.isArray(kycResponse) ? kycResponse.length : (kycResponse.count || 0)) / pageSize) 
+    : 0;
 
   if (isLoading && !kycResponse) {
     return (
@@ -729,7 +743,7 @@ export const KYCPending = () => {
               </Table>
 
               {/* Pagination */}
-              {kycResponse && kycResponse.count > 0 && (
+              {kycResponse && (Array.isArray(kycResponse) ? kycResponse.length > 0 : (kycResponse.count || 0) > 0) && (
                 <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm">Rows per page:</Label>
@@ -751,7 +765,7 @@ export const KYCPending = () => {
                       </SelectContent>
                     </Select>
                     <span className="text-sm text-muted-foreground">
-                      Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, kycResponse.count)} of {kycResponse.count}
+                      Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, Array.isArray(kycResponse) ? kycResponse.length : (kycResponse.count || 0))} of {Array.isArray(kycResponse) ? kycResponse.length : (kycResponse.count || 0)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
