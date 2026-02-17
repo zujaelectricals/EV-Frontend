@@ -66,14 +66,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <MainLayout>{children}</MainLayout>;
 };
 
-// Component to handle referral link redirects
+// Component to handle ASA link redirects
 const ReferralRedirect = () => {
   const { referralCode } = useParams<{ referralCode: string }>();
   
   // Store referral code in localStorage
   if (referralCode && typeof window !== 'undefined') {
     localStorage.setItem('ev_nexus_referral_code', referralCode);
-    console.log('✅ [REFERRAL REDIRECT] Stored referral code in localStorage:', referralCode);
+    console.log('✅ [ASA REDIRECT] Stored ASA code in localStorage:', referralCode);
   }
   
   return <Navigate to={`/login?ref=${referralCode}&signup=true`} replace />;
@@ -238,7 +238,7 @@ const AppRoutes = () => {
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />
       
-      {/* Referral Link Route */}
+      {/* ASA Link Route */}
       <Route path="/ref/:referralCode" element={<ReferralRedirect />} />
       
       {/* Auth */}

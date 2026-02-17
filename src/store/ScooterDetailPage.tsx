@@ -154,6 +154,19 @@ export function ScooterDetailPage() {
     return null;
   }, [stockData, id, inventoryData]);
 
+  // Check if this variant is already booked (computed separately for use in button)
+  const isAlreadyBooked = useMemo(() => {
+    if (!inventoryData?.results || !variantId) return false;
+    
+    for (const vehicleGroup of inventoryData.results) {
+      const matchingVariant = vehicleGroup.variants.find(v => v.id === variantId);
+      if (matchingVariant) {
+        return matchingVariant.is_already_booked === true;
+      }
+    }
+    return false;
+  }, [inventoryData, variantId]);
+
   // Auto-rotate product images every 3 seconds when multiple images are available
   useEffect(() => {
     const images =
@@ -624,16 +637,29 @@ export function ScooterDetailPage() {
               {/* CTA Button — pill shape, gradient 15b3b3 to 15be9c, subtle glow */}
               <div>
                 {isAuthenticated ? (
-                  <Button
-                    onClick={() => setShowPreBookingModal(true)}
-                    className="w-full text-lg py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 hover:opacity-95 transition-opacity"
-                    style={{
-                      background: 'linear-gradient(to right, #17b0ba, #1cbe9a, #22cb7c)',
-                      boxShadow: '0 4px 14px rgba(23, 176, 186, 0.35), 0 2px 6px rgba(34, 203, 124, 0.25)',
-                    }}
-                  >
-                    Pre-Book Now
-                  </Button>
+                  isAlreadyBooked ? (
+                    <Button
+                      disabled
+                      className="w-full text-lg py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 cursor-not-allowed opacity-75"
+                      style={{
+                        background: 'linear-gradient(to right, #6b7280, #4b5563, #374151)',
+                        boxShadow: '0 4px 14px rgba(107, 114, 128, 0.25), 0 2px 6px rgba(75, 85, 99, 0.2)',
+                      }}
+                    >
+                      Already Booked
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => setShowPreBookingModal(true)}
+                      className="w-full text-lg py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 hover:opacity-95 transition-opacity"
+                      style={{
+                        background: 'linear-gradient(to right, #17b0ba, #1cbe9a, #22cb7c)',
+                        boxShadow: '0 4px 14px rgba(23, 176, 186, 0.35), 0 2px 6px rgba(34, 203, 124, 0.25)',
+                      }}
+                    >
+                      Pre-Book Now
+                    </Button>
+                  )
                 ) : (
                   <Link to={`/login${referralCode ? `?ref=${referralCode}` : ''}`} className="block">
                     <Button

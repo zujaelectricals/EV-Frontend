@@ -37,7 +37,7 @@ export const ReferralLink = () => {
   const copyReferralCode = () => {
     if (referralCode !== 'N/A') {
       navigator.clipboard.writeText(referralCode);
-      toast.success('Referral code copied to clipboard!');
+      toast.success('ASA code copied to clipboard!');
     }
   };
 
@@ -45,8 +45,8 @@ export const ReferralLink = () => {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Referral Code</h1>
-          <p className="text-muted-foreground mt-1">Share your referral code and earn commissions</p>
+          <h1 className="text-3xl font-bold text-foreground">ASA Code</h1>
+          <p className="text-muted-foreground mt-1">Share your ASA code and earn commissions</p>
         </div>
         <Button
           variant="ghost"
@@ -61,12 +61,12 @@ export const ReferralLink = () => {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Referral Code Card */}
+        {/* ASA Code Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <LinkIcon className="h-5 w-5 text-primary" />
-              Your Referral Code
+              Your ASA Code
             </CardTitle>
             <CardDescription>
               Share this code with friends and family to earn referral bonuses
@@ -74,7 +74,7 @@ export const ReferralLink = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Referral Code</Label>
+              <Label>ASA Code</Label>
               <div className="flex gap-2">
                 {isLoading ? (
                   <Skeleton className="h-10 flex-1" />
@@ -108,13 +108,13 @@ export const ReferralLink = () => {
                 </p>
               </div>
               <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground">Revenue Stream A (RSA) Count</p>
+                <p className="text-sm text-muted-foreground">Revenue Stream Left (RSL) Count</p>
                 <p className="text-2xl font-bold text-primary">
                   {distributorInfo?.leftCount || 0}
                 </p>
               </div>
               <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground">Revenue Stream B (RSB) Count</p>
+                <p className="text-sm text-muted-foreground">Revenue Stream Right (RSR) Count</p>
                 <p className="text-2xl font-bold text-primary">
                   {distributorInfo?.rightCount || 0}
                 </p>
@@ -135,7 +135,7 @@ export const ReferralLink = () => {
                 ₹1,000 per referral (after TDS)
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Earn ₹1,000 for each person who pre-books using your referral code
+                Earn ₹1,000 for each person who pre-books using your ASA code
               </p>
             </div>
           </CardContent>
@@ -156,7 +156,7 @@ export const ReferralLink = () => {
               <div>
                 <h4 className="font-semibold">Share Your Code</h4>
                 <p className="text-sm text-muted-foreground">
-                  Share your referral code with friends and family
+                  Share your ASA code with friends and family
                 </p>
               </div>
             </div>
@@ -167,7 +167,7 @@ export const ReferralLink = () => {
               <div>
                 <h4 className="font-semibold">They Pre-Book</h4>
                 <p className="text-sm text-muted-foreground">
-                  When someone pre-books an EV using your referral code with at least ₹5,000
+                  When someone pre-books an EV using your ASA code with at least ₹5,000
                 </p>
               </div>
             </div>

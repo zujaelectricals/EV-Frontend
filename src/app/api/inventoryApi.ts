@@ -27,6 +27,7 @@ export interface VehicleVariant {
   stock_total_quantity: number;
   stock_available_quantity: number;
   stock_reserved_quantity: number;
+  is_already_booked?: boolean; // Only present when fetching with token
   created_at: string;
 }
 
@@ -202,11 +203,43 @@ export const inventoryApi = api.injectEndpoints({
             'Content-Type': 'application/json',
           };
           
-          // No token required for this GET endpoint
-          const response = await fetch(url, {
+          // Check if token exists in localStorage
+          const { accessToken } = getAuthTokens();
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+          
+          let response = await fetch(url, {
             method: 'GET',
             headers,
           });
+          
+          // Handle 401 Unauthorized - try to refresh token if token was used
+          if (response.status === 401 && accessToken) {
+            console.log('🟡 [GET VEHICLES API] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+            
+            if (refreshData) {
+              // Retry the request with new token
+              const { accessToken: newToken } = getAuthTokens();
+              if (newToken) {
+                headers['Authorization'] = `Bearer ${newToken}`;
+                response = await fetch(url, {
+                  method: 'GET',
+                  headers,
+                });
+              }
+            } else {
+              // Refresh failed, return 401 error (logout handled in refreshAccessToken)
+              const errorData = await response.json().catch(() => ({}));
+              return {
+                error: {
+                  status: response.status,
+                  data: errorData,
+                },
+              };
+            }
+          }
           
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));

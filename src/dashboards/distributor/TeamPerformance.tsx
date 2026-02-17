@@ -202,13 +202,13 @@ export const TeamPerformance = () => {
     if (dashboardData?.team_distribution) {
       return [
         { 
-          name: 'RSA', 
+          name: 'RSL', 
           value: dashboardData.team_distribution.rsa_count, 
           percentage: dashboardData.team_distribution.rsa_percentage,
           color: COLORS[0] 
         },
         { 
-          name: 'RSB', 
+          name: 'RSR', 
           value: dashboardData.team_distribution.rsb_count, 
           percentage: dashboardData.team_distribution.rsb_percentage,
           color: COLORS[1] 
@@ -217,8 +217,8 @@ export const TeamPerformance = () => {
     }
     // Fallback to calculated data
     return [
-      { name: 'RSA', value: leftMembers, percentage: 0, color: COLORS[0] },
-      { name: 'RSB', value: rightMembers, percentage: 0, color: COLORS[1] },
+      { name: 'RSL', value: leftMembers, percentage: 0, color: COLORS[0] },
+      { name: 'RSR', value: rightMembers, percentage: 0, color: COLORS[1] },
     ];
   }, [dashboardData?.team_distribution, leftMembers, rightMembers]);
 
@@ -273,10 +273,10 @@ export const TeamPerformance = () => {
                 const name = 'name' in performer ? performer.name : (performer as any).name || 'Unknown';
                 const referrals = 'referrals' in performer ? performer.referrals : (performer as any).referrals || 0;
                 const team = 'team' in performer 
-                  ? performer.team 
+                  ? (performer.team === 'RSA' ? 'RSL' : performer.team === 'RSB' ? 'RSR' : performer.team)
                   : ('position' in performer 
-                      ? ((performer as any).position === 'left' ? 'RSA' : 'RSB')
-                      : 'RSA');
+                      ? ((performer as any).position === 'left' ? 'RSL' : 'RSR')
+                      : 'RSL');
                 const isTop = index === 0;
                 
                 return (
@@ -345,7 +345,7 @@ export const TeamPerformance = () => {
         <Card>
           <CardHeader>
             <CardTitle>Team Distribution</CardTitle>
-            <CardDescription>RSA vs RSB distribution</CardDescription>
+            <CardDescription>RSL vs RSR distribution</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoadingDashboard ? (
@@ -404,8 +404,8 @@ export const TeamPerformance = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Positions</SelectItem>
-                <SelectItem value="left">RSA</SelectItem>
-                <SelectItem value="right">RSB</SelectItem>
+                <SelectItem value="left">RSL</SelectItem>
+                <SelectItem value="right">RSR</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -478,7 +478,7 @@ export const TeamPerformance = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant={member.position === 'left' ? 'default' : 'secondary'}>
-                          {member.position === 'left' ? 'RSA' : 'RSB'}
+                          {member.position === 'left' ? 'RSL' : 'RSR'}
                         </Badge>
                       </TableCell>
                       <TableCell>₹{member.pv.toLocaleString()}</TableCell>

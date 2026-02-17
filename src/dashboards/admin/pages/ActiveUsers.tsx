@@ -836,7 +836,7 @@ export const ActiveUsers = () => {
                   <Label className="text-xs text-muted-foreground mb-2 block">Distributor Information</Label>
                   <div className="grid gap-2 md:grid-cols-2">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Referral Code</Label>
+                      <Label className="text-xs text-muted-foreground">ASA Code</Label>
                       <p className="font-medium">{userDetails.referral_code || 'N/A'}</p>
                     </div>
                     <div>

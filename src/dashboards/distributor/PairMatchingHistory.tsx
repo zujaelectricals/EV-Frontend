@@ -111,8 +111,8 @@ export const PairMatchingHistory = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Match #</TableHead>
-                  <TableHead>RSA PV</TableHead>
-                  <TableHead>RSB PV</TableHead>
+                  <TableHead>RSL PV</TableHead>
+                  <TableHead>RSR PV</TableHead>
                   <TableHead>Matched PV</TableHead>
                   <TableHead>Commission</TableHead>
                   <TableHead>TDS</TableHead>

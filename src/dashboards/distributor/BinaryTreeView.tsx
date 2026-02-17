@@ -1164,13 +1164,13 @@ export const BinaryTreeView = () => {
       {/* Stats Overview */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
-          title="Revenue Stream A (RSA) Count"
+          title="Revenue Stream Left (RSL) Count"
           value={binaryStats?.leftCount?.toString() || "0"}
           icon={Users}
           variant="info"
         />
         <StatsCard
-          title="Revenue Stream B (RSB) Count"
+          title="Revenue Stream Right (RSR) Count"
           value={binaryStats?.rightCount?.toString() || "0"}
           icon={Users}
           variant="info"
@@ -1280,7 +1280,7 @@ export const BinaryTreeView = () => {
           <DialogHeader>
             <DialogTitle>Position {selectedPendingNode?.name}</DialogTitle>
             <DialogDescription>
-              Select a parent node and position (RSA or RSB) to position this
+              Select a parent node and position (RSL or RSR) to position this
               team member in your network.
             </DialogDescription>
           </DialogHeader>
@@ -1315,8 +1315,8 @@ export const BinaryTreeView = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="left">RSA</SelectItem>
-                  <SelectItem value="right">RSB</SelectItem>
+                  <SelectItem value="left">RSL</SelectItem>
+                  <SelectItem value="right">RSR</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1393,8 +1393,8 @@ export const BinaryTreeView = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="both">Both Sides</SelectItem>
-                <SelectItem value="left">Left (RSA)</SelectItem>
-                <SelectItem value="right">Right (RSB)</SelectItem>
+                <SelectItem value="left">Left (RSL)</SelectItem>
+                <SelectItem value="right">Right (RSR)</SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -1465,7 +1465,7 @@ export const BinaryTreeView = () => {
                       <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Name</TableHead>
                       <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Level</TableHead>
                       <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Direct Parent</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Referral Code</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">ASA Code</TableHead>
                       <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Position</TableHead>
                       <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Joined Date</TableHead>
                       <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Status</TableHead>
@@ -1536,7 +1536,7 @@ export const BinaryTreeView = () => {
                                 : "bg-slate-200 text-slate-700 border-0 font-medium"
                             }
                           >
-                            {member.position === "left" ? "RSA" : "RSB"}
+                            {member.position === "left" ? "RSL" : "RSR"}
                           </Badge>
                         </TableCell>
                         <TableCell className="py-4 text-muted-foreground">

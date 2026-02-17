@@ -186,8 +186,8 @@ export const PairMatchingHistory = () => {
               <TableRow>
                 <TableHead>Match ID</TableHead>
                 <TableHead>Authorized Channel Partner</TableHead>
-                <TableHead>Revenue Stream A (RSA)</TableHead>
-                <TableHead>Revenue Stream B (RSB)</TableHead>
+                <TableHead>Revenue Stream Left (RSL)</TableHead>
+                <TableHead>Revenue Stream Right (RSR)</TableHead>
                 <TableHead>Matched</TableHead>
                 <TableHead>Commission</TableHead>
                 <TableHead>Date</TableHead>

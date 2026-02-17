@@ -25,7 +25,7 @@ import { Booking } from '@/app/slices/bookingSlice';
 import { KYCModal } from '@/components/KYCModal';
 import { useGetBookingsQuery } from '@/app/api/bookingApi';
 import { useSendUniversalOTPMutation, useVerifyUniversalOTPMutation } from '@/app/api/authApi';
-import { useGetUserProfileQuery } from '@/app/api/userApi';
+import { useGetUserProfileQuery, useGetUserProfileRawQuery } from '@/app/api/userApi';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 export function DistributorApplication() {
@@ -36,6 +36,9 @@ export function DistributorApplication() {
   
   // Fetch user profile to ensure KYC status is up-to-date on page refresh
   const { data: profileData, refetch: refetchUserProfile } = useGetUserProfileQuery();
+  
+  // Fetch raw user profile to get city field for Place
+  const { data: rawProfileData } = useGetUserProfileRawQuery();
   
   // Use profileData if available (from API), otherwise fallback to Redux user state
   // This ensures we have the latest KYC status even on page refresh
@@ -175,6 +178,9 @@ export function DistributorApplication() {
   // Auto-fill applicant details from user profile (uneditable)
   useEffect(() => {
     if (currentUser) {
+      // Use rawProfileData to get city field from users/profile API response
+      const cityFromProfile = rawProfileData?.city || '';
+      
       // Handle both User and UserProfileResponse types
       const userWithAddress = currentUser as typeof currentUser & { 
         address?: string; 
@@ -186,10 +192,10 @@ export function DistributorApplication() {
         applicantName: currentUser.name || '',
         mobileNumber: currentUser.phone || currentUser.email?.replace(/[^0-9]/g, '').slice(-10) || '',
         date: new Date().toISOString().split('T')[0],
-        place: userWithAddress.address || userWithAddress.address_line1 || userWithAddress.city || '',
+        place: cityFromProfile || userWithAddress.address || userWithAddress.address_line1 || userWithAddress.city || '',
       }));
     }
-  }, [currentUser]);
+  }, [currentUser, rawProfileData]);
   
   // Handle Terms & Conditions checkbox change
   const handleTermsCheckboxChange = async (checked: boolean) => {
@@ -529,7 +535,8 @@ export function DistributorApplication() {
         applicantName: currentUser?.name || '',
         mobileNumber: currentUser?.phone || currentUser?.email?.replace(/[^0-9]/g, '').slice(-10) || '',
         date: new Date().toISOString().split('T')[0],
-        place: (currentUser as typeof currentUser & { address?: string; city?: string; address_line1?: string })?.address || 
+        place: rawProfileData?.city || 
+               (currentUser as typeof currentUser & { address?: string; city?: string; address_line1?: string })?.address || 
                (currentUser as typeof currentUser & { address_line1?: string })?.address_line1 || 
                (currentUser as typeof currentUser & { city?: string })?.city || '',
         aadharNumber: '',

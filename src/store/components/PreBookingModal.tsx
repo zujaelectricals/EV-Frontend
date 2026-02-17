@@ -26,6 +26,7 @@ import { Scooter } from '../ScooterCard';
 import { StockDetailResponse } from '@/app/api/inventoryApi';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { payForEntity, VerifyPaymentResponse } from '@/services/paymentService';
+import { api } from '@/app/api/baseApi';
 
 interface PreBookingModalProps {
   scooter: Scooter;
@@ -86,7 +87,7 @@ const extractErrorMessage = (error: unknown, defaultMessage: string = 'An error 
 
   // Map API field names to user-friendly names
   const fieldNameMap: Record<string, string> = {
-    'referral_code': 'Referral Code',
+    'referral_code': 'ASA Code',
     'vehicle_model_code': 'Vehicle Model',
     'vehicle_color': 'Vehicle Color',
     'battery_variant': 'Battery Variant',
@@ -269,7 +270,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     if (isOpen) {
       const codeToUse = getReferralCodeFromStorage();
       setReferralCodeInput(codeToUse);
-      console.log('✅ [PRE-BOOKING] Auto-filled referral code:', codeToUse || 'none');
+      console.log('✅ [PRE-BOOKING] Auto-filled ASA code:', codeToUse || 'none');
     }
   }, [isOpen, getReferralCodeFromStorage]);
   
@@ -434,7 +435,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     }
 
     if (!referralCodeInput.trim()) {
-      toast.error('Please enter a referral code');
+      toast.error('Please enter an ASA code');
       return;
     }
 
@@ -667,11 +668,15 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
             // User closed the modal - reset payment state but keep booking
             setIsProcessingPayment(false);
             toast.info('Payment cancelled. You can complete payment later.');
+            // Invalidate inventory cache to refresh vehicle data
+            dispatch(api.util.invalidateTags(['Inventory']));
           },
           onDismiss: () => {
             // User dismissed the modal - reset payment state but keep booking
             setIsProcessingPayment(false);
             toast.info('Payment cancelled. You can complete payment later.');
+            // Invalidate inventory cache to refresh vehicle data
+            dispatch(api.util.invalidateTags(['Inventory']));
           },
         }
       );
@@ -702,6 +707,9 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       
       // Reset payment processing state
       setIsProcessingPayment(false);
+      
+      // Invalidate inventory cache to refresh vehicle data after payment failure
+      dispatch(api.util.invalidateTags(['Inventory']));
     }
   };
 
@@ -731,7 +739,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       // Use the updated booking response from payment API if available, otherwise use original
       const booking = paymentResponse || bookingResponse;
 
-      // Calculate referral bonus if referral code is provided
+      // Calculate referral bonus if ASA code is provided
       let referralBonus = 0;
       let tdsDeducted = 0;
       if (referralCodeInput && referralCodeInput.trim()) {
@@ -778,7 +786,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         addedToTeamNetwork: false,
       };
 
-      // Add user to distributor's binary tree if referral code belongs to a distributor
+      // Add user to distributor's binary tree if ASA code belongs to a distributor
       if (currentUser && preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT && referralCodeInput && referralCodeInput.trim()) {
         try {
           let distributorId: string | null = null;
@@ -815,10 +823,10 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
 
       dispatch(addBooking(localBooking));
 
-      // Store referral code in localStorage after successful booking
+      // Store ASA code in localStorage after successful booking
       if (referralCodeInput.trim() && typeof window !== 'undefined') {
         localStorage.setItem('ev_nexus_referral_code', referralCodeInput.trim());
-        console.log('✅ [PRE-BOOKING] Stored referral code in localStorage after booking:', referralCodeInput.trim());
+        console.log('✅ [PRE-BOOKING] Stored ASA code in localStorage after booking:', referralCodeInput.trim());
       }
 
       // Update user pre-booking info
@@ -867,6 +875,10 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       // Reset verification state before navigation
       setIsVerifyingPayment(false);
       
+      // Invalidate inventory cache to refresh vehicle data with updated is_already_booked status
+      dispatch(api.util.invalidateTags(['Inventory']));
+      console.log('✅ [PAYMENT] Invalidated inventory cache to refresh vehicle data');
+      
       // Navigate to profile page with orders tab
       console.log('✅ [PAYMENT] Navigating to /profile?tab=orders');
       navigate('/profile?tab=orders', { replace: true });
@@ -892,6 +904,9 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       setIsBookingInProgress(false);
       setIsProcessingPayment(false);
       setIsVerifyingPayment(false);
+      
+      // Invalidate inventory cache to refresh vehicle data after payment error
+      dispatch(api.util.invalidateTags(['Inventory']));
     }
   };
 

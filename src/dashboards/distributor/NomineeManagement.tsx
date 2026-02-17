@@ -32,13 +32,13 @@ export function NomineeManagement() {
 
   const handleSave = () => {
     // Validate required fields
-    if (!formData.name.trim() || !formData.relationship.trim() || !formData.phone.trim()) {
-      toast.error('Please fill all required fields (Name, Relationship, Phone)');
+    if (!formData.name.trim() || !formData.relationship.trim()) {
+      toast.error('Please fill all required fields (Name, Relationship)');
       return;
     }
 
-    // Validate phone number
-    if (formData.phone.length < 10) {
+    // Validate phone number if provided
+    if (formData.phone && formData.phone.length < 10) {
       toast.error('Please enter a valid phone number');
       return;
     }
@@ -158,7 +158,7 @@ export function NomineeManagement() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">
-                  Phone Number <span className="text-destructive">*</span>
+                  Phone Number
                 </Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -171,7 +171,6 @@ export function NomineeManagement() {
                     className="pl-10"
                     disabled={!isEditing}
                     maxLength={10}
-                    required
                   />
                 </div>
               </div>

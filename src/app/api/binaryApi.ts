@@ -1264,7 +1264,7 @@ export const binaryApi = api.injectEndpoints({
         return { 
           data: { 
             success: true, 
-            message: `Referral added to ${side === 'left' ? 'RSA' : 'RSB'}. Team commission will be calculated automatically.` 
+            message: `Referral added to ${side === 'left' ? 'RSL' : 'RSR'}. Team commission will be calculated automatically.` 
           } 
         };
       },

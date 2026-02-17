@@ -135,8 +135,8 @@ export const WeakLegDetection = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Authorized Channel Partner</TableHead>
-                <TableHead>Revenue Stream A (RSA)</TableHead>
-                <TableHead>Revenue Stream B (RSB)</TableHead>
+                <TableHead>Revenue Stream Left (RSL)</TableHead>
+                <TableHead>Revenue Stream Right (RSR)</TableHead>
                 <TableHead>Difference</TableHead>
                 <TableHead>Weak Leg</TableHead>
                 <TableHead>Imbalance %</TableHead>

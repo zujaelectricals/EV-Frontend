@@ -502,7 +502,7 @@ export function ProfilePage() {
     { id: "nominee", label: "Add Nominee", icon: UserPlus },
     //{ id: "addresses", label: "Addresses", icon: MapPin },
     //{ id: "redemption", label: "Redemption Points", icon: Gift },
-    { id: "referral", label: "Referral Link", icon: LinkIcon },
+    { id: "referral", label: "ASA Link", icon: LinkIcon },
     { id: "settings", label: "Edit Profile", icon: Settings },
     // ...(isDistributor
     //   ? [{ id: "distributor", label: "ASA(Authorized Sales Associate)", icon: Award }]
@@ -636,7 +636,7 @@ export function ProfilePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <LinkIcon className="w-5 h-5 text-primary" />
-                  Your Referral Link
+                  Your ASA Link
                 </CardTitle>
                 <CardDescription>
                   Share this link with friends and family to earn referral bonuses. You can start earning even before becoming an ASA(Authorized Sales Associate).
@@ -645,7 +645,7 @@ export function ProfilePage() {
               <CardContent className="p-4 sm:p-6">
                 {isLoadingRawProfile ? (
                   <div className="flex items-center justify-center py-8">
-                    <LoadingSpinner text="Loading referral link..." size="md" />
+                    <LoadingSpinner text="Loading ASA link..." size="md" />
                   </div>
                 ) : rawProfileData?.referral_link ? (
                   <div className="space-y-4">
@@ -663,10 +663,10 @@ export function ProfilePage() {
                           size="icon"
                           onClick={() => {
                             navigator.clipboard.writeText(rawProfileData.referral_link || '');
-                            toast.success('Referral link copied to clipboard!');
+                            toast.success('ASA link copied to clipboard!');
                           }}
                           className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                          title="Copy referral link"
+                          title="Copy ASA link"
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
@@ -675,7 +675,7 @@ export function ProfilePage() {
                     <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
                       <p className="text-sm font-medium mb-2">How it works:</p>
                       <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                        <li>Share your referral link with friends and family</li>
+                        <li>Share your ASA link with friends and family</li>
                         <li>When they sign up using your link, they'll be associated with your account</li>
                         <li>You'll earn referral bonuses when they make purchases</li>
                         <li>Start earning even before becoming an ASA(Authorized Sales Associate)</li>
@@ -685,7 +685,7 @@ export function ProfilePage() {
                 ) : (
                   <div className="text-center py-8">
                     <LinkIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Referral link will be available after account setup.</p>
+                    <p className="text-muted-foreground">ASA link will be available after account setup.</p>
                   </div>
                 )}
               </CardContent>
@@ -787,26 +787,24 @@ export function ProfilePage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Mobile Number <span className="text-red-500">*</span></label>
+                        <label className="text-sm font-medium">Mobile Number</label>
                         <input
                           type="tel"
                           value={nomineeFormData.mobile}
                           onChange={(e) => handleNomineeInputChange("mobile", e.target.value)}
                           placeholder="Enter mobile number"
                           className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm sm:text-base"
-                          required
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Email <span className="text-red-500">*</span></label>
+                      <label className="text-sm font-medium">Email</label>
                       <input
                         type="email"
                         value={nomineeFormData.email}
                         onChange={(e) => handleNomineeInputChange("email", e.target.value)}
                         placeholder="Enter email address"
                         className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm sm:text-base"
-                        required
                       />
                     </div>
                   </div>
@@ -1198,12 +1196,12 @@ export function ProfilePage() {
                     </div>
                   </div>
                   
-                  {/* Referral Link Section */}
+                  {/* ASA Link Section */}
                   {profileData?.referral_link && (
                     <div className="space-y-2 pt-4 border-t border-border">
                       <label className="text-sm font-medium flex items-center gap-2">
                         <LinkIcon className="w-4 h-4" />
-                        Your Referral Link
+                        Your ASA Link
                       </label>
                       <div className="flex gap-2">
                         <div className="flex-1 relative">
@@ -1219,10 +1217,10 @@ export function ProfilePage() {
                             size="icon"
                             onClick={() => {
                               navigator.clipboard.writeText(profileData.referral_link || '');
-                              toast.success('Referral link copied to clipboard!');
+                              toast.success('ASA link copied to clipboard!');
                             }}
                             className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                            title="Copy referral link"
+                            title="Copy ASA link"
                           >
                             <Copy className="w-4 h-4" />
                           </Button>

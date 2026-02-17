@@ -56,7 +56,7 @@ export const DistributorDashboard = () => {
 
   const copyReferralLink = () => {
     navigator.clipboard.writeText(referralLink);
-    toast.success('Referral link copied to clipboard!');
+    toast.success('ASA link copied to clipboard!');
   };
 
   // Calculate earnings breakdown - KPA cards

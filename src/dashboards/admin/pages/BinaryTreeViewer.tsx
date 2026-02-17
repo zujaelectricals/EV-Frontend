@@ -49,7 +49,7 @@ export const BinaryTreeViewer = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Revenue Stream A (RSA)</p>
+                  <p className="text-sm font-medium text-muted-foreground">Revenue Stream Left (RSL)</p>
                   <p className="text-3xl font-bold text-foreground mt-1">345</p>
                 </div>
                 <Users className="h-8 w-8 text-info opacity-20" />
@@ -67,7 +67,7 @@ export const BinaryTreeViewer = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Revenue Stream B (RSB)</p>
+                  <p className="text-sm font-medium text-muted-foreground">Revenue Stream Right (RSR)</p>
                   <p className="text-3xl font-bold text-foreground mt-1">347</p>
                 </div>
                 <Users className="h-8 w-8 text-success opacity-20" />

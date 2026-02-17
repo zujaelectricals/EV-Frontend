@@ -29,7 +29,7 @@ export function PrivacyPolicy() {
                   <li><strong>Personal Identification Information:</strong> Name, phone number, email address, PAN card details, date of birth.</li>
                   <li><strong>KYC Information:</strong> Government-issued identity details for verification purposes.</li>
                   <li><strong>Financial Information:</strong> Payment transaction details (processed securely via Razorpay; we do not store card/bank credentials).</li>
-                  <li><strong>Referral & Network Data:</strong> Referral links, team hierarchy, incentive eligibility.</li>
+                  <li><strong>Referral & Network Data:</strong> ASA links, team hierarchy, incentive eligibility.</li>
                   <li><strong>Technical Data:</strong> IP address and usage logs.</li>
                 </ul>
               </section>

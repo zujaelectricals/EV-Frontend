@@ -15,14 +15,14 @@ export function DistributorOptions() {
 
   const copyReferralLink = () => {
     navigator.clipboard.writeText(referralLink);
-    toast.success('Referral link copied to clipboard!');
+    toast.success('ASA link copied to clipboard!');
   };
 
   const distributorOptions = [
     {
       id: 'referral',
-      title: 'Referral Link',
-      description: 'Share your referral link to earn commissions',
+      title: 'ASA Link',
+      description: 'Share your ASA link to earn commissions',
       icon: LinkIcon,
       action: copyReferralLink,
       actionLabel: 'Copy Link',

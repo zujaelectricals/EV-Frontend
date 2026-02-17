@@ -116,7 +116,7 @@ export const PairRules = () => {
         return;
       }
       if (!formData.company_referral_code || formData.company_referral_code.length < 3 || formData.company_referral_code.length > 20) {
-        toast.error('Company referral code must be between 3 and 20 characters');
+        toast.error('Company ASA code must be between 3 and 20 characters');
         return;
       }
 
@@ -695,11 +695,11 @@ export const PairRules = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="company_referral_code">Company Referral Code</Label>
+            <Label htmlFor="company_referral_code">Company ASA Code</Label>
             <Input
               id="company_referral_code"
               type="text"
-              placeholder="Enter company referral code"
+              placeholder="Enter company ASA code"
               value={formData.company_referral_code || ''}
               onChange={(e) => {
                 const val = e.target.value;
@@ -708,7 +708,7 @@ export const PairRules = () => {
               maxLength={20}
             />
             <p className="text-xs text-muted-foreground">
-              Static referral code representing the company (used for first booking in the system, default: "COMPANY", min length: 3, max length: 20)
+              Static ASA code representing the company (used for first booking in the system, default: "COMPANY", min length: 3, max length: 20)
             </p>
           </div>
         </CardContent>

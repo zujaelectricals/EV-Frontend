@@ -115,7 +115,7 @@ export const LoginPage = () => {
         // Store in localStorage if from URL
         if (typeof window !== 'undefined') {
           localStorage.setItem('ev_nexus_referral_code', refCode);
-          console.log('✅ [SIGNUP] Stored referral code from URL in localStorage:', refCode);
+          console.log('✅ [SIGNUP] Stored ASA code from URL in localStorage:', refCode);
         }
       }
       setSignupData((prev) => ({ ...prev, referral_code: referralCodeToUse }));
@@ -425,7 +425,7 @@ export const LoginPage = () => {
       }
 
       if (!signupData.referral_code.trim()) {
-        newErrors.referral_code = 'Referral code is required';
+        newErrors.referral_code = 'ASA code is required';
       }
     } else if (step === 2) {
       // Validate Address Information
@@ -502,10 +502,10 @@ export const LoginPage = () => {
       const result = await signup(signupPayload).unwrap();
       console.log('🟢 [SIGNUP] Response:', JSON.stringify(result, null, 2));
       
-      // Store referral code in localStorage after successful signup
+      // Store ASA code in localStorage after successful signup
       if (signupPayload.referral_code && typeof window !== 'undefined') {
         localStorage.setItem('ev_nexus_referral_code', signupPayload.referral_code);
-        console.log('✅ [SIGNUP] Stored referral code in localStorage after signup:', signupPayload.referral_code);
+        console.log('✅ [SIGNUP] Stored ASA code in localStorage after signup:', signupPayload.referral_code);
       }
       
       setSignupToken(result.signup_token);
@@ -1088,7 +1088,7 @@ export const LoginPage = () => {
                               'gender': 'Gender',
                               'date_of_birth': 'Date of Birth',
                               'pan_card': 'PAN Card',
-                              'referral_code': 'Referral Code',
+                              'referral_code': 'ASA Code',
                               'address_line1': 'Address Line 1',
                               'address_line2': 'Address Line 2',
                               'city': 'City',
@@ -1243,13 +1243,13 @@ export const LoginPage = () => {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="referral_code" className="text-sm font-medium">Referral Code *</Label>
+                            <Label htmlFor="referral_code" className="text-sm font-medium">ASA Code *</Label>
                             <div className="relative">
                               <LinkIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                               <Input
                                 id="referral_code"
                                 type="text"
-                                placeholder="Enter referral code"
+                                placeholder="Enter ASA code"
                                 value={signupData.referral_code}
                                 onChange={(e) => handleSignupInputChange('referral_code', e.target.value.trim())}
                                 readOnly={referralCodeFromUrl}
@@ -1263,7 +1263,7 @@ export const LoginPage = () => {
                             </div>
                             {signupErrors.referral_code && <p className="text-xs text-red-500">{signupErrors.referral_code}</p>}
                             {referralCodeFromUrl && (
-                              <p className="text-xs text-primary">Referral code from your invitation link</p>
+                              <p className="text-xs text-primary">ASA code from your invitation link</p>
                             )}
                           </div>
                         </div>
