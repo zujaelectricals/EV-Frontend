@@ -95,6 +95,192 @@ export const useRazorpay = () => {
   }, []);
 
   /**
+   * Helper function to disable pointer-events on Dialog overlays and content
+   * This allows Razorpay modal to be interactive even when a Dialog is open
+   */
+  const disableDialogOverlays = () => {
+    if (typeof document === 'undefined') return;
+    
+    // Find all Dialog overlays (Radix UI Dialog uses data-radix-dialog-overlay)
+    const overlays = document.querySelectorAll('[data-radix-dialog-overlay]');
+    overlays.forEach((overlay) => {
+      const element = overlay as HTMLElement;
+      // Store original pointer-events value to restore later
+      if (!element.dataset.originalPointerEvents) {
+        element.dataset.originalPointerEvents = element.style.pointerEvents || '';
+      }
+      element.style.pointerEvents = 'none';
+    });
+
+    // Also disable pointer-events on Dialog content elements
+    // Radix UI Dialog content uses data-radix-dialog-content
+    const dialogContents = document.querySelectorAll('[data-radix-dialog-content]');
+    dialogContents.forEach((content) => {
+      const element = content as HTMLElement;
+      // Store original pointer-events value to restore later
+      if (!element.dataset.originalPointerEvents) {
+        element.dataset.originalPointerEvents = element.style.pointerEvents || '';
+      }
+      element.style.pointerEvents = 'none';
+    });
+
+    // Also check for any elements with high z-index that might be blocking
+    // Look for fixed positioned elements with z-index >= 50 (Dialog z-index)
+    const allFixedElements = Array.from(document.querySelectorAll('*')).filter((el) => {
+      const style = window.getComputedStyle(el);
+      const position = style.position;
+      const zIndex = parseInt(style.zIndex, 10);
+      return position === 'fixed' && zIndex >= 50 && zIndex < 1000; // Dialog range, not Razorpay
+    });
+
+    allFixedElements.forEach((element) => {
+      const el = element as HTMLElement;
+      // Only disable if it's not Razorpay related
+      if (!el.closest('[class*="razorpay"]') && !el.querySelector('[class*="razorpay"]')) {
+        if (!el.dataset.originalPointerEvents) {
+          el.dataset.originalPointerEvents = el.style.pointerEvents || '';
+        }
+        el.style.pointerEvents = 'none';
+      }
+    });
+  };
+
+  /**
+   * Helper function to restore pointer-events on Dialog overlays and content
+   */
+  const restoreDialogOverlays = () => {
+    if (typeof document === 'undefined') return;
+    
+    // Restore Dialog overlays
+    const overlays = document.querySelectorAll('[data-radix-dialog-overlay]');
+    overlays.forEach((overlay) => {
+      const element = overlay as HTMLElement;
+      const originalValue = element.dataset.originalPointerEvents || '';
+      element.style.pointerEvents = originalValue;
+      delete element.dataset.originalPointerEvents;
+    });
+
+    // Restore Dialog content
+    const dialogContents = document.querySelectorAll('[data-radix-dialog-content]');
+    dialogContents.forEach((content) => {
+      const element = content as HTMLElement;
+      const originalValue = element.dataset.originalPointerEvents || '';
+      element.style.pointerEvents = originalValue;
+      delete element.dataset.originalPointerEvents;
+    });
+
+    // Restore any other fixed elements we disabled
+    // Query all fixed elements and check if they have the dataset property
+    const allFixedElements = Array.from(document.querySelectorAll('*')).filter((el) => {
+      const style = window.getComputedStyle(el);
+      return style.position === 'fixed';
+    });
+
+    allFixedElements.forEach((element) => {
+      const el = element as HTMLElement;
+      if (el.dataset.originalPointerEvents !== undefined) {
+        const originalValue = el.dataset.originalPointerEvents || '';
+        el.style.pointerEvents = originalValue;
+        delete el.dataset.originalPointerEvents;
+      }
+    });
+  };
+
+  /**
+   * Monitor Razorpay modal and restore pointer-events when it closes
+   * This is a fallback in case callbacks don't fire
+   * Also continuously disables Dialog overlays while Razorpay is open
+   */
+  const setupRazorpayModalMonitor = () => {
+    if (typeof document === 'undefined') return () => {};
+
+    let checkInterval: NodeJS.Timeout | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+    let keepDisabledInterval: NodeJS.Timeout | null = null;
+
+    // Check if Razorpay modal is still open
+    const checkRazorpayModal = () => {
+      // Razorpay modal typically has class 'razorpay-checkout-frame' or similar
+      // Also check for Razorpay's modal container and iframe
+      const razorpayModal = document.querySelector(
+        '.razorpay-checkout-frame, ' +
+        'iframe[src*="razorpay"], ' +
+        '[class*="razorpay"], ' +
+        '#razorpay-checkout-iframe'
+      );
+      
+      // Also check for high z-index divs that might contain Razorpay iframe
+      const highZIndexDivs = Array.from(document.querySelectorAll('body > div')).filter((div) => {
+        const style = window.getComputedStyle(div);
+        const zIndex = parseInt(style.zIndex, 10);
+        return zIndex > 1000 && div.querySelector('iframe[src*="razorpay"]');
+      });
+      
+      if (razorpayModal || highZIndexDivs.length > 0) {
+        // Razorpay is still open, keep Dialog overlays disabled
+        disableDialogOverlays();
+      } else {
+        // Modal is closed, restore pointer-events
+        restoreDialogOverlays();
+        if (checkInterval) {
+          clearInterval(checkInterval);
+          checkInterval = null;
+        }
+        if (keepDisabledInterval) {
+          clearInterval(keepDisabledInterval);
+          keepDisabledInterval = null;
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+      }
+    };
+
+    // Start monitoring for Razorpay modal
+    checkInterval = setInterval(checkRazorpayModal, 200);
+
+    // Continuously disable Dialog overlays while Razorpay is open
+    // This ensures any new Dialog elements that appear are also disabled
+    keepDisabledInterval = setInterval(() => {
+      const razorpayModal = document.querySelector(
+        '.razorpay-checkout-frame, ' +
+        'iframe[src*="razorpay"], ' +
+        '[class*="razorpay"], ' +
+        '#razorpay-checkout-iframe'
+      );
+      
+      if (razorpayModal) {
+        disableDialogOverlays();
+      }
+    }, 300);
+
+    // Fallback: restore after 5 minutes (safety timeout)
+    timeoutId = setTimeout(() => {
+      restoreDialogOverlays();
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
+      if (keepDisabledInterval) {
+        clearInterval(keepDisabledInterval);
+      }
+    }, 5 * 60 * 1000);
+
+    // Return cleanup function
+    return () => {
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
+      if (keepDisabledInterval) {
+        clearInterval(keepDisabledInterval);
+      }
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  };
+
+  /**
    * Opens Razorpay checkout modal
    * @param options Razorpay checkout options
    */
@@ -103,6 +289,60 @@ export const useRazorpay = () => {
     if (typeof window === 'undefined') {
       throw new Error('Razorpay can only be used on the client side');
     }
+
+    // Setup monitoring to restore pointer-events when Razorpay modal closes
+    const cleanupMonitor = setupRazorpayModalMonitor();
+
+    // Disable pointer-events on Dialog overlays before opening Razorpay
+    // Use a small delay to ensure Razorpay modal is fully rendered
+    const disableOverlays = () => {
+      disableDialogOverlays();
+      // Also disable after a short delay to catch any late-rendering elements
+      setTimeout(() => {
+        disableDialogOverlays();
+      }, 100);
+    };
+    
+    disableOverlays();
+
+    // Wrap the original modal callbacks to restore pointer-events when Razorpay closes
+    const originalOnClose = options.modal?.onClose;
+    const originalOnDismiss = options.modal?.ondismiss;
+
+    const wrappedOptions: RazorpayOptions = {
+      ...options,
+      modal: {
+        ...options.modal,
+        onClose: () => {
+          cleanupMonitor();
+          restoreDialogOverlays();
+          if (originalOnClose) {
+            originalOnClose();
+          }
+        },
+        ondismiss: () => {
+          cleanupMonitor();
+          restoreDialogOverlays();
+          if (originalOnDismiss) {
+            originalOnDismiss();
+          }
+        },
+      },
+    };
+
+    // Also restore on payment success (handler callback)
+    const originalHandler = options.handler;
+    wrappedOptions.handler = async (response) => {
+      // Restore pointer-events after a short delay to ensure Razorpay modal is fully closed
+      setTimeout(() => {
+        cleanupMonitor();
+        restoreDialogOverlays();
+      }, 100);
+      
+      if (originalHandler) {
+        await originalHandler(response);
+      }
+    };
 
     // Wait for script to load if it's still loading
     if (scriptLoadingRef.current) {
@@ -117,14 +357,22 @@ export const useRazorpay = () => {
             scriptLoadedRef.current = true;
             scriptLoadingRef.current = false;
             try {
-              const razorpay = new window.Razorpay(options);
+              const razorpay = new window.Razorpay(wrappedOptions);
               razorpay.open();
+              // Disable overlays again after Razorpay opens to catch any late-rendering dialogs
+              setTimeout(() => {
+                disableDialogOverlays();
+              }, 200);
               resolve();
             } catch (error) {
+              cleanupMonitor();
+              restoreDialogOverlays();
               reject(error);
             }
           } else if (Date.now() - startTime > maxWaitTime) {
             clearInterval(checkScript);
+            cleanupMonitor();
+            restoreDialogOverlays();
             reject(new Error('Razorpay script failed to load within timeout'));
           }
         }, 100);
@@ -134,10 +382,16 @@ export const useRazorpay = () => {
     // If script is already loaded, use it immediately
     if (window.Razorpay) {
       try {
-        const razorpay = new window.Razorpay(options);
+        const razorpay = new window.Razorpay(wrappedOptions);
         razorpay.open();
+        // Disable overlays again after Razorpay opens to catch any late-rendering dialogs
+        setTimeout(() => {
+          disableDialogOverlays();
+        }, 200);
         return Promise.resolve();
       } catch (error) {
+        cleanupMonitor();
+        restoreDialogOverlays();
         return Promise.reject(error);
       }
     }
@@ -149,10 +403,16 @@ export const useRazorpay = () => {
           clearInterval(checkScript);
           scriptLoadedRef.current = true;
           try {
-            const razorpay = new window.Razorpay(options);
+            const razorpay = new window.Razorpay(wrappedOptions);
             razorpay.open();
+            // Disable overlays again after Razorpay opens to catch any late-rendering dialogs
+            setTimeout(() => {
+              disableDialogOverlays();
+            }, 200);
             resolve();
           } catch (error) {
+            cleanupMonitor();
+            restoreDialogOverlays();
             reject(error);
           }
         }
@@ -161,6 +421,8 @@ export const useRazorpay = () => {
       // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkScript);
+        cleanupMonitor();
+        restoreDialogOverlays();
         reject(new Error('Razorpay script failed to load within timeout'));
       }, 10000);
     });

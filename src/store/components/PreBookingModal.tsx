@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,7 @@ import { addPayout } from '@/app/slices/payoutSlice';
 import { useAddReferralNodeMutation } from '@/app/api/binaryApi';
 import { useCreateBookingMutation, useMakePaymentMutation, BookingResponse } from '@/app/api/bookingApi';
 import { useGetDistributorDocumentsQuery, useAcceptDocumentMutation, useVerifyAcceptanceMutation } from '@/app/api/complianceApi';
+import { useGetUserProfileRawQuery } from '@/app/api/userApi';
 import { toast } from 'sonner';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Shield } from 'lucide-react';
@@ -134,6 +135,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [makePayment, { isLoading: isMakingPayment }] = useMakePaymentMutation();
   const [isBookingInProgress, setIsBookingInProgress] = useState(false);
   
+  // Fetch user profile to get address information (raw profile includes city, state, pincode)
+  const { data: userProfile } = useGetUserProfileRawQuery(undefined, {
+    skip: !isOpen || !isAuthenticated, // Only fetch when modal is open and user is authenticated
+  });
+  
   // Fetch distributor documents when modal opens
   const { data: distributorDocuments, isLoading: isLoadingDocuments } = useGetDistributorDocumentsQuery(undefined, {
     skip: !isOpen, // Only fetch when modal is open
@@ -174,10 +180,25 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [preBookingAmount, setPreBookingAmount] = useState(500);
   const [inputValue, setInputValue] = useState('500'); // Local state for input field
   
-  // Default referral code to 'COMPANY1'
-  const [referralCodeInput, setReferralCodeInput] = useState(
-    referralCode || 'COMPANY1'
-  );
+  // Get referral code from localStorage or prop, default to empty string
+  const getReferralCodeFromStorage = useCallback(() => {
+    if (referralCode) return referralCode;
+    if (typeof window !== 'undefined') {
+      const storedCode = localStorage.getItem('ev_nexus_referral_code');
+      if (storedCode) return storedCode;
+    }
+    return '';
+  }, [referralCode]);
+  
+  const [referralCodeInput, setReferralCodeInput] = useState(() => {
+    // Initialize with referral code from prop or localStorage
+    if (referralCode) return referralCode;
+    if (typeof window !== 'undefined') {
+      const storedCode = localStorage.getItem('ev_nexus_referral_code');
+      if (storedCode) return storedCode;
+    }
+    return '';
+  });
   const [joinDistributorProgram, setJoinDistributorProgram] = useState(false);
   
   // Delivery address fields
@@ -226,15 +247,34 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     setInputValue(preBookingAmount.toString());
   }, [preBookingAmount]);
 
-  // Auto-fill referral code when modal opens (default to 'COMPANY1')
+  // Auto-fill referral code when modal opens (from localStorage or prop)
   useEffect(() => {
     if (isOpen) {
-      // Priority: prop > default 'COMPANY1'
-      const codeToUse = referralCode || 'COMPANY1';
+      const codeToUse = getReferralCodeFromStorage();
       setReferralCodeInput(codeToUse);
-      console.log('✅ [PRE-BOOKING] Auto-filled referral code:', codeToUse);
+      console.log('✅ [PRE-BOOKING] Auto-filled referral code:', codeToUse || 'none');
     }
-  }, [isOpen, referralCode]);
+  }, [isOpen, getReferralCodeFromStorage]);
+  
+  // Auto-fill delivery address from user profile
+  useEffect(() => {
+    if (isOpen && userProfile) {
+      if (userProfile.city) {
+        setDeliveryCity(userProfile.city);
+      }
+      if (userProfile.state) {
+        setDeliveryState(userProfile.state);
+      }
+      if (userProfile.pincode) {
+        setDeliveryPin(userProfile.pincode);
+      }
+      console.log('✅ [PRE-BOOKING] Auto-filled delivery address from profile:', {
+        city: userProfile.city,
+        state: userProfile.state,
+        pincode: userProfile.pincode,
+      });
+    }
+  }, [isOpen, userProfile]);
 
   // Reset booking response and submission state when modal closes
   useEffect(() => {
@@ -1073,61 +1113,8 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
             )}
           </div>
 
-          {/* Delivery Address */}
-          <div className="space-y-4 p-5 bg-muted/40 rounded-xl border border-border/50">
-            <h3 className="font-semibold text-foreground text-base">Delivery Address</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="deliveryCity" className="text-sm font-medium">
-                  City <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="deliveryCity"
-                  placeholder="Enter city"
-                  value={deliveryCity}
-                  onChange={(e) => setDeliveryCity(e.target.value)}
-                  required
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="deliveryState" className="text-sm font-medium">
-                  State <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="deliveryState"
-                  placeholder="Enter state"
-                  value={deliveryState}
-                  onChange={(e) => setDeliveryState(e.target.value)}
-                  required
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="deliveryPin" className="text-sm font-medium">
-                  PIN Code <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="deliveryPin"
-                  placeholder="Enter 6-digit PIN code"
-                  value={deliveryPin}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                    setDeliveryPin(value);
-                  }}
-                  maxLength={6}
-                  required
-                  className="h-11"
-                />
-                {deliveryPin && !/^\d{6}$/.test(deliveryPin) && (
-                  <p className="text-xs text-destructive flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    Please enter a valid 6-digit PIN code
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* Delivery Address - Auto-filled from profile, hidden from UI */}
+          {/* Address fields are autofilled from user profile and not displayed */}
 
           {/* Terms and Conditions */}
           <div className="space-y-2">

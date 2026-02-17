@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AlertCircle, CheckCircle, XCircle, Phone, Shield } from 'lucide-react';
 import {
   Dialog,
@@ -34,7 +34,7 @@ export function ConditionsDialog({ isOpen, onClose, onAccept }: ConditionsDialog
   const { user } = useAppSelector((state) => state.auth);
   
   // Auto-fetch phone number from user profile, use mock data if not available
-  const getUserPhoneNumber = (): string => {
+  const getUserPhoneNumber = useCallback((): string => {
     // Try to get from user profile
     if (user?.phone) {
       // Remove any non-digit characters and ensure it's 10 digits
@@ -58,7 +58,7 @@ export function ConditionsDialog({ isOpen, onClose, onAccept }: ConditionsDialog
     };
     
     return mockPhones[user?.email || ''] || '9497279195'; // Default mock phone
-  };
+  }, [user]);
 
   const [mobileNumber, setMobileNumber] = useState(() => getUserPhoneNumber());
   const [incentiveConsent, setIncentiveConsent] = useState(false);
@@ -86,7 +86,7 @@ export function ConditionsDialog({ isOpen, onClose, onAccept }: ConditionsDialog
       setDeclarationAccepted(false);
       setRefundPolicyAccepted(false);
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, getUserPhoneNumber]);
 
   const handleSendOTP = async () => {
     if (!mobileNumber || mobileNumber.length !== 10) {
@@ -103,8 +103,9 @@ export function ConditionsDialog({ isOpen, onClose, onAccept }: ConditionsDialog
       if (result.otp) {
         console.log(`[DEV] OTP for ${mobileNumber}: ${result.otp}`);
       }
-    } catch (error: any) {
-      toast.error(error?.data?.message || 'Failed to send OTP');
+    } catch (error: unknown) {
+      const errorMessage = (error as { data?: { message?: string } })?.data?.message || 'Failed to send OTP';
+      toast.error(errorMessage);
     } finally {
       setIsSendingOTP(false);
     }
@@ -121,8 +122,9 @@ export function ConditionsDialog({ isOpen, onClose, onAccept }: ConditionsDialog
       await verifyOTP({ mobileNumber, otp }).unwrap();
       setOtpVerified(true);
       toast.success('OTP verified successfully!');
-    } catch (error: any) {
-      toast.error(error?.data?.message || 'Invalid OTP. Please try again.');
+    } catch (error: unknown) {
+      const errorMessage = (error as { data?: { message?: string } })?.data?.message || 'Invalid OTP. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsVerifyingOTP(false);
     }
