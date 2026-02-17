@@ -15,7 +15,7 @@ import { updatePreBooking } from '@/app/slices/authSlice';
 import { addPayout } from '@/app/slices/payoutSlice';
 import { useAddReferralNodeMutation } from '@/app/api/binaryApi';
 import { useCreateBookingMutation, useMakePaymentMutation, BookingResponse } from '@/app/api/bookingApi';
-import { useGetDistributorDocumentsQuery } from '@/app/api/complianceApi';
+import { useGetDistributorDocumentsQuery, useAcceptDocumentMutation, useVerifyAcceptanceMutation } from '@/app/api/complianceApi';
 import { useGetUserProfileRawQuery } from '@/app/api/userApi';
 import { toast } from 'sonner';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
@@ -231,9 +231,9 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [isAcceptingDocument, setIsAcceptingDocument] = useState(false);
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
   
-  // Document acceptance mutations - TODO: Implement these mutations in complianceApi
-  // const [acceptDocument] = useAcceptDocumentMutation();
-  // const [verifyAcceptance] = useVerifyAcceptanceMutation();
+  // Document acceptance mutations
+  const [acceptDocument] = useAcceptDocumentMutation();
+  const [verifyAcceptance] = useVerifyAcceptanceMutation();
   
   // Get user identifier (email or mobile)
   const getIdentifier = () => {
@@ -566,30 +566,24 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         return;
       }
       
-      // TODO: Implement acceptDocument mutation in complianceApi
-      // For now, skip OTP flow and allow direct acceptance
-      setOtpSent(true);
-      setOtpVerified(true);
-      toast.success('Terms and Conditions accepted');
-      
-      // Original implementation (commented out until mutations are available):
-      // setIsAcceptingDocument(true);
-      // try {
-      //   console.log('📄 [PRE-BOOKING] Accepting document:', paymentTermsDocument.id);
-      //   await acceptDocument(paymentTermsDocument.id).unwrap();
-      //   console.log('📄 [PRE-BOOKING] Document accepted, OTP should be sent');
-      //   setOtpSent(true);
-      //   toast.success(`OTP sent to your ${getOtpType() === 'email' ? 'email' : 'mobile number'}`);
-      // } catch (error: unknown) {
-      //   console.error('📄 [PRE-BOOKING] Error accepting document:', error);
-      //   const errorMessage = error && typeof error === 'object' && 'data' in error && 
-      //     error.data && typeof error.data === 'object' && 'message' in error.data &&
-      //     typeof error.data.message === 'string' ? error.data.message : 'Failed to accept terms. Please try again.';
-      //   toast.error(errorMessage);
-      //   setTermsAccepted(false);
-      // } finally {
-      //   setIsAcceptingDocument(false);
-      // }
+      setIsAcceptingDocument(true);
+      try {
+        // Call accept API - sends OTP to user's email/mobile
+        console.log('📄 [PRE-BOOKING] Accepting document:', paymentTermsDocument.id);
+        await acceptDocument(paymentTermsDocument.id).unwrap();
+        console.log('📄 [PRE-BOOKING] Document accepted, OTP should be sent');
+        setOtpSent(true);
+        toast.success(`OTP sent to your ${getOtpType() === 'email' ? 'email' : 'mobile number'}`);
+      } catch (error: unknown) {
+        console.error('📄 [PRE-BOOKING] Error accepting document:', error);
+        const errorMessage = error && typeof error === 'object' && 'data' in error && 
+          error.data && typeof error.data === 'object' && 'message' in error.data &&
+          typeof error.data.message === 'string' ? error.data.message : 'Failed to accept terms. Please try again.';
+        toast.error(errorMessage);
+        setTermsAccepted(false);
+      } finally {
+        setIsAcceptingDocument(false);
+      }
     } else {
       // Reset OTP state when unchecked
       setOtpSent(false);
@@ -610,42 +604,37 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       return;
     }
     
-    // TODO: Implement verifyAcceptance mutation in complianceApi
-    // For now, auto-verify
-    setOtpVerified(true);
-    toast.success('OTP verified successfully!');
+    const identifier = getIdentifier();
+    const otpType = getOtpType();
     
-    // Original implementation (commented out until mutations are available):
-    // const identifier = getIdentifier();
-    // const otpType = getOtpType();
-    // 
-    // if (!identifier) {
-    //   toast.error('Email or mobile number not found in profile');
-    //   return;
-    // }
-    // 
-    // setIsVerifyingOTP(true);
-    // try {
-    //   console.log('📄 [PRE-BOOKING] Verifying OTP for document:', paymentTermsDocument.id);
-    //   await verifyAcceptance({
-    //     documentId: paymentTermsDocument.id,
-    //     data: {
-    //       identifier,
-    //       otp_code: otpCode,
-    //       otp_type: otpType,
-    //     },
-    //   }).unwrap();
-    //   setOtpVerified(true);
-    //   toast.success('OTP verified successfully!');
-    // } catch (error: unknown) {
-    //   console.error('📄 [PRE-BOOKING] Error verifying OTP:', error);
-    //   const errorMessage = error && typeof error === 'object' && 'data' in error && 
-    //     error.data && typeof error.data === 'object' && 'message' in error.data &&
-    //     typeof error.data.message === 'string' ? error.data.message : 'Invalid OTP. Please try again.';
-    //   toast.error(errorMessage);
-    // } finally {
-    //   setIsVerifyingOTP(false);
-    // }
+    if (!identifier) {
+      toast.error('Email or mobile number not found in profile');
+      return;
+    }
+    
+    setIsVerifyingOTP(true);
+    try {
+      // Call verify API - verifies OTP and completes document acceptance
+      console.log('📄 [PRE-BOOKING] Verifying OTP for document:', paymentTermsDocument.id);
+      await verifyAcceptance({
+        documentId: paymentTermsDocument.id,
+        data: {
+          identifier,
+          otp_code: otpCode,
+          otp_type: otpType,
+        },
+      }).unwrap();
+      setOtpVerified(true);
+      toast.success('OTP verified successfully!');
+    } catch (error: unknown) {
+      console.error('📄 [PRE-BOOKING] Error verifying OTP:', error);
+      const errorMessage = error && typeof error === 'object' && 'data' in error && 
+        error.data && typeof error.data === 'object' && 'message' in error.data &&
+        typeof error.data.message === 'string' ? error.data.message : 'Invalid OTP. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setIsVerifyingOTP(false);
+    }
   };
 
   // Handle Razorpay payment flow

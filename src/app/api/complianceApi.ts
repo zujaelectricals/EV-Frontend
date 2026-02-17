@@ -378,7 +378,7 @@ export const complianceApi = api.injectEndpoints({
             };
           }
 
-          const url = `${API_BASE_URL}compliance/distributor-documents/${documentId}/verify/`;
+          const url = `${API_BASE_URL}compliance/distributor-documents/${documentId}/verify-acceptance/`;
           
           let response = await fetch(url, {
             method: 'POST',
