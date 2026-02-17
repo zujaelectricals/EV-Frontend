@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -155,33 +155,43 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     }
   }, [distributorDocuments]);
   
+  // Helper to get documents array from response (handles both array and object with results)
+  const documentsArray = useMemo(() => {
+    if (!distributorDocuments) return [];
+    if (Array.isArray(distributorDocuments)) return distributorDocuments;
+    if ('results' in distributorDocuments && Array.isArray(distributorDocuments.results)) {
+      return distributorDocuments.results;
+    }
+    return [];
+  }, [distributorDocuments]);
+
   // Find payment_terms document
   // Check for document_type and file URL existence (is_active might not be in response)
-  const paymentTermsDocument = distributorDocuments?.results?.find(
+  const paymentTermsDocument = documentsArray.find(
     (doc) => doc.document_type === 'payment_terms' && doc.file
   );
   
   // Log the filtered payment terms document and debug info
   useEffect(() => {
-    if (distributorDocuments?.results) {
-      console.log('📄 [PRE-BOOKING] All documents:', distributorDocuments.results);
-      const paymentDocs = distributorDocuments.results.filter(doc => doc.document_type === 'payment_terms');
+    if (documentsArray.length > 0) {
+      console.log('📄 [PRE-BOOKING] All documents:', documentsArray);
+      const paymentDocs = documentsArray.filter(doc => doc.document_type === 'payment_terms');
       console.log('📄 [PRE-BOOKING] Payment terms documents found:', paymentDocs);
       console.log('📄 [PRE-BOOKING] Payment terms documents with file:', paymentDocs.filter(doc => doc.file));
     }
     if (paymentTermsDocument) {
       console.log('📄 [PRE-BOOKING] Payment Terms Document:', paymentTermsDocument);
       console.log('📄 [PRE-BOOKING] Payment Terms Document URL:', paymentTermsDocument.file);
-    } else if (distributorDocuments?.results) {
+    } else if (documentsArray.length > 0) {
       console.warn('📄 [PRE-BOOKING] Payment Terms document not found. Available documents:', 
-        distributorDocuments.results.map(doc => ({ 
+        documentsArray.map(doc => ({ 
           type: doc.document_type, 
           hasFile: !!doc.file, 
           is_active: 'is_active' in doc ? (doc as { is_active?: boolean }).is_active : undefined 
         }))
       );
     }
-  }, [paymentTermsDocument, distributorDocuments]);
+  }, [paymentTermsDocument, documentsArray]);
   // Use ref to prevent duplicate submissions (refs update synchronously)
   const isSubmittingRef = useRef(false);
   const [preBookingAmount, setPreBookingAmount] = useState(500);

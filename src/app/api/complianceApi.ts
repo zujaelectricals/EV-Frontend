@@ -22,9 +22,12 @@ export interface DistributorDocument {
 }
 
 export interface DistributorDocumentsResponse {
-  count: number;
-  results: DistributorDocument[];
+  count?: number;
+  results?: DistributorDocument[];
 }
+
+// The API can return either an array directly or an object with results
+export type DistributorDocumentsApiResponse = DistributorDocument[] | DistributorDocumentsResponse;
 
 // Create Distributor Document Request
 export interface CreateDistributorDocumentRequest {
@@ -42,11 +45,74 @@ export interface CreateDistributorDocumentRequest {
 export const complianceApi = api.injectEndpoints({
   endpoints: (builder) => ({
     // Get all distributor documents
-    getDistributorDocuments: builder.query<DistributorDocumentsResponse, void>({
-      query: () => ({
-        url: 'compliance/distributor-documents/',
-        method: 'GET',
-      }),
+    getDistributorDocuments: builder.query<DistributorDocumentsApiResponse, void>({
+      queryFn: async () => {
+        try {
+          const { accessToken } = getAuthTokens();
+          if (!accessToken) {
+            return {
+              error: {
+                status: 'CUSTOM_ERROR' as const,
+                error: 'No access token found',
+                data: { message: 'No access token found' },
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const url = `${API_BASE_URL}compliance/distributor-documents/`;
+          
+          let response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              const { accessToken: newToken } = getAuthTokens();
+              response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [Compliance API] GET distributor-documents error:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                error: errorData.detail || errorData.message || 'Failed to fetch documents',
+                data: errorData,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const responseData = await response.json();
+          console.log('✅ [Compliance API] GET distributor-documents response:', responseData);
+          return { data: responseData };
+        } catch (error) {
+          console.error('❌ [Compliance API] GET distributor-documents fetch error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
       providesTags: ['DistributorDocuments'],
     }),
 
@@ -144,6 +210,7 @@ export const complianceApi = api.injectEndpoints({
         try {
           const { accessToken } = getAuthTokens();
           if (!accessToken) {
+            console.error('❌ [Compliance API] DELETE distributor-documents: No access token found');
             return {
               error: {
                 status: 'CUSTOM_ERROR' as const,
@@ -154,6 +221,8 @@ export const complianceApi = api.injectEndpoints({
           }
 
           const url = `${API_BASE_URL}compliance/distributor-documents/${id}/`;
+          console.log('🗑️ [Compliance API] DELETE distributor-documents URL:', url);
+          console.log('🗑️ [Compliance API] DELETE distributor-documents ID:', id);
           
           let response = await fetch(url, {
             method: 'DELETE',
@@ -162,22 +231,32 @@ export const complianceApi = api.injectEndpoints({
             },
           });
 
+          console.log('🗑️ [Compliance API] DELETE response status:', response.status, response.statusText);
+
           // Handle 401 Unauthorized - try to refresh token
           if (response.status === 401) {
+            console.log('🔄 [Compliance API] DELETE: Token expired, refreshing...');
             const refreshed = await refreshAccessToken();
             if (refreshed) {
               const { accessToken: newToken } = getAuthTokens();
+              console.log('🔄 [Compliance API] DELETE: Retrying with new token');
               response = await fetch(url, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${newToken}`,
                 },
               });
+              console.log('🗑️ [Compliance API] DELETE retry response status:', response.status, response.statusText);
             }
           }
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [Compliance API] DELETE distributor-documents error:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData,
+            });
             return {
               error: {
                 status: response.status,
@@ -187,9 +266,23 @@ export const complianceApi = api.injectEndpoints({
             };
           }
 
+          // Try to get response body if available (DELETE might return empty body)
+          let responseData;
+          try {
+            const text = await response.text();
+            if (text) {
+              responseData = JSON.parse(text);
+              console.log('✅ [Compliance API] DELETE distributor-documents response:', responseData);
+            } else {
+              console.log('✅ [Compliance API] DELETE distributor-documents: Success (empty response body)');
+            }
+          } catch (e) {
+            console.log('✅ [Compliance API] DELETE distributor-documents: Success (no response body to parse)');
+          }
+
           return { data: undefined };
         } catch (error) {
-          console.error('Delete Distributor Document API Error:', error);
+          console.error('❌ [Compliance API] DELETE distributor-documents fetch error:', error);
           return {
             error: {
               status: 'FETCH_ERROR',

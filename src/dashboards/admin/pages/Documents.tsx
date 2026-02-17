@@ -56,9 +56,25 @@ export const Documents = () => {
 
   const documents: DistributorDocument[] = useMemo(() => {
     if (!documentsResponse) {
+      console.log('📥 [Documents] No response data yet');
       return [];
     }
-    return documentsResponse.results || [];
+    
+    // Handle if response is already an array
+    if (Array.isArray(documentsResponse)) {
+      console.log('📥 [Documents] Response is array, count:', documentsResponse.length);
+      return documentsResponse;
+    }
+    
+    // Handle if response is an object with results property
+    if (typeof documentsResponse === 'object' && documentsResponse !== null && 'results' in documentsResponse) {
+      const results = (documentsResponse as { results?: DistributorDocument[] }).results;
+      console.log('📥 [Documents] Response has results property, count:', results?.length || 0);
+      return results || [];
+    }
+    
+    console.warn('⚠️ [Documents] Unexpected API response format:', documentsResponse);
+    return [];
   }, [documentsResponse]);
 
   // Create dialog state
@@ -187,21 +203,28 @@ export const Documents = () => {
 
   // Handle delete
   const handleDelete = (id: number) => {
+    console.log('🗑️ [Documents Component] Delete button clicked for document ID:', id);
     setDeletingDocumentId(id);
     setIsDeleteDialogOpen(true);
   };
 
   // Handle delete confirm
   const handleDeleteConfirm = async () => {
-    if (!deletingDocumentId) return;
+    if (!deletingDocumentId) {
+      console.warn('⚠️ [Documents Component] No document ID to delete');
+      return;
+    }
 
+    console.log('🗑️ [Documents Component] Delete confirmed, calling API for document ID:', deletingDocumentId);
     try {
-      await deleteDocument(deletingDocumentId).unwrap();
+      const result = await deleteDocument(deletingDocumentId).unwrap();
+      console.log('✅ [Documents Component] Delete successful, response:', result);
       toast.success('Document deleted successfully');
       setIsDeleteDialogOpen(false);
       setDeletingDocumentId(null);
       refetch();
     } catch (error: any) {
+      console.error('❌ [Documents Component] Delete failed:', error);
       toast.error(error?.data?.message || error?.error || 'Failed to delete document');
     }
   };
