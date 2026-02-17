@@ -96,7 +96,7 @@ export const ReferralLink = () => {
         {/* Referral Stats */}
         <Card>
           <CardHeader>
-            <CardTitle>Referral Statistics</CardTitle>
+            <CardTitle>ASA Statistics</CardTitle>
             <CardDescription>Track your referral performance</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

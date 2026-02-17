@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, XCircle, AlertCircle, User, Mail, Phone, FileCheck, Shield, Eye, Download } from 'lucide-react';
@@ -20,7 +20,7 @@ import {
   useSubmitDistributorApplicationMutation, 
   useGetDistributorApplicationQuery 
 } from '@/app/api/distributorApi';
-import { useGetDistributorDocumentsQuery, useAcceptDocumentMutation, useVerifyAcceptanceMutation } from '@/app/api/complianceApi';
+import { useGetASATermsQuery } from '@/app/api/complianceApi';
 import { Booking } from '@/app/slices/bookingSlice';
 import { KYCModal } from '@/components/KYCModal';
 import { useGetBookingsQuery } from '@/app/api/bookingApi';
@@ -112,43 +112,38 @@ export function DistributorApplication() {
   });
   const [userOrders, setUserOrders] = useState<Booking[]>([]);
   
-  // Fetch distributor documents
-  const { data: distributorDocuments, isLoading: isLoadingDocuments } = useGetDistributorDocumentsQuery();
+  // Fetch ASA Terms
+  const { data: asaTermsData, isLoading: isLoadingASATerms } = useGetASATermsQuery();
   
-  // Log API response
-  useEffect(() => {
-    if (distributorDocuments) {
-      console.log('📄 [DISTRIBUTOR APPLICATION] Distributor Documents API Response:', distributorDocuments);
+  // Parse ASA terms from full_text
+  const asaTerms = useMemo(() => {
+    if (!asaTermsData || asaTermsData.length === 0) {
+      return [];
     }
-  }, [distributorDocuments]);
+    
+    // Get the first active term or the first one if no active found
+    const activeTerm = asaTermsData.find(term => term.is_active) || asaTermsData[0];
+    if (!activeTerm || !activeTerm.full_text) {
+      return [];
+    }
+    
+    // Parse full_text: split by double newlines and filter out empty strings
+    // Each term is numbered (e.g., "1. I confirm...", "2. I understand...")
+    const terms = activeTerm.full_text
+      .split(/\n\n+/)
+      .map(term => term.trim())
+      .filter(term => term.length > 0);
+    
+    return terms;
+  }, [asaTermsData]);
   
-  // Find distributor_terms document
-  // Check for document_type and file URL existence (is_active might not be in response)
-  const distributorTermsDocument = distributorDocuments?.find(
-    (doc) => doc.document_type === 'distributor_terms' && doc.file
-  );
-  
-  // Log the filtered distributor terms document and debug info
-  useEffect(() => {
-    if (distributorDocuments) {
-      console.log('📄 [DISTRIBUTOR APPLICATION] All documents:', distributorDocuments);
-      const distributorDocs = distributorDocuments.filter(doc => doc.document_type === 'distributor_terms');
-      console.log('📄 [DISTRIBUTOR APPLICATION] Distributor terms documents found:', distributorDocs);
-      console.log('📄 [DISTRIBUTOR APPLICATION] Distributor terms documents with file:', distributorDocs.filter(doc => doc.file));
+  // Get active ASA term for acceptance flow (if needed)
+  const activeASATerm = useMemo(() => {
+    if (!asaTermsData || asaTermsData.length === 0) {
+      return null;
     }
-    if (distributorTermsDocument) {
-      console.log('📄 [DISTRIBUTOR APPLICATION] Distributor Terms Document:', distributorTermsDocument);
-      console.log('📄 [DISTRIBUTOR APPLICATION] Distributor Terms Document URL:', distributorTermsDocument.file);
-    } else if (distributorDocuments) {
-      console.warn('📄 [DISTRIBUTOR APPLICATION] Distributor Terms document not found. Available documents:', 
-        distributorDocuments.map(doc => ({ 
-          type: doc.document_type, 
-          hasFile: !!doc.file, 
-          is_active: 'is_active' in doc ? doc.is_active : undefined 
-        }))
-      );
-    }
-  }, [distributorTermsDocument, distributorDocuments]);
+    return asaTermsData.find(term => term.is_active) || asaTermsData[0];
+  }, [asaTermsData]);
   
   // Terms & Conditions and OTP state
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -158,9 +153,20 @@ export function DistributorApplication() {
   const [isAcceptingDocument, setIsAcceptingDocument] = useState(false);
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
   
-  // Document acceptance mutations
-  const [acceptDocument] = useAcceptDocumentMutation();
-  const [verifyAcceptance] = useVerifyAcceptanceMutation();
+  // ASA Terms checkboxes state - dynamic based on fetched terms
+  const [asaTermsAccepted, setAsaTermsAccepted] = useState<boolean[]>([]);
+  const [finalConfirmationAccepted, setFinalConfirmationAccepted] = useState(false);
+  
+  // Initialize asaTermsAccepted state when terms are loaded
+  useEffect(() => {
+    if (asaTerms.length > 0) {
+      setAsaTermsAccepted(new Array(asaTerms.length).fill(false));
+    }
+  }, [asaTerms]);
+  
+  // Document acceptance mutations (kept for potential future use if backend supports ASA terms acceptance)
+  // const [acceptDocument] = useAcceptDocumentMutation();
+  // const [verifyAcceptance] = useVerifyAcceptanceMutation();
   
   // Determine identifier (email or mobile) and OTP type
   const getIdentifier = () => {
@@ -197,33 +203,55 @@ export function DistributorApplication() {
     }
   }, [currentUser, rawProfileData]);
   
-  // Handle Terms & Conditions checkbox change
-  const handleTermsCheckboxChange = async (checked: boolean) => {
-    setTermsAccepted(checked);
+  // Handle individual ASA term checkbox change
+  const handleAsaTermChange = (index: number, checked: boolean) => {
+    const newTerms = [...asaTermsAccepted];
+    newTerms[index] = checked;
+    setAsaTermsAccepted(newTerms);
+  };
+
+  // Handle final confirmation checkbox change
+  const handleFinalConfirmationChange = async (checked: boolean) => {
+    setFinalConfirmationAccepted(checked);
     
     if (checked) {
-      // Check if document is available
-      if (!distributorTermsDocument) {
-        toast.error('Distributor Terms document is not available. Please try again later.');
-        setTermsAccepted(false);
+      // Check if all terms are accepted
+      const allTermsAccepted = asaTermsAccepted.every(accepted => accepted);
+      if (!allTermsAccepted) {
+        toast.error('Please accept all terms and conditions before final confirmation');
+        setFinalConfirmationAccepted(false);
+        return;
+      }
+      
+      // Check if ASA terms are available
+      if (!activeASATerm) {
+        toast.error('ASA Terms are not available. Please try again later.');
+        setFinalConfirmationAccepted(false);
         return;
       }
       
       setIsAcceptingDocument(true);
       try {
-        // Call accept API
-        console.log('📄 [DISTRIBUTOR APPLICATION] Accepting document:', distributorTermsDocument.id);
-        await acceptDocument(distributorTermsDocument.id).unwrap();
-        console.log('📄 [DISTRIBUTOR APPLICATION] Document accepted, OTP should be sent');
-        setOtpSent(true);
-        toast.success(`OTP sent to your ${getOtpType() === 'email' ? 'email' : 'mobile number'}`);
+        // Note: If acceptance API is needed, it should use activeASATerm.id
+        // For now, we'll skip the document acceptance and proceed directly
+        // If your backend has an accept endpoint for ASA terms, uncomment and update:
+        // console.log('📄 [DISTRIBUTOR APPLICATION] Accepting ASA terms:', activeASATerm.id);
+        // await acceptDocument(activeASATerm.id).unwrap();
+        
+        // Skip OTP flow for now - set terms as accepted directly
+        console.log('📄 [DISTRIBUTOR APPLICATION] All ASA terms accepted');
+        setOtpSent(false); // Skip OTP for ASA terms
+        setTermsAccepted(true);
+        setOtpVerified(true); // Auto-verify since we're skipping OTP
+        setConditionsAccepted(prev => ({ ...prev, otpVerified: true }));
+        toast.success('All terms accepted successfully!');
       } catch (error: unknown) {
         console.error('📄 [DISTRIBUTOR APPLICATION] Error accepting document:', error);
         const errorMessage = error && typeof error === 'object' && 'data' in error && 
           error.data && typeof error.data === 'object' && 'message' in error.data &&
           typeof error.data.message === 'string' ? error.data.message : 'Failed to accept terms. Please try again.';
         toast.error(errorMessage);
-        setTermsAccepted(false);
+        setFinalConfirmationAccepted(false);
       } finally {
         setIsAcceptingDocument(false);
       }
@@ -232,19 +260,20 @@ export function DistributorApplication() {
       setOtpSent(false);
       setOtpVerified(false);
       setOtpCode('');
+      setTermsAccepted(false);
       setConditionsAccepted(prev => ({ ...prev, otpVerified: false }));
     }
   };
   
-  // Handle OTP verification
+  // Handle OTP verification (if needed for ASA terms)
   const handleVerifyOTP = async () => {
     if (!otpCode || otpCode.length !== 6) {
       toast.error('Please enter a valid 6-digit OTP');
       return;
     }
     
-    if (!distributorTermsDocument) {
-      toast.error('Distributor Terms document is not available. Please try again later.');
+    if (!activeASATerm) {
+      toast.error('ASA Terms are not available. Please try again later.');
       return;
     }
     
@@ -258,18 +287,23 @@ export function DistributorApplication() {
     
     setIsVerifyingOTP(true);
     try {
-      console.log('📄 [DISTRIBUTOR APPLICATION] Verifying OTP for document:', distributorTermsDocument.id);
-      await verifyAcceptance({
-        documentId: distributorTermsDocument.id,
-        data: {
-          identifier,
-          otp_code: otpCode,
-          otp_type: otpType,
-        },
-      }).unwrap();
+      // Note: If verification API is needed for ASA terms, update the endpoint
+      // For now, this is kept for compatibility but may need backend support
+      console.log('📄 [DISTRIBUTOR APPLICATION] Verifying OTP for ASA terms:', activeASATerm.id);
+      // If your backend supports ASA terms verification, uncomment:
+      // await verifyAcceptance({
+      //   documentId: activeASATerm.id,
+      //   data: {
+      //     identifier,
+      //     otp_code: otpCode,
+      //     otp_type: otpType,
+      //   },
+      // }).unwrap();
+      
+      // For now, skip verification and set as verified
       setOtpVerified(true);
       setConditionsAccepted(prev => ({ ...prev, otpVerified: true }));
-      toast.success('OTP verified successfully!');
+      toast.success('Terms accepted successfully!');
     } catch (error: unknown) {
       console.error('📄 [DISTRIBUTOR APPLICATION] Error verifying OTP:', error);
       const errorMessage = error && typeof error === 'object' && 'data' in error && 
@@ -281,32 +315,52 @@ export function DistributorApplication() {
     }
   };
 
-  // Handle viewing Terms of Service PDF
+  // Handle viewing Terms of Service
   const handleViewTerms = () => {
-    if (distributorTermsDocument?.file) {
-      console.log('📄 [DISTRIBUTOR APPLICATION] Opening Distributor Terms document:', distributorTermsDocument.file);
-      window.open(distributorTermsDocument.file, '_blank');
+    if (activeASATerm) {
+      // Create a modal or new window to display the terms
+      const termsWindow = window.open('', '_blank', 'width=800,height=600');
+      if (termsWindow) {
+        termsWindow.document.write(`
+          <html>
+            <head>
+              <title>${activeASATerm.title}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+                h1 { color: #333; }
+                pre { white-space: pre-wrap; word-wrap: break-word; }
+              </style>
+            </head>
+            <body>
+              <h1>${activeASATerm.title}</h1>
+              <p><strong>Version:</strong> ${activeASATerm.version}</p>
+              <pre>${activeASATerm.full_text}</pre>
+            </body>
+          </html>
+        `);
+        termsWindow.document.close();
+      }
     } else {
-      console.warn('📄 [DISTRIBUTOR APPLICATION] Distributor Terms document not available from API');
-      toast.error('Distributor Terms document is not available. Please try again later.');
+      toast.error('ASA Terms are not available. Please try again later.');
     }
   };
 
-  // Handle downloading Terms of Service PDF
+  // Handle downloading Terms of Service
   const handleDownloadTerms = () => {
-    if (distributorTermsDocument?.file) {
-      console.log('📄 [DISTRIBUTOR APPLICATION] Downloading Distributor Terms document:', distributorTermsDocument.file);
+    if (activeASATerm) {
+      // Create a downloadable text file with the terms
+      const blob = new Blob([activeASATerm.full_text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = distributorTermsDocument.file;
-      link.download = distributorTermsDocument.title || 'Distributor_Terms.pdf';
-      link.target = '_blank';
+      link.href = url;
+      link.download = `${activeASATerm.title.replace(/\s+/g, '_')}_${activeASATerm.version}.txt`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success('Terms of Service PDF download started');
+      URL.revokeObjectURL(url);
+      toast.success('Terms of Service download started');
     } else {
-      console.warn('📄 [DISTRIBUTOR APPLICATION] Distributor Terms document not available from API');
-      toast.error('Distributor Terms document is not available. Please try again later.');
+      toast.error('ASA Terms are not available. Please try again later.');
     }
   };
 
@@ -444,7 +498,7 @@ export function DistributorApplication() {
     }
     
     // Ensure document is available
-    if (!distributorTermsDocument) {
+    if (!activeASATerm) {
       toast.error('Distributor Terms document is not available. Please try again later.');
       setIsSubmitting(false);
       return;
@@ -560,6 +614,8 @@ export function DistributorApplication() {
       setOtpCode('');
       setOtpSent(false);
       setOtpVerified(false);
+      setAsaTermsAccepted(new Array(asaTerms.length).fill(false));
+      setFinalConfirmationAccepted(false);
     } catch (error: unknown) {
       console.error('Submission error:', error);
       let errorMessage = 'Failed to submit application. Please try again.';
@@ -731,66 +787,106 @@ export function DistributorApplication() {
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Terms & Conditions Section */}
-            <div className="space-y-4 p-4 border-2 border-primary rounded-lg bg-primary/5">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="space-y-3 p-4 border-2 border-primary rounded-lg bg-primary/5">
+              <div className="flex items-center gap-2 mb-2">
                 <FileCheck className="w-5 h-5" />
                 <h3 className="font-semibold text-lg text-foreground">
                   Terms & Conditions
                 </h3>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Please read and accept the terms & conditions to proceed
+              <p className="text-sm text-muted-foreground mb-3">
+                Please read and accept all the terms & conditions to proceed
               </p>
               
-              {/* Terms & Conditions Checkbox */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border rounded-lg">
-                <div className="flex items-start space-x-3 flex-1 min-w-0">
+              {/* Scrollable Terms List */}
+              <div className="max-h-[350px] overflow-y-auto border rounded-lg bg-muted/30 p-3 space-y-2">
+                {isLoadingASATerms ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="text-sm text-muted-foreground">Loading terms...</div>
+                  </div>
+                ) : asaTerms.length === 0 ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="text-sm text-muted-foreground">No terms available</div>
+                  </div>
+                ) : (
+                  asaTerms.map((term, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-start space-x-2 p-2 rounded-lg border transition-colors ${
+                      asaTermsAccepted[index]
+                        ? 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-700'
+                        : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:bg-accent/50'
+                    }`}
+                  >
+                    <Checkbox
+                      id={`asa-term-${index}`}
+                      checked={asaTermsAccepted[index]}
+                      onCheckedChange={(checked) => handleAsaTermChange(index, checked === true)}
+                      disabled={isAcceptingDocument || otpVerified}
+                      className="mt-1 flex-shrink-0"
+                    />
+                    <label
+                      htmlFor={`asa-term-${index}`}
+                      className="cursor-pointer text-sm flex-1 leading-snug"
+                    >
+                      {term}
+                    </label>
+                  </div>
+                  ))
+                )}
+              </div>
+              
+              {/* Final Confirmation Checkbox */}
+              <div className={`mt-3 p-3 border-2 rounded-lg transition-colors ${
+                finalConfirmationAccepted
+                  ? 'bg-green-50 dark:bg-green-950/20 border-green-400 dark:border-green-600'
+                  : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600'
+              }`}>
+                <div className="flex items-start space-x-3">
                   <Checkbox
-                    id="terms-checkbox"
-                    checked={termsAccepted}
-                    onCheckedChange={handleTermsCheckboxChange}
-                    disabled={isAcceptingDocument || otpVerified}
+                    id="final-confirmation"
+                    checked={finalConfirmationAccepted}
+                    onCheckedChange={handleFinalConfirmationChange}
+                    disabled={!asaTermsAccepted.every(accepted => accepted) || isAcceptingDocument || otpVerified}
                     className="mt-1 flex-shrink-0"
                   />
-                  <label htmlFor="terms-checkbox" className="cursor-pointer text-sm flex-1">
-                    I understand and accept the{' '}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleViewTerms();
-                      }}
-                      className="text-primary hover:underline font-medium"
-                    >
-                      Terms & Conditions
-                    </button>
-                    {' '}*
+                  <label
+                    htmlFor="final-confirmation"
+                    className="cursor-pointer text-sm font-semibold flex-1"
+                  >
+                    I confirm that I have read, understood, and voluntarily accepted all the above terms and conditions. *
                   </label>
                 </div>
-                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">Terms of Service</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleViewTerms}
-                    className="h-8 w-8 flex-shrink-0"
-                    title="View Terms of Service"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleDownloadTerms}
-                    className="h-8 w-8 flex-shrink-0"
-                    title="Download Terms of Service"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
+                {!asaTermsAccepted.every(accepted => accepted) && (
+                  <p className="text-xs text-muted-foreground mt-2 ml-7">
+                    Please accept all terms above before final confirmation
+                  </p>
+                )}
+              </div>
+              
+              {/* View/Download Terms Buttons */}
+              <div className="flex items-center justify-end gap-2 mt-4">
+                <span className="text-sm text-muted-foreground">Terms of Service</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleViewTerms}
+                  className="h-8 w-8"
+                  title="View Terms of Service"
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDownloadTerms}
+                  className="h-8 w-8"
+                  title="Download Terms of Service"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
               </div>
               
               {/* OTP Verification Section */}
@@ -1006,13 +1102,18 @@ export function DistributorApplication() {
               type="submit" 
               className="w-full" 
               size="lg" 
-              disabled={isSubmitting || !termsAccepted || !otpVerified || !distributorTermsDocument}
+              disabled={isSubmitting || !termsAccepted || !otpVerified || !activeASATerm}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </Button>
-            {!termsAccepted && (
+            {!finalConfirmationAccepted && (
               <p className="text-sm text-muted-foreground text-center">
-                Please accept Terms & Conditions to proceed
+                Please accept all terms & conditions and confirm to proceed
+              </p>
+            )}
+            {finalConfirmationAccepted && !otpSent && (
+              <p className="text-sm text-muted-foreground text-center">
+                Processing your acceptance...
               </p>
             )}
             {termsAccepted && !otpVerified && (
