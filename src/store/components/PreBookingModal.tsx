@@ -300,12 +300,27 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       setBookingResponse(null);
       setIsBookingInProgress(false);
       setIsVerifyingPayment(false);
+      setIsProcessingPayment(false);
       isSubmittingRef.current = false;
       // Reset OTP state
       setTermsAccepted(false);
       setOtpSent(false);
       setOtpVerified(false);
       setOtpCode('');
+      
+      // Ensure pointer-events are restored for all elements
+      // This is a safety measure in case Razorpay hook didn't restore them
+      if (typeof document !== 'undefined') {
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach((el) => {
+          const element = el as HTMLElement;
+          if (element.dataset.originalPointerEvents !== undefined) {
+            const originalValue = element.dataset.originalPointerEvents || '';
+            element.style.pointerEvents = originalValue;
+            delete element.dataset.originalPointerEvents;
+          }
+        });
+      }
     }
   }, [isOpen]);
 
@@ -323,9 +338,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
 
   const totalAmount = scooter.price;
   const remainingAmount = totalAmount - preBookingAmount;
-  const excessAmount = preBookingAmount > DISTRIBUTOR_ELIGIBILITY_AMOUNT ? preBookingAmount - DISTRIBUTOR_ELIGIBILITY_AMOUNT : 0;
-  const taxAndDeductions = excessAmount * 0.15; // 15% tax and deductions on excess
-  const refundableAmount = excessAmount - taxAndDeductions;
   // Redemption points only eligible if pre-booked at least ₹5000
   const redemptionPoints = preBookingAmount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT ? DISTRIBUTOR_ELIGIBILITY_AMOUNT : 0;
   // Get user from Redux or localStorage fallback
@@ -866,14 +878,17 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       
       console.log('✅ [PAYMENT] Closing modal and navigating');
       
-      // Close modal first
+      // Reset verification state FIRST to remove overlay and restore interactions
+      setIsVerifyingPayment(false);
+      
+      // Force a small delay to ensure overlay is removed from DOM
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Close modal
       onClose();
       
       // Small delay before navigation to ensure modal closes smoothly
-      await new Promise(resolve => setTimeout(resolve, 400));
-      
-      // Reset verification state before navigation
-      setIsVerifyingPayment(false);
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Invalidate inventory cache to refresh vehicle data with updated is_already_booked status
       dispatch(api.util.invalidateTags(['Inventory']));
@@ -913,15 +928,17 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   return (
     <>
       {/* Payment Verification Loading Overlay - Outside Dialog using Portal */}
-      {isVerifyingPayment && typeof window !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[99999] bg-background/98 backdrop-blur-md flex items-center justify-center">
-          <AnimatePresence>
+      {typeof window !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isVerifyingPayment && (
             <motion.div
+              key="payment-verification-overlay"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col items-center justify-center space-y-6 px-8 py-10"
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[99999] bg-background/98 backdrop-blur-md flex items-center justify-center"
+              style={{ pointerEvents: isVerifyingPayment ? 'auto' : 'none' }}
             >
               <div className="relative">
                 {/* Outer rotating ring */}
@@ -987,8 +1004,8 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 </motion.div>
               </div>
             </motion.div>
-          </AnimatePresence>
-        </div>,
+          )}
+        </AnimatePresence>,
         document.body
       )}
 
@@ -1227,22 +1244,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 <span className="text-sm text-muted-foreground">Remaining Amount</span>
                 <span className="font-semibold text-base text-foreground">₹{remainingAmount.toLocaleString()}</span>
               </div>
-              {excessAmount > 0 && (
-                <div className="pt-3 mt-3 border-t border-border/50 space-y-2">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Excess Amount (Refundable)</span>
-                    <span>₹{excessAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Tax & Deductions (15%)</span>
-                    <span className="text-destructive">-₹{taxAndDeductions.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-semibold pt-2 border-t border-border/30">
-                    <span className="text-foreground">Net Refund</span>
-                    <span className="text-primary">₹{refundableAmount.toLocaleString()}</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
