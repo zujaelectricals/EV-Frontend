@@ -1675,9 +1675,21 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 <span className="font-semibold text-base text-foreground">₹{totalAmount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border/30">
-                <span className="text-sm text-muted-foreground">Pre-Booking Amount</span>
+                <span className="text-sm text-muted-foreground">Pre-Booking Amount (to Credit)</span>
                 <span className="font-semibold text-base text-primary">₹{preBookingAmount.toLocaleString()}</span>
               </div>
+              {preBookingAmount > 0 && (
+                <>
+                  <div className="flex justify-between items-center py-2 border-b border-border/30">
+                    <span className="text-sm text-muted-foreground">Platform Fee (2.36%)</span>
+                    <span className="font-medium text-sm text-muted-foreground">₹{((preBookingAmount / 0.9764) - preBookingAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-border/30 bg-primary/5 rounded-lg px-3 py-2.5 -mx-1">
+                    <span className="text-sm font-semibold text-foreground">Total Amount to Pay</span>
+                    <span className="font-bold text-lg text-primary">₹{(preBookingAmount / 0.9764).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between items-center py-2">
                 <span className="text-sm text-muted-foreground">Remaining Amount</span>
                 <span className="font-semibold text-base text-foreground">₹{remainingAmount.toLocaleString()}</span>

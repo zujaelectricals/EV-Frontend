@@ -86,7 +86,7 @@ import { BankAbuseMonitor } from './pages/BankAbuseMonitor';
 import { ReferralFarmingAlerts } from './pages/ReferralFarmingAlerts';
 import { RapidGrowthSuspicion } from './pages/RapidGrowthSuspicion';
 import { Gallery } from './pages/Gallery';
-import { Documents } from './pages/Documents';
+// import { Documents } from './pages/Documents';
 
 // Placeholder components for nested routes (can be replaced with actual components later)
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -207,7 +207,7 @@ export const AdminRoutes = () => {
       <Route path="gallery" element={<Gallery />} />
 
       {/* Documents Routes */}
-      <Route path="documents" element={<Documents />} />
+      {/* <Route path="documents" element={<Documents />} /> */}
 
       {/* Reports Routes */}
       <Route path="reports" element={<Reports />} />

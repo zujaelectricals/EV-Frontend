@@ -254,13 +254,13 @@ const adminMenuSections: MenuSection[] = [
     path: "/admin/gallery",
     children: [],
   },
-  {
-    label: "Documents",
-    icon: FileCheck,
-    value: "documents",
-    path: "/admin/documents",
-    children: [],
-  },
+  // {
+  //   label: "Documents",
+  //   icon: FileCheck,
+  //   value: "documents",
+  //   path: "/admin/documents",
+  //   children: [],
+  // },
   {
     label: "Reports",
     icon: FileText,

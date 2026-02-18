@@ -12,8 +12,13 @@ export interface CreateOrderRequest {
 export interface CreateOrderResponse {
   order_id: string;
   key_id: string;
-  amount: number;
-  currency: string;
+  amount: number; // Gross amount in paise (what user pays, includes gateway charges) - use this for Razorpay checkout
+  net_amount: number; // Net amount in paise (what gets credited to booking/payout)
+  gateway_charges: number; // Gateway charges in paise (2.36% of gross amount)
+  amount_rupees: number; // Gross amount in rupees (for display)
+  net_amount_rupees: number; // Net amount in rupees (for display)
+  gateway_charges_rupees: number; // Gateway charges in rupees (for display)
+  currency?: string; // Optional currency (defaults to 'INR')
 }
 
 export interface VerifyPaymentRequest {
@@ -53,14 +58,25 @@ export interface PayoutResponse {
 }
 
 /**
- * Helper function to make authenticated API calls
+ * Helper function to make authenticated API calls with retry logic for 504 Gateway Timeout
+ * This handles backend cold start issues where the first request times out but subsequent requests succeed
  */
 async function makeAuthenticatedRequest<T>(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryConfig?: {
+    maxRetries?: number;
+    retryDelay?: number;
+    retryableStatuses?: number[];
+  }
 ): Promise<T> {
   const baseUrl = API_BASE_URL;
   const fullUrl = `${baseUrl}${url.startsWith('/') ? url.slice(1) : url}`;
+
+  // Default retry configuration
+  const maxRetries = retryConfig?.maxRetries ?? 2; // Retry up to 2 times (3 total attempts)
+  const baseRetryDelay = retryConfig?.retryDelay ?? 2000; // Start with 2 second delay
+  const retryableStatuses = retryConfig?.retryableStatuses ?? [504]; // Retry on 504 Gateway Timeout
 
   let { accessToken } = getAuthTokens();
 
@@ -81,45 +97,130 @@ async function makeAuthenticatedRequest<T>(
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(fullUrl, {
-    ...options,
-    headers,
-  });
+  let lastError: Error | null = null;
+  let attempt = 0;
 
-  // Handle 401 - try to refresh token once
-  if (response.status === 401 && accessToken) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      headers['Authorization'] = `Bearer ${refreshed.access}`;
-      const retryResponse = await fetch(fullUrl, {
+  // Retry loop for 504 errors (handles backend cold start)
+  while (attempt <= maxRetries) {
+    try {
+      const response = await fetch(fullUrl, {
         ...options,
         headers,
       });
 
-      if (!retryResponse.ok) {
-        const errorData = await retryResponse.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || 'Authentication failed');
+      // Handle 401 - try to refresh token once
+      if (response.status === 401 && accessToken) {
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+          headers['Authorization'] = `Bearer ${refreshed.access}`;
+          const retryResponse = await fetch(fullUrl, {
+            ...options,
+            headers,
+          });
+
+          if (!retryResponse.ok) {
+            const errorData = await retryResponse.json().catch(() => ({}));
+            throw new Error(errorData.detail || errorData.message || 'Authentication failed');
+          }
+
+          return retryResponse.json();
+        }
       }
 
-      return retryResponse.json();
+      // If we get a retryable status code (like 504), retry with exponential backoff
+      if (!response.ok && retryableStatuses.includes(response.status) && attempt < maxRetries) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        
+        attempt++;
+        const retryDelay = baseRetryDelay * Math.pow(2, attempt - 1); // Exponential backoff: 2s, 4s
+        
+        console.warn(`⚠️ [PAYMENTS] Received ${response.status} error (attempt ${attempt}/${maxRetries + 1}). Retrying in ${retryDelay}ms...`, {
+          url: fullUrl,
+          status: response.status,
+          errorMessage,
+          attempt,
+          maxRetries: maxRetries + 1,
+        });
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        continue; // Retry the request
+      }
+
+      // If response is not ok and not retryable, throw error immediately (don't retry client errors like 400)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail || errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        
+        // Log detailed error information for debugging
+        if (response.status === 400) {
+          console.error(`❌ [PAYMENTS] Bad Request (400) - Backend validation error:`, {
+            url: fullUrl,
+            requestBody: options.body,
+            errorData,
+            errorMessage,
+          });
+        }
+        
+        const error = new Error(errorMessage) as Error & { status?: number; errorData?: any };
+        error.status = response.status; // Store status code for catch block
+        error.errorData = errorData; // Store full error data for debugging
+        throw error;
+      }
+
+      // Success - return the response
+      return response.json();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Check if this is a client error (4xx) - don't retry these
+      const statusCode = (error as any)?.status;
+      if (statusCode && statusCode >= 400 && statusCode < 500) {
+        // Client errors (400-499) should not be retried - they indicate invalid requests
+        // Only exception: 408 (Request Timeout) and 429 (Too Many Requests) might be retryable
+        if (statusCode !== 408 && statusCode !== 429) {
+          console.error(`❌ [PAYMENTS] Client error (${statusCode}) - not retrying:`, lastError.message);
+          throw lastError; // Throw immediately, don't retry
+        }
+      }
+      
+      // If this is a network error, timeout, or server error and we have retries left, retry
+      // Network errors won't have a status code, so they'll fall through to retry logic
+      if (attempt < maxRetries) {
+        attempt++;
+        const retryDelay = baseRetryDelay * Math.pow(2, attempt - 1);
+        
+        console.warn(`⚠️ [PAYMENTS] Request failed (attempt ${attempt}/${maxRetries + 1}). Retrying in ${retryDelay}ms...`, {
+          url: fullUrl,
+          error: lastError.message,
+          statusCode: statusCode || 'network error',
+          attempt,
+          maxRetries: maxRetries + 1,
+        });
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        continue; // Retry the request
+      }
+
+      // No more retries left, throw the error
+      throw lastError;
     }
   }
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-    throw new Error(errorMessage);
-  }
-
-  return response.json();
+  // This should never be reached, but TypeScript needs it
+  throw lastError || new Error('Request failed after all retries');
 }
 
 /**
  * Create a Razorpay order for an entity (booking, prebooking, etc.)
- * @param entityType Type of entity (e.g., 'booking', 'prebooking')
+ * @param entityType Type of entity (e.g., 'booking', 'prebooking', 'payout')
  * @param entityId ID of the entity
- * @param amount Optional: Amount in rupees for partial payment. If not provided, uses full remaining amount for bookings or full amount for payouts
- * @returns Order details including order_id, key_id, and amount
+ * @param amount Optional: Net amount in rupees (what gets credited). If not provided, uses full remaining amount for bookings or full amount for payouts. Gateway charges (2.36%) are automatically added.
+ * @returns Order details including order_id, key_id, amount (gross in paise), net_amount, gateway_charges, and display amounts in rupees
+ * @note The 'amount' field in response is the gross amount in paise (includes gateway charges) - use this for Razorpay checkout initialization
+ * @note Gateway charges are automatically calculated and added server-side (2.36% = 2% fee + 18% GST on fee)
  */
 export async function createOrder(
   entityType: string,
@@ -141,11 +242,18 @@ export async function createOrder(
     timestamp: new Date().toISOString(),
   });
 
+  // Use retry logic specifically for create-order to handle backend cold start (504 errors)
+  // The first request might timeout due to backend initialization, but retry will succeed
   return makeAuthenticatedRequest<CreateOrderResponse>(
     'payments/create-order/',
     {
       method: 'POST',
       body: JSON.stringify(requestData),
+    },
+    {
+      maxRetries: 2, // Retry up to 2 times (3 total attempts)
+      retryDelay: 2000, // Start with 2 second delay, then 4 seconds
+      retryableStatuses: [504], // Retry on 504 Gateway Timeout (backend cold start)
     }
   );
 }
