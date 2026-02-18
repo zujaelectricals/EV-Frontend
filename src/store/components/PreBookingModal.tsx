@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { X, AlertCircle, Info, Calendar, Wallet, Eye, Download, Loader2 } from 'lucide-react';
+import { X, AlertCircle, Info, Calendar, Wallet, Eye, Download, Loader2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,7 @@ import { updatePreBooking } from '@/app/slices/authSlice';
 import { addPayout } from '@/app/slices/payoutSlice';
 import { useAddReferralNodeMutation } from '@/app/api/binaryApi';
 import { useCreateBookingMutation, useMakePaymentMutation, BookingResponse } from '@/app/api/bookingApi';
-import { useGetDistributorDocumentsQuery, useAcceptDocumentMutation, useVerifyAcceptanceMutation } from '@/app/api/complianceApi';
+import { useGetDistributorDocumentsQuery, useGetPaymentTermsQuery, useAcceptDocumentMutation, useVerifyAcceptanceMutation, useInitiatePaymentTermsAcceptanceMutation, useVerifyPaymentTermsAcceptanceMutation } from '@/app/api/complianceApi';
 import { useGetUserProfileRawQuery } from '@/app/api/userApi';
 import { toast } from 'sonner';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
@@ -130,6 +130,61 @@ const extractErrorMessage = (error: unknown, defaultMessage: string = 'An error 
   return defaultMessage;
 };
 
+// Helper function to restore all pointer-events
+const restoreAllPointerEvents = () => {
+  if (typeof document === 'undefined') return;
+  
+  // First, restore all elements with stored pointer-events
+  const allElements = document.querySelectorAll('*');
+  allElements.forEach((el) => {
+    const element = el as HTMLElement;
+    if (element.dataset.originalPointerEvents !== undefined) {
+      const originalValue = element.dataset.originalPointerEvents || '';
+      element.style.pointerEvents = originalValue;
+      delete element.dataset.originalPointerEvents;
+    }
+  });
+  
+  // Also ensure no high z-index overlays are blocking (except Razorpay)
+  const highZIndexElements = Array.from(document.querySelectorAll('*')).filter((el) => {
+    const style = window.getComputedStyle(el);
+    const zIndex = parseInt(style.zIndex, 10);
+    const position = style.position;
+    return position === 'fixed' && zIndex >= 50 && !isNaN(zIndex);
+  });
+  
+  highZIndexElements.forEach((element) => {
+    const el = element as HTMLElement;
+    // Skip Razorpay elements
+    if (el.closest('[class*="razorpay"]') || el.querySelector('[class*="razorpay"]')) {
+      return;
+    }
+    // Skip if it's the verification overlay and it's still showing
+    if (el.classList.contains('fixed') && el.classList.contains('inset-0')) {
+      // Check if it's our verification overlay by checking z-index
+      const zIndex = parseInt(window.getComputedStyle(el).zIndex, 10);
+      if (zIndex >= 99999) {
+        // This might be our overlay, ensure it's not blocking
+        el.style.pointerEvents = 'none';
+      }
+    }
+  });
+  
+  // Force enable pointer-events on navbar and navigation elements
+  const navElements = document.querySelectorAll('nav, [role="navigation"], header, [class*="navbar"], [class*="nav"]');
+  navElements.forEach((nav) => {
+    const navEl = nav as HTMLElement;
+    const style = window.getComputedStyle(navEl);
+    // Only restore if it's not already set to 'none' by design
+    if (style.pointerEvents === 'none' && !navEl.dataset.originalPointerEvents) {
+      navEl.style.pointerEvents = 'auto';
+    } else if (navEl.dataset.originalPointerEvents !== undefined) {
+      const originalValue = navEl.dataset.originalPointerEvents || 'auto';
+      navEl.style.pointerEvents = originalValue;
+    }
+  });
+};
+
 export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockData }: PreBookingModalProps) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -144,55 +199,59 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     skip: !isOpen || !isAuthenticated, // Only fetch when modal is open and user is authenticated
   });
   
-  // Fetch distributor documents when modal opens
-  const { data: distributorDocuments, isLoading: isLoadingDocuments } = useGetDistributorDocumentsQuery(undefined, {
+  // Fetch payment terms when modal opens
+  const { data: paymentTermsData, isLoading: isLoadingPaymentTerms } = useGetPaymentTermsQuery(undefined, {
     skip: !isOpen, // Only fetch when modal is open
   });
   
   // Log API response
   useEffect(() => {
-    if (distributorDocuments) {
-      console.log('📄 [PRE-BOOKING] Distributor Documents API Response:', distributorDocuments);
+    if (paymentTermsData) {
+      console.log('📄 [PRE-BOOKING] Payment Terms API Response:', paymentTermsData);
+      console.log('📄 [PRE-BOOKING] Payment Terms API Response (stringified):', JSON.stringify(paymentTermsData, null, 2));
+      console.log('📄 [PRE-BOOKING] Payment Terms count:', paymentTermsData.length);
     }
-  }, [distributorDocuments]);
+  }, [paymentTermsData]);
   
-  // Helper to get documents array from response (handles both array and object with results)
-  const documentsArray = useMemo(() => {
-    if (!distributorDocuments) return [];
-    if (Array.isArray(distributorDocuments)) return distributorDocuments;
-    if ('results' in distributorDocuments && Array.isArray(distributorDocuments.results)) {
-      return distributorDocuments.results;
-    }
-    return [];
-  }, [distributorDocuments]);
-
-  // Find payment_terms document
-  // Check for document_type and file URL existence (is_active might not be in response)
-  const paymentTermsDocument = documentsArray.find(
-    (doc) => doc.document_type === 'payment_terms' && doc.file
-  );
-  
-  // Log the filtered payment terms document and debug info
+  // Log loading state
   useEffect(() => {
-    if (documentsArray.length > 0) {
-      console.log('📄 [PRE-BOOKING] All documents:', documentsArray);
-      const paymentDocs = documentsArray.filter(doc => doc.document_type === 'payment_terms');
-      console.log('📄 [PRE-BOOKING] Payment terms documents found:', paymentDocs);
-      console.log('📄 [PRE-BOOKING] Payment terms documents with file:', paymentDocs.filter(doc => doc.file));
+    if (isOpen) {
+      console.log('📄 [PRE-BOOKING] Payment Terms loading state:', isLoadingPaymentTerms);
     }
-    if (paymentTermsDocument) {
-      console.log('📄 [PRE-BOOKING] Payment Terms Document:', paymentTermsDocument);
-      console.log('📄 [PRE-BOOKING] Payment Terms Document URL:', paymentTermsDocument.file);
-    } else if (documentsArray.length > 0) {
-      console.warn('📄 [PRE-BOOKING] Payment Terms document not found. Available documents:', 
-        documentsArray.map(doc => ({ 
-          type: doc.document_type, 
-          hasFile: !!doc.file, 
-          is_active: 'is_active' in doc ? (doc as { is_active?: boolean }).is_active : undefined 
-        }))
-      );
+  }, [isOpen, isLoadingPaymentTerms]);
+
+  // Get active payment term
+  const activePaymentTerm = useMemo(() => {
+    if (!paymentTermsData || paymentTermsData.length === 0) {
+      console.log('📄 [PRE-BOOKING] No payment terms data available');
+      return null;
     }
-  }, [paymentTermsDocument, documentsArray]);
+    const active = paymentTermsData.find(term => term.is_active) || paymentTermsData[0];
+    console.log('📄 [PRE-BOOKING] Active payment term:', active);
+    return active;
+  }, [paymentTermsData]);
+
+  // Parse payment terms from full_text (split by double newlines)
+  const paymentTerms = useMemo(() => {
+    if (!activePaymentTerm || !activePaymentTerm.full_text) {
+      console.log('📄 [PRE-BOOKING] No active payment term or full_text available');
+      return [];
+    }
+    
+    // Parse full_text: split by double newlines and filter out empty strings
+    const terms = activePaymentTerm.full_text
+      .split(/\n\n+/)
+      .map(term => term.trim())
+      .filter(term => term.length > 0);
+    
+    console.log('📄 [PRE-BOOKING] Parsed payment terms count:', terms.length);
+    console.log('📄 [PRE-BOOKING] Parsed payment terms:', terms);
+    
+    return terms;
+  }, [activePaymentTerm]);
+
+  // Modal state for viewing full terms
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   // Use ref to prevent duplicate submissions (refs update synchronously)
   const isSubmittingRef = useRef(false);
   const [preBookingAmount, setPreBookingAmount] = useState(500);
@@ -200,11 +259,15 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   
   // Get referral code from localStorage or prop, default to empty string
   const getReferralCodeFromStorage = useCallback(() => {
+    // Priority 1: Prop passed to modal
     if (referralCode) return referralCode;
+    
+    // Priority 2: localStorage (from referral link or previous booking)
     if (typeof window !== 'undefined') {
       const storedCode = localStorage.getItem('ev_nexus_referral_code');
       if (storedCode) return storedCode;
     }
+    
     return '';
   }, [referralCode]);
   
@@ -231,10 +294,13 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [otpVerified, setOtpVerified] = useState(false);
   const [isAcceptingDocument, setIsAcceptingDocument] = useState(false);
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  const [receiptPdfUrl, setReceiptPdfUrl] = useState<string | null>(null);
   
   // Document acceptance mutations
   const [acceptDocument] = useAcceptDocumentMutation();
   const [verifyAcceptance] = useVerifyAcceptanceMutation();
+  const [initiatePaymentTermsAcceptance] = useInitiatePaymentTermsAcceptanceMutation();
+  const [verifyPaymentTermsAcceptance] = useVerifyPaymentTermsAcceptanceMutation();
   
   // Get user identifier (email or mobile)
   const getIdentifier = () => {
@@ -274,25 +340,78 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     }
   }, [isOpen, getReferralCodeFromStorage]);
   
-  // Auto-fill delivery address from user profile
+  // Auto-fill delivery address from user profile or localStorage
   useEffect(() => {
-    if (isOpen && userProfile) {
-      if (userProfile.city) {
-        setDeliveryCity(userProfile.city);
+    if (isOpen) {
+      let city = '';
+      let state = '';
+      let pincode = '';
+      
+      // Priority 1: User profile (from API)
+      if (userProfile) {
+        city = userProfile.city || '';
+        state = userProfile.state || '';
+        pincode = userProfile.pincode || '';
       }
-      if (userProfile.state) {
-        setDeliveryState(userProfile.state);
+      
+      // Priority 2: localStorage (fallback if profile doesn't have the data)
+      if (typeof window !== 'undefined') {
+        if (!city) {
+          const storedCity = localStorage.getItem('ev_nexus_delivery_city');
+          if (storedCity) city = storedCity;
+        }
+        if (!state) {
+          const storedState = localStorage.getItem('ev_nexus_delivery_state');
+          if (storedState) state = storedState;
+        }
+        if (!pincode) {
+          const storedPincode = localStorage.getItem('ev_nexus_delivery_pincode');
+          if (storedPincode) pincode = storedPincode;
+        }
       }
-      if (userProfile.pincode) {
-        setDeliveryPin(userProfile.pincode);
-      }
-      console.log('✅ [PRE-BOOKING] Auto-filled delivery address from profile:', {
-        city: userProfile.city,
-        state: userProfile.state,
-        pincode: userProfile.pincode,
+      
+      // Set the values if we have them
+      if (city) setDeliveryCity(city);
+      if (state) setDeliveryState(state);
+      if (pincode) setDeliveryPin(pincode);
+      
+      console.log('✅ [PRE-BOOKING] Auto-filled delivery address:', {
+        city,
+        state,
+        pincode,
+        hasAllFields: !!(city && state && pincode),
+        source: userProfile ? 'profile' : 'localStorage',
       });
     }
   }, [isOpen, userProfile]);
+
+  // Watch for verification completion and restore pointer-events immediately
+  useEffect(() => {
+    if (!isVerifyingPayment) {
+      // When verification completes, immediately restore pointer-events
+      restoreAllPointerEvents();
+      
+      // Also remove any blocking overlays
+      if (typeof document !== 'undefined') {
+        setTimeout(() => {
+          const verificationOverlays = document.querySelectorAll('[class*="fixed"][class*="inset-0"]');
+          verificationOverlays.forEach((overlay) => {
+            const el = overlay as HTMLElement;
+            const zIndex = parseInt(window.getComputedStyle(el).zIndex, 10);
+            if (zIndex >= 99999) {
+              el.style.pointerEvents = 'none';
+            }
+          });
+          restoreAllPointerEvents();
+        }, 50);
+        
+        // Additional restoration after animation completes
+        setTimeout(() => {
+          restoreAllPointerEvents();
+        }, 300);
+      }
+    }
+  }, [isVerifyingPayment]);
 
   // Reset booking response and submission state when modal closes
   useEffect(() => {
@@ -307,19 +426,26 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       setOtpSent(false);
       setOtpVerified(false);
       setOtpCode('');
+      setReceiptPdfUrl(null);
       
       // Ensure pointer-events are restored for all elements
       // This is a safety measure in case Razorpay hook didn't restore them
+      restoreAllPointerEvents();
+      
+      // Force remove any blocking overlays
       if (typeof document !== 'undefined') {
-        const allElements = document.querySelectorAll('*');
-        allElements.forEach((el) => {
-          const element = el as HTMLElement;
-          if (element.dataset.originalPointerEvents !== undefined) {
-            const originalValue = element.dataset.originalPointerEvents || '';
-            element.style.pointerEvents = originalValue;
-            delete element.dataset.originalPointerEvents;
-          }
-        });
+        setTimeout(() => {
+          const verificationOverlays = document.querySelectorAll('[class*="fixed"][class*="inset-0"]');
+          verificationOverlays.forEach((overlay) => {
+            const el = overlay as HTMLElement;
+            const zIndex = parseInt(window.getComputedStyle(el).zIndex, 10);
+            if (zIndex >= 99999) {
+              el.style.pointerEvents = 'none';
+              el.style.display = 'none';
+            }
+          });
+          restoreAllPointerEvents();
+        }, 100);
       }
     }
   }, [isOpen]);
@@ -384,6 +510,64 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
 
   const paymentDueDate = new Date();
   paymentDueDate.setDate(paymentDueDate.getDate() + PAYMENT_DUE_DAYS);
+
+  // Helper to check if button should be disabled and why
+  const getButtonDisabledState = useMemo(() => {
+    const reasons: string[] = [];
+    
+    if (isCreatingBooking) reasons.push('Creating booking...');
+    if (isBookingInProgress) reasons.push('Booking in progress...');
+    if (isProcessingPayment) reasons.push('Processing payment...');
+    if (preBookingAmount < MIN_PRE_BOOKING) reasons.push(`Amount must be at least ₹${MIN_PRE_BOOKING}`);
+    if (!selectedColor) reasons.push('Color not selected');
+    if (!selectedBatteryVariant) reasons.push('Battery variant not selected');
+    if (!deliveryCity.trim()) reasons.push('Delivery city missing');
+    if (!deliveryState.trim()) reasons.push('Delivery state missing');
+    if (!deliveryPin.trim()) reasons.push('Delivery PIN missing');
+    if (deliveryPin.trim() && !/^\d{6}$/.test(deliveryPin.trim())) reasons.push('Invalid PIN format (must be 6 digits)');
+    if (!referralCodeInput.trim()) reasons.push('ASA code missing');
+    if (!termsAccepted) reasons.push('Terms not accepted');
+    if (!otpVerified) reasons.push('OTP not verified');
+    if (!stockData) reasons.push('Stock data not available');
+    
+    return {
+      disabled: reasons.length > 0,
+      reasons,
+    };
+  }, [
+    isCreatingBooking,
+    isBookingInProgress,
+    isProcessingPayment,
+    preBookingAmount,
+    selectedColor,
+    selectedBatteryVariant,
+    deliveryCity,
+    deliveryState,
+    deliveryPin,
+    referralCodeInput,
+    termsAccepted,
+    otpVerified,
+    stockData,
+  ]);
+
+  // Debug log to help identify why button is disabled
+  useEffect(() => {
+    if (isOpen && getButtonDisabledState.disabled) {
+      console.log('🔴 [PRE-BOOKING] Button disabled reasons:', getButtonDisabledState.reasons);
+      console.log('🔴 [PRE-BOOKING] Current state:', {
+        preBookingAmount,
+        selectedColor,
+        selectedBatteryVariant,
+        deliveryCity,
+        deliveryState,
+        deliveryPin,
+        referralCodeInput: referralCodeInput.trim(),
+        termsAccepted,
+        otpVerified,
+        hasStockData: !!stockData,
+      });
+    }
+  }, [isOpen, getButtonDisabledState, preBookingAmount, selectedColor, selectedBatteryVariant, deliveryCity, deliveryState, deliveryPin, referralCodeInput, termsAccepted, otpVerified, stockData]);
 
   const handlePreBook = async () => {
     // Prevent double submission - check both state and ref (ref updates synchronously)
@@ -538,82 +722,116 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     }
   };
 
-  // Handle viewing Payment Terms PDF
+
+  // Handle viewing Payment Terms - open modal
   const handleViewBookingTerms = () => {
-    if (paymentTermsDocument?.file) {
-      console.log('📄 [PRE-BOOKING] Opening Payment Terms document:', paymentTermsDocument.file);
-      window.open(paymentTermsDocument.file, '_blank');
+    if (activePaymentTerm) {
+      setIsTermsModalOpen(true);
     } else {
-      console.warn('📄 [PRE-BOOKING] Payment Terms document not available from API');
-      toast.error('Payment Terms document is not available. Please try again later.');
+      toast.error('Payment Terms are not available. Please try again later.');
     }
   };
 
-  // Handle downloading Payment Terms PDF
+  // Handle downloading Payment Terms
   const handleDownloadBookingTerms = () => {
-    if (paymentTermsDocument?.file) {
-      console.log('📄 [PRE-BOOKING] Downloading Payment Terms document:', paymentTermsDocument.file);
+    if (activePaymentTerm) {
+      const blob = new Blob([activePaymentTerm.full_text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = paymentTermsDocument.file;
-      link.download = paymentTermsDocument.title || 'Payment_Terms.pdf';
-      link.target = '_blank';
+      link.href = url;
+      link.download = `${activePaymentTerm.title.replace(/\s+/g, '_')}.txt`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success('Payment Terms PDF download started');
+      URL.revokeObjectURL(url);
+      toast.success('Payment Terms download started');
     } else {
-      console.warn('📄 [PRE-BOOKING] Payment Terms document not available from API');
-      toast.error('Payment Terms document is not available. Please try again later.');
+      toast.error('Payment Terms are not available. Please try again later.');
     }
   };
   
-  // Handle Terms & Conditions checkbox change
+  // Handle final Terms & Conditions checkbox change
   const handleTermsCheckboxChange = async (checked: boolean) => {
     setTermsAccepted(checked);
     
     if (checked) {
-      // Check if document is available
-      if (!paymentTermsDocument) {
-        toast.error('Payment Terms document is not available. Please try again later.');
+      // Check if payment terms are available
+      if (!activePaymentTerm) {
+        toast.error('Payment Terms are not available. Please try again later.');
+        setTermsAccepted(false);
+        return;
+      }
+      
+      // Check if user has email or mobile
+      const identifier = getIdentifier();
+      if (!identifier) {
+        toast.error('Email or mobile number not found in profile. Please update your profile.');
         setTermsAccepted(false);
         return;
       }
       
       setIsAcceptingDocument(true);
       try {
-        // Call accept API - sends OTP to user's email/mobile
-        console.log('📄 [PRE-BOOKING] Accepting document:', paymentTermsDocument.id);
-        await acceptDocument(paymentTermsDocument.id).unwrap();
-        console.log('📄 [PRE-BOOKING] Document accepted, OTP should be sent');
+        console.log('📄 [PRE-BOOKING] Initiating payment terms acceptance:', activePaymentTerm.id);
+        
+        // Call initiate endpoint to send OTP
+        const response = await initiatePaymentTermsAcceptance(activePaymentTerm.id).unwrap();
+        
+        console.log('📄 [PRE-BOOKING] Payment terms acceptance initiated:', response);
+        
+        // Show OTP section
         setOtpSent(true);
-        toast.success(`OTP sent to your ${getOtpType() === 'email' ? 'email' : 'mobile number'}`);
+        setOtpVerified(false);
+        setOtpCode('');
+        
+        // Show success message with OTP delivery info
+        const otpChannels = [];
+        if (response.otp_sent.email) otpChannels.push('email');
+        if (response.otp_sent.sms) otpChannels.push('SMS');
+        
+        toast.success(`OTP sent to your ${otpChannels.join(' and ')}. Please verify to proceed.`);
       } catch (error: unknown) {
-        console.error('📄 [PRE-BOOKING] Error accepting document:', error);
-        const errorMessage = error && typeof error === 'object' && 'data' in error && 
-          error.data && typeof error.data === 'object' && 'message' in error.data &&
-          typeof error.data.message === 'string' ? error.data.message : 'Failed to accept terms. Please try again.';
+        console.error('📄 [PRE-BOOKING] Error initiating payment terms acceptance:', error);
+        
+        // Extract error message
+        let errorMessage = 'Failed to initiate payment terms acceptance. Please try again.';
+        if (error && typeof error === 'object' && 'data' in error) {
+          const errorData = error.data as any;
+          if (errorData?.error && typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData?.message && typeof errorData.message === 'string') {
+            errorMessage = errorData.message;
+          } else if (errorData?.detail && typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          }
+        }
+        
         toast.error(errorMessage);
         setTermsAccepted(false);
+        setOtpSent(false);
+        setOtpVerified(false);
+        setReceiptPdfUrl(null);
       } finally {
         setIsAcceptingDocument(false);
       }
-    } else {
-      // Reset OTP state when unchecked
-      setOtpSent(false);
-      setOtpVerified(false);
-      setOtpCode('');
-    }
-  };
+      } else {
+        // Reset OTP state when unchecked
+        setOtpSent(false);
+        setOtpVerified(false);
+        setOtpCode('');
+        setReceiptPdfUrl(null);
+      }
+    };
   
-  // Handle OTP verification
+  // Handle OTP verification for payment terms
   const handleVerifyOTP = async () => {
     if (!otpCode || otpCode.length !== 6) {
       toast.error('Please enter a valid 6-digit OTP');
       return;
     }
     
-    if (!paymentTermsDocument) {
-      toast.error('Payment Terms document is not available. Please try again later.');
+    if (!activePaymentTerm) {
+      toast.error('Payment Terms are not available. Please try again later.');
       return;
     }
     
@@ -627,24 +845,52 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     
     setIsVerifyingOTP(true);
     try {
-      // Call verify API - verifies OTP and completes document acceptance
-      console.log('📄 [PRE-BOOKING] Verifying OTP for document:', paymentTermsDocument.id);
-      await verifyAcceptance({
-        documentId: paymentTermsDocument.id,
+      console.log('📄 [PRE-BOOKING] Verifying OTP for payment terms:', {
+        paymentTermsId: activePaymentTerm.id,
+        identifier,
+        otpType,
+      });
+      
+      // Call verify endpoint
+      const response = await verifyPaymentTermsAcceptance({
+        id: activePaymentTerm.id,
         data: {
           identifier,
           otp_code: otpCode,
           otp_type: otpType,
+          generate_pdf: true, // Generate PDF receipt
         },
       }).unwrap();
+      
+      console.log('📄 [PRE-BOOKING] Payment terms acceptance verified:', response);
+      
+      // Store receipt PDF URL if available
+      if (response.acceptance?.receipt_pdf_url) {
+        setReceiptPdfUrl(response.acceptance.receipt_pdf_url);
+      }
+      
       setOtpVerified(true);
-      toast.success('OTP verified successfully!');
+      toast.success('OTP verified successfully! Payment terms accepted.');
     } catch (error: unknown) {
       console.error('📄 [PRE-BOOKING] Error verifying OTP:', error);
-      const errorMessage = error && typeof error === 'object' && 'data' in error && 
-        error.data && typeof error.data === 'object' && 'message' in error.data &&
-        typeof error.data.message === 'string' ? error.data.message : 'Invalid OTP. Please try again.';
+      
+      // Extract error message
+      let errorMessage = 'Invalid or expired OTP. Please try again.';
+      if (error && typeof error === 'object' && 'data' in error) {
+        const errorData = error.data as any;
+        if (errorData?.non_field_errors && Array.isArray(errorData.non_field_errors) && errorData.non_field_errors.length > 0) {
+          errorMessage = errorData.non_field_errors[0];
+        } else if (errorData?.error && typeof errorData.error === 'string') {
+          errorMessage = errorData.error;
+        } else if (errorData?.message && typeof errorData.message === 'string') {
+          errorMessage = errorData.message;
+        } else if (errorData?.detail && typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+      }
+      
       toast.error(errorMessage);
+      setOtpCode(''); // Clear OTP on error so user can retry
     } finally {
       setIsVerifyingOTP(false);
     }
@@ -700,6 +946,45 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         setIsProcessingPayment(false);
         setIsVerifyingPayment(true);
         
+        // Restore pointer-events immediately after payment success
+        // This ensures navbar and other elements are clickable
+        // Restore immediately and with delays to ensure it happens
+        restoreAllPointerEvents();
+        
+        // Force enable navbar immediately
+        if (typeof document !== 'undefined') {
+          const navbars = document.querySelectorAll('nav, [role="navigation"], header');
+          navbars.forEach((nav) => {
+            (nav as HTMLElement).style.pointerEvents = 'auto';
+          });
+        }
+        
+        setTimeout(() => {
+          restoreAllPointerEvents();
+          // Force enable navbar again
+          if (typeof document !== 'undefined') {
+            const navbars = document.querySelectorAll('nav, [role="navigation"], header');
+            navbars.forEach((nav) => {
+              (nav as HTMLElement).style.pointerEvents = 'auto';
+            });
+          }
+        }, 100);
+        
+        setTimeout(() => {
+          restoreAllPointerEvents();
+        }, 300);
+        
+        setTimeout(() => {
+          restoreAllPointerEvents();
+          // Final navbar restoration
+          if (typeof document !== 'undefined') {
+            const navbars = document.querySelectorAll('nav, [role="navigation"], header, [class*="navbar"]');
+            navbars.forEach((nav) => {
+              (nav as HTMLElement).style.pointerEvents = 'auto';
+            });
+          }
+        }, 500);
+        
         // Force a re-render to ensure UI updates
         await new Promise(resolve => setTimeout(resolve, 200));
         
@@ -719,6 +1004,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       
       // Reset payment processing state
       setIsProcessingPayment(false);
+      
+      // Restore pointer-events on error as well
+      restoreAllPointerEvents();
+      setTimeout(restoreAllPointerEvents, 100);
+      setTimeout(restoreAllPointerEvents, 300);
       
       // Invalidate inventory cache to refresh vehicle data after payment failure
       dispatch(api.util.invalidateTags(['Inventory']));
@@ -840,6 +1130,24 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         localStorage.setItem('ev_nexus_referral_code', referralCodeInput.trim());
         console.log('✅ [PRE-BOOKING] Stored ASA code in localStorage after booking:', referralCodeInput.trim());
       }
+      
+      // Store delivery address in localStorage after successful booking for future use
+      if (typeof window !== 'undefined') {
+        if (deliveryCity.trim()) {
+          localStorage.setItem('ev_nexus_delivery_city', deliveryCity.trim());
+        }
+        if (deliveryState.trim()) {
+          localStorage.setItem('ev_nexus_delivery_state', deliveryState.trim());
+        }
+        if (deliveryPin.trim()) {
+          localStorage.setItem('ev_nexus_delivery_pincode', deliveryPin.trim());
+        }
+        console.log('✅ [PRE-BOOKING] Stored delivery address in localStorage after booking:', {
+          city: deliveryCity.trim(),
+          state: deliveryState.trim(),
+          pincode: deliveryPin.trim(),
+        });
+      }
 
       // Update user pre-booking info
       dispatch(updatePreBooking({
@@ -881,8 +1189,28 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       // Reset verification state FIRST to remove overlay and restore interactions
       setIsVerifyingPayment(false);
       
-      // Force a small delay to ensure overlay is removed from DOM
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Final restoration of pointer-events before closing modal
+      restoreAllPointerEvents();
+      
+      // Force remove any blocking overlays
+      if (typeof document !== 'undefined') {
+        // Remove verification overlay if it still exists
+        const verificationOverlays = document.querySelectorAll('[class*="fixed"][class*="inset-0"]');
+        verificationOverlays.forEach((overlay) => {
+          const el = overlay as HTMLElement;
+          const zIndex = parseInt(window.getComputedStyle(el).zIndex, 10);
+          if (zIndex >= 99999) {
+            el.style.pointerEvents = 'none';
+            el.style.display = 'none';
+          }
+        });
+      }
+      
+      // Force a delay to ensure overlay animation completes and DOM is updated
+      await new Promise(resolve => setTimeout(resolve, 250));
+      
+      // Final restoration after delay
+      restoreAllPointerEvents();
       
       // Close modal
       onClose();
@@ -920,6 +1248,24 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       setIsProcessingPayment(false);
       setIsVerifyingPayment(false);
       
+      // Restore pointer-events on error
+      restoreAllPointerEvents();
+      
+      // Force remove any blocking overlays
+      setTimeout(() => {
+        restoreAllPointerEvents();
+        if (typeof document !== 'undefined') {
+          const verificationOverlays = document.querySelectorAll('[class*="fixed"][class*="inset-0"]');
+          verificationOverlays.forEach((overlay) => {
+            const el = overlay as HTMLElement;
+            const zIndex = parseInt(window.getComputedStyle(el).zIndex, 10);
+            if (zIndex >= 99999) {
+              el.style.pointerEvents = 'none';
+            }
+          });
+        }
+      }, 100);
+      
       // Invalidate inventory cache to refresh vehicle data after payment error
       dispatch(api.util.invalidateTags(['Inventory']));
     }
@@ -929,16 +1275,31 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     <>
       {/* Payment Verification Loading Overlay - Outside Dialog using Portal */}
       {typeof window !== 'undefined' && createPortal(
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {isVerifyingPayment && (
             <motion.div
               key="payment-verification-overlay"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
               className="fixed inset-0 z-[99999] bg-background/98 backdrop-blur-md flex items-center justify-center"
               style={{ pointerEvents: isVerifyingPayment ? 'auto' : 'none' }}
+              onAnimationComplete={() => {
+                // Force remove any blocking overlays after animation
+                if (!isVerifyingPayment) {
+                  restoreAllPointerEvents();
+                  // Remove any high z-index overlays that might be blocking
+                  const overlays = document.querySelectorAll('[class*="fixed"][class*="inset-0"][class*="z-"]');
+                  overlays.forEach((overlay) => {
+                    const el = overlay as HTMLElement;
+                    const zIndex = parseInt(window.getComputedStyle(el).zIndex, 10);
+                    if (zIndex >= 99999 && el !== overlay) {
+                      el.style.pointerEvents = 'none';
+                    }
+                  });
+                }
+              }}
             >
               <div className="relative">
                 {/* Outer rotating ring */}
@@ -1099,61 +1460,88 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
 
           {/* Delivery Address - Auto-filled from profile, hidden from UI */}
           {/* Address fields are autofilled from user profile and not displayed */}
+          
+          {/* ASA Code - Auto-filled from localStorage or prop, hidden from UI */}
+          {/* ASA code is autofilled from referral link or previous booking and not displayed */}
 
           {/* Terms and Conditions */}
           <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-muted/30 rounded-lg border border-border/50">
-              <div className="flex items-start space-x-3 flex-1">
-                <Checkbox
-                  id="termsAccepted"
-                  checked={termsAccepted}
-                  onCheckedChange={handleTermsCheckboxChange}
-                  disabled={isAcceptingDocument || otpVerified}
-                  required
-                  className="mt-0.5 rounded-none"
-                />
-                <Label
-                  htmlFor="termsAccepted"
-                  className="text-sm cursor-pointer leading-relaxed"
-                >
-                  I accept the{' '}
-                  <button
+            <div className="space-y-3 p-4 border-2 border-primary rounded-lg bg-primary/5">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold text-lg text-foreground">
+                    Payment Terms & Conditions
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={handleViewBookingTerms}
-                    className="text-primary hover:underline font-medium transition-colors"
+                    className="h-8 w-8"
+                    title="View Terms"
                   >
-                    Terms and Conditions
-                  </button>
-                  {' '}<span className="text-destructive">*</span>
-                </Label>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleDownloadBookingTerms}
+                    className="h-8 w-8"
+                    title="Download Terms"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleViewBookingTerms}
-                  className="h-9 w-9 flex-shrink-0 hover:bg-primary/10"
-                  title="View Booking Terms"
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleDownloadBookingTerms}
-                  className="h-9 w-9 flex-shrink-0 hover:bg-primary/10"
-                  title="Download Booking Terms"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
+              <p className="text-sm text-muted-foreground mb-3">
+                Please review and accept all terms before proceeding to verification.
+              </p>
+              
+              {/* Final Confirmation Checkbox */}
+              <div className={`mt-3 p-4 border-2 rounded-lg transition-colors ${
+                termsAccepted
+                  ? 'bg-green-50 dark:bg-green-950/20 border-green-400 dark:border-green-600'
+                  : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600'
+              }`}>
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="termsAccepted"
+                    checked={termsAccepted}
+                    onCheckedChange={handleTermsCheckboxChange}
+                    disabled={isAcceptingDocument || otpVerified}
+                    required
+                    className="mt-1 flex-shrink-0"
+                  />
+                  <div className="flex-1">
+                    <label
+                      htmlFor="termsAccepted"
+                      className="cursor-pointer text-sm font-semibold block"
+                    >
+                      Payment Terms & Conditions
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-1 mb-2">
+                      I agree to the payment terms including booking amount, refund policy, delivery terms, and all conditions stated above.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleViewBookingTerms}
+                      className="text-primary hover:underline text-xs font-medium transition-colors"
+                    >
+                      View Full Agreement
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
             
             {/* OTP Verification Section */}
             {otpSent && (
               <motion.div
+                id="otp-verification-section"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
@@ -1165,12 +1553,62 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 </div>
                 
                 {otpVerified ? (
-                  <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
-                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <AlertDescription className="text-green-700 dark:text-green-300">
-                      OTP verified successfully! You can now proceed.
-                    </AlertDescription>
-                  </Alert>
+                  <div className="space-y-3">
+                    <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <AlertDescription className="text-green-700 dark:text-green-300">
+                        OTP verified successfully! You can now proceed.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    {/* Receipt PDF Download Section */}
+                    {receiptPdfUrl && (
+                      <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-medium text-foreground">
+                              Payment Terms Receipt
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // Open PDF in new tab
+                                window.open(receiptPdfUrl, '_blank');
+                              }}
+                              className="h-8 text-xs"
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // Download PDF
+                                const link = document.createElement('a');
+                                link.href = receiptPdfUrl;
+                                link.download = `payment-terms-receipt-${new Date().toISOString().split('T')[0]}.pdf`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                toast.success('Receipt download started');
+                              }}
+                              className="h-8 text-xs"
+                            >
+                              <Download className="w-3 h-3 mr-1" />
+                              Download
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -1257,41 +1695,163 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
             >
               Cancel
             </Button>
-            <Button 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handlePreBook();
-              }}
-              type="button"
-              className="flex-1 h-12 font-semibold shadow-md hover:shadow-lg transition-all" 
-              disabled={
-                isCreatingBooking ||
-                isBookingInProgress ||
-                isProcessingPayment ||
-                preBookingAmount < MIN_PRE_BOOKING ||
-                !selectedColor ||
-                !selectedBatteryVariant ||
-                !deliveryCity.trim() ||
-                !deliveryState.trim() ||
-                !deliveryPin.trim() ||
-                !/^\d{6}$/.test(deliveryPin.trim()) ||
-                !referralCodeInput.trim() ||
-                !termsAccepted ||
-                !otpVerified ||
-                !stockData
-              }
-            >
-              {isCreatingBooking || isBookingInProgress || isProcessingPayment 
-                ? (isProcessingPayment ? 'Opening Payment...' : 'Processing...') 
-                : 'Pre-Book Now'}
-            </Button>
+            <div className="flex-1 relative">
+              <Button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handlePreBook();
+                }}
+                type="button"
+                className="w-full h-12 font-semibold shadow-md hover:shadow-lg transition-all" 
+                disabled={getButtonDisabledState.disabled}
+                title={getButtonDisabledState.disabled ? getButtonDisabledState.reasons.join(', ') : undefined}
+              >
+                {isCreatingBooking || isBookingInProgress || isProcessingPayment 
+                  ? (isProcessingPayment ? 'Opening Payment...' : 'Processing...') 
+                  : 'Pre-Book Now'}
+              </Button>
+              {getButtonDisabledState.disabled && getButtonDisabledState.reasons.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1.5 text-center">
+                  {getButtonDisabledState.reasons[0]}
+                </p>
+              )}
+            </div>
           </div>
         </div>
           </div>
       </DialogContent>
     </Dialog>
 
+      {/* Payment Terms Modal */}
+      <Dialog open={isTermsModalOpen} onOpenChange={setIsTermsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-primary">
+              {activePaymentTerm?.title || 'Payment Terms & Conditions'}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Full payment terms and conditions document
+            </DialogDescription>
+          </DialogHeader>
+          
+          {activePaymentTerm && (
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+              {/* Format the full_text with numbered points */}
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                {(() => {
+                  // Split by double newlines to get paragraphs
+                  const paragraphs = activePaymentTerm.full_text.split(/\n\n+/);
+                  
+                  // Filter out empty paragraphs and trim
+                  const allPoints = paragraphs
+                    .map(p => p.trim())
+                    .filter(p => p.length > 0);
+                  
+                  // Number each point sequentially
+                  return allPoints.map((point, index) => (
+                    <div key={index} className="flex gap-3 mb-4">
+                      <span className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center text-sm">
+                        {index + 1}
+                      </span>
+                      <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                        {point}
+                      </p>
+                    </div>
+                  ));
+                })()}
+              </div>
+              
+              {/* Additional Info */}
+              {activePaymentTerm.version && (
+                <div className="mt-6 pt-4 border-t border-border">
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p><strong>Version:</strong> {activePaymentTerm.version}</p>
+                    {activePaymentTerm.effective_from && (
+                      <p><strong>Effective From:</strong> {new Date(activePaymentTerm.effective_from).toLocaleDateString()}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-3 pt-4 border-t border-border mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsTermsModalOpen(false)}
+            >
+              Close
+            </Button>
+            {!termsAccepted && (
+              <Button
+                variant="default"
+                onClick={async () => {
+                  try {
+                    // Set checkbox state immediately (before API call)
+                    setTermsAccepted(true);
+                    
+                    // Check the checkbox by calling the handler (this initiates OTP)
+                    await handleTermsCheckboxChange(true);
+                    
+                    // Close the Payment Terms modal first
+                    setIsTermsModalOpen(false);
+                    
+                    // Wait for OTP section to appear in main modal and state to update
+                    // Increased timeout to account for animation and state updates
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                    
+                    // Scroll to OTP section in the main modal
+                    const otpSection = document.getElementById('otp-verification-section');
+                    if (otpSection) {
+                      // Scroll the element into view
+                      otpSection.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center',
+                        inline: 'nearest'
+                      });
+                      
+                      // Add a highlight effect
+                      otpSection.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all');
+                      setTimeout(() => {
+                        otpSection.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all');
+                      }, 2000);
+                    }
+                  } catch (error) {
+                    // If there's an error, reset checkbox state and don't close the modal
+                    setTermsAccepted(false);
+                    console.error('Error accepting terms:', error);
+                  }
+                }}
+                className="bg-primary"
+                disabled={isAcceptingDocument}
+              >
+                {isAcceptingDocument ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Accepting...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Accept
+                  </>
+                )}
+              </Button>
+            )}
+            {termsAccepted && (
+              <Button
+                variant="default"
+                onClick={() => setIsTermsModalOpen(false)}
+                className="bg-primary"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Already Accepted
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

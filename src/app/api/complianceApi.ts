@@ -3,6 +3,39 @@ import { API_BASE_URL } from '../../lib/config';
 import { getAuthTokens, refreshAccessToken } from './baseApi';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
+// ASA Terms Response
+export interface ASATermsResponse {
+  id: number;
+  version: string;
+  title: string;
+  full_text: string;
+  effective_from: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Payment Terms Response (same structure as ASA Terms)
+export interface PaymentTermsResponse {
+  id: number;
+  version: string;
+  title: string;
+  full_text: string;
+  effective_from: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Payment Terms Request Body
+export interface PaymentTermsRequest {
+  version: string;
+  title: string;
+  full_text: string;
+  effective_from: string;
+  is_active: boolean;
+}
+
 // Distributor Document Types
 export interface DistributorDocument {
   id: number;
@@ -44,6 +77,163 @@ export interface CreateDistributorDocumentRequest {
 
 export const complianceApi = api.injectEndpoints({
   endpoints: (builder) => ({
+    // Get ASA Terms
+    getASATerms: builder.query<ASATermsResponse[], void>({
+      queryFn: async () => {
+        try {
+          const { accessToken } = getAuthTokens();
+          if (!accessToken) {
+            return {
+              error: {
+                status: 'CUSTOM_ERROR' as const,
+                error: 'No access token found',
+                data: { message: 'No access token found' },
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const url = `${API_BASE_URL}compliance/terms/asa/`;
+          
+          let response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              const { accessToken: newToken } = getAuthTokens();
+              response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [Compliance API] GET ASA terms error:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                error: errorData.detail || errorData.message || 'Failed to fetch ASA terms',
+                data: errorData,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const responseData = await response.json();
+          console.log('✅ [Compliance API] GET ASA terms response:', responseData);
+          return { data: responseData };
+        } catch (error) {
+          console.error('❌ [Compliance API] GET ASA terms fetch error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      providesTags: ['ASATerms'],
+    }),
+
+    // Get Payment Terms
+    getPaymentTerms: builder.query<PaymentTermsResponse[], void>({
+      queryFn: async () => {
+        try {
+          const { accessToken } = getAuthTokens();
+          if (!accessToken) {
+            return {
+              error: {
+                status: 'CUSTOM_ERROR' as const,
+                error: 'No access token found',
+                data: { message: 'No access token found' },
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const url = `${API_BASE_URL}compliance/terms/payment/`;
+          
+          console.log('📤 [Compliance API] GET payment terms request:', {
+            url,
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken.substring(0, 20)}...`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          let response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              const { accessToken: newToken } = getAuthTokens();
+              response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [Compliance API] GET payment terms error:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                error: errorData.detail || errorData.message || 'Failed to fetch payment terms',
+                data: errorData,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const responseData = await response.json();
+          console.log('✅ [Compliance API] GET payment terms response:', responseData);
+          console.log('✅ [Compliance API] GET payment terms response (stringified):', JSON.stringify(responseData, null, 2));
+          // Handle both array and single object responses
+          const data = Array.isArray(responseData) ? responseData : [responseData];
+          console.log('✅ [Compliance API] GET payment terms processed data:', data);
+          return { data };
+        } catch (error) {
+          console.error('❌ [Compliance API] GET payment terms fetch error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      providesTags: ['PaymentTerms'],
+    }),
+
     // Get all distributor documents
     getDistributorDocuments: builder.query<DistributorDocumentsApiResponse, void>({
       queryFn: async () => {
@@ -430,13 +620,420 @@ export const complianceApi = api.injectEndpoints({
       },
       invalidatesTags: ['DistributorDocuments'],
     }),
+
+    // Initiate Payment Terms Acceptance (sends OTP)
+    initiatePaymentTermsAcceptance: builder.mutation<
+      {
+        message: string;
+        otp_sent: {
+          email: boolean;
+          sms: boolean;
+        };
+        terms_id: number;
+        terms_version: string;
+      },
+      number
+    >({
+      queryFn: async (id, _api, _extraOptions, baseQuery) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          if (!accessToken) {
+            return {
+              error: {
+                status: 'CUSTOM_ERROR' as const,
+                error: 'No access token found',
+                data: { message: 'No access token found' },
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const url = `${API_BASE_URL}compliance/terms/payment/${id}/accept/initiate/`;
+          
+          console.log('📤 [Compliance API] Initiate Payment Terms Acceptance:', {
+            url,
+            method: 'POST',
+            paymentTermsId: id,
+          });
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              const { accessToken: newToken } = getAuthTokens();
+              response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({}),
+              });
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [Compliance API] Initiate Payment Terms Acceptance error:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                error: errorData.error || errorData.detail || errorData.message || 'Failed to initiate payment terms acceptance',
+                data: errorData,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const responseData = await response.json();
+          console.log('✅ [Compliance API] Initiate Payment Terms Acceptance response:', responseData);
+          return { data: responseData };
+        } catch (error) {
+          console.error('❌ [Compliance API] Initiate Payment Terms Acceptance fetch error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: ['PaymentTerms'],
+    }),
+
+    // Verify Payment Terms Acceptance with OTP
+    verifyPaymentTermsAcceptance: builder.mutation<
+      {
+        message: string;
+        acceptance: {
+          id: number;
+          user: number;
+          user_username: string;
+          user_email: string;
+          payment_terms_version: string;
+          terms_title: string;
+          accepted_at: string;
+          ip_address: string;
+          user_agent: string;
+          otp_verified: boolean;
+          otp_identifier: string;
+          receipt_pdf_url: string | null;
+          created_at: string;
+        };
+      },
+      {
+        id: number;
+        data: {
+          identifier: string;
+          otp_code: string;
+          otp_type: 'email' | 'mobile';
+          generate_pdf?: boolean;
+        };
+      }
+    >({
+      queryFn: async ({ id, data }, _api, _extraOptions, baseQuery) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          if (!accessToken) {
+            return {
+              error: {
+                status: 'CUSTOM_ERROR' as const,
+                error: 'No access token found',
+                data: { message: 'No access token found' },
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const url = `${API_BASE_URL}compliance/terms/payment/${id}/accept/verify/`;
+          
+          console.log('📤 [Compliance API] Verify Payment Terms Acceptance:', {
+            url,
+            method: 'POST',
+            paymentTermsId: id,
+            data,
+          });
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              const { accessToken: newToken } = getAuthTokens();
+              response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+              });
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [Compliance API] Verify Payment Terms Acceptance error:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                error: errorData.non_field_errors?.[0] || errorData.error || errorData.detail || errorData.message || 'Failed to verify payment terms acceptance',
+                data: errorData,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const responseData = await response.json();
+          console.log('✅ [Compliance API] Verify Payment Terms Acceptance response:', responseData);
+          return { data: responseData };
+        } catch (error) {
+          console.error('❌ [Compliance API] Verify Payment Terms Acceptance fetch error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: ['PaymentTerms'],
+    }),
+
+    // Initiate ASA Terms Acceptance (sends OTP)
+    initiateASATermsAcceptance: builder.mutation<
+      {
+        message: string;
+        otp_sent: {
+          email: boolean;
+          sms: boolean;
+        };
+        terms_id: number;
+        terms_version: string;
+      },
+      { id: number; checkboxes_verified: boolean }
+    >({
+      queryFn: async ({ id, checkboxes_verified }, _api, _extraOptions, baseQuery) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          if (!accessToken) {
+            return {
+              error: {
+                status: 'CUSTOM_ERROR' as const,
+                error: 'No access token found',
+                data: { message: 'No access token found' },
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const url = `${API_BASE_URL}compliance/terms/asa/${id}/accept/initiate/`;
+          
+          console.log('📤 [Compliance API] Initiate ASA Terms Acceptance:', {
+            url,
+            method: 'POST',
+            asaTermsId: id,
+            checkboxes_verified,
+          });
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ checkboxes_verified }),
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              const { accessToken: newToken } = getAuthTokens();
+              response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ checkboxes_verified }),
+              });
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [Compliance API] Initiate ASA Terms Acceptance error:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                error: errorData.checkboxes_verified?.[0] || errorData.error || errorData.detail || errorData.message || 'Failed to initiate ASA terms acceptance',
+                data: errorData,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const responseData = await response.json();
+          console.log('✅ [Compliance API] Initiate ASA Terms Acceptance response:', responseData);
+          return { data: responseData };
+        } catch (error) {
+          console.error('❌ [Compliance API] Initiate ASA Terms Acceptance fetch error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: ['ASATerms'],
+    }),
+
+    // Verify ASA Terms Acceptance with OTP
+    verifyASATermsAcceptance: builder.mutation<
+      {
+        message: string;
+        acceptance: {
+          id: number;
+          user: number;
+          user_username: string;
+          user_email: string;
+          terms_version: string;
+          terms_title: string;
+          accepted_at: string;
+          ip_address: string;
+          user_agent: string;
+          otp_verified: boolean;
+          otp_identifier: string;
+          agreement_pdf_url: string;
+          pdf_hash: string;
+          created_at: string;
+        };
+      },
+      {
+        id: number;
+        data: {
+          identifier: string;
+          otp_code: string;
+          otp_type: 'email' | 'mobile';
+        };
+      }
+    >({
+      queryFn: async ({ id, data }, _api, _extraOptions, baseQuery) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          if (!accessToken) {
+            return {
+              error: {
+                status: 'CUSTOM_ERROR' as const,
+                error: 'No access token found',
+                data: { message: 'No access token found' },
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const url = `${API_BASE_URL}compliance/terms/asa/${id}/accept/verify/`;
+          
+          console.log('📤 [Compliance API] Verify ASA Terms Acceptance:', {
+            url,
+            method: 'POST',
+            asaTermsId: id,
+            data,
+          });
+          
+          let response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              const { accessToken: newToken } = getAuthTokens();
+              response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+              });
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ [Compliance API] Verify ASA Terms Acceptance error:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData,
+            });
+            return {
+              error: {
+                status: response.status,
+                error: errorData.non_field_errors?.[0] || errorData.error || errorData.detail || errorData.message || 'Failed to verify ASA terms acceptance',
+                data: errorData,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const responseData = await response.json();
+          console.log('✅ [Compliance API] Verify ASA Terms Acceptance response:', responseData);
+          return { data: responseData };
+        } catch (error) {
+          console.error('❌ [Compliance API] Verify ASA Terms Acceptance fetch error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: ['ASATerms'],
+    }),
   }),
 });
 
 export const {
+  useGetASATermsQuery,
+  useGetPaymentTermsQuery,
   useGetDistributorDocumentsQuery,
   useCreateDistributorDocumentMutation,
   useDeleteDistributorDocumentMutation,
   useAcceptDocumentMutation,
   useVerifyAcceptanceMutation,
+  useInitiatePaymentTermsAcceptanceMutation,
+  useVerifyPaymentTermsAcceptanceMutation,
+  useInitiateASATermsAcceptanceMutation,
+  useVerifyASATermsAcceptanceMutation,
 } = complianceApi;

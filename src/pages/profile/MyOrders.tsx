@@ -43,6 +43,7 @@ import { useRazorpay } from "@/hooks/useRazorpay";
 import { payForEntity, VerifyPaymentResponse } from "@/services/paymentService";
 import { useAddReferralNodeMutation } from "@/app/api/binaryApi";
 import { useGetBookingsQuery, useMakePaymentMutation, useCancelBookingMutation } from "@/app/api/bookingApi";
+import { useGetUserProfileRawQuery } from "@/app/api/userApi";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Booking, PaymentMethod } from "@/app/slices/bookingSlice";
@@ -71,6 +72,9 @@ export function MyOrders() {
   const [refreshKey, setRefreshKey] = useState(0); // Force re-render key
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
+  
+  // Fetch user profile to get vehicle_delivery_date
+  const { data: profileData } = useGetUserProfileRawQuery();
   
   // Razorpay integration
   const openRazorpayCheckout = useRazorpay();
@@ -717,18 +721,36 @@ export function MyOrders() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full sm:w-auto text-xs sm:text-sm"
-                          onClick={() => {
-                            setSelectedBookingForDetails(booking);
-                            setShowOrderDetails(true);
-                          }}
-                        >
-                          View Details
-                        </Button>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2">
+                        {/* Vehicle Delivery Date - Left Side */}
+                        {profileData?.vehicle_delivery_date && (
+                          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                            <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span>
+                              {(() => {
+                                const deliveryDate = profileData.vehicle_delivery_date;
+                                // Check if it's a date string (YYYY-MM-DD format) or a message
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(deliveryDate)) {
+                                  return `Delivery: ${new Date(deliveryDate).toLocaleDateString()}`;
+                                }
+                                return deliveryDate;
+                              })()}
+                            </span>
+                          </div>
+                        )}
+                        {/* Buttons - Right Side */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full sm:w-auto text-xs sm:text-sm"
+                            onClick={() => {
+                              setSelectedBookingForDetails(booking);
+                              setShowOrderDetails(true);
+                            }}
+                          >
+                            View Details
+                          </Button>
                         {/* Cancel Booking button commented out - users should not be able to cancel bookings currently */}
                         {/* {canCancelBooking(booking) && (
                           <Button
@@ -752,21 +774,40 @@ export function MyOrders() {
                             Pay More
                           </Button>
                         )}
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex justify-end gap-2 mt-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs sm:text-sm"
-                        onClick={() => {
-                          setSelectedBookingForDetails(booking);
-                          setShowOrderDetails(true);
-                        }}
-                      >
-                        View Details
-                      </Button>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-3">
+                      {/* Vehicle Delivery Date - Left Side */}
+                      {profileData?.vehicle_delivery_date && (
+                        <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                          <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                          <span>
+                            {(() => {
+                              const deliveryDate = profileData.vehicle_delivery_date;
+                              // Check if it's a date string (YYYY-MM-DD format) or a message
+                              if (/^\d{4}-\d{2}-\d{2}$/.test(deliveryDate)) {
+                                return `Delivery: ${new Date(deliveryDate).toLocaleDateString()}`;
+                              }
+                              return deliveryDate;
+                            })()}
+                          </span>
+                        </div>
+                      )}
+                      {/* Buttons - Right Side */}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs sm:text-sm"
+                          onClick={() => {
+                            setSelectedBookingForDetails(booking);
+                            setShowOrderDetails(true);
+                          }}
+                        >
+                          View Details
+                        </Button>
                       {/* Cancel Booking button commented out - users should not be able to cancel bookings currently */}
                       {/* {canCancelBooking(booking) && (
                         <Button
@@ -779,6 +820,7 @@ export function MyOrders() {
                           {isCancellingBooking ? "Cancelling..." : "Cancel Booking"}
                         </Button>
                       )} */}
+                      </div>
                     </div>
                   )}
                 </CardContent>

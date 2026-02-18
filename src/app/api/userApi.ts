@@ -41,6 +41,7 @@ export interface UserProfileResponse {
   profile_picture?: string; // URL to the profile picture
   days_remaining_for_full_payment?: number;
   active_buyer_warning?: string;
+  vehicle_delivery_date?: string; // Vehicle delivery date (YYYY-MM-DD) or message string
 }
 
 // KYC submission request (multipart/form-data)
