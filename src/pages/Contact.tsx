@@ -1,51 +1,10 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Send, MessageSquare, Clock, CheckCircle2 } from 'lucide-react';
+import { Mail, Phone, MapPin, MessageSquare, Clock, CheckCircle2 } from 'lucide-react';
 import { StoreNavbar } from '@/store/StoreNavbar';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { Footer } from '@/components/Footer';
 import { FloatingPetals } from '@/components/FloatingPetals';
 
 export function Contact() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    // Simulate form submission
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast.success('Message Sent!', {
-        description: 'Thank you for contacting us. We\'ll get back to you soon.',
-      });
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: '',
-      });
-    }, 1500);
-  };
 
   const contactCards = [
     {
@@ -241,145 +200,17 @@ export function Contact() {
         </div>
       </section>
 
-      {/* Main Contact Section - Form + Sidebar */}
+      {/* Main Contact Section - Sidebar */}
       <section className="py-16 relative overflow-hidden">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-5 gap-8">
-            {/* Contact Form - Takes 3 columns */}
+          <div className="max-w-2xl mx-auto">
+            {/* Sidebar */}
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="lg:col-span-3"
-            >
-              <div
-                className="bg-white p-8 lg:p-10 rounded-3xl"
-                style={{
-                  boxShadow: '0 4px 30px rgba(0, 0, 0, 0.06)',
-                  border: '1px solid rgba(0, 0, 0, 0.05)',
-                }}
-              >
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Send a Message</h2>
-                <p className="text-gray-500 mb-8">Fill out the form below and we'll get back to you within 24 hours.</p>
-                
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-gray-700 font-medium">
-                        Your Name <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        className="border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-xl h-12"
-                        placeholder="John Doe"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-gray-700 font-medium">
-                        Email Address <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                        className="border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-xl h-12"
-                        placeholder="john@example.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-gray-700 font-medium">
-                        Phone Number
-                      </Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className="border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-xl h-12"
-                        placeholder="7356360777"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="subject" className="text-gray-700 font-medium">
-                        Subject <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="subject"
-                        name="subject"
-                        type="text"
-                        required
-                        value={formData.subject}
-                        onChange={handleChange}
-                        className="border-gray-200 focus:border-teal-500 focus:ring-teal-500 rounded-xl h-12"
-                        placeholder="Test Ride Request"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="message" className="text-gray-700 font-medium">
-                      Your Message <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      required
-                      value={formData.message}
-                      onChange={handleChange}
-                      rows={5}
-                      className="border-gray-200 focus:border-teal-500 focus:ring-teal-500 resize-none rounded-xl"
-                      placeholder="Tell us how we can help you..."
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full text-white border-none h-14 text-base font-semibold rounded-full"
-                    style={{
-                      background: isSubmitting 
-                        ? 'linear-gradient(to right, #9CA3AF 0%, #9CA3AF 100%)'
-                        : 'linear-gradient(to right, #ec4899 0%, #f472b6 30%, #fb7185 70%, #f43f5e 100%)',
-                    }}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <span className="animate-spin mr-2">⏳</span>
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        Send Message
-                        <Send className="ml-2 w-5 h-5" />
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </div>
-            </motion.div>
-
-            {/* Sidebar - Takes 2 columns */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="lg:col-span-2 space-y-6"
+              className="space-y-6"
             >
               {/* Our Showroom Card */}
               <div

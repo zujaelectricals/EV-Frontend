@@ -1380,23 +1380,25 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6">
           <div className="relative">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-3 flex-wrap">
-              <span>Pre-Book {scooter.name}</span>
-              {selectedColor && (
-                <Badge variant="outline" className="text-sm font-normal px-3 py-1 border-primary/30 bg-primary/5">
-                  {selectedColor.charAt(0).toUpperCase() + selectedColor.slice(1)}
-                </Badge>
-              )}
-              {selectedBatteryVariant && (
-                <Badge variant="outline" className="text-sm font-normal px-3 py-1 border-primary/30 bg-primary/5">
-                  {selectedBatteryVariant}
-                </Badge>
-              )}
-              {referralCodeInput.trim() && (
-                <Badge variant="outline" className="text-sm font-semibold px-3 py-1 border-primary/40 bg-primary/10 text-primary">
-                  {referralCodeInput.trim()}
-                </Badge>
-              )}
+            <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2 sm:gap-3 flex-nowrap overflow-hidden">
+              <span className="whitespace-nowrap">Pre-Book {scooter.name}</span>
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                {selectedColor && (
+                  <Badge variant="outline" className="text-xs sm:text-sm font-normal px-2 sm:px-3 py-1 border-primary/30 bg-primary/5 whitespace-nowrap">
+                    {selectedColor.charAt(0).toUpperCase() + selectedColor.slice(1)}
+                  </Badge>
+                )}
+                {selectedBatteryVariant && (
+                  <Badge variant="outline" className="text-xs sm:text-sm font-normal px-2 sm:px-3 py-1 border-primary/30 bg-primary/5 whitespace-nowrap">
+                    {selectedBatteryVariant}
+                  </Badge>
+                )}
+                {referralCodeInput.trim() && (
+                  <Badge variant="outline" className="text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1 border-primary/40 bg-primary/10 text-primary whitespace-nowrap">
+                    {referralCodeInput.trim()}
+                  </Badge>
+                )}
+              </div>
             </DialogTitle>
             <DialogDescription className="sr-only">
               Pre-booking form for {scooter.name}. Fill in your details to complete the pre-booking.

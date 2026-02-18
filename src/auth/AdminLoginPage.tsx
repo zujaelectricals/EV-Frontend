@@ -241,13 +241,46 @@ export const AdminLoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden">
+    <div className="flex min-h-screen overflow-hidden w-full">
       <motion.div
         initial="initial"
         animate="animate"
-        className="flex w-full"
+        className="flex flex-col lg:flex-row w-full"
       >
-        {/* Left Column - Brand Section */}
+        {/* Top/Mobile Image Section - Brand Section */}
+        <motion.div
+          variants={imageVariants}
+          className="w-full h-[28vh] lg:hidden relative overflow-hidden"
+        >
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: "url(/pic2.jpeg)",
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-slate-800/45 to-slate-900/50" />
+
+          <div className="relative z-10 flex flex-col justify-center items-center p-4 text-white w-full h-full">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-center space-y-2"
+            >
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-white/90" />
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                  Admin Portal
+                </h1>
+              </div>
+              <p className="text-sm sm:text-base text-white/80">
+                Secure access for administrators and staff
+              </p>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Left Column - Brand Section (Desktop) */}
         <motion.div
           variants={imageVariants}
           className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
@@ -255,11 +288,10 @@ export const AdminLoginPage = () => {
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage:
-                "url(https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=1200&h=1600&fit=crop&q=80)",
+              backgroundImage: "url(/pic2.jpeg)",
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-800/85 to-slate-900/90" />
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-slate-800/45 to-slate-900/50" />
 
           <div className="relative z-10 flex flex-col justify-center items-start p-12 text-white w-full">
             <div className="absolute top-12 left-12 w-8 h-8 border-l-2 border-t-2 border-white/30" />
@@ -291,7 +323,7 @@ export const AdminLoginPage = () => {
         {/* Right Column - Login Form */}
         <motion.div
           variants={formVariants}
-          className="w-full lg:w-1/2 flex items-center justify-center bg-gradient-to-br from-white to-gray-50 p-8"
+          className="w-full lg:w-1/2 flex items-center justify-center bg-gradient-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8"
         >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -299,22 +331,22 @@ export const AdminLoginPage = () => {
             transition={{ delay: 0.3 }}
             className="w-full max-w-md"
           >
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <div className="flex items-center gap-2 mb-3">
-                <Shield className="h-8 w-8 text-gray-900" />
-                <h2 className="text-3xl font-bold text-gray-900">
+                <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-gray-900" />
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
                   Admin Login
                 </h2>
               </div>
-              <p className="text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600">
                 Sign in with your administrator or staff credentials
               </p>
             </div>
 
             {!showOTPInput ? (
-              <div className="space-y-5">
+              <div className="space-y-4 sm:space-y-5">
                 {/* Login Method Selection Tabs */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <Button
                     type="button"
                     variant={loginMethod === 'email' ? 'default' : 'outline'}
@@ -324,14 +356,14 @@ export const AdminLoginPage = () => {
                       setLoginOtpCode("");
                       setLoginOtpError("");
                     }}
-                    className={`h-12 flex flex-col items-center justify-center gap-1 ${
+                    className={`h-11 sm:h-12 flex flex-col items-center justify-center gap-1 ${
                       loginMethod === 'email' 
                         ? 'bg-gray-900 hover:bg-gray-800 text-white' 
                         : 'border-gray-300 hover:bg-gray-50 text-gray-900'
                     } transition-all`}
                   >
-                    <Mail className="h-5 w-5" />
-                    <span className="text-sm font-medium">Email</span>
+                    <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-xs sm:text-sm font-medium">Email</span>
                   </Button>
                   <Button
                     type="button"
@@ -342,14 +374,14 @@ export const AdminLoginPage = () => {
                       setLoginOtpCode("");
                       setLoginOtpError("");
                     }}
-                    className={`h-12 flex flex-col items-center justify-center gap-1 ${
+                    className={`h-11 sm:h-12 flex flex-col items-center justify-center gap-1 ${
                       loginMethod === 'mobile' 
                         ? 'bg-gray-900 hover:bg-gray-800 text-white' 
                         : 'border-gray-300 hover:bg-gray-50 text-gray-900'
                     } transition-all`}
                   >
-                    <Phone className="h-5 w-5" />
-                    <span className="text-sm font-medium">Phone</span>
+                    <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-xs sm:text-sm font-medium">Phone</span>
                   </Button>
                 </div>
 
@@ -366,7 +398,7 @@ export const AdminLoginPage = () => {
                             setEmail(e.target.value);
                             setShowOTPInput(false);
                           }}
-                          className="pl-10 h-12 border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
+                          className="pl-10 h-11 sm:h-12 text-sm sm:text-base border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
                           required
                         />
                       </div>
@@ -387,7 +419,7 @@ export const AdminLoginPage = () => {
                             setMobile(value);
                             setShowOTPInput(false);
                           }}
-                          className="pl-10 h-12 border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
+                          className="pl-10 h-11 sm:h-12 text-sm sm:text-base border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
                           required
                         />
                       </div>
@@ -398,7 +430,7 @@ export const AdminLoginPage = () => {
                   )}
                   <Button
                     type="submit"
-                    className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
+                    className="w-full h-11 sm:h-12 text-sm sm:text-base bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
                     disabled={isSendingOTP || (loginMethod === 'email' ? !email.trim() : !mobile.trim())}
                   >
                     {isSendingOTP ? "Sending OTP..." : "Send OTP"}
@@ -406,9 +438,9 @@ export const AdminLoginPage = () => {
                 </form>
               </div>
             ) : (
-              <div className="space-y-5">
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-sm text-gray-600 mb-1">
+              <div className="space-y-4 sm:space-y-5">
+                <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1 break-words">
                     OTP sent to: <span className="font-medium text-gray-900">
                       {loginMethod === 'mobile' ? mobile : email}
                     </span>
@@ -426,7 +458,7 @@ export const AdminLoginPage = () => {
                   </button>
                 </div>
 
-                <form onSubmit={handleVerifyLoginOTP} className="space-y-5">
+                <form onSubmit={handleVerifyLoginOTP} className="space-y-4 sm:space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="adminLoginOtp" className="text-sm font-medium">Enter OTP *</Label>
                     <div className="relative">
@@ -442,7 +474,7 @@ export const AdminLoginPage = () => {
                           if (loginOtpError) setLoginOtpError("");
                         }}
                         maxLength={6}
-                        className={`pl-10 h-12 text-center text-2xl tracking-widest font-mono ${loginOtpError ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                        className={`pl-10 h-11 sm:h-12 text-center text-xl sm:text-2xl tracking-widest font-mono ${loginOtpError ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                         autoFocus
                         required
                       />
@@ -451,7 +483,7 @@ export const AdminLoginPage = () => {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
+                    className="w-full h-11 sm:h-12 text-sm sm:text-base bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
                     disabled={isVerifyingOTP || !loginOtpCode || loginOtpCode.length !== 6}
                   >
                     {isVerifyingOTP ? "Verifying..." : "Sign In"}
@@ -460,8 +492,8 @@ export const AdminLoginPage = () => {
               </div>
             )}
 
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <p className="text-center text-sm text-gray-600">
+            <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200">
+              <p className="text-center text-xs sm:text-sm text-gray-600">
                 Not an admin or staff?{" "}
                 <Link 
                   to="/login" 

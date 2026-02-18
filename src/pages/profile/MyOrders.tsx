@@ -481,35 +481,35 @@ export function MyOrders() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4 gap-2">
-        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto p-1.5 rounded-xl bg-muted/50 border border-border/70 shadow-sm">
-            <TabsTrigger value="all" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-4 gap-3 sm:gap-2">
+        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1 w-full sm:w-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto p-1 sm:p-1.5 rounded-xl bg-muted/50 border border-border/70 shadow-sm overflow-x-auto">
+            <TabsTrigger value="all" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">
               All
               {activeBookingsData?.count !== undefined && (
-                <span className="ml-1 text-[10px]">({activeBookingsData.count})</span>
+                <span className="ml-0.5 sm:ml-1 text-[9px] sm:text-[10px]">({activeBookingsData.count})</span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="pending" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">Pending</TabsTrigger>
-            <TabsTrigger value="active" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">Active</TabsTrigger>
-            <TabsTrigger value="completed" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">Completed</TabsTrigger>
-            <TabsTrigger value="cancelled" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">Cancelled</TabsTrigger>
-            <TabsTrigger value="expired" className="text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg">Expired</TabsTrigger>
+            <TabsTrigger value="pending" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Pending</TabsTrigger>
+            <TabsTrigger value="active" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Active</TabsTrigger>
+            <TabsTrigger value="completed" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Completed</TabsTrigger>
+            <TabsTrigger value="cancelled" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Cancelled</TabsTrigger>
+            <TabsTrigger value="expired" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Expired</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button 
             size="sm" 
             variant="outline"
             onClick={handleRefresh}
             disabled={isLoadingBookings || isFetching}
-            className="text-xs sm:text-sm"
+            className="text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
             title="Refresh orders"
           >
             <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${(isLoadingBookings || isFetching) ? 'animate-spin' : ''}`} />
           </Button>
-          <Link to="/scooters">
-            <Button size="sm" className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 text-xs sm:text-sm">Browse Vehicles</Button>
+          <Link to="/scooters" className="flex-shrink-0">
+            <Button size="sm" className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4 whitespace-nowrap">Browse Vehicles</Button>
           </Link>
         </div>
       </div>
@@ -626,10 +626,10 @@ export function MyOrders() {
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-3">
                       <div className="flex items-center gap-1.5 sm:gap-2">
                         <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-[10px] sm:text-xs text-muted-foreground">
                             Order Date
                           </p>
@@ -640,7 +640,7 @@ export function MyOrders() {
                       </div>
                       <div className="flex items-center gap-1.5 sm:gap-2">
                         <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-[10px] sm:text-xs text-muted-foreground">
                             Total Amount
                           </p>
@@ -652,7 +652,7 @@ export function MyOrders() {
                       {booking.paymentDueDate && (
                         <div className="flex items-center gap-1.5 sm:gap-2">
                           <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="text-[10px] sm:text-xs text-muted-foreground">
                               Due Date
                             </p>
@@ -666,7 +666,7 @@ export function MyOrders() {
                       )}
                       <div className="flex items-center gap-1.5 sm:gap-2">
                         <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-[10px] sm:text-xs text-muted-foreground">
                             Payment Method
                           </p>
@@ -690,7 +690,7 @@ export function MyOrders() {
                           </span>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-2 sm:mb-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3 mb-2 sm:mb-3">
                         <div>
                           <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">
                             Amount Paid
