@@ -1192,7 +1192,7 @@ export const BinaryTreeView = () => {
       </div>
 
       {/* Binary Account Enablement Status */}
-      {binaryStats?.binaryActivated && binaryStats?.activationBonus && (
+      {/* {binaryStats?.binaryActivated && binaryStats?.activationBonus && (
         <Alert className="bg-success/10 border-success/30">
           <Info className="h-4 w-4 text-success" />
           <AlertDescription className="text-success">
@@ -1214,7 +1214,7 @@ export const BinaryTreeView = () => {
             but won't generate commission (carry forward).
           </AlertDescription>
         </Alert>
-      )}
+      )} */}
 
       {/* Pending Nodes Section */}
       {pendingNodes.length > 0 && (

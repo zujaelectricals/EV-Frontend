@@ -846,7 +846,7 @@ export function MyOrders() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="paymentAmount">Payment Amount (₹)</Label>
+              <Label htmlFor="paymentAmount">Amount to Credit (₹)</Label>
               <Input
                 id="paymentAmount"
                 type="number"
@@ -869,6 +869,28 @@ export function MyOrders() {
                 Remaining balance: ₹{maxPaymentAmount.toLocaleString()}
               </p>
             </div>
+            
+            {/* Payment Breakdown */}
+            {customPaymentAmount && Number(customPaymentAmount) > 0 && (
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2 border">
+                <p className="text-sm font-semibold mb-3">Payment Breakdown</p>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Amount to Credit:</span>
+                    <span className="font-medium">₹{Number(customPaymentAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Platform Fee (2.36%):</span>
+                    <span className="font-medium">₹{((Number(customPaymentAmount) / 0.9764) - Number(customPaymentAmount)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="border-t pt-1.5 mt-1.5 flex justify-between">
+                    <span className="text-sm font-semibold">Total Amount to Pay:</span>
+                    <span className="text-lg font-bold text-primary">₹{(Number(customPaymentAmount) / 0.9764).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="flex gap-2">
               <Button
                 variant="outline"

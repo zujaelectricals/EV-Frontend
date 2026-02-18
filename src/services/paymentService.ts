@@ -53,14 +53,25 @@ export interface PayoutResponse {
 }
 
 /**
- * Helper function to make authenticated API calls
+ * Helper function to make authenticated API calls with retry logic for 504 Gateway Timeout
+ * This handles backend cold start issues where the first request times out but subsequent requests succeed
  */
 async function makeAuthenticatedRequest<T>(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryConfig?: {
+    maxRetries?: number;
+    retryDelay?: number;
+    retryableStatuses?: number[];
+  }
 ): Promise<T> {
   const baseUrl = API_BASE_URL;
   const fullUrl = `${baseUrl}${url.startsWith('/') ? url.slice(1) : url}`;
+
+  // Default retry configuration
+  const maxRetries = retryConfig?.maxRetries ?? 2; // Retry up to 2 times (3 total attempts)
+  const baseRetryDelay = retryConfig?.retryDelay ?? 2000; // Start with 2 second delay
+  const retryableStatuses = retryConfig?.retryableStatuses ?? [504]; // Retry on 504 Gateway Timeout
 
   let { accessToken } = getAuthTokens();
 
@@ -81,37 +92,93 @@ async function makeAuthenticatedRequest<T>(
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(fullUrl, {
-    ...options,
-    headers,
-  });
+  let lastError: Error | null = null;
+  let attempt = 0;
 
-  // Handle 401 - try to refresh token once
-  if (response.status === 401 && accessToken) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      headers['Authorization'] = `Bearer ${refreshed.access}`;
-      const retryResponse = await fetch(fullUrl, {
+  // Retry loop for 504 errors (handles backend cold start)
+  while (attempt <= maxRetries) {
+    try {
+      const response = await fetch(fullUrl, {
         ...options,
         headers,
       });
 
-      if (!retryResponse.ok) {
-        const errorData = await retryResponse.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || 'Authentication failed');
+      // Handle 401 - try to refresh token once
+      if (response.status === 401 && accessToken) {
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+          headers['Authorization'] = `Bearer ${refreshed.access}`;
+          const retryResponse = await fetch(fullUrl, {
+            ...options,
+            headers,
+          });
+
+          if (!retryResponse.ok) {
+            const errorData = await retryResponse.json().catch(() => ({}));
+            throw new Error(errorData.detail || errorData.message || 'Authentication failed');
+          }
+
+          return retryResponse.json();
+        }
       }
 
-      return retryResponse.json();
+      // If we get a retryable status code (like 504), retry with exponential backoff
+      if (!response.ok && retryableStatuses.includes(response.status) && attempt < maxRetries) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        
+        attempt++;
+        const retryDelay = baseRetryDelay * Math.pow(2, attempt - 1); // Exponential backoff: 2s, 4s
+        
+        console.warn(`⚠️ [PAYMENTS] Received ${response.status} error (attempt ${attempt}/${maxRetries + 1}). Retrying in ${retryDelay}ms...`, {
+          url: fullUrl,
+          status: response.status,
+          errorMessage,
+          attempt,
+          maxRetries: maxRetries + 1,
+        });
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        continue; // Retry the request
+      }
+
+      // If response is not ok and not retryable, throw error
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+      }
+
+      // Success - return the response
+      return response.json();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // If this is a network error or timeout and we have retries left, retry
+      if (attempt < maxRetries) {
+        attempt++;
+        const retryDelay = baseRetryDelay * Math.pow(2, attempt - 1);
+        
+        console.warn(`⚠️ [PAYMENTS] Request failed (attempt ${attempt}/${maxRetries + 1}). Retrying in ${retryDelay}ms...`, {
+          url: fullUrl,
+          error: lastError.message,
+          attempt,
+          maxRetries: maxRetries + 1,
+        });
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        continue; // Retry the request
+      }
+
+      // No more retries left, throw the error
+      throw lastError;
     }
   }
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-    throw new Error(errorMessage);
-  }
-
-  return response.json();
+  // This should never be reached, but TypeScript needs it
+  throw lastError || new Error('Request failed after all retries');
 }
 
 /**
@@ -141,11 +208,18 @@ export async function createOrder(
     timestamp: new Date().toISOString(),
   });
 
+  // Use retry logic specifically for create-order to handle backend cold start (504 errors)
+  // The first request might timeout due to backend initialization, but retry will succeed
   return makeAuthenticatedRequest<CreateOrderResponse>(
     'payments/create-order/',
     {
       method: 'POST',
       body: JSON.stringify(requestData),
+    },
+    {
+      maxRetries: 2, // Retry up to 2 times (3 total attempts)
+      retryDelay: 2000, // Start with 2 second delay, then 4 seconds
+      retryableStatuses: [504], // Retry on 504 Gateway Timeout (backend cold start)
     }
   );
 }
