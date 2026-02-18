@@ -12,13 +12,8 @@ export interface CreateOrderRequest {
 export interface CreateOrderResponse {
   order_id: string;
   key_id: string;
-  amount: number; // Gross amount in paise (what user pays, includes gateway charges) - use this for Razorpay checkout
-  net_amount: number; // Net amount in paise (what gets credited to booking/payout)
-  gateway_charges: number; // Gateway charges in paise (2.36% of gross amount)
-  amount_rupees: number; // Gross amount in rupees (for display)
-  net_amount_rupees: number; // Net amount in rupees (for display)
-  gateway_charges_rupees: number; // Gateway charges in rupees (for display)
-  currency?: string; // Optional currency (defaults to 'INR')
+  amount: number;
+  currency: string;
 }
 
 export interface VerifyPaymentRequest {
@@ -148,25 +143,11 @@ async function makeAuthenticatedRequest<T>(
         continue; // Retry the request
       }
 
-      // If response is not ok and not retryable, throw error immediately (don't retry client errors like 400)
+      // If response is not ok and not retryable, throw error
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.detail || errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
-        
-        // Log detailed error information for debugging
-        if (response.status === 400) {
-          console.error(`❌ [PAYMENTS] Bad Request (400) - Backend validation error:`, {
-            url: fullUrl,
-            requestBody: options.body,
-            errorData,
-            errorMessage,
-          });
-        }
-        
-        const error = new Error(errorMessage) as Error & { status?: number; errorData?: any };
-        error.status = response.status; // Store status code for catch block
-        error.errorData = errorData; // Store full error data for debugging
-        throw error;
+        const errorMessage = errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
       }
 
       // Success - return the response
@@ -174,19 +155,7 @@ async function makeAuthenticatedRequest<T>(
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       
-      // Check if this is a client error (4xx) - don't retry these
-      const statusCode = (error as any)?.status;
-      if (statusCode && statusCode >= 400 && statusCode < 500) {
-        // Client errors (400-499) should not be retried - they indicate invalid requests
-        // Only exception: 408 (Request Timeout) and 429 (Too Many Requests) might be retryable
-        if (statusCode !== 408 && statusCode !== 429) {
-          console.error(`❌ [PAYMENTS] Client error (${statusCode}) - not retrying:`, lastError.message);
-          throw lastError; // Throw immediately, don't retry
-        }
-      }
-      
-      // If this is a network error, timeout, or server error and we have retries left, retry
-      // Network errors won't have a status code, so they'll fall through to retry logic
+      // If this is a network error or timeout and we have retries left, retry
       if (attempt < maxRetries) {
         attempt++;
         const retryDelay = baseRetryDelay * Math.pow(2, attempt - 1);
@@ -194,7 +163,6 @@ async function makeAuthenticatedRequest<T>(
         console.warn(`⚠️ [PAYMENTS] Request failed (attempt ${attempt}/${maxRetries + 1}). Retrying in ${retryDelay}ms...`, {
           url: fullUrl,
           error: lastError.message,
-          statusCode: statusCode || 'network error',
           attempt,
           maxRetries: maxRetries + 1,
         });
@@ -215,12 +183,10 @@ async function makeAuthenticatedRequest<T>(
 
 /**
  * Create a Razorpay order for an entity (booking, prebooking, etc.)
- * @param entityType Type of entity (e.g., 'booking', 'prebooking', 'payout')
+ * @param entityType Type of entity (e.g., 'booking', 'prebooking')
  * @param entityId ID of the entity
- * @param amount Optional: Net amount in rupees (what gets credited). If not provided, uses full remaining amount for bookings or full amount for payouts. Gateway charges (2.36%) are automatically added.
- * @returns Order details including order_id, key_id, amount (gross in paise), net_amount, gateway_charges, and display amounts in rupees
- * @note The 'amount' field in response is the gross amount in paise (includes gateway charges) - use this for Razorpay checkout initialization
- * @note Gateway charges are automatically calculated and added server-side (2.36% = 2% fee + 18% GST on fee)
+ * @param amount Optional: Amount in rupees for partial payment. If not provided, uses full remaining amount for bookings or full amount for payouts
+ * @returns Order details including order_id, key_id, and amount
  */
 export async function createOrder(
   entityType: string,
