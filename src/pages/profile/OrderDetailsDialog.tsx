@@ -125,12 +125,12 @@ export function OrderDetailsDialog({
   if (bookingId && isLoadingDetail) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Order Details</DialogTitle>
-            <DialogDescription>Loading booking information...</DialogDescription>
+            <DialogTitle className="text-xl sm:text-2xl">Order Details</DialogTitle>
+            <DialogDescription className="text-sm">Loading booking information...</DialogDescription>
           </DialogHeader>
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-8 sm:py-12">
             <LoadingSpinner size="md" />
           </div>
         </DialogContent>
@@ -142,12 +142,12 @@ export function OrderDetailsDialog({
   if (bookingId && detailError) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Order Details</DialogTitle>
-            <DialogDescription>Failed to load booking information</DialogDescription>
+            <DialogTitle className="text-xl sm:text-2xl">Order Details</DialogTitle>
+            <DialogDescription className="text-sm">Failed to load booking information</DialogDescription>
           </DialogHeader>
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm sm:text-base">
             <p>Unable to load booking details. Please try again later.</p>
           </div>
         </DialogContent>
@@ -161,69 +161,69 @@ export function OrderDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Order Details</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl sm:text-2xl">Order Details</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Complete information about your booking
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Product Details Section */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Package className="w-4 h-4 sm:w-5 sm:h-5" />
                 Product Details
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
               <div>
                 <Link
                   to={detailedBooking 
                     ? `/scooters/vehicle-${detailedBooking.vehicle_details.name?.toLowerCase().replace(/\s+/g, '-') || 'vehicle'}-${detailedBooking.vehicle_details.id}`
                     : booking?.vehicleId ? `/scooters/${booking.vehicleId}` : '#'}
-                  className="text-lg font-semibold text-foreground mb-2 hover:text-primary transition-colors cursor-pointer inline-block"
+                  className="text-base sm:text-lg font-semibold text-foreground mb-2 hover:text-primary transition-colors cursor-pointer inline-block break-words"
                 >
                   {detailedBooking?.vehicle_details.name || booking?.vehicleName || 'Unknown Vehicle'}
                 </Link>
                 {vehicleDetails && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-3 sm:mt-4">
                     {detailedBooking ? (
                       <>
-                        <div className="flex items-center gap-2">
-                          <Hash className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Model Code</p>
-                            <p className="text-sm font-medium">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Hash className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">Model Code</p>
+                            <p className="text-xs sm:text-sm font-medium truncate">
                               {detailedBooking.model_code}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Color</p>
-                            <p className="text-sm font-medium capitalize">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">Color</p>
+                            <p className="text-xs sm:text-sm font-medium capitalize truncate">
                               {detailedBooking.vehicle_color}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Battery className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Battery</p>
-                            <p className="text-sm font-medium">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Battery className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">Battery</p>
+                            <p className="text-xs sm:text-sm font-medium truncate">
                               {detailedBooking.battery_variant}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Price</p>
-                            <p className="text-sm font-medium">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">Price</p>
+                            <p className="text-xs sm:text-sm font-medium truncate">
                               ₹{parseFloat(detailedBooking.vehicle_details.price || '0').toLocaleString()}
                             </p>
                           </div>
@@ -231,43 +231,43 @@ export function OrderDetailsDialog({
                       </>
                     ) : (
                       <>
-                        <div className="flex items-center gap-2">
-                          <Battery className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Range</p>
-                            <p className="text-sm font-medium">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Battery className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">Range</p>
+                            <p className="text-xs sm:text-sm font-medium truncate">
                               {vehicleDetails.range}+ km
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Gauge className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Gauge className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">
                               Top Speed
                             </p>
-                            <p className="text-sm font-medium">
+                            <p className="text-xs sm:text-sm font-medium truncate">
                               {vehicleDetails.topSpeed} km/h
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Battery</p>
-                            <p className="text-sm font-medium">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">Battery</p>
+                            <p className="text-xs sm:text-sm font-medium truncate">
                               {vehicleDetails.batteryVoltage ||
                                 vehicleDetails.batteryCapacity}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">
                               Charging
                             </p>
-                            <p className="text-sm font-medium">
+                            <p className="text-xs sm:text-sm font-medium truncate">
                               {vehicleDetails.chargingTime || "4-5h"}
                             </p>
                           </div>
@@ -282,59 +282,59 @@ export function OrderDetailsDialog({
 
           {/* Purchase Order Details Section */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                 Purchase Order Details
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Order ID
                   </p>
-                  <p className="font-semibold text-foreground">
+                  <p className="text-sm sm:text-base font-semibold text-foreground break-words">
                     {detailedBooking?.id || booking?.id}
                   </p>
                 </div>
                 {detailedBooking?.booking_number && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                       Booking Number
                     </p>
-                    <p className="font-semibold text-foreground">
+                    <p className="text-sm sm:text-base font-semibold text-foreground break-words font-mono">
                       {detailedBooking.booking_number}
                     </p>
                   </div>
                 )}
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Status</p>
-                  <Badge className={getStatusColor(detailedBooking?.status || booking?.status || '')}>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">Status</p>
+                  <Badge className={`${getStatusColor(detailedBooking?.status || booking?.status || '')} text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1`}>
                     {(detailedBooking?.status || booking?.status || '').replace(/_/g, " ").toUpperCase()}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Payment Status
                   </p>
-                  <Badge className={getStatusColor(detailedBooking?.payment_status || booking?.paymentStatus || '')}>
+                  <Badge className={`${getStatusColor(detailedBooking?.payment_status || booking?.paymentStatus || '')} text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1`}>
                     {(detailedBooking?.payment_status || booking?.paymentStatus || '').replace(/_/g, " ").toUpperCase()}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Reservation Status
                   </p>
-                  <Badge className={getStatusColor(detailedBooking?.reservation_status || '')}>
+                  <Badge className={`${getStatusColor(detailedBooking?.reservation_status || '')} text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1`}>
                     {detailedBooking?.reservation_status?.replace(/_/g, " ").toUpperCase() || 'N/A'}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Order Date
                   </p>
-                  <p className="font-semibold text-foreground">
+                  <p className="text-sm sm:text-base font-semibold text-foreground">
                     {detailedBooking?.created_at 
                       ? format(new Date(detailedBooking.created_at), "dd MMM yyyy HH:mm")
                       : booking?.bookedAt 
@@ -344,57 +344,57 @@ export function OrderDetailsDialog({
                 </div>
                 {detailedBooking?.confirmed_at && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                       Confirmed At
                     </p>
-                    <p className="font-semibold text-foreground">
+                    <p className="text-sm sm:text-base font-semibold text-foreground">
                       {format(new Date(detailedBooking.confirmed_at), "dd MMM yyyy HH:mm")}
                     </p>
                   </div>
                 )}
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Payment Option
                   </p>
-                  <p className="font-semibold text-foreground capitalize">
+                  <p className="text-sm sm:text-base font-semibold text-foreground capitalize">
                     {detailedBooking?.payment_option?.replace(/_/g, " ") || booking?.paymentMethod || 'N/A'}
                   </p>
                 </div>
                 {detailedBooking?.emi_duration_months && (
                   <>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                         EMI Duration
                       </p>
-                      <p className="font-semibold text-foreground">
+                      <p className="text-sm sm:text-base font-semibold text-foreground">
                         {detailedBooking.emi_duration_months} months
                       </p>
                     </div>
                     {detailedBooking.emi_amount && (
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                           EMI Amount
                         </p>
-                        <p className="font-semibold text-foreground">
+                        <p className="text-sm sm:text-base font-semibold text-foreground">
                           ₹{parseFloat(detailedBooking.emi_amount).toLocaleString()}/month
                         </p>
                       </div>
                     )}
                     {detailedBooking.emi_start_date && (
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                           EMI Start Date
                         </p>
-                        <p className="font-semibold text-foreground">
+                        <p className="text-sm sm:text-base font-semibold text-foreground">
                           {format(new Date(detailedBooking.emi_start_date), "dd MMM yyyy")}
                         </p>
                       </div>
                     )}
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                         EMI Progress
                       </p>
-                      <p className="font-semibold text-foreground">
+                      <p className="text-sm sm:text-base font-semibold text-foreground">
                         {detailedBooking.emi_paid_count} / {detailedBooking.emi_total_count} payments
                       </p>
                     </div>
@@ -402,10 +402,10 @@ export function OrderDetailsDialog({
                 )}
                 {detailedBooking?.referred_by && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                       Referred By
                     </p>
-                    <p className="font-semibold text-foreground">
+                    <p className="text-sm sm:text-base font-semibold text-foreground break-words">
                       {/* referred_by is an object { id, fullname, email } - render a readable string */}
                       {detailedBooking.referred_by.fullname ||
                         detailedBooking.referred_by.email ||
@@ -415,10 +415,10 @@ export function OrderDetailsDialog({
                 )}
                 {detailedBooking?.join_distributor_program && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                       ASA(Authorized Sales Associate) Program
                     </p>
-                    <Badge className="bg-primary/10 text-primary border-primary/30">
+                    <Badge className="bg-primary/10 text-primary border-primary/30 text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1">
                       Joined
                     </Badge>
                   </div>
@@ -430,29 +430,29 @@ export function OrderDetailsDialog({
           {/* User Contact Information */}
           {detailedBooking && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mail className="w-5 h-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
                   Contact Information
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1 flex items-center gap-1.5 sm:gap-2">
+                      <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                       Email
                     </p>
-                    <p className="font-semibold text-foreground">
+                    <p className="text-sm sm:text-base font-semibold text-foreground break-words">
                       {detailedBooking.user_email}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1 flex items-center gap-1.5 sm:gap-2">
+                      <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                       Mobile
                     </p>
-                    <p className="font-semibold text-foreground">
+                    <p className="text-sm sm:text-base font-semibold text-foreground">
                       {detailedBooking.user_mobile}
                     </p>
                   </div>
@@ -464,29 +464,29 @@ export function OrderDetailsDialog({
           {/* Delivery Information */}
           {detailedBooking && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Truck className="w-5 h-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
                   Delivery Information
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">City</p>
-                    <p className="font-semibold text-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">City</p>
+                    <p className="text-sm sm:text-base font-semibold text-foreground">
                       {detailedBooking.delivery_city}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">State</p>
-                    <p className="font-semibold text-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">State</p>
+                    <p className="text-sm sm:text-base font-semibold text-foreground">
                       {detailedBooking.delivery_state}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">PIN Code</p>
-                    <p className="font-semibold text-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">PIN Code</p>
+                    <p className="text-sm sm:text-base font-semibold text-foreground">
                       {detailedBooking.delivery_pin}
                     </p>
                   </div>
@@ -497,39 +497,39 @@ export function OrderDetailsDialog({
 
           {/* Payment & Amount Details Section */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
                 Payment & Amount Details
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Total Amount
                   </p>
-                  <p className="text-lg font-semibold text-foreground">
+                  <p className="text-base sm:text-lg font-semibold text-foreground">
                     ₹{detailedBooking 
                       ? parseFloat(detailedBooking.total_amount || '0').toLocaleString()
                       : booking?.totalAmount?.toLocaleString() || '0'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Amount Paid
                   </p>
-                  <p className="text-lg font-semibold text-success">
+                  <p className="text-base sm:text-lg font-semibold text-success">
                     ₹{detailedBooking 
                       ? parseFloat(detailedBooking.total_paid || '0').toLocaleString()
                       : (booking?.totalPaid || booking?.preBookingAmount || 0).toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Remaining Amount
                   </p>
-                  <p className="text-lg font-semibold text-warning">
+                  <p className="text-base sm:text-lg font-semibold text-warning">
                     ₹{detailedBooking 
                       ? parseFloat(detailedBooking.remaining_amount || '0').toLocaleString()
                       : booking?.remainingAmount?.toLocaleString() || '0'}
@@ -538,10 +538,10 @@ export function OrderDetailsDialog({
               </div>
               <Separator />
               <div>
-                <p className="text-sm text-muted-foreground mb-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                   Booking Amount
                 </p>
-                <p className="font-semibold text-foreground">
+                <p className="text-sm sm:text-base font-semibold text-foreground">
                   ₹{detailedBooking 
                     ? parseFloat(detailedBooking.booking_amount || '0').toLocaleString()
                     : booking?.preBookingAmount?.toLocaleString() || '0'}
@@ -549,12 +549,12 @@ export function OrderDetailsDialog({
               </div>
               {(detailedBooking?.expires_at || booking?.paymentDueDate) && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Payment Due Date / Expires At
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <p
-                      className={`font-semibold ${
+                      className={`text-sm sm:text-base font-semibold ${
                         isOverdue ? "text-destructive" : "text-foreground"
                       }`}
                     >
@@ -565,7 +565,7 @@ export function OrderDetailsDialog({
                           : 'N/A'}
                     </p>
                     {isOverdue && (
-                      <Badge variant="destructive" className="ml-2">
+                      <Badge variant="destructive" className="text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1">
                         <AlertTriangle className="w-3 h-3 mr-1" />
                         {daysOverdue} day{daysOverdue > 1 ? "s" : ""} overdue
                       </Badge>
@@ -575,20 +575,20 @@ export function OrderDetailsDialog({
               )}
               {detailedBooking?.reservation_expires_at && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Reservation Expires At
                   </p>
-                  <p className="font-semibold text-foreground">
+                  <p className="text-sm sm:text-base font-semibold text-foreground">
                     {format(new Date(detailedBooking.reservation_expires_at), "dd MMM yyyy HH:mm")}
                   </p>
                 </div>
               )}
               {detailedBooking?.payment_gateway_ref && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Payment Gateway Reference
                   </p>
-                  <p className="font-semibold text-foreground font-mono text-sm">
+                  <p className="text-xs sm:text-sm font-semibold text-foreground font-mono break-all">
                     {detailedBooking.payment_gateway_ref}
                   </p>
                 </div>
@@ -725,21 +725,21 @@ export function OrderDetailsDialog({
           {/* Additional Information */}
           {booking && 'redemptionPoints' in booking && booking.redemptionPoints > 0 && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="w-5 h-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Package className="w-4 h-4 sm:w-5 sm:h-5" />
                   Redemption Points
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-1">
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                   Points Earned
                 </p>
-                <p className="text-lg font-semibold text-foreground">
+                <p className="text-base sm:text-lg font-semibold text-foreground">
                   {booking.redemptionPoints} points
                 </p>
                 {'redemptionEligible' in booking && booking.redemptionEligible && (
-                  <p className="text-xs text-success mt-1">
+                  <p className="text-[10px] sm:text-xs text-success mt-1">
                     Eligible for redemption
                   </p>
                 )}

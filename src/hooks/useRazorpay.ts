@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-interface RazorpayOptions {
+export interface RazorpayOptions {
   key: string;
   amount: number;
   currency: string;

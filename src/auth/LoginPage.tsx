@@ -757,7 +757,7 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden">
+    <div className="flex min-h-screen overflow-hidden w-full">
       <AnimatePresence mode="wait">
         {!isSignupMode ? (
           // LOGIN MODE: Image Left, Form Right
@@ -766,12 +766,12 @@ export const LoginPage = () => {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="flex w-full"
+            className="flex flex-col md:flex-row w-full"
           >
-            {/* Left Column - Brand Section */}
+            {/* Top/Mobile Image Section - Brand Section */}
             <motion.div
               variants={imageVariants}
-              className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+              className="w-full h-[28vh] md:hidden relative overflow-hidden"
             >
               <div
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -781,20 +781,50 @@ export const LoginPage = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-slate-800/45 to-slate-900/50" />
 
-              <div className="relative z-10 flex flex-col justify-center items-start p-12 text-white w-full">
-                <div className="absolute top-12 left-12 w-8 h-8 border-l-2 border-t-2 border-white/30" />
-                <div className="absolute bottom-12 right-12 w-8 h-8 border-r-2 border-b-2 border-white/30" />
+              <div className="relative z-10 flex flex-col justify-center items-center p-4 text-white w-full h-full">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-center space-y-2"
+                >
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                    Zuja Electric Scooters
+                  </h1>
+                  <p className="text-sm sm:text-base text-white/80">
+                    Ride The Electric Wave
+                  </p>
+                </motion.div>
+              </div>
+            </motion.div>
+
+            {/* Left Column - Brand Section (Desktop) */}
+            <motion.div
+              variants={imageVariants}
+              className="hidden md:flex md:w-1/2 relative overflow-hidden"
+            >
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{
+                  backgroundImage: "url(/pic2.jpeg)",
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-slate-800/45 to-slate-900/50" />
+
+              <div className="relative z-10 flex flex-col justify-center items-start p-6 md:p-8 lg:p-12 text-white w-full">
+                <div className="absolute top-6 left-6 md:top-8 md:left-8 lg:top-12 lg:left-12 w-6 h-6 md:w-8 md:h-8 border-l-2 border-t-2 border-white/30" />
+                <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 lg:bottom-12 lg:right-12 w-6 h-6 md:w-8 md:h-8 border-r-2 border-b-2 border-white/30" />
 
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="space-y-6"
+                  className="space-y-4 md:space-y-6"
                 >
-                  <h1 className="text-5xl font-bold tracking-tight">
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
                     Zuja Electric Scooters
                   </h1>
-                  <p className="text-xl text-white/80 max-w-md">
+                  <p className="text-base md:text-lg lg:text-xl text-white/80 max-w-md">
                     Ride The Electric Wave
                   </p>
                 </motion.div>
@@ -804,7 +834,7 @@ export const LoginPage = () => {
             {/* Right Column - Login Form */}
             <motion.div
               variants={formVariants}
-              className="w-full lg:w-1/2 flex items-center justify-center bg-gradient-to-br from-white to-gray-50 p-8"
+              className="w-full md:w-1/2 flex items-center justify-center bg-gradient-to-br from-white to-gray-50 p-4 sm:p-6 md:p-8"
             >
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -812,19 +842,19 @@ export const LoginPage = () => {
                 transition={{ delay: 0.3 }}
                 className="w-full max-w-md"
               >
-                <div className="mb-8">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                <div className="mb-6 md:mb-8">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                     Welcome Back
                   </h2>
-                  <p className="text-gray-600">
+                  <p className="text-sm sm:text-base text-gray-600">
                     Please sign in to your account to continue
                   </p>
                 </div>
 
                 {!showOTPInput ? (
-                  <div className="space-y-5">
+                  <div className="space-y-4 sm:space-y-5">
                     {/* Login Method Selection Tabs */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       <Button
                         type="button"
                         variant={loginMethod === 'email' ? 'default' : 'outline'}
@@ -834,14 +864,14 @@ export const LoginPage = () => {
                           setLoginOtpCode("");
                           setLoginOtpError("");
                         }}
-                        className={`h-12 flex flex-col items-center justify-center gap-1 ${
+                        className={`h-11 sm:h-12 flex flex-col items-center justify-center gap-1 ${
                           loginMethod === 'email' 
                             ? 'bg-gray-900 hover:bg-gray-800 text-white' 
                             : 'border-gray-300 hover:bg-gray-50 text-gray-900'
                         } transition-all`}
                       >
-                        <Mail className="h-5 w-5" />
-                        <span className="text-sm font-medium">Email</span>
+                        <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
+                        <span className="text-xs sm:text-sm font-medium">Email</span>
                       </Button>
                       <Button
                         type="button"
@@ -852,14 +882,14 @@ export const LoginPage = () => {
                           setLoginOtpCode("");
                           setLoginOtpError("");
                         }}
-                        className={`h-12 flex flex-col items-center justify-center gap-1 ${
+                        className={`h-11 sm:h-12 flex flex-col items-center justify-center gap-1 ${
                           loginMethod === 'mobile' 
                             ? 'bg-gray-900 hover:bg-gray-800 text-white' 
                             : 'border-gray-300 hover:bg-gray-50 text-gray-900'
                         } transition-all`}
                       >
-                        <Phone className="h-5 w-5" />
-                        <span className="text-sm font-medium">Phone</span>
+                        <Phone className="h-4 w-4 sm:h-5 sm:w-5" />
+                        <span className="text-xs sm:text-sm font-medium">Phone</span>
                       </Button>
                     </div>
 
@@ -876,7 +906,7 @@ export const LoginPage = () => {
                                 setEmail(e.target.value);
                                 setShowOTPInput(false);
                               }}
-                              className="pl-10 h-12 border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
+                              className="pl-10 h-11 sm:h-12 text-sm sm:text-base border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
                               required
                             />
                           </div>
@@ -897,7 +927,7 @@ export const LoginPage = () => {
                                 setMobile(value);
                                 setShowOTPInput(false);
                               }}
-                              className="pl-10 h-12 border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
+                              className="pl-10 h-11 sm:h-12 text-sm sm:text-base border-gray-300 focus:border-gray-900 focus:ring-gray-900 transition-all"
                               required
                             />
                           </div>
@@ -908,7 +938,7 @@ export const LoginPage = () => {
                       )}
                       <Button
                         type="submit"
-                        className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
+                        className="w-full h-11 sm:h-12 text-sm sm:text-base bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
                         disabled={isSendingOTP || (loginMethod === 'email' ? !email.trim() : !mobile.trim())}
                       >
                         {isSendingOTP ? "Sending OTP..." : "Send OTP"}
@@ -916,9 +946,9 @@ export const LoginPage = () => {
                     </form>
                   </div>
                 ) : (
-                  <div className="space-y-5">
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <p className="text-sm text-gray-600 mb-1">
+                  <div className="space-y-4 sm:space-y-5">
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1 break-words">
                         OTP sent to: <span className="font-medium text-gray-900">
                           {loginMethod === 'mobile' ? mobile : email}
                         </span>
@@ -952,7 +982,7 @@ export const LoginPage = () => {
                               if (loginOtpError) setLoginOtpError("");
                             }}
                             maxLength={6}
-                            className={`pl-10 h-12 text-center text-2xl tracking-widest font-mono ${loginOtpError ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                            className={`pl-10 h-11 sm:h-12 text-center text-xl sm:text-2xl tracking-widest font-mono ${loginOtpError ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                             autoFocus
                             required
                           />
@@ -961,7 +991,7 @@ export const LoginPage = () => {
                       </div>
                       <Button
                         type="submit"
-                        className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
+                        className="w-full h-11 sm:h-12 text-sm sm:text-base bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
                         disabled={isVerifyingOTP || !loginOtpCode || loginOtpCode.length !== 6}
                       >
                         {isVerifyingOTP ? "Verifying..." : "Sign In"}
@@ -979,11 +1009,11 @@ export const LoginPage = () => {
                       <span className="bg-gradient-to-br from-white to-gray-50 px-2 text-gray-500">Or</span>
                     </div>
                   </div>
-                  <div className="mt-6">
+                  <div className="mt-4 sm:mt-6">
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full border-gray-300 hover:bg-gray-50 hover:text-gray-900 text-gray-900 transition-all"
+                      className="w-full h-11 sm:h-12 text-sm sm:text-base border-gray-300 hover:bg-gray-50 hover:text-gray-900 text-gray-900 transition-all"
                       onClick={() => setIsSignupMode(true)}
                     >
                       Create New Account
@@ -1000,12 +1030,42 @@ export const LoginPage = () => {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="flex w-full"
+            className="flex flex-col md:flex-row w-full"
           >
+            {/* Top/Mobile Image Section - Brand Section */}
+            <motion.div
+              variants={imageVariants}
+              className="w-full h-[28vh] md:hidden relative overflow-hidden"
+            >
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{
+                  backgroundImage: "url(/pic2.jpeg)",
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-slate-800/45 to-slate-900/50" />
+
+              <div className="relative z-10 flex flex-col justify-center items-center p-4 text-white w-full h-full">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-center space-y-2"
+                >
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                    Join the Revolution
+                  </h1>
+                  <p className="text-sm sm:text-base text-white/80">
+                    Start your journey towards a sustainable future
+                  </p>
+                </motion.div>
+              </div>
+            </motion.div>
+
             {/* Left Column - Signup Form */}
             <motion.div
               variants={formVariants}
-              className="w-full lg:w-1/2 flex items-center justify-center bg-gradient-to-br from-white to-gray-50 p-8 overflow-y-auto"
+              className="w-full md:w-1/2 flex items-center justify-center bg-gradient-to-br from-white to-gray-50 p-4 sm:p-6 md:p-8 overflow-y-auto"
             >
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -1013,7 +1073,7 @@ export const LoginPage = () => {
                 transition={{ delay: 0.3 }}
                 className="w-full max-w-4xl"
               >
-                <div className="mb-6">
+                <div className="mb-4 sm:mb-6">
                   <Button
                     type="button"
                     variant="ghost"
@@ -1023,43 +1083,45 @@ export const LoginPage = () => {
                       setSignupStep(1);
                       setShowOTPVerification(false);
                     }}
-                    className="mb-4 -ml-2 text-gray-600 hover:text-gray-900"
+                    className="mb-3 sm:mb-4 -ml-2 text-gray-600 hover:text-gray-900 text-xs sm:text-sm"
                   >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     Back to Login
                   </Button>
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <Sparkles className="h-6 w-6 text-gray-900" />
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-gray-900" />
                     Create Account
                   </h2>
-                  <p className="text-gray-600">
+                  <p className="text-sm sm:text-base text-gray-600">
                     Join us and start your electric journey today
                   </p>
                 </div>
 
                 {/* Progress Indicator */}
                 {!showOTPVerification && (
-                  <div className="mb-8">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
+                  <div className="mb-6 sm:mb-8">
+                    <div className="flex items-center justify-between mb-4 flex-wrap sm:flex-nowrap gap-2 sm:gap-0">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm transition-all ${
                           signupStep >= 1 ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500'
                         }`}>
                           1
                         </div>
-                        <span className={`text-sm font-medium ${signupStep >= 1 ? 'text-gray-900' : 'text-gray-500'}`}>
-                          Personal Information
+                        <span className={`text-xs sm:text-sm font-medium ${signupStep >= 1 ? 'text-gray-900' : 'text-gray-500'}`}>
+                          <span className="hidden sm:inline">Personal Information</span>
+                          <span className="sm:hidden">Personal</span>
                         </span>
                       </div>
-                      <div className={`flex-1 h-0.5 mx-4 ${signupStep >= 2 ? 'bg-gray-900' : 'bg-gray-200'}`} />
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
+                      <div className={`flex-1 h-0.5 mx-2 sm:mx-4 ${signupStep >= 2 ? 'bg-gray-900' : 'bg-gray-200'}`} />
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm transition-all ${
                           signupStep >= 2 ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500'
                         }`}>
                           2
                         </div>
-                        <span className={`text-sm font-medium ${signupStep >= 2 ? 'text-gray-900' : 'text-gray-500'}`}>
-                          Address Details
+                        <span className={`text-xs sm:text-sm font-medium ${signupStep >= 2 ? 'text-gray-900' : 'text-gray-500'}`}>
+                          <span className="hidden sm:inline">Address Details</span>
+                          <span className="sm:hidden">Address</span>
                         </span>
                       </div>
                     </div>
@@ -1068,13 +1130,13 @@ export const LoginPage = () => {
 
                 {/* Error Message Display */}
                 {Object.keys(signupErrors).length > 0 && !showOTPVerification && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-start gap-3 mb-2">
-                      <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start gap-2 sm:gap-3 mb-2">
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <span className="text-white text-xs font-bold">!</span>
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-red-800 mb-2">
+                        <p className="text-xs sm:text-sm font-medium text-red-800 mb-2">
                           Please fix the following errors:
                         </p>
                         <ul className="list-disc list-inside space-y-1">
@@ -1097,7 +1159,7 @@ export const LoginPage = () => {
                               'country': 'Country',
                             };
                             return (
-                              <li key={field} className="text-sm text-red-700">
+                              <li key={field} className="text-xs sm:text-sm text-red-700">
                                 <span className="font-medium">{fieldLabels[field] || field}:</span> {error}
                               </li>
                             );
@@ -1116,12 +1178,12 @@ export const LoginPage = () => {
                     } else {
                       handleNextStep();
                     }
-                  }} className="space-y-6">
+                  }} className="space-y-4 sm:space-y-6">
                     {/* Step 1: Personal Information */}
                     {signupStep === 1 && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-6">Personal Information</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 shadow-sm">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Personal Information</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                           <div className="space-y-2">
                             <Label htmlFor="first_name" className="text-sm font-medium">First Name *</Label>
                             <div className="relative">
@@ -1132,7 +1194,7 @@ export const LoginPage = () => {
                                 placeholder="Enter first name"
                                 value={signupData.first_name}
                                 onChange={(e) => handleSignupInputChange('first_name', e.target.value)}
-                                className={`pl-10 h-11 ${signupErrors.first_name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 h-10 sm:h-11 text-sm sm:text-base ${signupErrors.first_name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>
                             {signupErrors.first_name && <p className="text-xs text-red-500">{signupErrors.first_name}</p>}
@@ -1148,7 +1210,7 @@ export const LoginPage = () => {
                                 placeholder="Enter last name"
                                 value={signupData.last_name}
                                 onChange={(e) => handleSignupInputChange('last_name', e.target.value)}
-                                className={`pl-10 h-11 ${signupErrors.last_name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 h-10 sm:h-11 text-sm sm:text-base ${signupErrors.last_name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>
                             {signupErrors.last_name && <p className="text-xs text-red-500">{signupErrors.last_name}</p>}
@@ -1164,7 +1226,7 @@ export const LoginPage = () => {
                                 placeholder="Enter your email"
                                 value={signupData.email}
                                 onChange={(e) => handleSignupInputChange('email', e.target.value)}
-                                className={`pl-10 h-11 ${signupErrors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 h-10 sm:h-11 text-sm sm:text-base ${signupErrors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>
                             {signupErrors.email && <p className="text-xs text-red-500">{signupErrors.email}</p>}
@@ -1181,7 +1243,7 @@ export const LoginPage = () => {
                                 value={signupData.mobile}
                                 onChange={(e) => handleSignupInputChange('mobile', e.target.value.replace(/\D/g, ''))}
                                 maxLength={12}
-                                className={`pl-10 h-11 ${signupErrors.mobile ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 h-10 sm:h-11 text-sm sm:text-base ${signupErrors.mobile ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>
                             {signupErrors.mobile && <p className="text-xs text-red-500">{signupErrors.mobile}</p>}
@@ -1193,7 +1255,7 @@ export const LoginPage = () => {
                               value={signupData.gender}
                               onValueChange={(value) => handleSelectChange('gender', value)}
                             >
-                              <SelectTrigger className={`h-11 ${signupErrors.gender ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'}`}>
+                              <SelectTrigger className={`h-10 sm:h-11 text-sm sm:text-base ${signupErrors.gender ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'}`}>
                                 <SelectValue placeholder="Select gender" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1215,7 +1277,7 @@ export const LoginPage = () => {
                                 value={signupData.date_of_birth}
                                 onChange={(e) => handleSignupInputChange('date_of_birth', e.target.value)}
                                 max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                                className={`pl-10 h-11 ${signupErrors.date_of_birth ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 h-10 sm:h-11 text-sm sm:text-base ${signupErrors.date_of_birth ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>
                             {signupErrors.date_of_birth && <p className="text-xs text-red-500">{signupErrors.date_of_birth}</p>}
@@ -1235,7 +1297,7 @@ export const LoginPage = () => {
                                   handleSignupInputChange('pan_card', value);
                                 }}
                                 maxLength={10}
-                                className={`pl-10 h-11 font-mono ${signupErrors.pan_card ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 h-10 sm:h-11 text-sm sm:text-base font-mono ${signupErrors.pan_card ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>
                             {signupErrors.pan_card && <p className="text-xs text-red-500">{signupErrors.pan_card}</p>}
@@ -1253,7 +1315,7 @@ export const LoginPage = () => {
                                 value={signupData.referral_code}
                                 onChange={(e) => handleSignupInputChange('referral_code', e.target.value.trim())}
                                 readOnly={referralCodeFromUrl}
-                                className={`pl-10 ${referralCodeFromUrl ? 'pr-24' : ''} h-11 font-mono ${referralCodeFromUrl ? 'bg-gray-50 cursor-not-allowed' : ''} ${signupErrors.referral_code ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 ${referralCodeFromUrl ? 'pr-20 sm:pr-24' : ''} h-10 sm:h-11 text-sm sm:text-base font-mono ${referralCodeFromUrl ? 'bg-gray-50 cursor-not-allowed' : ''} ${signupErrors.referral_code ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                               {referralCodeFromUrl && (
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -1273,10 +1335,10 @@ export const LoginPage = () => {
 
                     {/* Step 2: Address Information */}
                     {signupStep === 2 && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-6">Address Details</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2 md:col-span-2">
+                      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 shadow-sm">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Address Details</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                          <div className="space-y-2 sm:col-span-2">
                             <Label htmlFor="address_line1" className="text-sm font-medium">Address Line 1 *</Label>
                             <div className="relative">
                               <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -1286,13 +1348,13 @@ export const LoginPage = () => {
                                 placeholder="Enter address line 1"
                                 value={signupData.address_line1}
                                 onChange={(e) => handleSignupInputChange('address_line1', e.target.value)}
-                                className={`pl-10 h-11 ${signupErrors.address_line1 ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 h-10 sm:h-11 text-sm sm:text-base ${signupErrors.address_line1 ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>
                             {signupErrors.address_line1 && <p className="text-xs text-red-500">{signupErrors.address_line1}</p>}
                           </div>
 
-                          <div className="space-y-2 md:col-span-2">
+                          <div className="space-y-2 sm:col-span-2">
                             <Label htmlFor="address_line2" className="text-sm font-medium">Address Line 2</Label>
                             <div className="relative">
                               <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -1302,7 +1364,7 @@ export const LoginPage = () => {
                                 placeholder="Enter address line 2 (Optional)"
                                 value={signupData.address_line2}
                                 onChange={(e) => handleSignupInputChange('address_line2', e.target.value)}
-                                className="pl-10 h-11 border-gray-300 focus:border-gray-900 transition-all"
+                                className="pl-10 h-10 sm:h-11 text-sm sm:text-base border-gray-300 focus:border-gray-900 transition-all"
                               />
                             </div>
                           </div>
@@ -1317,7 +1379,7 @@ export const LoginPage = () => {
                                 placeholder="Enter city"
                                 value={signupData.city}
                                 onChange={(e) => handleSignupInputChange('city', e.target.value)}
-                                className={`pl-10 h-11 ${signupErrors.city ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 h-10 sm:h-11 text-sm sm:text-base ${signupErrors.city ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>
                             {signupErrors.city && <p className="text-xs text-red-500">{signupErrors.city}</p>}
@@ -1333,7 +1395,7 @@ export const LoginPage = () => {
                                 placeholder="Enter state"
                                 value={signupData.state}
                                 onChange={(e) => handleSignupInputChange('state', e.target.value)}
-                                className={`pl-10 h-11 ${signupErrors.state ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 h-10 sm:h-11 text-sm sm:text-base ${signupErrors.state ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>
                             {signupErrors.state && <p className="text-xs text-red-500">{signupErrors.state}</p>}
@@ -1350,7 +1412,7 @@ export const LoginPage = () => {
                                 value={signupData.pincode}
                                 onChange={(e) => handleSignupInputChange('pincode', e.target.value.replace(/\D/g, ''))}
                                 maxLength={6}
-                                className={`pl-10 h-11 ${signupErrors.pincode ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                                className={`pl-10 h-10 sm:h-11 text-sm sm:text-base ${signupErrors.pincode ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>
                             {signupErrors.pincode && <p className="text-xs text-red-500">{signupErrors.pincode}</p>}
@@ -1366,7 +1428,7 @@ export const LoginPage = () => {
                                 placeholder="Enter country"
                                 value={signupData.country}
                                 onChange={(e) => handleSignupInputChange('country', e.target.value)}
-                                className="pl-10 h-11 border-gray-300 focus:border-gray-900 transition-all"
+                                className="pl-10 h-10 sm:h-11 text-sm sm:text-base border-gray-300 focus:border-gray-900 transition-all"
                               />
                             </div>
                           </div>
@@ -1376,21 +1438,22 @@ export const LoginPage = () => {
                     )}
 
                     {/* Navigation Buttons */}
-                    <div className="flex items-center justify-between gap-4 pt-4">
+                    <div className="flex items-center justify-between gap-3 sm:gap-4 pt-4">
                       {signupStep === 2 && (
                         <Button
                           type="button"
                           variant="outline"
                           onClick={handlePreviousStep}
-                          className="h-12 px-6 border-gray-300 hover:bg-gray-50 text-gray-900"
+                          className="h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base border-gray-300 hover:bg-gray-50 text-gray-900"
                         >
-                          ← Previous
+                          <span className="hidden sm:inline">← Previous</span>
+                          <span className="sm:hidden">←</span>
                         </Button>
                       )}
                       <div className="flex-1" />
                       <Button
                         type="submit"
-                        className="h-12 px-8 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
+                        className="h-10 sm:h-12 px-6 sm:px-8 text-sm sm:text-base bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
                         disabled={isSubmitting || isSigningUp}
                       >
                         {signupStep === 1 ? (
@@ -1408,47 +1471,56 @@ export const LoginPage = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm"
+                    className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 shadow-sm"
                   >
                     {/* Progress Indicator for OTP Step */}
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-gray-900 text-white">
+                    <div className="mb-4 sm:mb-6">
+                      <div className="flex items-center justify-between mb-4 flex-wrap sm:flex-nowrap gap-2 sm:gap-0">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm bg-gray-900 text-white">
                             1
                           </div>
-                          <span className="text-sm font-medium text-gray-900">Personal Information</span>
+                          <span className="text-xs sm:text-sm font-medium text-gray-900">
+                            <span className="hidden sm:inline">Personal Information</span>
+                            <span className="sm:hidden">Personal</span>
+                          </span>
                         </div>
-                        <div className="flex-1 h-0.5 mx-4 bg-gray-900" />
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-gray-900 text-white">
+                        <div className="flex-1 h-0.5 mx-2 sm:mx-4 bg-gray-900" />
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm bg-gray-900 text-white">
                             2
                           </div>
-                          <span className="text-sm font-medium text-gray-900">Address Details</span>
+                          <span className="text-xs sm:text-sm font-medium text-gray-900">
+                            <span className="hidden sm:inline">Address Details</span>
+                            <span className="sm:hidden">Address</span>
+                          </span>
                         </div>
-                        <div className="flex-1 h-0.5 mx-4 bg-gray-900" />
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm bg-gray-900 text-white">
+                        <div className="flex-1 h-0.5 mx-2 sm:mx-4 bg-gray-900" />
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm bg-gray-900 text-white">
                             3
                           </div>
-                          <span className="text-sm font-medium text-gray-900">OTP Verification</span>
+                          <span className="text-xs sm:text-sm font-medium text-gray-900">
+                            <span className="hidden sm:inline">OTP Verification</span>
+                            <span className="sm:hidden">OTP</span>
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="mb-6">
+                    <div className="mb-4 sm:mb-6">
                       <div className="flex items-center gap-2 mb-2">
-                        <Shield className="h-5 w-5 text-gray-900" />
-                        <h3 className="text-xl font-semibold text-gray-900">
+                        <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-gray-900" />
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
                           Verify Your Account
                         </h3>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600">
                         Enter the 6-digit OTP sent to your email and mobile number
                       </p>
                     </div>
 
-                    <form onSubmit={handleOTPVerification} className="space-y-4">
+                    <form onSubmit={handleOTPVerification} className="space-y-3 sm:space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="otp" className="text-sm font-medium">OTP Code *</Label>
                         <div className="relative">
@@ -1464,7 +1536,7 @@ export const LoginPage = () => {
                               if (otpError) setOtpError("");
                             }}
                             maxLength={6}
-                            className={`pl-10 h-12 text-center text-2xl tracking-widest font-mono ${otpError ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
+                            className={`pl-10 h-11 sm:h-12 text-center text-xl sm:text-2xl tracking-widest font-mono ${otpError ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                             autoFocus
                           />
                         </div>
@@ -1473,7 +1545,7 @@ export const LoginPage = () => {
 
                       <Button
                         type="submit"
-                        className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
+                        className="w-full h-11 sm:h-12 text-sm sm:text-base bg-gray-900 hover:bg-gray-800 text-white transition-all shadow-lg hover:shadow-xl"
                         disabled={isVerifyingOTP || !otpCode || otpCode.length !== 6}
                       >
                         {isVerifyingOTP ? 'Verifying...' : 'Verify OTP'}
@@ -1500,10 +1572,10 @@ export const LoginPage = () => {
               </motion.div>
             </motion.div>
 
-            {/* Right Column - Brand Section */}
+            {/* Right Column - Brand Section (Desktop) */}
             <motion.div
               variants={imageVariants}
-              className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+              className="hidden md:flex md:w-1/2 relative overflow-hidden"
             >
               <div
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -1513,20 +1585,20 @@ export const LoginPage = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-br from-slate-900/50 via-slate-800/45 to-slate-900/50" />
 
-              <div className="relative z-10 flex flex-col justify-center items-start p-12 text-white w-full">
-                <div className="absolute top-12 left-12 w-8 h-8 border-l-2 border-t-2 border-white/30" />
-                <div className="absolute bottom-12 right-12 w-8 h-8 border-r-2 border-b-2 border-white/30" />
+              <div className="relative z-10 flex flex-col justify-center items-start p-6 md:p-8 lg:p-12 text-white w-full">
+                <div className="absolute top-6 left-6 md:top-8 md:left-8 lg:top-12 lg:left-12 w-6 h-6 md:w-8 md:h-8 border-l-2 border-t-2 border-white/30" />
+                <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 lg:bottom-12 lg:right-12 w-6 h-6 md:w-8 md:h-8 border-r-2 border-b-2 border-white/30" />
 
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="space-y-6"
+                  className="space-y-4 md:space-y-6"
                 >
-                  <h1 className="text-5xl font-bold tracking-tight">
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
                     Join the Revolution
                   </h1>
-                  <p className="text-xl text-white/80 max-w-md">
+                  <p className="text-base md:text-lg lg:text-xl text-white/80 max-w-md">
                     Start your journey towards a sustainable future with electric mobility
                   </p>
                 </motion.div>

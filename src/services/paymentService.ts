@@ -1,5 +1,6 @@
 import { getAuthTokens, refreshAccessToken } from '@/app/api/baseApi';
 import { API_BASE_URL } from '@/lib/config';
+import type { RazorpayOptions } from '@/hooks/useRazorpay';
 
 // TypeScript interfaces for API requests and responses
 
@@ -26,7 +27,7 @@ export interface VerifyPaymentResponse {
   success: boolean;
   payment_id?: string;
   message?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface RefundRequest {
@@ -38,7 +39,7 @@ export interface RefundResponse {
   success: boolean;
   refund_id?: string;
   message?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PayoutRequest {
@@ -49,7 +50,7 @@ export interface PayoutResponse {
   success: boolean;
   payout_id?: string;
   message?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -271,7 +272,7 @@ export async function verifyPayment(
 export async function payForEntity(
   entityType: string,
   entityId: string | number,
-  openRazorpayCheckout: (options: any) => Promise<void>,
+  openRazorpayCheckout: (options: RazorpayOptions) => Promise<void>,
   options?: {
     name?: string;
     description?: string;

@@ -269,24 +269,24 @@ export function ScooterDetailPage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 text-sm text-muted-foreground mb-6"
+            className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6 flex-wrap"
           >
             <Link to="/" className="hover:text-primary">Home</Link>
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
             <Link to="/scooters" className="hover:text-primary">Scooters</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-foreground">{scooter.name}</span>
+            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-foreground truncate max-w-[150px] sm:max-w-none">{scooter.name}</span>
           </motion.div>
 
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-muted-foreground hover:text-primary mb-6 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-primary mb-4 sm:mb-6 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Back
           </button>
 
-          <div className="grid lg:grid-cols-2 gap-12">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
             {/* Image Section */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -448,8 +448,8 @@ export function ScooterDetailPage() {
               className="space-y-6"
             >
               <div>
-                <p className="text-sm text-muted-foreground uppercase tracking-wider">{scooter.brand}</p>
-                <h1 className="text-4xl font-bold text-foreground mt-1">{scooter.name}</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider">{scooter.brand}</p>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mt-1">{scooter.name}</h1>
                 {/* <div className="flex items-center gap-2 mt-2">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
@@ -470,19 +470,19 @@ export function ScooterDetailPage() {
                   }}
                   aria-hidden
                 />
-                <div className="glass-card relative z-10 m-[2px] rounded-[calc(1.5rem-2px)] border-0 shadow-glass p-6 lg:p-7 space-y-6 bg-background">
+                <div className="glass-card relative z-10 m-[2px] rounded-[calc(1.5rem-2px)] border-0 shadow-glass p-4 sm:p-5 lg:p-7 space-y-4 sm:space-y-6 bg-background">
                 {/* Price Row */}
-                <div className="flex items-start justify-between gap-6">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 sm:gap-6">
+                  <div className="space-y-1 flex-1">
+                    <p className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                       On-Road Pre‑Booking Price
                     </p>
-                    <div className="flex items-end gap-3">
-                      <span className="text-4xl lg:text-5xl font-bold text-primary leading-none">
+                    <div className="flex items-end gap-2 sm:gap-3 flex-wrap">
+                      <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary leading-none">
                         ₹{scooter.price.toLocaleString()}
                       </span>
                       {scooter.originalPrice && (
-                        <span className="text-sm lg:text-base text-muted-foreground line-through">
+                        <span className="text-xs sm:text-sm lg:text-base text-muted-foreground line-through">
                           ₹{scooter.originalPrice.toLocaleString()}
                         </span>
                       )}
@@ -490,10 +490,10 @@ export function ScooterDetailPage() {
                   </div>
 
                   {/* Small badge block */}
-                  <div className="hidden sm:flex flex-col items-end gap-2">
+                  <div className="flex flex-col items-start sm:items-end gap-2 w-full sm:w-auto">
                     {stockData?.status && (
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-semibold capitalize ${
                           stockData.status === 'available'
                             ? 'bg-pink-500/10 text-pink-700 dark:text-pink-300'
                             : stockData.status === 'out_of_stock'
@@ -514,7 +514,7 @@ export function ScooterDetailPage() {
                       </span>
                     )}
                     {stockData?.vehicle_model_code && (
-                      <span className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+                      <span className="text-[10px] sm:text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
                         Model: <span className="text-foreground">{stockData.vehicle_model_code}</span>
                       </span>
                     )}
@@ -523,17 +523,17 @@ export function ScooterDetailPage() {
 
                 {/* Stock Information */}
                 {stockData ? (
-                  <div className="rounded-2xl border border-border/60 bg-muted/20 px-4 py-4 lg:px-5 lg:py-5 space-y-4">
-                    <div className="flex items-center justify-between gap-3">
+                  <div className="rounded-2xl border border-border/60 bg-muted/20 px-3 sm:px-4 lg:px-5 py-3 sm:py-4 lg:py-5 space-y-3 sm:space-y-4">
+                    <div className="flex items-center justify-between gap-2 sm:gap-3">
                       <div className="flex items-center gap-2">
-                        <div className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                          <Package className="w-4 h-4" />
+                        <div className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl sm:rounded-2xl bg-primary/10 text-primary">
+                          <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </div>
                         <div>
-                          <h3 className="text-sm font-semibold text-foreground">
+                          <h3 className="text-xs sm:text-sm font-semibold text-foreground">
                             Stock Information
                           </h3>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground">
                             Live availability for this exact color & battery variant.
                           </p>
                         </div>
@@ -541,20 +541,20 @@ export function ScooterDetailPage() {
                     </div>
 
                     {/* Three cards in a row, same height — match 2nd image layout */}
-                    <div className="grid grid-cols-1 sm:grid-cols-[1.15fr_0.925fr_0.925fr] gap-3 items-stretch">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1.15fr_0.925fr_0.925fr] gap-2.5 sm:gap-3 items-stretch">
                       {/* Available Units — slightly wider on large screens */}
-                      <div className="flex flex-col justify-center rounded-2xl bg-pink-500/5 border border-pink-500/30 px-4 py-5 text-center min-h-[140px] sm:min-h-0">
-                        <span className="text-xs font-medium uppercase tracking-[0.18em] text-pink-600 dark:text-pink-300">
+                      <div className="flex flex-col justify-center rounded-xl sm:rounded-2xl bg-pink-500/5 border border-pink-500/30 px-3 sm:px-4 py-4 sm:py-5 text-center min-h-[120px] sm:min-h-[140px] md:min-h-0">
+                        <span className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.18em] text-pink-600 dark:text-pink-300">
                           Available Units
                         </span>
-                        <div className="mt-1 text-3xl font-extrabold text-pink-600 dark:text-pink-300">
+                        <div className="mt-1 text-2xl sm:text-3xl font-extrabold text-pink-600 dark:text-pink-300">
                           {Number(stockData.available_quantity ?? 0).toLocaleString()}
                         </div>
                         {/* <p className="mt-1 text-[11px] text-pink-700/80 dark:text-pink-200/90">
                           Ready to be reserved instantly
                         </p> */}
                         {(stockData.reserved_quantity || stockData.total_quantity) && (
-                          <div className="mt-3 flex items-center justify-center gap-3 text-[11px] text-pink-900/70 dark:text-pink-100/80">
+                          <div className="mt-2 sm:mt-3 flex items-center justify-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-pink-900/70 dark:text-pink-100/80">
                             {/* {typeof stockData.reserved_quantity !== 'undefined' && (
                               <span>
                                 <span className="font-semibold">
@@ -580,12 +580,12 @@ export function ScooterDetailPage() {
 
                       {/* Color card */}
                       {stockData.vehicle_colors && stockData.vehicle_colors.length > 0 && (
-                        <div className="flex flex-col items-center justify-center rounded-2xl bg-card/70 border border-border/60 px-4 py-5 min-h-[140px] sm:min-h-0">
-                          <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400 mb-2">
-                            <Palette className="w-4 h-4" />
+                        <div className="flex flex-col items-center justify-center rounded-xl sm:rounded-2xl bg-card/70 border border-border/60 px-3 sm:px-4 py-4 sm:py-5 min-h-[120px] sm:min-h-[140px] md:min-h-0">
+                          <div className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400 mb-2">
+                            <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </div>
-                          <span className="text-xs text-muted-foreground">Color</span>
-                          <span className="text-sm font-semibold capitalize text-foreground mt-0.5">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground">Color</span>
+                          <span className="text-xs sm:text-sm font-semibold capitalize text-foreground mt-0.5 text-center px-1">
                             {stockData.vehicle_colors.join(', ')}
                           </span>
                         </div>
@@ -593,12 +593,12 @@ export function ScooterDetailPage() {
 
                       {/* Battery card */}
                       {stockData.battery_variants && stockData.battery_variants.length > 0 && (
-                        <div className="flex flex-col items-center justify-center rounded-2xl bg-card/70 border border-border/60 px-4 py-5 min-h-[140px] sm:min-h-0">
-                          <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-pink-500/10 text-pink-600 dark:text-pink-400 mb-2">
-                            <Battery className="w-4 h-4" />
+                        <div className="flex flex-col items-center justify-center rounded-xl sm:rounded-2xl bg-card/70 border border-border/60 px-3 sm:px-4 py-4 sm:py-5 min-h-[120px] sm:min-h-[140px] md:min-h-0">
+                          <div className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-pink-500/10 text-pink-600 dark:text-pink-400 mb-2">
+                            <Battery className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </div>
-                          <span className="text-xs text-muted-foreground">Battery</span>
-                          <span className="text-sm font-semibold text-foreground mt-0.5">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground">Battery</span>
+                          <span className="text-xs sm:text-sm font-semibold text-foreground mt-0.5 text-center px-1">
                             {stockData.battery_variants.join(', ')}
                           </span>
                         </div>
@@ -635,12 +635,12 @@ export function ScooterDetailPage() {
                 )}
 
               {/* CTA Button — pill shape, gradient 15b3b3 to 15be9c, subtle glow */}
-              <div>
+              <div className="mt-4 sm:mt-0">
                 {isAuthenticated ? (
                   isAlreadyBooked ? (
                     <Button
                       disabled
-                      className="w-full text-lg py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 cursor-not-allowed opacity-75"
+                      className="w-full text-sm sm:text-base lg:text-lg py-4 sm:py-5 lg:py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 cursor-not-allowed opacity-75"
                       style={{
                         background: 'linear-gradient(to right, #6b7280, #4b5563, #374151)',
                         boxShadow: '0 4px 14px rgba(107, 114, 128, 0.25), 0 2px 6px rgba(75, 85, 99, 0.2)',
@@ -651,7 +651,7 @@ export function ScooterDetailPage() {
                   ) : (
                     <Button
                       onClick={() => setShowPreBookingModal(true)}
-                      className="w-full text-lg py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 hover:opacity-95 transition-opacity"
+                      className="w-full text-sm sm:text-base lg:text-lg py-4 sm:py-5 lg:py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 hover:opacity-95 transition-opacity"
                       style={{
                         background: 'linear-gradient(to right, #17b0ba, #1cbe9a, #22cb7c)',
                         boxShadow: '0 4px 14px rgba(23, 176, 186, 0.35), 0 2px 6px rgba(34, 203, 124, 0.25)',
@@ -663,7 +663,7 @@ export function ScooterDetailPage() {
                 ) : (
                   <Link to={`/login${referralCode ? `?ref=${referralCode}` : ''}`} className="block">
                     <Button
-                      className="w-full text-lg py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 hover:opacity-95 transition-opacity"
+                      className="w-full text-sm sm:text-base lg:text-lg py-4 sm:py-5 lg:py-6 rounded-full font-bold text-white uppercase tracking-wide border-0 hover:opacity-95 transition-opacity"
                       style={{
                         background: 'linear-gradient(to right, #17b0ba, #1cbe9a, #22cb7c)',
                         boxShadow: '0 4px 14px rgba(23, 176, 186, 0.35), 0 2px 6px rgba(34, 203, 124, 0.25)',

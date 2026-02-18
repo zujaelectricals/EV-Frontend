@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 import {
   User,
   Package,
-  Heart,
-  CreditCard,
+  // Heart,
+  // CreditCard,
   Settings,
   Gift,
   FileText,
@@ -44,8 +44,8 @@ import { Badge } from "@/components/ui/badge";
 import { useAppSelector, useAppDispatch } from "@/app/hooks";
 import { Link } from "react-router-dom";
 import { MyOrders } from "./profile/MyOrders";
-import { Wishlist } from "./profile/Wishlist";
-import { PaymentMethods } from "./profile/PaymentMethods";
+// import { Wishlist } from "./profile/Wishlist";
+// import { PaymentMethods } from "./profile/PaymentMethods";
 import { DistributorOptions } from "./profile/DistributorOptions";
 import { Addresses } from "./profile/Addresses";
 import { KYCVerification } from "./profile/KYCVerification";
@@ -59,7 +59,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 export function ProfilePage() {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
+  // const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(
     searchParams.get("tab") || "orders"
@@ -491,14 +491,14 @@ export function ProfilePage() {
 
   const profileSections = [
     { id: "orders", label: "My Orders", icon: Package, count: bookingsData?.count || 0 },
-    {
-      id: "wishlist",
-      label: "Wishlist",
-      icon: Heart,
-      count: wishlistItems.length,
-    },
+    // {
+    //   id: "wishlist",
+    //   label: "Wishlist",
+    //   icon: Heart,
+    //   count: wishlistItems.length,
+    // },
     { id: "kyc", label: "KYC Verification", icon: Shield },
-    { id: "payments", label: "Payment Methods", icon: CreditCard },
+    // { id: "payments", label: "Payment Methods", icon: CreditCard },
     { id: "nominee", label: "Add Nominee", icon: UserPlus },
     //{ id: "addresses", label: "Addresses", icon: MapPin },
     //{ id: "redemption", label: "Redemption Points", icon: Gift },
@@ -557,20 +557,29 @@ export function ProfilePage() {
                     }
                     className={
                       kycStatus === 'verified' || kycStatus === 'approved'
-                        ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 shadow-md shadow-pink-500/25'
-                        : ''
+                        ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 shadow-md shadow-pink-500/25 text-xs sm:text-sm px-2 sm:px-3 py-1'
+                        : 'text-xs sm:text-sm px-2 sm:px-3 py-1'
                     }
                   >
-                    {kycStatus === 'verified' || kycStatus === 'approved'
-                      ? 'KYC Verified'
-                      : kycStatus === 'pending'
-                      ? 'KYC Pending'
-                      : 'KYC Rejected'}
+                    <span className="sm:hidden">
+                      {kycStatus === 'verified' || kycStatus === 'approved'
+                        ? 'Verified'
+                        : kycStatus === 'pending'
+                        ? 'Pending'
+                        : 'Rejected'}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {kycStatus === 'verified' || kycStatus === 'approved'
+                        ? 'KYC Verified'
+                        : kycStatus === 'pending'
+                        ? 'KYC Pending'
+                        : 'KYC Rejected'}
+                    </span>
                   </Badge>
                 ) : (
                   <Badge
                     variant="destructive"
-                    className="bg-red-500 hover:bg-red-600 text-white shadow-sm"
+                    className="bg-red-500 hover:bg-red-600 text-white shadow-sm text-[10px] sm:text-xs md:text-sm px-2 sm:px-2.5 md:px-3 py-0.5 sm:py-1 whitespace-nowrap"
                   >
                     Not Verified
                   </Badge>
@@ -596,28 +605,40 @@ export function ProfilePage() {
             </div>
             {/* Navigation Menu - Scrollable on mobile */}
             <nav className="flex overflow-x-auto gap-1.5 sm:gap-2 pb-2 -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-hide">
-              {profileSections.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => {
-                    setActiveTab(section.id);
-                    setSearchParams({ tab: section.id });
-                  }}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all duration-200 text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0 shadow-sm ${
-                    activeTab === section.id
-                      ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md shadow-pink-500/20"
-                      : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                  }`}
-                >
-                  <section.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-                  <span className="inline sm:inline">{section.label}</span>
-                  {section.count !== undefined && section.count > 0 && (
-                    <Badge variant="secondary" className="text-xs h-4 sm:h-5 px-1 sm:px-1.5 bg-white/90 text-foreground">
-                      {section.count}
-                    </Badge>
-                  )}
-                </button>
-              ))}
+              {profileSections.map((section) => {
+                // Show shorter labels on mobile for long section names
+                const getMobileLabel = (id: string, label: string) => {
+                  if (id === "kyc") return "KYC";
+                  if (id === "referral") return "ASA Link";
+                  if (id === "settings") return "Profile";
+                  if (id === "nominee") return "Nominee";
+                  return label;
+                };
+                
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => {
+                      setActiveTab(section.id);
+                      setSearchParams({ tab: section.id });
+                    }}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 md:px-4 py-2 rounded-xl transition-all duration-200 text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0 shadow-sm ${
+                      activeTab === section.id
+                        ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md shadow-pink-500/20"
+                        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                    }`}
+                  >
+                    <section.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                    <span className="sm:hidden">{getMobileLabel(section.id, section.label)}</span>
+                    <span className="hidden sm:inline">{section.label}</span>
+                    {section.count !== undefined && section.count > 0 && (
+                      <Badge variant="secondary" className="text-xs h-4 sm:h-5 px-1 sm:px-1.5 bg-white/90 text-foreground">
+                        {section.count}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
             </nav>
           </div>
         </div>
@@ -628,9 +649,9 @@ export function ProfilePage() {
         {/* Main Content - Full Width */}
         <div className="w-full">
           {activeTab === "orders" && <MyOrders />}
-          {activeTab === "wishlist" && <Wishlist />}
+          {/* {activeTab === "wishlist" && <Wishlist />} */}
           {activeTab === "kyc" && <KYCVerification />}
-          {activeTab === "payments" && <PaymentMethods />}
+          {/* {activeTab === "payments" && <PaymentMethods />} */}
           {activeTab === "referral" && (
             <Card>
               <CardHeader>
