@@ -6,8 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { useGetUserProfileQuery } from '@/app/api/userApi';
 import { setCredentials } from '@/app/slices/authSlice';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -102,12 +100,6 @@ export const ReferralLink = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground">Total Referrals</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {distributorInfo?.totalReferrals || 0}
-                </p>
-              </div>
-              <div className="p-4 border rounded-lg">
                 <p className="text-sm text-muted-foreground">Revenue Stream Left (RSL) Count</p>
                 <p className="text-2xl font-bold text-primary">
                   {distributorInfo?.leftCount || 0}
@@ -119,24 +111,6 @@ export const ReferralLink = () => {
                   {distributorInfo?.rightCount || 0}
                 </p>
               </div>
-              <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground">Binary Status</p>
-                <Badge className={distributorInfo?.binaryActivated ? 'bg-success' : 'bg-muted'}>
-                  {distributorInfo?.binaryActivated ? 'Enabled' : 'Not Enabled'}
-                </Badge>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="p-4 bg-primary/5 rounded-lg">
-              <p className="text-sm text-muted-foreground mb-2">Referral Bonus</p>
-              <p className="text-lg font-semibold text-foreground">
-                ₹1,000 per referral (after TDS)
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Earn ₹1,000 for each person who pre-books using your ASA code
-              </p>
             </div>
           </CardContent>
         </Card>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, AlertCircle, User, Mail, Phone, FileCheck, Shield, Eye, Download } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, User, Mail, Phone, FileCheck, Shield, Eye, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,13 +20,14 @@ import {
   useSubmitDistributorApplicationMutation, 
   useGetDistributorApplicationQuery 
 } from '@/app/api/distributorApi';
-import { useGetASATermsQuery } from '@/app/api/complianceApi';
+import { useGetASATermsQuery, useInitiateASATermsAcceptanceMutation, useVerifyASATermsAcceptanceMutation } from '@/app/api/complianceApi';
 import { Booking } from '@/app/slices/bookingSlice';
 import { KYCModal } from '@/components/KYCModal';
 import { useGetBookingsQuery } from '@/app/api/bookingApi';
 import { useSendUniversalOTPMutation, useVerifyUniversalOTPMutation } from '@/app/api/authApi';
 import { useGetUserProfileQuery, useGetUserProfileRawQuery } from '@/app/api/userApi';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export function DistributorApplication() {
   const dispatch = useAppDispatch();
@@ -156,6 +157,7 @@ export function DistributorApplication() {
   // ASA Terms checkboxes state - dynamic based on fetched terms
   const [asaTermsAccepted, setAsaTermsAccepted] = useState<boolean[]>([]);
   const [finalConfirmationAccepted, setFinalConfirmationAccepted] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   
   // Initialize asaTermsAccepted state when terms are loaded
   useEffect(() => {
@@ -164,9 +166,9 @@ export function DistributorApplication() {
     }
   }, [asaTerms]);
   
-  // Document acceptance mutations (kept for potential future use if backend supports ASA terms acceptance)
-  // const [acceptDocument] = useAcceptDocumentMutation();
-  // const [verifyAcceptance] = useVerifyAcceptanceMutation();
+  // ASA Terms acceptance mutations
+  const [initiateASATermsAcceptance] = useInitiateASATermsAcceptanceMutation();
+  const [verifyASATermsAcceptance] = useVerifyASATermsAcceptanceMutation();
   
   // Determine identifier (email or mobile) and OTP type
   const getIdentifier = () => {
@@ -215,12 +217,9 @@ export function DistributorApplication() {
     setFinalConfirmationAccepted(checked);
     
     if (checked) {
-      // Check if all terms are accepted
-      const allTermsAccepted = asaTermsAccepted.every(accepted => accepted);
-      if (!allTermsAccepted) {
-        toast.error('Please accept all terms and conditions before final confirmation');
-        setFinalConfirmationAccepted(false);
-        return;
+      // Automatically accept all terms when the single checkbox is checked
+      if (asaTerms.length > 0) {
+        setAsaTermsAccepted(new Array(asaTerms.length).fill(true));
       }
       
       // Check if ASA terms are available
@@ -230,28 +229,57 @@ export function DistributorApplication() {
         return;
       }
       
+      // Check if user has email or mobile
+      const identifier = getIdentifier();
+      if (!identifier) {
+        toast.error('Email or mobile number not found in profile. Please update your profile.');
+        setFinalConfirmationAccepted(false);
+        return;
+      }
+      
       setIsAcceptingDocument(true);
       try {
-        // Note: If acceptance API is needed, it should use activeASATerm.id
-        // For now, we'll skip the document acceptance and proceed directly
-        // If your backend has an accept endpoint for ASA terms, uncomment and update:
-        // console.log('📄 [DISTRIBUTOR APPLICATION] Accepting ASA terms:', activeASATerm.id);
-        // await acceptDocument(activeASATerm.id).unwrap();
+        console.log('📄 [DISTRIBUTOR APPLICATION] Initiating ASA terms acceptance:', activeASATerm.id);
         
-        // Skip OTP flow for now - set terms as accepted directly
-        console.log('📄 [DISTRIBUTOR APPLICATION] All ASA terms accepted');
-        setOtpSent(false); // Skip OTP for ASA terms
+        // Call initiate endpoint to send OTP
+        const response = await initiateASATermsAcceptance({
+          id: activeASATerm.id,
+          checkboxes_verified: true,
+        }).unwrap();
+        
+        console.log('📄 [DISTRIBUTOR APPLICATION] ASA terms acceptance initiated:', response);
+        
+        // Show OTP section
+        setOtpSent(true);
+        setOtpVerified(false);
+        setOtpCode('');
         setTermsAccepted(true);
-        setOtpVerified(true); // Auto-verify since we're skipping OTP
-        setConditionsAccepted(prev => ({ ...prev, otpVerified: true }));
-        toast.success('All terms accepted successfully!');
+        
+        // Show success message with OTP delivery info
+        const otpChannels = [];
+        if (response.otp_sent.email) otpChannels.push('email');
+        if (response.otp_sent.sms) otpChannels.push('SMS');
+        
+        toast.success(`OTP sent to your ${otpChannels.join(' and ')}. Please verify to proceed.`);
       } catch (error: unknown) {
-        console.error('📄 [DISTRIBUTOR APPLICATION] Error accepting document:', error);
+        console.error('📄 [DISTRIBUTOR APPLICATION] Error initiating ASA terms acceptance:', error);
+        
+        // Extract error message
         const errorMessage = error && typeof error === 'object' && 'data' in error && 
           error.data && typeof error.data === 'object' && 'message' in error.data &&
-          typeof error.data.message === 'string' ? error.data.message : 'Failed to accept terms. Please try again.';
+          typeof error.data.message === 'string' ? error.data.message : 
+          error && typeof error === 'object' && 'data' in error && 
+          error.data && typeof error.data === 'object' && 'error' in error.data &&
+          typeof error.data.error === 'string' ? error.data.error :
+          error && typeof error === 'object' && 'data' in error && 
+          error.data && typeof error.data === 'object' && 'checkboxes_verified' in error.data &&
+          Array.isArray(error.data.checkboxes_verified) ? error.data.checkboxes_verified[0] :
+          'Failed to initiate ASA terms acceptance. Please try again.';
+        
         toast.error(errorMessage);
         setFinalConfirmationAccepted(false);
+        setOtpSent(false);
+        setTermsAccepted(false);
       } finally {
         setIsAcceptingDocument(false);
       }
@@ -262,10 +290,14 @@ export function DistributorApplication() {
       setOtpCode('');
       setTermsAccepted(false);
       setConditionsAccepted(prev => ({ ...prev, otpVerified: false }));
+      // Reset all terms acceptance
+      if (asaTerms.length > 0) {
+        setAsaTermsAccepted(new Array(asaTerms.length).fill(false));
+      }
     }
   };
   
-  // Handle OTP verification (if needed for ASA terms)
+  // Handle OTP verification for ASA terms
   const handleVerifyOTP = async () => {
     if (!otpCode || otpCode.length !== 6) {
       toast.error('Please enter a valid 6-digit OTP');
@@ -287,28 +319,44 @@ export function DistributorApplication() {
     
     setIsVerifyingOTP(true);
     try {
-      // Note: If verification API is needed for ASA terms, update the endpoint
-      // For now, this is kept for compatibility but may need backend support
-      console.log('📄 [DISTRIBUTOR APPLICATION] Verifying OTP for ASA terms:', activeASATerm.id);
-      // If your backend supports ASA terms verification, uncomment:
-      // await verifyAcceptance({
-      //   documentId: activeASATerm.id,
-      //   data: {
-      //     identifier,
-      //     otp_code: otpCode,
-      //     otp_type: otpType,
-      //   },
-      // }).unwrap();
+      console.log('📄 [DISTRIBUTOR APPLICATION] Verifying OTP for ASA terms:', {
+        termsId: activeASATerm.id,
+        identifier,
+        otpType,
+      });
       
-      // For now, skip verification and set as verified
+      // Call verify endpoint to complete ASA terms acceptance
+      const response = await verifyASATermsAcceptance({
+        id: activeASATerm.id,
+        data: {
+          identifier,
+          otp_code: otpCode,
+          otp_type: otpType,
+        },
+      }).unwrap();
+      
+      console.log('📄 [DISTRIBUTOR APPLICATION] ASA terms acceptance verified:', response);
+      
+      // Set as verified
       setOtpVerified(true);
       setConditionsAccepted(prev => ({ ...prev, otpVerified: true }));
-      toast.success('Terms accepted successfully!');
+      toast.success('ASA Terms accepted successfully!');
     } catch (error: unknown) {
       console.error('📄 [DISTRIBUTOR APPLICATION] Error verifying OTP:', error);
+      
+      // Extract error message
       const errorMessage = error && typeof error === 'object' && 'data' in error && 
+        error.data && typeof error.data === 'object' && 'non_field_errors' in error.data &&
+        Array.isArray(error.data.non_field_errors) && error.data.non_field_errors.length > 0 ? 
+        error.data.non_field_errors[0] :
+        error && typeof error === 'object' && 'data' in error && 
+        error.data && typeof error.data === 'object' && 'error' in error.data &&
+        typeof error.data.error === 'string' ? error.data.error :
+        error && typeof error === 'object' && 'data' in error && 
         error.data && typeof error.data === 'object' && 'message' in error.data &&
-        typeof error.data.message === 'string' ? error.data.message : 'Invalid OTP. Please try again.';
+        typeof error.data.message === 'string' ? error.data.message : 
+        'Invalid or expired OTP. Please try again.';
+      
       toast.error(errorMessage);
     } finally {
       setIsVerifyingOTP(false);
@@ -318,28 +366,7 @@ export function DistributorApplication() {
   // Handle viewing Terms of Service
   const handleViewTerms = () => {
     if (activeASATerm) {
-      // Create a modal or new window to display the terms
-      const termsWindow = window.open('', '_blank', 'width=800,height=600');
-      if (termsWindow) {
-        termsWindow.document.write(`
-          <html>
-            <head>
-              <title>${activeASATerm.title}</title>
-              <style>
-                body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
-                h1 { color: #333; }
-                pre { white-space: pre-wrap; word-wrap: break-word; }
-              </style>
-            </head>
-            <body>
-              <h1>${activeASATerm.title}</h1>
-              <p><strong>Version:</strong> ${activeASATerm.version}</p>
-              <pre>${activeASATerm.full_text}</pre>
-            </body>
-          </html>
-        `);
-        termsWindow.document.close();
-      }
+      setIsTermsModalOpen(true);
     } else {
       toast.error('ASA Terms are not available. Please try again later.');
     }
@@ -787,19 +814,42 @@ export function DistributorApplication() {
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Terms & Conditions Section */}
-            <div className="space-y-3 p-4 border-2 border-primary rounded-lg bg-primary/5">
-              <div className="flex items-center gap-2 mb-2">
-                <FileCheck className="w-5 h-5" />
-                <h3 className="font-semibold text-lg text-foreground">
-                  Terms & Conditions
-                </h3>
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                Please read and accept all the terms & conditions to proceed
-              </p>
-              
-              {/* Scrollable Terms List */}
-              <div className="max-h-[350px] overflow-y-auto border rounded-lg bg-muted/30 p-3 space-y-2">
+            <div className="space-y-3">
+              <div className="space-y-3 p-4 border-2 border-primary rounded-lg bg-primary/5">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold text-lg text-foreground">
+                      Terms & Conditions
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleViewTerms}
+                      className="h-8 w-8"
+                      title="View Terms"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleDownloadTerms}
+                      className="h-8 w-8"
+                      title="Download Terms"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Please review and accept all terms before proceeding to verification.
+                </p>
+                
                 {isLoadingASATerms ? (
                   <div className="flex items-center justify-center p-8">
                     <div className="text-sm text-muted-foreground">Loading terms...</div>
@@ -809,89 +859,48 @@ export function DistributorApplication() {
                     <div className="text-sm text-muted-foreground">No terms available</div>
                   </div>
                 ) : (
-                  asaTerms.map((term, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-start space-x-2 p-2 rounded-lg border transition-colors ${
-                      asaTermsAccepted[index]
-                        ? 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-700'
-                        : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:bg-accent/50'
-                    }`}
-                  >
-                    <Checkbox
-                      id={`asa-term-${index}`}
-                      checked={asaTermsAccepted[index]}
-                      onCheckedChange={(checked) => handleAsaTermChange(index, checked === true)}
-                      disabled={isAcceptingDocument || otpVerified}
-                      className="mt-1 flex-shrink-0"
-                    />
-                    <label
-                      htmlFor={`asa-term-${index}`}
-                      className="cursor-pointer text-sm flex-1 leading-snug"
-                    >
-                      {term}
-                    </label>
+                  /* Final Confirmation Checkbox */
+                  <div className={`mt-3 p-4 border-2 rounded-lg transition-colors ${
+                    finalConfirmationAccepted
+                      ? 'bg-green-50 dark:bg-green-950/20 border-green-400 dark:border-green-600'
+                      : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600'
+                  }`}>
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="final-confirmation"
+                        checked={finalConfirmationAccepted}
+                        onCheckedChange={handleFinalConfirmationChange}
+                        disabled={isAcceptingDocument || otpVerified || isLoadingASATerms}
+                        required
+                        className="mt-1 flex-shrink-0"
+                      />
+                      <div className="flex-1">
+                        <label
+                          htmlFor="final-confirmation"
+                          className="cursor-pointer text-sm font-semibold block"
+                        >
+                          Terms & Conditions
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-1 mb-2">
+                          I confirm that I have read, understood, and voluntarily accepted all the terms and conditions including all conditions stated above.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleViewTerms}
+                          className="text-primary hover:underline text-xs font-medium transition-colors"
+                        >
+                          View Full Agreement
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  ))
                 )}
-              </div>
-              
-              {/* Final Confirmation Checkbox */}
-              <div className={`mt-3 p-3 border-2 rounded-lg transition-colors ${
-                finalConfirmationAccepted
-                  ? 'bg-green-50 dark:bg-green-950/20 border-green-400 dark:border-green-600'
-                  : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600'
-              }`}>
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="final-confirmation"
-                    checked={finalConfirmationAccepted}
-                    onCheckedChange={handleFinalConfirmationChange}
-                    disabled={!asaTermsAccepted.every(accepted => accepted) || isAcceptingDocument || otpVerified}
-                    className="mt-1 flex-shrink-0"
-                  />
-                  <label
-                    htmlFor="final-confirmation"
-                    className="cursor-pointer text-sm font-semibold flex-1"
-                  >
-                    I confirm that I have read, understood, and voluntarily accepted all the above terms and conditions. *
-                  </label>
-                </div>
-                {!asaTermsAccepted.every(accepted => accepted) && (
-                  <p className="text-xs text-muted-foreground mt-2 ml-7">
-                    Please accept all terms above before final confirmation
-                  </p>
-                )}
-              </div>
-              
-              {/* View/Download Terms Buttons */}
-              <div className="flex items-center justify-end gap-2 mt-4">
-                <span className="text-sm text-muted-foreground">Terms of Service</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleViewTerms}
-                  className="h-8 w-8"
-                  title="View Terms of Service"
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleDownloadTerms}
-                  className="h-8 w-8"
-                  title="Download Terms of Service"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
               </div>
               
               {/* OTP Verification Section */}
               {otpSent && (
                 <motion.div
+                  id="otp-verification-section"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: "easeOut" }}
@@ -913,7 +922,7 @@ export function DistributorApplication() {
                       <div className="flex items-start gap-2">
                         <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                         <p className="text-sm text-blue-700 dark:text-blue-300">
-                          OTP has been sent to your registered {getOtpType() === 'email' ? 'Email' : 'Mobile Number'}
+                          OTP has been sent to your registered {user?.email && user?.phone ? 'Email and Mobile Number' : getOtpType() === 'email' ? 'Email' : 'Mobile Number'}
                         </p>
                       </div>
                     </motion.div>
@@ -1131,6 +1140,135 @@ export function DistributorApplication() {
         isOpen={isKYCModalOpen}
         onClose={() => setIsKYCModalOpen(false)}
       />
+
+      {/* ASA Terms Modal */}
+      <Dialog open={isTermsModalOpen} onOpenChange={setIsTermsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-primary">
+              {activeASATerm?.title || 'ASA Terms & Conditions'}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Full ASA terms and conditions document
+            </DialogDescription>
+          </DialogHeader>
+          
+          {activeASATerm && (
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+              {/* Format the full_text with numbered points */}
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                {(() => {
+                  // Split by double newlines to get paragraphs
+                  const paragraphs = activeASATerm.full_text.split(/\n\n+/);
+                  
+                  // Filter out empty paragraphs and trim
+                  const allPoints = paragraphs
+                    .map(p => p.trim())
+                    .filter(p => p.length > 0);
+                  
+                  // Number each point sequentially
+                  return allPoints.map((point, index) => (
+                    <div key={index} className="flex gap-3 mb-4">
+                      <span className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center text-sm">
+                        {index + 1}
+                      </span>
+                      <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                        {point}
+                      </p>
+                    </div>
+                  ));
+                })()}
+              </div>
+              
+              {/* Additional Info */}
+              {activeASATerm.version && (
+                <div className="mt-6 pt-4 border-t border-border">
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p><strong>Version:</strong> {activeASATerm.version}</p>
+                    {activeASATerm.effective_from && (
+                      <p><strong>Effective From:</strong> {new Date(activeASATerm.effective_from).toLocaleDateString()}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-3 pt-4 border-t border-border mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsTermsModalOpen(false)}
+            >
+              Close
+            </Button>
+            {!finalConfirmationAccepted && (
+              <Button
+                variant="default"
+                onClick={async () => {
+                  try {
+                    // Set checkbox state immediately (before API call)
+                    setFinalConfirmationAccepted(true);
+                    
+                    // Check the checkbox by calling the handler (this initiates OTP)
+                    await handleFinalConfirmationChange(true);
+                    
+                    // Close the ASA Terms modal first
+                    setIsTermsModalOpen(false);
+                    
+                    // Wait for OTP section to appear and state to update
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                    
+                    // Scroll to OTP section
+                    const otpSection = document.getElementById('otp-verification-section');
+                    if (otpSection) {
+                      // Scroll the element into view
+                      otpSection.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center',
+                        inline: 'nearest'
+                      });
+                      
+                      // Add a highlight effect
+                      otpSection.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all');
+                      setTimeout(() => {
+                        otpSection.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all');
+                      }, 2000);
+                    }
+                  } catch (error) {
+                    // If there's an error, reset checkbox state and don't close the modal
+                    setFinalConfirmationAccepted(false);
+                    console.error('Error accepting ASA terms:', error);
+                  }
+                }}
+                className="bg-primary"
+                disabled={isAcceptingDocument}
+              >
+                {isAcceptingDocument ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Accepting...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Accept
+                  </>
+                )}
+              </Button>
+            )}
+            {finalConfirmationAccepted && (
+              <Button
+                variant="default"
+                onClick={() => setIsTermsModalOpen(false)}
+                className="bg-primary"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Already Accepted
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

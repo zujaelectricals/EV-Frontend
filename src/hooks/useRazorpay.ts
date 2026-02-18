@@ -147,6 +147,7 @@ export const useRazorpay = () => {
 
   /**
    * Helper function to restore pointer-events on Dialog overlays and content
+   * Also restores ALL elements that have the originalPointerEvents dataset
    */
   const restoreDialogOverlays = () => {
     if (typeof document === 'undefined') return;
@@ -169,14 +170,10 @@ export const useRazorpay = () => {
       delete element.dataset.originalPointerEvents;
     });
 
-    // Restore any other fixed elements we disabled
-    // Query all fixed elements and check if they have the dataset property
-    const allFixedElements = Array.from(document.querySelectorAll('*')).filter((el) => {
-      const style = window.getComputedStyle(el);
-      return style.position === 'fixed';
-    });
-
-    allFixedElements.forEach((element) => {
+    // Restore ALL elements that have the originalPointerEvents dataset
+    // This is more comprehensive and will catch navbar and other elements
+    const allElements = document.querySelectorAll('*');
+    allElements.forEach((element) => {
       const el = element as HTMLElement;
       if (el.dataset.originalPointerEvents !== undefined) {
         const originalValue = el.dataset.originalPointerEvents || '';
@@ -333,14 +330,35 @@ export const useRazorpay = () => {
     // Also restore on payment success (handler callback)
     const originalHandler = options.handler;
     wrappedOptions.handler = async (response) => {
-      // Restore pointer-events after a short delay to ensure Razorpay modal is fully closed
+      // Restore pointer-events after a delay to ensure Razorpay modal is fully closed
+      // Use multiple timeouts to ensure restoration happens even if Razorpay closes slowly
       setTimeout(() => {
         cleanupMonitor();
         restoreDialogOverlays();
-      }, 100);
+      }, 200);
       
+      // Additional restoration after longer delay as fallback
+      setTimeout(() => {
+        restoreDialogOverlays();
+      }, 500);
+      
+      // Final restoration after handler completes
       if (originalHandler) {
-        await originalHandler(response);
+        try {
+          await originalHandler(response);
+        } finally {
+          // Ensure restoration happens even if handler throws an error
+          setTimeout(() => {
+            cleanupMonitor();
+            restoreDialogOverlays();
+          }, 100);
+        }
+      } else {
+        // If no handler, restore immediately after delay
+        setTimeout(() => {
+          cleanupMonitor();
+          restoreDialogOverlays();
+        }, 300);
       }
     };
 
