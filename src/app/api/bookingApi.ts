@@ -154,6 +154,7 @@ export interface BookingResponse {
   total_amount: string;
   total_paid: string;
   remaining_amount: string;
+  bonus_amount: string | null;
   status: string;
   referrer_was_distributor: boolean;
   join_distributor_program: boolean;

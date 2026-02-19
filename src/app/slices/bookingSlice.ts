@@ -35,6 +35,7 @@ export interface Booking {
   bookedAt: string;
   referredBy?: string;
   referralBonus?: number;
+  bonusAmount?: number; // Company bonus amount
   tdsDeducted?: number;
   addedToTeamNetwork?: boolean; // Track if user has been added to distributor's team network
   // Reservation status from backend (e.g. "completed", "released")

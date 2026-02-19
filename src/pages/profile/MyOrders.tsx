@@ -234,6 +234,9 @@ export function MyOrders() {
         vehicleColor: apiBooking.vehicle_color,
         batteryVariant: apiBooking.battery_variant,
         reservationStatus: apiBooking.reservation_status,
+        bonusAmount: apiBooking.bonus_amount !== null && apiBooking.bonus_amount !== undefined
+          ? parseFloat(apiBooking.bonus_amount) 
+          : undefined,
       };
     });
   }, [activeBookingsData, refreshKey]); // Use activeBookingsData instead of bookingsData
@@ -711,6 +714,18 @@ export function MyOrders() {
                           </p>
                         </div>
                       </div>
+                      {booking.bonusAmount !== undefined && booking.bonusAmount > 0 && (
+                        <div className="mb-2 sm:mb-3">
+                          <div className="flex justify-between text-[10px] sm:text-xs">
+                            <span className="text-muted-foreground">
+                              Company Bonus
+                            </span>
+                            <span className="font-medium text-foreground">
+                              ₹{booking.bonusAmount.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                       <div className="mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-border/50">
                         <div className="flex justify-between text-[10px] sm:text-xs">
                           <span className="text-muted-foreground">

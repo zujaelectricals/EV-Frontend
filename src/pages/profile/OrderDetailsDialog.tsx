@@ -536,6 +536,21 @@ export function OrderDetailsDialog({
                   </p>
                 </div>
               </div>
+              {((detailedBooking?.bonus_amount && parseFloat(detailedBooking.bonus_amount) > 0) || (booking?.bonusAmount !== undefined && booking.bonusAmount > 0)) ? (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">
+                      Company Bonus
+                    </p>
+                    <p className="text-sm sm:text-base font-semibold text-foreground">
+                      ₹{detailedBooking 
+                        ? parseFloat(detailedBooking.bonus_amount || '0').toLocaleString()
+                        : (booking?.bonusAmount || 0).toLocaleString()}
+                    </p>
+                  </div>
+                </>
+              ) : null}
               <Separator />
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground mb-1">
