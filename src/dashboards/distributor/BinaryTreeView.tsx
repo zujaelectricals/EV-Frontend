@@ -34,11 +34,13 @@ import {
   useAutoPlacePendingMutation,
   useCheckPairsMutation,
   useGetNodeChildrenQuery,
+  useGetAvailablePositionsQuery,
   type BinaryNode,
   type PendingNode,
   type TreeNodeResponse,
   type PaginatedSideMembers,
   type SideMemberNode,
+  type AvailablePosition,
 } from "@/app/api/binaryApi";
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
@@ -539,6 +541,7 @@ export const BinaryTreeView = () => {
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string>("");
   const [selectedSide, setSelectedSide] = useState<"left" | "right">("left");
+  const [isParentDropdownOpen, setIsParentDropdownOpen] = useState(false);
 
   // Referral tree dialog state
   const [referralTreeDialogOpen, setReferralTreeDialogOpen] = useState(false);
@@ -554,6 +557,43 @@ export const BinaryTreeView = () => {
     { node_id: currentLoadingNodeId!, side: 'both' },
     { skip: !currentLoadingNodeId }
   );
+
+  // Query hook for available positions (only active when dropdown is open)
+  const { data: availablePositionsData, isLoading: isLoadingPositions, error: availablePositionsError } = useGetAvailablePositionsQuery(
+    undefined,
+    { skip: !isParentDropdownOpen }
+  );
+
+  // Log when data is received
+  useEffect(() => {
+    if (availablePositionsData) {
+      console.log('🟢 [BinaryTreeView] Available Positions Data Received:', JSON.stringify(availablePositionsData, null, 2));
+      console.log('🟢 [BinaryTreeView] Available Positions Count:', availablePositionsData.count);
+      console.log('🟢 [BinaryTreeView] Available Positions Array Length:', availablePositionsData.available_positions?.length || 0);
+    }
+    if (availablePositionsError) {
+      console.error('🔴 [BinaryTreeView] Available Positions Error:', availablePositionsError);
+    }
+  }, [availablePositionsData, availablePositionsError]);
+
+  // Auto-select available position when parent is selected
+  useEffect(() => {
+    if (selectedParentId && availablePositionsData?.available_positions) {
+      const selectedParent = availablePositionsData.available_positions.find(
+        (p: AvailablePosition) => `node-${p.node_id}` === selectedParentId
+      );
+      
+      if (selectedParent) {
+        // If only one position is available, auto-select it
+        if (selectedParent.left_available && !selectedParent.right_available) {
+          setSelectedSide('left');
+        } else if (selectedParent.right_available && !selectedParent.left_available) {
+          setSelectedSide('right');
+        }
+        // If both are available or neither, keep current selection or default to left
+      }
+    }
+  }, [selectedParentId, availablePositionsData]);
 
   // Handle loading children when query completes
   useEffect(() => {
@@ -1097,20 +1137,36 @@ export const BinaryTreeView = () => {
   };
 
   // Get available parent nodes for positioning
+  // Use API data if available, otherwise fallback to computed data
   const availableParents = useMemo(() => {
+    // If we have fetched data from API, transform it to the format needed for dropdown
+    if (availablePositionsData && availablePositionsData.available_positions && availablePositionsData.available_positions.length > 0) {
+      return availablePositionsData.available_positions.map((position: AvailablePosition) => ({
+        id: `node-${position.node_id}`,
+        name: position.user_full_name || position.user_username || position.user_email || 'Unknown',
+        node_id: position.node_id,
+        user_id: position.user_id,
+        left_available: position.left_available,
+        right_available: position.right_available,
+        level: position.level,
+        referral_code: position.referral_code,
+      }));
+    }
+    
+    // Fallback to computed data from existing tree structure
     if (!binaryTree) return [];
-    const parents: { id: string; name: string }[] = [];
+    const parents: Array<{ id: string; name: string; node_id?: number }> = [];
 
     // Include root node
     parents.push({ id: binaryTree.id, name: binaryTree.name });
 
     // Include all team members as potential parents
     teamMembers.forEach((member) => {
-      parents.push({ id: member.id, name: member.name });
+      parents.push({ id: member.id, name: member.name, node_id: member.nodeId });
     });
 
     return parents;
-  }, [binaryTree, teamMembers]);
+  }, [availablePositionsData, binaryTree, teamMembers]);
 
   if (treeLoading || structureLoading || statsLoading || pendingLoading) {
     return (
@@ -1290,16 +1346,58 @@ export const BinaryTreeView = () => {
               <Select
                 value={selectedParentId}
                 onValueChange={setSelectedParentId}
+                onOpenChange={(open) => {
+                  console.log('🔵 [BinaryTreeView] Parent Dropdown Open Change:', open);
+                  setIsParentDropdownOpen(open);
+                  if (open) {
+                    console.log('🔵 [BinaryTreeView] Fetching available positions...');
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a parent node" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableParents.map((parent) => (
-                    <SelectItem key={parent.id} value={parent.id}>
-                      {parent.name}
-                    </SelectItem>
-                  ))}
+                  {isLoadingPositions ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
+                    </div>
+                  ) : availableParents.length === 0 ? (
+                    <div className="flex items-center justify-center p-4">
+                      <span className="text-sm text-muted-foreground">No available positions</span>
+                    </div>
+                  ) : (
+                    availableParents.map((parent) => {
+                      // Check if this parent has position availability info from API
+                      const hasPositionInfo = 'left_available' in parent || 'right_available' in parent;
+                      const leftAvailable = 'left_available' in parent ? parent.left_available : true;
+                      const rightAvailable = 'right_available' in parent ? parent.right_available : true;
+                      
+                      // Build display text with position availability
+                      let displayText = parent.name;
+                      if (hasPositionInfo) {
+                        const positions = [];
+                        if (leftAvailable) positions.push('RSL');
+                        if (rightAvailable) positions.push('RSR');
+                        if (positions.length > 0) {
+                          displayText += ` (${positions.join(', ')} available)`;
+                        } else {
+                          displayText += ' (No positions available)';
+                        }
+                      }
+                      
+                      return (
+                        <SelectItem 
+                          key={parent.id} 
+                          value={parent.id}
+                          disabled={hasPositionInfo && !leftAvailable && !rightAvailable}
+                        >
+                          {displayText}
+                        </SelectItem>
+                      );
+                    })
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1315,8 +1413,33 @@ export const BinaryTreeView = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="left">RSL</SelectItem>
-                  <SelectItem value="right">RSR</SelectItem>
+                  {(() => {
+                    // Find the selected parent to check position availability
+                    const selectedParent = availableParents.find(p => p.id === selectedParentId);
+                    const leftAvailable = selectedParent && 'left_available' in selectedParent 
+                      ? selectedParent.left_available 
+                      : true;
+                    const rightAvailable = selectedParent && 'right_available' in selectedParent 
+                      ? selectedParent.right_available 
+                      : true;
+                    
+                    return (
+                      <>
+                        <SelectItem 
+                          value="left" 
+                          disabled={!leftAvailable}
+                        >
+                          RSL {!leftAvailable && '(Not available)'}
+                        </SelectItem>
+                        <SelectItem 
+                          value="right" 
+                          disabled={!rightAvailable}
+                        >
+                          RSR {!rightAvailable && '(Not available)'}
+                        </SelectItem>
+                      </>
+                    );
+                  })()}
                 </SelectContent>
               </Select>
             </div>

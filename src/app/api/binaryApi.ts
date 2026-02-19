@@ -129,6 +129,26 @@ export interface TreeNodeResponse {
   }>;
 }
 
+export interface AvailablePosition {
+  node_id: number;
+  user_id: number;
+  user_email: string;
+  user_username: string;
+  user_full_name: string;
+  referral_code: string;
+  referral_code_used: string;
+  level: number;
+  left_available: boolean;
+  right_available: boolean;
+  left_count: number;
+  right_count: number;
+}
+
+export interface AvailablePositionsResponse {
+  count: number;
+  available_positions: AvailablePosition[];
+}
+
 export interface PairMatch {
   id: string;
   leftUserId: string;
@@ -1313,6 +1333,53 @@ export const binaryApi = api.injectEndpoints({
         { type: 'Binary', id: `node-${node_id}` },
       ],
     }),
+    // Get available positions for parent node selection
+    getAvailablePositions: builder.query<
+      AvailablePositionsResponse,
+      void
+    >({
+      query: () => ({
+        url: 'binary/nodes/available_positions/',
+        method: 'GET',
+      }),
+      transformResponse: (response: any): AvailablePositionsResponse => {
+        // Log the raw response
+        console.log('🔵 [Available Positions API] Raw Response:', JSON.stringify(response, null, 2));
+        console.log('🔵 [Available Positions API] Response Type:', typeof response);
+        
+        // Handle the expected response format with available_positions array
+        if (response && response.available_positions && Array.isArray(response.available_positions)) {
+          const transformed: AvailablePositionsResponse = {
+            count: response.count || response.available_positions.length,
+            available_positions: response.available_positions.map((item: any): AvailablePosition => ({
+              node_id: item.node_id,
+              user_id: item.user_id,
+              user_email: item.user_email || '',
+              user_username: item.user_username || item.user_email || '',
+              user_full_name: item.user_full_name || item.user_username || item.user_email || 'Unknown',
+              referral_code: item.referral_code || '',
+              referral_code_used: item.referral_code_used || '',
+              level: item.level || 0,
+              left_available: item.left_available ?? true,
+              right_available: item.right_available ?? true,
+              left_count: item.left_count || 0,
+              right_count: item.right_count || 0,
+            })),
+          };
+          console.log('🟢 [Available Positions API] Transformed Response:', JSON.stringify(transformed, null, 2));
+          console.log('🟢 [Available Positions API] Count:', transformed.count);
+          return transformed;
+        }
+        
+        // Fallback: return empty structure if response format is unexpected
+        console.warn('⚠️ [Available Positions API] Unexpected response format:', response);
+        return {
+          count: 0,
+          available_positions: [],
+        };
+      },
+      providesTags: [{ type: 'Binary', id: 'available-positions' }],
+    }),
   }),
 });
 
@@ -1329,4 +1396,5 @@ export const {
   useAutoPlacePendingMutation,
   useCheckPairsMutation,
   useGetNodeChildrenQuery,
+  useGetAvailablePositionsQuery,
 } = binaryApi;
