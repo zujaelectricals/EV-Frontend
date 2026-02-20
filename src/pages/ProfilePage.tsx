@@ -557,7 +557,9 @@ export function ProfilePage() {
                     }
                     className={
                       kycStatus === 'verified' || kycStatus === 'approved'
-                        ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 shadow-md shadow-pink-500/25 text-xs sm:text-sm px-2 sm:px-3 py-1'
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 shadow-md shadow-green-500/25 text-xs sm:text-sm px-2 sm:px-3 py-1'
+                        : kycStatus === 'pending'
+                        ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-0 shadow-md shadow-yellow-500/25 text-xs sm:text-sm px-2 sm:px-3 py-1'
                         : 'text-xs sm:text-sm px-2 sm:px-3 py-1'
                     }
                   >

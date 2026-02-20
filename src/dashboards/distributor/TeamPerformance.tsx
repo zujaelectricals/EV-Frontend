@@ -278,6 +278,20 @@ export const TeamPerformance = () => {
                       ? ((performer as any).position === 'left' ? 'RSL' : 'RSR')
                       : 'RSL');
                 const isTop = index === 0;
+                const isSecond = index === 1;
+                
+                // Determine icon and background colors based on rank
+                const getIconColor = () => {
+                  if (isTop) return 'text-yellow-500'; // Gold for 1st
+                  if (isSecond) return 'text-slate-400'; // Silver for 2nd
+                  return 'text-pink-500'; // Pink for others
+                };
+                
+                const getBgColor = () => {
+                  if (isTop) return 'bg-gradient-to-br from-yellow-100 to-amber-200'; // Gold background
+                  if (isSecond) return 'bg-gradient-to-br from-slate-100 to-slate-300'; // Silver background
+                  return 'bg-pink-100'; // Pink for others
+                };
                 
                 return (
                   <motion.div
@@ -288,16 +302,16 @@ export const TeamPerformance = () => {
                     className="text-center"
                   >
                     <div className="relative mb-4">
-                      <div className="mx-auto h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
-                        <Award className={`h-8 w-8 ${isTop ? 'text-warning' : 'text-primary'}`} />
+                      <div className={`mx-auto h-16 w-16 rounded-full ${getBgColor()} flex items-center justify-center shadow-md`}>
+                        <Award className={`h-8 w-8 ${getIconColor()} ${isTop || isSecond ? 'drop-shadow-sm' : ''}`} style={isTop ? { filter: 'drop-shadow(0 1px 2px rgba(234, 179, 8, 0.5))' } : isSecond ? { filter: 'drop-shadow(0 1px 2px rgba(148, 163, 184, 0.5))' } : {}} />
                       </div>
                       {isTop && (
-                        <Badge className="absolute -top-2 left-1/2 -translate-x-1/2" variant="default">
+                        <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-0 font-bold shadow-md shadow-yellow-500/30">
                           Top
                         </Badge>
                       )}
                     </div>
-                    <h3 className="font-semibold text-sm">{name}</h3>
+                    <h3 className={`font-semibold text-sm ${isTop ? 'text-yellow-700' : isSecond ? 'text-slate-600' : ''}`}>{name}</h3>
                     <p className="text-xs text-muted-foreground mt-1">
                       {referrals} {referrals === 1 ? 'referral' : 'referrals'}
                     </p>

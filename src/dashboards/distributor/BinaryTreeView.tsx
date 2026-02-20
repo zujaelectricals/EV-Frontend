@@ -455,14 +455,14 @@ export const BinaryTreeView = () => {
   const distributorId = user?.id || "";
 
   // Pagination and filtering state - must be declared before use
-  // Default values: page=1, page_size=100 (max), max_depth=7 (high for smooth rendering)
+  // Default values: page=1, page_size=100 (max), max_depth=100 (max)
   const [sideFilter, setSideFilter] = useState<'left' | 'right' | 'both'>('both');
   const [leftPage, setLeftPage] = useState(1); // Default: 1 (API default when page_size is provided)
   const [rightPage, setRightPage] = useState(1); // Default: 1
   const [bothPage, setBothPage] = useState(1); // Default: 1 (for when side='both')
-  const [pageSize, setPageSize] = useState(100); // Default: 100 (max) for smoother rendering
+  const [pageSize, setPageSize] = useState(100); // Default: 100 (max)
   const [minDepth, setMinDepth] = useState<number | undefined>(undefined); // Optional, no default
-  const [maxDepth, setMaxDepth] = useState<number | undefined>(7); // Default: 7 (high for smooth rendering)
+  const [maxDepth, setMaxDepth] = useState<number | undefined>(100); // Default: 100 (max)
   
   // Search state
   const [searchInput, setSearchInput] = useState(''); // Input field value
@@ -1549,9 +1549,9 @@ export const BinaryTreeView = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="10">10</SelectItem>
                 <SelectItem value="25">25</SelectItem>
                 <SelectItem value="50">50</SelectItem>
+                <SelectItem value="75">75</SelectItem>
                 <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
@@ -1720,7 +1720,7 @@ export const BinaryTreeView = () => {
                             className={
                               member.position === "left"
                                 ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0"
-                                : "bg-slate-200 text-slate-700 border-0 font-medium"
+                                : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0"
                             }
                           >
                             {member.position === "left" ? "RSL" : "RSR"}
@@ -1852,7 +1852,7 @@ export const BinaryTreeView = () => {
                             className={
                               member.position === "left"
                                 ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0"
-                                : "bg-slate-200 text-slate-700 border-0 font-medium"
+                                : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0"
                             }
                           >
                             {member.position === "left" ? "RSL" : "RSR"}
