@@ -452,14 +452,14 @@ export const BinaryTreeView = () => {
   const distributorId = user?.id || "";
 
   // Pagination and filtering state - must be declared before use
-  // Default values: page=1, page_size=2, max_depth=2
+  // Default values: page=1, page_size=100 (max), max_depth=7 (high for smooth rendering)
   const [sideFilter, setSideFilter] = useState<'left' | 'right' | 'both'>('both');
   const [leftPage, setLeftPage] = useState(1); // Default: 1 (API default when page_size is provided)
   const [rightPage, setRightPage] = useState(1); // Default: 1
   const [bothPage, setBothPage] = useState(1); // Default: 1 (for when side='both')
-  const [pageSize, setPageSize] = useState(2); // Default: 2 (API default: 20, max: 100)
+  const [pageSize, setPageSize] = useState(100); // Default: 100 (max) for smoother rendering
   const [minDepth, setMinDepth] = useState<number | undefined>(undefined); // Optional, no default
-  const [maxDepth, setMaxDepth] = useState<number | undefined>(2); // Default: 2 (API default: 5)
+  const [maxDepth, setMaxDepth] = useState<number | undefined>(7); // Default: 7 (high for smooth rendering)
 
   const { data: binaryTree, isLoading: treeLoading, refetch: refetchTree } = useGetBinaryTreeQuery(
     distributorId,
@@ -553,9 +553,9 @@ export const BinaryTreeView = () => {
   const [currentLoadingNodeId, setCurrentLoadingNodeId] = useState<number | null>(null);
 
   // Query hook for loading node children (only active when currentLoadingNodeId is set)
-  const { data: nodeChildrenData, isLoading: isLoadingChildren } = useGetNodeChildrenQuery(
+  const { data: nodeChildrenData, isLoading: isLoadingChildren, isFetching: isFetchingChildren } = useGetNodeChildrenQuery(
     { node_id: currentLoadingNodeId!, side: 'both' },
-    { skip: !currentLoadingNodeId }
+    { skip: !currentLoadingNodeId, refetchOnMountOrArgChange: true }
   );
 
   // Query hook for available positions (only active when dropdown is open)
@@ -597,7 +597,20 @@ export const BinaryTreeView = () => {
 
   // Handle loading children when query completes
   useEffect(() => {
-    if (nodeChildrenData && currentLoadingNodeId) {
+    // Only process when we have data, a loading node ID, and we're not still fetching
+    if (nodeChildrenData && currentLoadingNodeId && !isFetchingChildren) {
+      const nodeId = currentLoadingNodeId;
+      
+      // Verify the data is for the node we're loading (check node_id in response)
+      const responseNodeId = nodeChildrenData.node_id;
+      if (responseNodeId && responseNodeId !== nodeId) {
+        console.log('⏳ [Children Loading] Data is for different node, waiting...', {
+          expectedNodeId: nodeId,
+          receivedNodeId: responseNodeId
+        });
+        return;
+      }
+      
       const children: TeamMember[] = [];
       const parentNameMap = createParentNameMap(treeStructure);
       
@@ -627,75 +640,74 @@ export const BinaryTreeView = () => {
       };
 
       if (nodeChildrenData.left_child) {
-        const leftChild = nodeToMember(nodeChildrenData.left_child, 'left', currentLoadingNodeId);
+        const leftChild = nodeToMember(nodeChildrenData.left_child, 'left', nodeId);
         if (leftChild) children.push(leftChild);
       }
       if (nodeChildrenData.right_child) {
-        const rightChild = nodeToMember(nodeChildrenData.right_child, 'right', currentLoadingNodeId);
+        const rightChild = nodeToMember(nodeChildrenData.right_child, 'right', nodeId);
         if (rightChild) children.push(rightChild);
       }
 
-      // Store children in the map and mark node as expanded atomically
+      console.log('✅ [Children Loaded]', {
+        nodeId: nodeId,
+        childrenCount: children.length,
+        children: children.map(c => ({ id: c.nodeId, name: c.name }))
+      });
+
+      // React 18+ automatically batches these state updates
+      // Store children in the map and mark node as expanded
       setLoadedChildren(prev => {
         const newMap = new Map(prev);
-        newMap.set(currentLoadingNodeId, children);
+        newMap.set(nodeId, children);
         return newMap;
       });
 
-      // Mark node as expanded (do this after setting children to ensure state consistency)
+      // Mark node as expanded
       setExpandedNodes(prev => {
         const newSet = new Set(prev);
-        newSet.add(currentLoadingNodeId);
+        newSet.add(nodeId);
         return newSet;
-      });
-      
-      console.log('✅ [Children Loaded]', {
-        nodeId: currentLoadingNodeId,
-        childrenCount: children.length,
-        children: children.map(c => ({ id: c.nodeId, name: c.name }))
       });
       
       // Clear loading state
       setLoadingNodes(prev => {
         const newSet = new Set(prev);
-        newSet.delete(currentLoadingNodeId);
+        newSet.delete(nodeId);
         return newSet;
       });
       setCurrentLoadingNodeId(null);
     }
-  }, [nodeChildrenData, currentLoadingNodeId, treeStructure]);
+  }, [nodeChildrenData, currentLoadingNodeId, isFetchingChildren, treeStructure]);
 
   // Recursively collapse all nested children of a node
-  const collapseNodeAndChildren = (nodeId: number, expandedNodesSet: Set<number>, loadedChildrenMap: Map<number, TeamMember[]>, processedNodes: Set<number> = new Set(), depth: number = 0) => {
-    // Safety check: prevent infinite recursion
-    if (depth > 100) {
-      console.error('❌ [Collapse] Maximum depth exceeded, stopping recursion at node:', nodeId);
-      return;
-    }
+  const collapseNodeAndChildren = (nodeId: number, expandedNodesSet: Set<number>, loadedChildrenMap: Map<number, TeamMember[]>) => {
+    const processedNodes = new Set<number>();
+    const nodesToProcess = [nodeId];
     
-    // Prevent infinite recursion
-    if (processedNodes.has(nodeId)) {
-      console.warn('⚠️ [Collapse] Circular reference detected, skipping node:', nodeId);
-      return;
-    }
-    
-    processedNodes.add(nodeId);
-    
-    // Remove this node from expanded set
-    expandedNodesSet.delete(nodeId);
-    
-    // Get children of this node
-    const children = loadedChildrenMap.get(nodeId) || [];
-    
-    // Recursively collapse all children
-    children.forEach(child => {
-      if (child.nodeId) {
-        collapseNodeAndChildren(child.nodeId, expandedNodesSet, loadedChildrenMap, processedNodes, depth + 1);
+    // Use iterative approach instead of recursion to avoid stack issues
+    while (nodesToProcess.length > 0) {
+      const currentNodeId = nodesToProcess.pop()!;
+      
+      // Skip if already processed
+      if (processedNodes.has(currentNodeId)) {
+        continue;
       }
-    });
-    
-    // Remove children from loaded map
-    loadedChildrenMap.delete(nodeId);
+      processedNodes.add(currentNodeId);
+      
+      // Remove this node from expanded set
+      expandedNodesSet.delete(currentNodeId);
+      
+      // Get children of this node and queue them for processing
+      const children = loadedChildrenMap.get(currentNodeId) || [];
+      children.forEach(child => {
+        if (child.nodeId && !processedNodes.has(child.nodeId)) {
+          nodesToProcess.push(child.nodeId);
+        }
+      });
+      
+      // Remove children from loaded map
+      loadedChildrenMap.delete(currentNodeId);
+    }
   };
 
   // Handle node click to load children
@@ -716,12 +728,12 @@ export const BinaryTreeView = () => {
     // Toggle expansion
     if (expandedNodes.has(nodeId)) {
       // Collapse: recursively remove children and mark as not expanded
+      console.log('🔽 [Node Collapsed]', { nodeId, name: member.name });
       const newExpandedNodes = new Set(expandedNodes);
       const newLoadedChildren = new Map(loadedChildren);
       collapseNodeAndChildren(nodeId, newExpandedNodes, newLoadedChildren);
       setExpandedNodes(newExpandedNodes);
       setLoadedChildren(newLoadedChildren);
-      console.log('🔽 [Node Collapsed]', { nodeId, name: member.name });
     } else {
       // Expand: load children if not already loaded
       if (!loadedChildren.has(nodeId)) {
@@ -849,84 +861,43 @@ export const BinaryTreeView = () => {
   const displayMembers = useMemo(() => {
     const result: TeamMember[] = [];
     const addedNodeIds = new Set<number>(); // Track added nodes to prevent duplicates
-    const MAX_DEPTH = 100; // Safety limit to prevent infinite recursion
+    const MAX_DEPTH = 50; // Safety limit to prevent infinite recursion
     
     // First, collect all node IDs that are children of expanded nodes (to prefer child positions)
+    // This helps us know which nodes should be shown as children rather than top-level
     const childNodeIds = new Set<number>();
-    const processedNodeIds = new Set<number>(); // Track processed nodes to prevent cycles
-    const MAX_COLLECT_DEPTH = 100; // Safety limit
     
-    const collectChildNodeIds = (parentNodeId: number, depth: number = 0, path: number[] = []) => {
-      // Safety check: prevent infinite recursion
-      if (depth > MAX_COLLECT_DEPTH) {
-        console.error('❌ [Collect Child Nodes] Maximum depth exceeded at node:', parentNodeId);
-        return;
-      }
-      
-      // Prevent cycles: if this node is already in the path, it's a cycle
-      if (path.includes(parentNodeId)) {
-        console.warn('⚠️ [Collect Child Nodes] Circular reference detected at node:', parentNodeId);
-        return;
-      }
-      
-      // Skip if already processed (prevent processing same node multiple times)
-      if (processedNodeIds.has(parentNodeId)) {
-        return;
-      }
-      
-      processedNodeIds.add(parentNodeId);
-      
-      if (expandedNodes.has(parentNodeId)) {
-        const children = loadedChildren.get(parentNodeId) || [];
-        const newPath = [...path, parentNodeId];
-        
-        children.forEach(child => {
-          if (child.nodeId) {
-            childNodeIds.add(child.nodeId);
-            // Recursively collect children of children
-            collectChildNodeIds(child.nodeId, depth + 1, newPath);
-          }
-        });
-      }
-    };
-    
-    // Collect all child node IDs from all expanded nodes
-    expandedNodes.forEach(nodeId => {
-      collectChildNodeIds(nodeId, 0, []);
+    // Simple collection: just gather all children of expanded nodes
+    expandedNodes.forEach(parentNodeId => {
+      const children = loadedChildren.get(parentNodeId) || [];
+      children.forEach(child => {
+        if (child.nodeId) {
+          childNodeIds.add(child.nodeId);
+        }
+      });
     });
     
     // Recursive function to add a member and its children if expanded
-    // Uses a path-based approach to detect cycles: track the path from root to current node
-    const addMemberWithChildren = (member: TeamMember, path: number[] = [], depth: number = 0, isFromLazyLoad: boolean = false) => {
-      // Safety check: prevent infinite recursion
+    const addMemberWithChildren = (member: TeamMember, depth: number = 0, isFromLazyLoad: boolean = false) => {
+      // Safety check: prevent infinite recursion by depth
       if (depth > MAX_DEPTH) {
         console.error('❌ [Display Members] Maximum depth exceeded, stopping recursion at:', member.name, member.nodeId);
         return;
       }
       
-      // Prevent infinite recursion: if this node is already in the current path, it's a cycle
-      if (member.nodeId && path.includes(member.nodeId)) {
-        console.warn('⚠️ [Display Members] Circular reference detected, skipping node:', member.nodeId, member.name, 'Path:', path);
-        return;
-      }
-      
       // Skip if this node has already been added to the result (prevent duplicates)
+      // This is the primary mechanism to prevent circular references
       if (member.nodeId && addedNodeIds.has(member.nodeId)) {
-        // Only log warning if it's not a child node (to reduce noise)
-        if (!isFromLazyLoad) {
-          console.warn('⚠️ [Display Members] Duplicate node detected, skipping:', member.nodeId, member.name);
-        }
         return;
       }
       
       // If this node is a child of an expanded node, skip it from the initial list
-      // (it will be shown in its proper child position)
+      // (it will be shown in its proper child position when we process its parent)
       if (!isFromLazyLoad && member.nodeId && childNodeIds.has(member.nodeId)) {
-        // Skip this node from initial list - it will appear as a child
         return;
       }
       
-      // Mark this node as added
+      // Mark this node as added BEFORE processing children to prevent circular references
       if (member.nodeId) {
         addedNodeIds.add(member.nodeId);
       }
@@ -941,18 +912,18 @@ export const BinaryTreeView = () => {
       // If this member is expanded and has loaded children, add them recursively
       if (member.nodeId && expandedNodes.has(member.nodeId)) {
         const children = loadedChildren.get(member.nodeId) || [];
-        // Create new path including current node
-        const newPath = member.nodeId ? [...path, member.nodeId] : path;
         children.forEach(child => {
-          // Recursively add children and their children (mark as from lazy load)
-          addMemberWithChildren(child, newPath, depth + 1, true);
+          // Only add child if it hasn't been added yet (prevents circular refs)
+          if (!child.nodeId || !addedNodeIds.has(child.nodeId)) {
+            addMemberWithChildren(child, depth + 1, true);
+          }
         });
       }
     };
     
     // Process all top-level team members (not from lazy load)
     teamMembers.forEach(member => {
-      addMemberWithChildren(member, [], 0, false);
+      addMemberWithChildren(member, 0, false);
     });
     
     return result;
@@ -1536,10 +1507,10 @@ export const BinaryTreeView = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2">2</SelectItem>
-                <SelectItem value="5">5</SelectItem>
-                <SelectItem value="7">7</SelectItem>
                 <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
@@ -1607,7 +1578,7 @@ export const BinaryTreeView = () => {
                       return (
                       <TableRow
                         key={`${member.id}-${member.nodeId || index}`}
-                        className={`border-b border-slate-100 transition-colors ${isClickable ? 'cursor-pointer hover:bg-pink-500/10' : 'hover:bg-pink-500/5'} ${index % 2 === 1 ? 'bg-slate-50/50' : ''} ${isChild ? 'bg-pink-50/30' : ''}`}
+                        className={`border-b border-slate-100 ${isClickable ? 'cursor-pointer hover:bg-pink-500/10' : 'hover:bg-pink-500/5'} ${index % 2 === 1 ? 'bg-slate-50/50' : ''} ${isChild ? 'bg-pink-50/30' : ''}`}
                         onClick={() => isClickable && handleNodeClick(member)}
                       >
                         <TableCell className="font-medium py-4">
