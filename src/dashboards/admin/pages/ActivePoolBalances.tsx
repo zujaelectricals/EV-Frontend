@@ -468,7 +468,7 @@ export const ActivePoolBalances = () => {
                   <p className="font-medium">₹{distributorDetails.totalWithdrawalAmount.toLocaleString()}</p>
                 </div>
                 <div>
-                  <Label className="text-sm text-muted-foreground">Total Pairs</Label>
+                  <Label className="text-sm text-muted-foreground">Total Partner Framework</Label>
                   <p className="font-medium">{distributorDetails.totalPairs || 0}</p>
                 </div>
                 <div>

@@ -59,8 +59,8 @@ export const PairMatchingHistory = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Pair Matching History</h1>
-          <p className="text-muted-foreground mt-1">Track binary pair matching and commission payouts</p>
+          <h1 className="text-3xl font-bold text-foreground">Total Partner Framework Matching History</h1>
+          <p className="text-muted-foreground mt-1">Track binary Total Partner Framework matching and commission payouts</p>
         </div>
         <div className="flex items-center gap-2">
           <Input placeholder="Search..." className="w-64" />
@@ -80,7 +80,7 @@ export const PairMatchingHistory = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Pairs</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Partner Framework</p>
                   <p className="text-3xl font-bold text-foreground mt-1">1,245</p>
                 </div>
                 <GitBranch className="h-8 w-8 text-primary opacity-20" />
@@ -152,7 +152,7 @@ export const PairMatchingHistory = () => {
       >
         <Card>
           <CardHeader>
-            <CardTitle>Monthly Pair Matching Trend</CardTitle>
+            <CardTitle>Monthly Total Partner Framework Matching Trend</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -175,10 +175,10 @@ export const PairMatchingHistory = () => {
         </Card>
       </motion.div>
 
-      {/* Pair History Table */}
+      {/* Total Partner Framework History Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Pair Matching</CardTitle>
+          <CardTitle>Recent Total Partner Framework Matching</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>

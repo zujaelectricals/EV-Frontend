@@ -82,7 +82,7 @@ const mockRejectedPayouts: PayoutExtended[] = [
     amount: 18000,
     type: 'milestone',
     status: 'cancelled',
-    description: 'Milestone reward: 5 Pairs Completed',
+    description: 'Milestone reward: 5 Total Partner Framework Completed',
     milestoneId: 'm3',
     requestedAt: '2024-03-14 14:00',
     rejectedAt: '2024-03-14 16:00',

@@ -9,14 +9,14 @@ export const BinaryEngineControl = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Binary Engine Control</h1>
+        <h1 className="text-3xl font-bold text-foreground">Platform Settings</h1>
         <p className="text-muted-foreground mt-1">Configure and manage team commission system</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Active Pairs</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Total Partner Framework</CardTitle>
             <GitBranch className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
@@ -49,7 +49,7 @@ export const BinaryEngineControl = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Max Pairs</CardTitle>
+            <CardTitle className="text-sm font-medium">Max Total Partner Framework</CardTitle>
             <Settings className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
@@ -66,11 +66,11 @@ export const BinaryEngineControl = () => {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <Label htmlFor="pairCommission">Pair Commission (₹)</Label>
+              <Label htmlFor="pairCommission">Total Partner Framework Commission (₹)</Label>
               <Input id="pairCommission" type="number" defaultValue="2000" />
             </div>
             <div>
-              <Label htmlFor="maxPairs">Max Pairs per Distributor</Label>
+              <Label htmlFor="maxPairs">Max Total Partner Framework per Distributor</Label>
               <Input id="maxPairs" type="number" defaultValue="10" />
             </div>
             <div>

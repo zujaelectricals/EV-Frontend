@@ -127,6 +127,38 @@ export interface TreeNodeResponse {
     node_id: number | null;
     in_tree: boolean;
   }>;
+  // Search results when search query is provided
+  search_results?: SearchResultNode[];
+  search_query?: string;
+  search_count?: number;
+}
+
+// Search result node structure
+export interface SearchResultNode {
+  node_id: number;
+  user_id: number;
+  user_email: string;
+  user_username: string;
+  user_full_name: string;
+  user_mobile: string;
+  user_first_name: string;
+  user_last_name: string;
+  user_city: string;
+  user_state: string;
+  is_distributor: boolean;
+  is_active_buyer: boolean;
+  referral_code: string;
+  date_joined: string;
+  parent_id: number;
+  parent_name: string;
+  side: 'left' | 'right';
+  tree_side: 'left' | 'right';
+  level: number;
+  left_count: number;
+  right_count: number;
+  total_descendants: number;
+  binary_commission_activated: boolean;
+  created_at: string;
 }
 
 export interface AvailablePosition {
@@ -835,9 +867,10 @@ export const binaryApi = api.injectEndpoints({
         page_size?: number;
         min_depth?: number;
         max_depth?: number;
+        search?: string;
       }
     >({
-      query: ({ side, page, page_size, min_depth, max_depth }) => {
+      query: ({ side, page, page_size, min_depth, max_depth, search }) => {
         const params = new URLSearchParams();
         
         // Always include side (defaults to 'both' if not provided)
@@ -864,6 +897,11 @@ export const binaryApi = api.injectEndpoints({
           params.append('max_depth', max_depth.toString());
         }
         
+        // Include search parameter if provided
+        if (search && search.trim()) {
+          params.append('search', search.trim());
+        }
+        
         const queryString = params.toString();
         const url = queryString 
           ? `binary/nodes/tree_structure/?${queryString}`
@@ -882,6 +920,7 @@ export const binaryApi = api.injectEndpoints({
           page_size,
           min_depth,
           max_depth,
+          search,
           queryString,
         });
         console.log('⏱️ [Binary Tree API] Request started at:', requestTimestamp);

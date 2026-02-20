@@ -101,7 +101,7 @@ export const MonthlyResetEngine = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
                 <div>
-                  <Label>Reset Pair Counts</Label>
+                  <Label>Reset Total Partner Framework Counts</Label>
                   <p className="text-xs text-muted-foreground">Reset all pair matching counts to zero</p>
                 </div>
                 <Badge className="bg-success text-white">Enabled</Badge>

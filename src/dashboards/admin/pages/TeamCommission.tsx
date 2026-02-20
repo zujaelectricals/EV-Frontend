@@ -144,7 +144,7 @@ export const TeamCommission = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Team Commission (Binary)</h1>
-          <p className="text-muted-foreground mt-1">Track binary/team commission payouts and pair matching</p>
+          <p className="text-muted-foreground mt-1">Track binary/team commission payouts and Total Partner Framework matching</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm">
@@ -186,7 +186,7 @@ export const TeamCommission = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Pairs</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Partner Framework</p>
                   <p className="text-3xl font-bold text-info mt-1">{totalPairs}</p>
                 </div>
                 <Users className="h-8 w-8 text-info opacity-20" />
@@ -258,7 +258,7 @@ export const TeamCommission = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Avg per Pair</p>
+                  <p className="text-sm font-medium text-muted-foreground">Avg per Total Partner Framework</p>
                   <p className="text-3xl font-bold text-info mt-1">₹{avgPerPair}</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-info opacity-20" />
@@ -288,7 +288,7 @@ export const TeamCommission = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Distributor</TableHead>
-                  <TableHead>Pairs</TableHead>
+                  <TableHead>Total Partner Framework</TableHead>
                   <TableHead>Total Amount</TableHead>
                   <TableHead>TDS</TableHead>
                   <TableHead>Pool Money</TableHead>

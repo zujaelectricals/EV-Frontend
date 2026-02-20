@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Settings, Save, AlertCircle, Loader2 } from 'lucide-react';
+import { Settings, Save, AlertCircle, Loader2, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +12,35 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useGetSettingsQuery, useUpdateSettingsMutation } from '@/app/api/settingsApi';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
+
+// Info button component for settings
+const InfoButton = ({ info }: { info: string }) => (
+  <TooltipProvider delayDuration={0}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className="ml-1.5 inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+        >
+          <Info className="h-4 w-4" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs text-sm">
+        <p>{info}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
 
 export const PairRules = () => {
   // Fetch current settings
@@ -88,7 +113,7 @@ export const PairRules = () => {
         return;
       }
       if (formData.binary_tds_threshold_pairs < 0) {
-        toast.error('TDS threshold pairs cannot be negative');
+        toast.error('TDS threshold cannot be negative');
         return;
       }
       if (formData.binary_commission_tds_percentage < 0 || formData.binary_commission_tds_percentage > 100) {
@@ -100,7 +125,7 @@ export const PairRules = () => {
         return;
       }
       if (formData.binary_daily_pair_limit < 1) {
-        toast.error('Daily pair limit must be at least 1');
+        toast.error('Daily Total Partner Framework limit must be at least 1');
         return;
       }
       if (formData.max_earnings_before_active_buyer < 1) {
@@ -148,8 +173,8 @@ export const PairRules = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Pair Rules</h1>
-            <p className="text-muted-foreground mt-1">Configure binary pair matching rules and parameters</p>
+            <h1 className="text-3xl font-bold text-foreground">Total Partner Framework</h1>
+            <p className="text-muted-foreground mt-1">Configure Total Partner Framework matching rules and parameters</p>
           </div>
         </div>
         <Card>
@@ -171,8 +196,8 @@ export const PairRules = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Pair Rules</h1>
-          <p className="text-muted-foreground mt-1">Configure binary pair matching rules and parameters</p>
+          <h1 className="text-3xl font-bold text-foreground">Total Partner Framework</h1>
+          <p className="text-muted-foreground mt-1">Configure Total Partner Framework matching rules and parameters</p>
         </div>
         <Button onClick={handleSave} disabled={!isDirty || isUpdating}>
           {isUpdating ? (
@@ -188,6 +213,7 @@ export const PairRules = () => {
           )}
         </Button>
       </div>
+
       {/* Current Settings Summary */}
       <Card>
         <CardHeader>
@@ -214,7 +240,7 @@ export const PairRules = () => {
             >
               <div className="flex items-center gap-2 mb-2">
                 <Settings className="h-4 w-4 text-success" />
-                <span className="text-sm font-medium">Pair Commission</span>
+                <span className="text-sm font-medium">Total Partner Framework Commission</span>
               </div>
               <p className="text-lg font-bold">₹{formData.binary_pair_commission_amount}</p>
             </motion.div>
@@ -226,25 +252,24 @@ export const PairRules = () => {
             >
               <div className="flex items-center gap-2 mb-2">
                 <Settings className="h-4 w-4 text-info" />
-                <span className="text-sm font-medium">Daily Pair Limit</span>
+                <span className="text-sm font-medium">Daily Total Partner Framework Limit</span>
               </div>
-              <p className="text-lg font-bold">{formData.binary_daily_pair_limit} Pairs</p>
+              <p className="text-lg font-bold">{formData.binary_daily_pair_limit} Total Partner Framework</p>
             </motion.div>
           </div>
         </CardContent>
-      </Card> 
+      </Card>
+
       {/* ASA(Authorized Sales Associate) Application Settings */}
       <Card>
         <CardHeader>
           <CardTitle>ASA(Authorized Sales Associate) Application Settings</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent>
           <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="auto_approve">Auto-Approve ASA(Authorized Sales Associate) Applications</Label>
-              <p className="text-xs text-muted-foreground">
-                If enabled, ASA(Authorized Sales Associate) applications will be automatically approved. If disabled, admin/staff approval is required.
-              </p>
+            <div className="flex items-center">
+              <Label htmlFor="auto_approve">Auto-Approve ASA Applications</Label>
+              <InfoButton info="When enabled, new ASA (Authorized Sales Associate) applications are automatically approved without requiring manual admin or staff review. When disabled, each application must be manually reviewed and approved by an admin or staff member before the applicant becomes an active ASA." />
             </div>
             <Switch
               id="auto_approve"
@@ -254,23 +279,24 @@ export const PairRules = () => {
           </div>
         </CardContent>
       </Card>
+
       {/* Booking & Commission Settings */}
       <Card>
         <CardHeader>
           <CardTitle>Booking & Direct Commission Settings</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent>
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="booking_timeout">
-                Booking Reservation Timeout (minutes)
-                <span className="text-xs text-muted-foreground ml-2">Leave empty for no timeout</span>
-              </Label>
+              <div className="flex items-center">
+                <Label htmlFor="booking_timeout">Booking Reservation Timeout (minutes)</Label>
+                <InfoButton info="Sets the time limit (in minutes) for how long a booking reservation remains valid before it automatically expires. If left empty or set to null, the reservation never expires and remains active indefinitely until manually processed or cancelled." />
+              </div>
               <Input
                 id="booking_timeout"
                 type="text"
                 inputMode="numeric"
-                placeholder="Enter minutes or leave empty"
+                placeholder="Leave empty for no timeout"
                 value={formData.booking_reservation_timeout_minutes ?? ''}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -289,13 +315,13 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Time before booking reservation expires (null = never expires)
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="direct_commission">Direct User Commission Amount (₹)</Label>
+              <div className="flex items-center">
+                <Label htmlFor="direct_commission">Direct User Commission Amount (₹)</Label>
+                <InfoButton info="The commission amount (in rupees) paid to an ASA for each direct referral before their binary commission is activated. This is the initial commission earned per direct user signup before the ASA reaches the activation threshold." />
+              </div>
               <Input
                 id="direct_commission"
                 type="text"
@@ -319,13 +345,13 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Commission per direct user before binary activation
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="activation_amount">Activation Amount (₹)</Label>
+              <div className="flex items-center">
+                <Label htmlFor="activation_amount">Activation Amount (₹)</Label>
+                <InfoButton info="The minimum payment amount required per booking for senior ASAs (upline) to earn commission. If a booking payment is less than this amount, no commission is credited to seniors, but the user is still counted in the descendant calculation for the binary tree. When a booking is cancelled, this amount is withheld and can be used for future point redemption." />
+              </div>
               <Input
                 id="activation_amount"
                 type="text"
@@ -349,9 +375,6 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Minimum payment amount per booking required for seniors to earn commission. If payment is less than this amount, no commission is credited, but user is still counted in descendants calculation. On cancellation, this amount is withheld for future point redemption (min: 0)
-              </p>
             </div>
           </div>
         </CardContent>
@@ -362,10 +385,13 @@ export const PairRules = () => {
         <CardHeader>
           <CardTitle>Binary Commission Configuration</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent>
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="activation_count">Binary Activation Count (users)</Label>
+              <div className="flex items-center">
+                <Label htmlFor="activation_count">Binary Activation Count (users)</Label>
+                <InfoButton info="The number of direct referrals an ASA must have before their binary commission system becomes active. Until this threshold is reached, the ASA earns direct commission only. Once activated, they start earning from the Total Partner Framework matching system." />
+              </div>
               <Input
                 id="activation_count"
                 type="text"
@@ -389,13 +415,13 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Number of direct users needed to activate binary commission (min: 1)
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="pair_commission">Binary Pair Commission Amount (₹)</Label>
+              <div className="flex items-center">
+                <Label htmlFor="pair_commission">Total Partner Framework Commission Amount (₹)</Label>
+                <InfoButton info="The commission amount (in rupees) earned by an ASA for each successful Total Partner Framework match in the binary tree. A Total Partner Framework match occurs when there is at least one new member on both the left and right legs of the binary tree. This commission is earned after the binary activation threshold is met." />
+              </div>
               <Input
                 id="pair_commission"
                 type="text"
@@ -419,13 +445,13 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Commission per binary pair after activation
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="daily_limit">Daily Pair Limit (pairs)</Label>
+              <div className="flex items-center">
+                <Label htmlFor="daily_limit">Daily Total Partner Framework Limit</Label>
+                <InfoButton info="The maximum number of Total Partner Framework matches an ASA can earn commission for in a single day. This limit helps control daily payouts and prevents excessive earnings. Any Total Partner Framework matches beyond this limit are carried forward or not counted for that day." />
+              </div>
               <Input
                 id="daily_limit"
                 type="text"
@@ -449,13 +475,13 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Maximum binary pairs per day after activation (min: 1)
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="max_earnings_before_active_buyer">Max Earnings Before Active Buyer (pairs)</Label>
+              <div className="flex items-center">
+                <Label htmlFor="max_earnings_before_active_buyer">Max Earnings Before Active Buyer</Label>
+                <InfoButton info="The maximum number of Total Partner Framework matches a non-Active Buyer ASA can earn commission for. Once this limit is reached, additional Total Partner Framework matches are blocked until the ASA becomes an Active Buyer (by making their own purchase). This encourages ASAs to become customers themselves." />
+              </div>
               <Input
                 id="max_earnings_before_active_buyer"
                 type="text"
@@ -479,13 +505,13 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Maximum number of binary pairs non-Active Buyer ASA(Authorized Sales Associate) can earn commission for before becoming Active Buyer. 6th+ pairs are blocked until user becomes Active Buyer (default: 5, min: 1)
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="default_side">Default Tree Placement Side</Label>
+              <div className="flex items-center">
+                <Label htmlFor="default_side">Default Tree Placement Side</Label>
+                <InfoButton info="Determines which side of the binary tree new users are placed by default when no specific placement preference is given. 'Left Side' places new users on the left leg first, while 'Right Side' places them on the right leg first. This affects the automatic spillover placement in the binary tree structure." />
+              </div>
               <Select
                 value={formData.binary_tree_default_placement_side}
                 onValueChange={(value: 'left' | 'right') => handleChange('binary_tree_default_placement_side', value)}
@@ -498,13 +524,13 @@ export const PairRules = () => {
                   <SelectItem value="right">Right Side</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Default placement side for new users in binary tree
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="initial_bonus">Binary Commission Initial Bonus (₹)</Label>
+              <div className="flex items-center">
+                <Label htmlFor="initial_bonus">Binary Commission Initial Bonus (₹)</Label>
+                <InfoButton info="A one-time bonus amount (in rupees) credited to the user's wallet and total earnings when their binary commission is first activated (after reaching the required number of direct referrals). TDS is deducted from this bonus amount, but TDS is NOT deducted from the booking balance portion." />
+              </div>
               <Input
                 id="initial_bonus"
                 type="text"
@@ -528,9 +554,6 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Initial bonus amount (in rupees) credited to user's wallet and total_earnings when binary commission is activated (3 persons). TDS is deducted from this amount, but TDS is NOT deducted from booking balance (default: 0)
-              </p>
             </div>
           </div>
         </CardContent>
@@ -541,10 +564,13 @@ export const PairRules = () => {
         <CardHeader>
           <CardTitle>TDS & Deduction Configuration</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent>
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="tds_percentage">Binary Commission TDS Percentage (%)</Label>
+              <div className="flex items-center">
+                <Label htmlFor="tds_percentage">Binary Commission TDS Percentage (%)</Label>
+                <InfoButton info="The Tax Deducted at Source (TDS) percentage applied to ALL binary commissions earned by ASAs. This percentage is automatically deducted from each commission payment before crediting to the user's wallet. Valid range is 0-100%." />
+              </div>
               <Input
                 id="tds_percentage"
                 type="text"
@@ -568,13 +594,13 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                TDS percentage on ALL binary commissions (range: 0-100)
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tds_threshold">TDS Threshold Pairs (pairs)</Label>
+              <div className="flex items-center">
+                <Label htmlFor="tds_threshold">TDS Threshold Total Partner Framework</Label>
+                <InfoButton info="The number of Total Partner Framework matches an ASA can earn after activation before the extra deduction percentage kicks in. For example, if set to 5, the first 5 Total Partner Framework matches after activation have only TDS deducted, while the 6th match onwards will have both TDS and the extra deduction applied." />
+              </div>
               <Input
                 id="tds_threshold"
                 type="text"
@@ -598,13 +624,13 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Number of pairs after activation before extra deduction starts (min: 0)
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="extra_deduction">Extra Deduction Percentage (%)</Label>
+              <div className="flex items-center">
+                <Label htmlFor="extra_deduction">Extra Deduction Percentage (%)</Label>
+                <InfoButton info="An additional percentage deducted from binary commissions after the TDS threshold is exceeded. This extra deduction is applied on top of the regular TDS percentage for Total Partner Framework matches beyond the threshold. Valid range is 0-100%." />
+              </div>
               <Input
                 id="extra_deduction"
                 type="text"
@@ -628,9 +654,6 @@ export const PairRules = () => {
                   }
                 }}
               />
-              <p className="text-xs text-muted-foreground">
-                Extra deduction percentage on pairs beyond threshold (range: 0-100)
-              </p>
             </div>
           </div>
         </CardContent>
@@ -641,49 +664,49 @@ export const PairRules = () => {
         <CardHeader>
           <CardTitle>Payout Settings</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="payout_approval">Payout Approval Required</Label>
-              <p className="text-xs text-muted-foreground">
-                If enabled, payout requests require admin approval. If disabled, payouts are automatically processed upon creation.
-              </p>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="flex items-center justify-between md:col-span-2">
+              <div className="flex items-center">
+                <Label htmlFor="payout_approval">Payout Approval Required</Label>
+                <InfoButton info="When enabled, all payout/withdrawal requests from ASAs require manual approval by an admin before being processed. When disabled, payouts are automatically processed and transferred without admin intervention. Enable this for better control over fund disbursement." />
+              </div>
+              <Switch
+                id="payout_approval"
+                checked={formData.payout_approval_needed}
+                onCheckedChange={(checked) => handleChange('payout_approval_needed', checked)}
+              />
             </div>
-            <Switch
-              id="payout_approval"
-              checked={formData.payout_approval_needed}
-              onCheckedChange={(checked) => handleChange('payout_approval_needed', checked)}
-            />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="payout_tds">Payout TDS Percentage (%)</Label>
-            <Input
-              id="payout_tds"
-              type="text"
-              inputMode="numeric"
-              value={formData.payout_tds_percentage === 0 ? '' : formData.payout_tds_percentage || ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === '') {
-                  setFormData(prev => ({ ...prev, payout_tds_percentage: 0 }));
-                  setIsDirty(true);
-                  return;
-                }
-                const num = parseInt(val, 10);
-                if (!isNaN(num) && isFinite(num) && num >= 0 && num <= 100) {
-                  handleChange('payout_tds_percentage', num);
-                }
-              }}
-              onBlur={(e) => {
-                if (e.target.value === '') {
-                  handleChange('payout_tds_percentage', 0);
-                }
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              TDS percentage applied on payout withdrawals (default: 0, meaning no payout TDS, range: 0-100)
-            </p>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <Label htmlFor="payout_tds">Payout TDS Percentage (%)</Label>
+                <InfoButton info="The Tax Deducted at Source (TDS) percentage applied specifically to payout withdrawals. This is separate from the binary commission TDS and is deducted when an ASA withdraws funds from their wallet. Set to 0 for no additional TDS on withdrawals. Valid range is 0-100%." />
+              </div>
+              <Input
+                id="payout_tds"
+                type="text"
+                inputMode="numeric"
+                value={formData.payout_tds_percentage === 0 ? '' : formData.payout_tds_percentage || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setFormData(prev => ({ ...prev, payout_tds_percentage: 0 }));
+                    setIsDirty(true);
+                    return;
+                  }
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num) && isFinite(num) && num >= 0 && num <= 100) {
+                    handleChange('payout_tds_percentage', num);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === '') {
+                    handleChange('payout_tds_percentage', 0);
+                  }
+                }}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -693,28 +716,28 @@ export const PairRules = () => {
         <CardHeader>
           <CardTitle>Company Settings</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="company_referral_code">Company ASA Code</Label>
-            <Input
-              id="company_referral_code"
-              type="text"
-              placeholder="Enter company ASA code"
-              value={formData.company_referral_code || ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                handleChange('company_referral_code', val);
-              }}
-              maxLength={20}
-            />
-            <p className="text-xs text-muted-foreground">
-              Static ASA code representing the company (used for first booking in the system, default: "COMPANY", min length: 3, max length: 20)
-            </p>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <Label htmlFor="company_referral_code">Company ASA Code</Label>
+                <InfoButton info="A static referral code representing the company itself. This code is used for the very first booking in the system when there is no referring ASA. It serves as the root of the referral tree. Must be between 3-20 characters." />
+              </div>
+              <Input
+                id="company_referral_code"
+                type="text"
+                placeholder="Enter company ASA code"
+                value={formData.company_referral_code || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  handleChange('company_referral_code', val);
+                }}
+                maxLength={20}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
-
-      
     </div>
   );
 };

@@ -276,7 +276,7 @@ const adminMenuSections: MenuSection[] = [
     ],
   },
   {
-    label: "Binary Engine Control",
+    label: "Platform Settings",
     icon: Settings,
     value: "binary-engine",
     path: "/admin/binary-engine/pair-rules",

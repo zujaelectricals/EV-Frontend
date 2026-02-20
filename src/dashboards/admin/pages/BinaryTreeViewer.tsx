@@ -85,7 +85,7 @@ export const BinaryTreeViewer = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Active Pairs</p>
+                  <p className="text-sm font-medium text-muted-foreground">Active Total Partner Framework</p>
                   <p className="text-3xl font-bold text-foreground mt-1">1,245</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-warning opacity-20" />

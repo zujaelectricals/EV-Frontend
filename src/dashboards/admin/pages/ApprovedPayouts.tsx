@@ -103,7 +103,7 @@ const mockApprovedPayouts: PayoutExtended[] = [
     amount: 10000,
     type: 'milestone',
     status: 'completed',
-    description: 'Milestone reward: 10 Pairs Completed',
+    description: 'Milestone reward: 10 Total Partner Framework Completed',
     milestoneId: 'm4',
     requestedAt: '2024-03-17 08:00',
     approvedAt: '2024-03-17 09:00',

@@ -16,6 +16,8 @@ import {
   ChevronDown,
   ChevronRight as ChevronRightIcon,
   Loader2,
+  Search,
+  X,
 } from "lucide-react";
 import {
   Card,
@@ -41,6 +43,7 @@ import {
   type PaginatedSideMembers,
   type SideMemberNode,
   type AvailablePosition,
+  type SearchResultNode,
 } from "@/app/api/binaryApi";
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
@@ -460,6 +463,10 @@ export const BinaryTreeView = () => {
   const [pageSize, setPageSize] = useState(100); // Default: 100 (max) for smoother rendering
   const [minDepth, setMinDepth] = useState<number | undefined>(undefined); // Optional, no default
   const [maxDepth, setMaxDepth] = useState<number | undefined>(7); // Default: 7 (high for smooth rendering)
+  
+  // Search state
+  const [searchInput, setSearchInput] = useState(''); // Input field value
+  const [searchQuery, setSearchQuery] = useState(''); // Actual search query sent to API
 
   const { data: binaryTree, isLoading: treeLoading, refetch: refetchTree } = useGetBinaryTreeQuery(
     distributorId,
@@ -481,6 +488,7 @@ export const BinaryTreeView = () => {
       page_size: number;
       min_depth?: number;
       max_depth?: number;
+      search?: string;
     } = {
       distributorId,
       side: sideFilter,
@@ -500,8 +508,13 @@ export const BinaryTreeView = () => {
       params.max_depth = maxDepth;
     }
     
+    // Include search query if provided
+    if (searchQuery && searchQuery.trim()) {
+      params.search = searchQuery.trim();
+    }
+    
     return params;
-  }, [distributorId, sideFilter, currentPage, pageSize, minDepth, maxDepth]);
+  }, [distributorId, sideFilter, currentPage, pageSize, minDepth, maxDepth, searchQuery]);
   
   const { data: treeStructure, isLoading: structureLoading, refetch: refetchStructure } = useGetTreeStructureQuery(
     queryParams,
@@ -766,6 +779,35 @@ export const BinaryTreeView = () => {
 
   const leftPagination = useMemo(() => getPaginationInfo(treeStructure?.left_side_members), [treeStructure]);
   const rightPagination = useMemo(() => getPaginationInfo(treeStructure?.right_side_members), [treeStructure]);
+
+  // Extract search results from API response
+  const searchResults = useMemo((): TeamMember[] => {
+    if (!treeStructure?.search_results || treeStructure.search_results.length === 0) {
+      return [];
+    }
+    
+    return treeStructure.search_results.map((result: SearchResultNode) => {
+      const totalDescendants = (result.left_count || 0) + (result.right_count || 0);
+      return {
+        id: `node-${result.node_id}`,
+        name: result.user_full_name || result.user_username || result.user_email || 'Unknown',
+        userId: result.user_id?.toString(),
+        nodeId: result.node_id,
+        joinedAt: result.date_joined || result.created_at || new Date().toISOString(),
+        position: result.tree_side || result.side || 'left',
+        pv: 0,
+        level: result.level || 0,
+        referrals: totalDescendants,
+        isActive: result.is_active_buyer !== false,
+        parentId: result.parent_id ? `node-${result.parent_id}` : undefined,
+        parentName: result.parent_name || undefined,
+        referralCode: result.referral_code || undefined,
+        hasChildren: totalDescendants > 0,
+        isExpanded: false,
+        isChild: false,
+      };
+    });
+  }, [treeStructure?.search_results]);
 
   // Extract team members from side_members arrays (preferred) or fallback to tree structure
   const teamMembers = useMemo(() => {
@@ -1547,7 +1589,190 @@ export const BinaryTreeView = () => {
                 className="w-[80px] border-pink-500/25"
               />
             </div>
+            
+            {/* Search Input - Right aligned */}
+            <div className="flex items-center gap-2 ml-auto">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSearchQuery(searchInput);
+                      // Clear expanded nodes when search changes
+                      setExpandedNodes(new Set());
+                      setLoadedChildren(new Map());
+                    }
+                  }}
+                  placeholder="Search members..."
+                  className="w-[200px] pl-9 pr-8 border-pink-500/25 bg-white"
+                />
+                {searchInput && (
+                  <button
+                    onClick={() => {
+                      setSearchInput('');
+                      setSearchQuery('');
+                      // Clear expanded nodes when search is cleared
+                      setExpandedNodes(new Set());
+                      setLoadedChildren(new Map());
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSearchQuery(searchInput);
+                  // Clear expanded nodes when search changes
+                  setExpandedNodes(new Set());
+                  setLoadedChildren(new Map());
+                }}
+                className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:from-pink-600 hover:to-rose-600"
+              >
+                <Search className="h-4 w-4 mr-1" />
+                Search
+              </Button>
+            </div>
           </div>
+
+          {/* Search Results Section - Show when search is active */}
+          {searchQuery && searchResults.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Search className="h-5 w-5 text-pink-500" />
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Search Results for "{treeStructure?.search_query || searchQuery}"
+                  </h3>
+                  <Badge variant="outline" className="border-pink-500/40 bg-pink-50/50 text-pink-600">
+                    {treeStructure?.search_count || searchResults.length} found
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchInput('');
+                    setSearchQuery('');
+                    setExpandedNodes(new Set());
+                    setLoadedChildren(new Map());
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear Search
+                </Button>
+              </div>
+              <div className="rounded-xl overflow-hidden border-2 border-pink-500/25 shadow-inner bg-gradient-to-r from-pink-50/50 to-white">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-b-2 border-pink-500/30 hover:bg-transparent">
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Name</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Level</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Direct Parent</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">ASA Code</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Position</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Joined Date</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {searchResults.map((member, index) => (
+                      <TableRow
+                        key={`search-${member.id}-${index}`}
+                        className={`border-b border-pink-200/50 hover:bg-pink-500/10 ${index % 2 === 1 ? 'bg-pink-50/30' : ''}`}
+                      >
+                        <TableCell className="font-medium py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-pink-500/20 to-rose-500/20">
+                              <User className="h-4 w-4 text-pink-600" />
+                            </div>
+                            <span className="font-semibold">{member.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Badge variant="outline" className="border-pink-500/40 bg-pink-50/50 text-foreground font-medium">
+                            Level {member.level}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium py-3">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            {member.parentName || "Root"}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          {member.referralCode ? (
+                            <code className="text-sm font-mono font-medium px-3 py-1.5 rounded-lg bg-gradient-to-r from-pink-500/15 to-rose-500/15 text-pink-600 border border-pink-500/30">
+                              {member.referralCode}
+                            </code>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Badge
+                            className={
+                              member.position === "left"
+                                ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0"
+                                : "bg-slate-200 text-slate-700 border-0 font-medium"
+                            }
+                          >
+                            {member.position === "left" ? "RSL" : "RSR"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-3 text-muted-foreground">
+                          {new Date(member.joinedAt).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                        <TableCell className="py-3">
+                          {member.isActive ? (
+                            <Badge className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0">
+                              <Activity className="mr-1 h-3 w-3" />
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-yellow-500 text-yellow-900 border-0">
+                              Inactive
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+          {/* No Search Results Message */}
+          {searchQuery && searchResults.length === 0 && !structureLoading && (
+            <div className="mb-6 p-6 rounded-xl border-2 border-pink-500/20 bg-gradient-to-r from-pink-50/50 to-white text-center">
+              <Search className="h-12 w-12 mx-auto mb-3 text-pink-300" />
+              <p className="text-lg font-medium text-foreground">No results found for "{searchQuery}"</p>
+              <p className="text-sm text-muted-foreground mt-1">Try a different search term or clear the search</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchInput('');
+                  setSearchQuery('');
+                }}
+                className="mt-4 border-pink-500/40 hover:bg-pink-500/10"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear Search
+              </Button>
+            </div>
+          )}
 
           {/* Team Members Table */}
           {displayMembers.length > 0 ? (

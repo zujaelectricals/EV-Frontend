@@ -83,7 +83,7 @@ const adminMenuItems: MenuItem[] = [
   { label: 'Sales Monitoring', icon: BarChart3, path: '/admin/sales' },
   { label: 'ASA(Authorized Sales Associate) Intelligence', icon: Brain, path: '/admin/distributor-intel' },
   { label: 'Staff Performance', icon: Award, path: '/admin/staff-performance' },
-  { label: 'Binary Engine Control', icon: Settings, path: '/admin/binary-engine' },
+  { label: 'Platform Settings', icon: Settings, path: '/admin/binary-engine' },
   { label: 'EV Inventory', icon: Boxes, path: '/admin/inventory' },
   { label: 'Partner Shops', icon: Store, path: '/admin/partners' },
   { label: 'Reserve Wallet Controller', icon: Landmark, path: '/admin/pool-wallet' },
