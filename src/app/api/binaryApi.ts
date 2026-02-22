@@ -1162,47 +1162,23 @@ export const binaryApi = api.injectEndpoints({
     }),
     positionPendingNode: builder.mutation<
       { success: boolean; message: string },
-      { distributorId: string; userId: string; parentId: string; side: 'left' | 'right' }
+      { distributorId: string; userId: string; parentId?: string; side: 'left' | 'right' }
     >({
-      query: ({ userId, parentId, side }) => {
-        // Extract numeric IDs from string IDs
-        // parentId format: "node-101" (from transformTreeNodeToBinaryNode)
-        // userId format: string number
+      query: ({ userId, side }) => {
+        // Extract numeric ID from userId
         const targetUserId = parseInt(userId, 10);
-        let parentNodeId: number;
-        
-        // Extract numeric node_id from parentId string
-        // Format is "node-{numeric_id}" based on transformTreeNodeToBinaryNode
-        if (parentId.startsWith('node-')) {
-          const numericPart = parentId.replace('node-', '');
-          parentNodeId = parseInt(numericPart, 10);
-          if (isNaN(parentNodeId)) {
-            console.error('❌ [PLACE_USER API] Failed to extract parent_node_id from:', parentId);
-            parentNodeId = 0;
-          }
-        } else {
-          // Try to parse as number directly (fallback)
-          parentNodeId = parseInt(parentId, 10);
-          if (isNaN(parentNodeId)) {
-            console.error('❌ [PLACE_USER API] Invalid parentId format:', parentId);
-            parentNodeId = 0;
-          }
-        }
         
         // Prepare request body matching the API specification
         const body = {
           target_user_id: targetUserId,
-          parent_node_id: parentNodeId,
           side: side, // "left" or "right"
-          // allow_replacement: false // Optional, default: false (commented out as per API spec)
+          allow_replacement: false // Optional, default: false
         };
         
         // Console log the request body
         console.log('🔵 [PLACE_USER API] Request Body:', JSON.stringify(body, null, 2));
         console.log('🔵 [PLACE_USER API] Extracted IDs:', {
           targetUserId,
-          parentNodeId,
-          originalParentId: parentId,
           side,
         });
         
@@ -1329,17 +1305,6 @@ export const binaryApi = api.injectEndpoints({
       },
       invalidatesTags: (result, error, { userId }) => ['Binary', 'BinaryStats'],
     }),
-    autoPlacePending: builder.mutation<any, void>({
-      query: () => ({
-        url: 'binary/nodes/auto_place_pending/',
-        method: 'POST',
-      }),
-      invalidatesTags: (result, error) => [
-        { type: 'PendingNodes' },
-        { type: 'Binary' },
-        { type: 'BinaryStats' },
-      ],
-    }),
     checkPairs: builder.mutation<any, void>({
       query: () => ({
         url: 'binary/pairs/check_pairs/',
@@ -1432,7 +1397,6 @@ export const {
   useAddReferralNodeMutation,
   usePositionPendingNodeMutation,
   useMoveNodeMutation,
-  useAutoPlacePendingMutation,
   useCheckPairsMutation,
   useGetNodeChildrenQuery,
   useGetAvailablePositionsQuery,

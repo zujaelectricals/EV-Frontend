@@ -33,7 +33,6 @@ import {
   useGetBinaryStatsQuery,
   useGetPendingNodesQuery,
   usePositionPendingNodeMutation,
-  useAutoPlacePendingMutation,
   useCheckPairsMutation,
   useGetNodeChildrenQuery,
   useGetAvailablePositionsQuery,
@@ -544,7 +543,6 @@ export const BinaryTreeView = () => {
   const { data: pendingNodes = [], isLoading: pendingLoading } =
     useGetPendingNodesQuery(distributorId, { skip: !distributorId });
   const [positionPendingNode] = usePositionPendingNodeMutation();
-  const [autoPlacePending, { isLoading: isAutoPlacing }] = useAutoPlacePendingMutation();
   const [checkPairs, { isLoading: isCheckingPairs }] = useCheckPairsMutation();
 
 
@@ -589,24 +587,6 @@ export const BinaryTreeView = () => {
     }
   }, [availablePositionsData, availablePositionsError]);
 
-  // Auto-select available position when parent is selected
-  useEffect(() => {
-    if (selectedParentId && availablePositionsData?.available_positions) {
-      const selectedParent = availablePositionsData.available_positions.find(
-        (p: AvailablePosition) => `node-${p.node_id}` === selectedParentId
-      );
-      
-      if (selectedParent) {
-        // If only one position is available, auto-select it
-        if (selectedParent.left_available && !selectedParent.right_available) {
-          setSelectedSide('left');
-        } else if (selectedParent.right_available && !selectedParent.left_available) {
-          setSelectedSide('right');
-        }
-        // If both are available or neither, keep current selection or default to left
-      }
-    }
-  }, [selectedParentId, availablePositionsData]);
 
   // Handle loading children when query completes
   useEffect(() => {
@@ -972,25 +952,19 @@ export const BinaryTreeView = () => {
   }, [teamMembers, expandedNodes, loadedChildren]);
 
   const handlePositionPendingNode = async () => {
-    if (!selectedPendingNode || !distributorId || !selectedParentId) {
-      toast.error("Please select a parent node and side");
+    if (!selectedPendingNode || !distributorId) {
+      toast.error("Please select a side");
       return;
     }
 
-    // Extract numeric IDs for logging
+    // Extract numeric ID for logging
     const targetUserId = parseInt(selectedPendingNode.userId, 10);
-    let parentNodeId: number;
-    if (selectedParentId.startsWith('node-')) {
-      parentNodeId = parseInt(selectedParentId.replace('node-', ''), 10);
-    } else {
-      parentNodeId = parseInt(selectedParentId, 10);
-    }
 
     // Prepare request body for logging
     const requestBody = {
       target_user_id: targetUserId,
-      parent_node_id: parentNodeId,
       side: selectedSide, // "left" or "right"
+      allow_replacement: false,
     };
 
     // Console log the request body
@@ -998,16 +972,13 @@ export const BinaryTreeView = () => {
     console.log('🔵 [Position Member] Request Details:', {
       selectedPendingNode: selectedPendingNode.name,
       userId: selectedPendingNode.userId,
-      parentId: selectedParentId,
       side: selectedSide,
-      extractedParentNodeId: parentNodeId,
     });
 
     try {
       const result = await positionPendingNode({
         distributorId,
         userId: selectedPendingNode.userId,
-        parentId: selectedParentId,
         side: selectedSide,
       }).unwrap();
 
@@ -1020,7 +991,6 @@ export const BinaryTreeView = () => {
         toast.success(`${selectedPendingNode.name} positioned successfully!`);
         setSelectedPendingNode(null);
         setPositionDialogOpen(false);
-        setSelectedParentId("");
         setSelectedSide("left");
         // Refetch tree structure after positioning
         await refetchTree();
@@ -1081,40 +1051,6 @@ export const BinaryTreeView = () => {
     setPositionDialogOpen(true);
   };
 
-  const handleAutoPosition = async () => {
-    try {
-      const result = await autoPlacePending().unwrap();
-      console.log('Auto Place Pending Response:', result);
-      toast.success('Pending users have been auto-positioned successfully!');
-      setPositionDialogOpen(false);
-      setSelectedPendingNode(null);
-      setSelectedParentId("");
-      setSelectedSide("left");
-      // Refetch tree structure after auto placing
-      await refetchTree();
-      await refetchStructure();
-    } catch (error: unknown) {
-      console.error('Auto place pending error:', error);
-      let errorMessage = "Failed to auto-position pending users. Please try again.";
-      if (error && typeof error === "object") {
-        if ("data" in error && error.data && typeof error.data === "object") {
-          const errorData = error.data as {
-            data?: string;
-            error?: { data?: string };
-            message?: string;
-          };
-          errorMessage =
-            errorData.data ||
-            errorData.error?.data ||
-            errorData.message ||
-            errorMessage;
-        } else if ("message" in error && typeof error.message === "string") {
-          errorMessage = error.message;
-        }
-      }
-      toast.error(errorMessage);
-    }
-  };
 
   const handleMatchPairs = async () => {
     try {
@@ -1349,71 +1285,10 @@ export const BinaryTreeView = () => {
           <DialogHeader>
             <DialogTitle>Position {selectedPendingNode?.name}</DialogTitle>
             <DialogDescription>
-              Select a parent node and position (RSL or RSR) to position this
-              team member in your network.
+              Select position (RSL or RSR) to position this team member in your network.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Parent Node</label>
-              <Select
-                value={selectedParentId}
-                onValueChange={setSelectedParentId}
-                onOpenChange={(open) => {
-                  console.log('🔵 [BinaryTreeView] Parent Dropdown Open Change:', open);
-                  setIsParentDropdownOpen(open);
-                  if (open) {
-                    console.log('🔵 [BinaryTreeView] Fetching available positions...');
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a parent node" />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoadingPositions ? (
-                    <div className="flex items-center justify-center p-4">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
-                    </div>
-                  ) : availableParents.length === 0 ? (
-                    <div className="flex items-center justify-center p-4">
-                      <span className="text-sm text-muted-foreground">No available positions</span>
-                    </div>
-                  ) : (
-                    availableParents.map((parent) => {
-                      // Check if this parent has position availability info from API
-                      const hasPositionInfo = 'left_available' in parent || 'right_available' in parent;
-                      const leftAvailable = 'left_available' in parent ? parent.left_available : true;
-                      const rightAvailable = 'right_available' in parent ? parent.right_available : true;
-                      
-                      // Build display text with position availability
-                      let displayText = parent.name;
-                      if (hasPositionInfo) {
-                        const positions = [];
-                        if (leftAvailable) positions.push('RSL');
-                        if (rightAvailable) positions.push('RSR');
-                        if (positions.length > 0) {
-                          displayText += ` (${positions.join(', ')} available)`;
-                        } else {
-                          displayText += ' (No positions available)';
-                        }
-                      }
-                      
-                      return (
-                        <SelectItem 
-                          key={parent.id} 
-                          value={parent.id}
-                          disabled={hasPositionInfo && !leftAvailable && !rightAvailable}
-                        >
-                          {displayText}
-                        </SelectItem>
-                      );
-                    })
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Position</label>
               <Select
@@ -1426,47 +1301,15 @@ export const BinaryTreeView = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(() => {
-                    // Find the selected parent to check position availability
-                    const selectedParent = availableParents.find(p => p.id === selectedParentId);
-                    const leftAvailable = selectedParent && 'left_available' in selectedParent 
-                      ? selectedParent.left_available 
-                      : true;
-                    const rightAvailable = selectedParent && 'right_available' in selectedParent 
-                      ? selectedParent.right_available 
-                      : true;
-                    
-                    return (
-                      <>
-                        <SelectItem 
-                          value="left" 
-                          disabled={!leftAvailable}
-                        >
-                          RSL {!leftAvailable && '(Not available)'}
-                        </SelectItem>
-                        <SelectItem 
-                          value="right" 
-                          disabled={!rightAvailable}
-                        >
-                          RSR {!rightAvailable && '(Not available)'}
-                        </SelectItem>
-                      </>
-                    );
-                  })()}
+                  <SelectItem value="left">RSL</SelectItem>
+                  <SelectItem value="right">RSR</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex justify-end gap-2 pt-4">
               <Button
-                variant="outline"
-                onClick={handleAutoPosition}
-                disabled={isAutoPlacing}
-              >
-                {isAutoPlacing ? "Positioning..." : "Auto Position"}
-              </Button>
-              <Button
                 onClick={handlePositionPendingNode}
-                disabled={!selectedParentId}
+                className="w-full sm:w-auto"
               >
                 Position Member
               </Button>
