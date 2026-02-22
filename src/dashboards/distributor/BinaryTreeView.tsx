@@ -1625,7 +1625,6 @@ export const BinaryTreeView = () => {
                   <TableHeader>
                     <TableRow className="border-b-2 border-pink-500/30 hover:bg-transparent">
                       <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Name</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Level</TableHead>
                       <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Direct Parent</TableHead>
                       <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">ASA Code</TableHead>
                       <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Position</TableHead>
@@ -1669,11 +1668,6 @@ export const BinaryTreeView = () => {
                             </div>
                             {member.name}
                           </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <Badge variant="outline" className="border-pink-500/40 bg-pink-50/50 text-foreground font-medium">
-                            Level {member.level}
-                          </Badge>
                         </TableCell>
                         <TableCell className="font-medium py-4">
                           <div className="flex items-center gap-2">
