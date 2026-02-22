@@ -92,6 +92,7 @@ export const LoginPage = () => {
 
   // Track if referral code came from URL
   const [referralCodeFromUrl, setReferralCodeFromUrl] = useState(false);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
 
   const from =
     (location.state as { from?: { pathname?: string } })?.from?.pathname || "/";
@@ -100,14 +101,21 @@ export const LoginPage = () => {
   useEffect(() => {
     const refCode = searchParams.get('ref');
     const shouldSignup = searchParams.get('signup') === 'true';
+    const nameFromUrl = searchParams.get('name');
     
     // Check localStorage for stored referral code
     const storedReferralCode = typeof window !== 'undefined' 
       ? localStorage.getItem('ev_nexus_referral_code') 
       : null;
     
+    // Check localStorage for stored referrer name
+    const storedReferrerName = typeof window !== 'undefined'
+      ? localStorage.getItem('ev_nexus_referrer_name')
+      : null;
+    
     // Priority: URL param > localStorage
     const referralCodeToUse = refCode || storedReferralCode;
+    const referrerNameToUse = nameFromUrl || storedReferrerName;
     
     if (referralCodeToUse) {
       if (refCode) {
@@ -118,6 +126,16 @@ export const LoginPage = () => {
           console.log('✅ [SIGNUP] Stored ASA code from URL in localStorage:', refCode);
         }
       }
+      
+      // Handle referrer name
+      if (referrerNameToUse) {
+        setReferrerName(referrerNameToUse);
+        if (nameFromUrl && typeof window !== 'undefined') {
+          localStorage.setItem('ev_nexus_referrer_name', nameFromUrl);
+          console.log('✅ [SIGNUP] Stored referrer name from URL in localStorage:', nameFromUrl);
+        }
+      }
+      
       setSignupData((prev) => ({ ...prev, referral_code: referralCodeToUse }));
       if (shouldSignup) {
         setIsSignupMode(true);
@@ -1331,7 +1349,14 @@ export const LoginPage = () => {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="referral_code" className="text-sm font-medium">ASA Code *</Label>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="referral_code" className="text-sm font-medium">ASA Code *</Label>
+                              {referrerName && (
+                                <span className="text-xs text-primary font-medium">
+                                  Referred by: {referrerName}
+                                </span>
+                              )}
+                            </div>
                             <div className="relative">
                               <LinkIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                               <Input

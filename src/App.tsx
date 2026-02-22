@@ -2,7 +2,7 @@ import { Provider } from 'react-redux';
 import { store } from './app/store';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { MainLayout } from './layouts/MainLayout';
 import { LoginPage } from './auth/LoginPage';
@@ -69,6 +69,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 // Component to handle ASA link redirects
 const ReferralRedirect = () => {
   const { referralCode } = useParams<{ referralCode: string }>();
+  const [searchParams] = useSearchParams();
+  const referrerName = searchParams.get('name');
   
   // Store referral code in localStorage
   if (referralCode && typeof window !== 'undefined') {
@@ -76,7 +78,18 @@ const ReferralRedirect = () => {
     console.log('✅ [ASA REDIRECT] Stored ASA code in localStorage:', referralCode);
   }
   
-  return <Navigate to={`/login?ref=${referralCode}&signup=true`} replace />;
+  // Store referrer name in localStorage if provided
+  if (referrerName && typeof window !== 'undefined') {
+    localStorage.setItem('ev_nexus_referrer_name', referrerName);
+    console.log('✅ [ASA REDIRECT] Stored referrer name in localStorage:', referrerName);
+  }
+  
+  // Build redirect URL with both ref and name params
+  const redirectUrl = referrerName 
+    ? `/login?ref=${referralCode}&signup=true&name=${encodeURIComponent(referrerName)}`
+    : `/login?ref=${referralCode}&signup=true`;
+  
+  return <Navigate to={redirectUrl} replace />;
 };
 
 // Component to clean up old localStorage keys and manage automatic token refresh
