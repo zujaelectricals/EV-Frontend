@@ -152,6 +152,19 @@ export const AdminLoginPage = () => {
         role: user.role,
       });
 
+      // Extract and store referral_code from referred_by if present
+      if (result.user.referred_by?.referral_code) {
+        const referralCode = result.user.referred_by.referral_code;
+        try {
+          localStorage.setItem('ev_nexus_referral_code', referralCode);
+          console.log('✅ [ADMIN LOGIN] Stored referral_code (ASA code) in localStorage:', referralCode);
+        } catch (error) {
+          console.error('❌ [ADMIN LOGIN] Failed to store referral_code in localStorage:', error);
+        }
+      } else {
+        console.log('🟡 [ADMIN LOGIN] No referral_code found in referred_by object');
+      }
+
       // Verify tokens were stored
       const stored = localStorage.getItem('ev_nexus_auth_data');
       if (stored) {

@@ -251,6 +251,19 @@ export const LoginPage = () => {
         role: user.role,
       });
 
+      // Extract and store referral_code from referred_by if present
+      if (result.user.referred_by?.referral_code) {
+        const referralCode = result.user.referred_by.referral_code;
+        try {
+          localStorage.setItem('ev_nexus_referral_code', referralCode);
+          console.log('✅ [LOGIN] Stored referral_code (ASA code) in localStorage:', referralCode);
+        } catch (error) {
+          console.error('❌ [LOGIN] Failed to store referral_code in localStorage:', error);
+        }
+      } else {
+        console.log('🟡 [LOGIN] No referral_code found in referred_by object');
+      }
+
       // Verify tokens were stored
       const stored = localStorage.getItem('ev_nexus_auth_data');
       if (stored) {
@@ -668,6 +681,19 @@ export const LoginPage = () => {
         name: user.name,
         role: user.role,
       });
+
+      // Extract and store referral_code from referred_by if present
+      if (result.user.referred_by?.referral_code) {
+        const referralCode = result.user.referred_by.referral_code;
+        try {
+          localStorage.setItem('ev_nexus_referral_code', referralCode);
+          console.log('✅ [SIGNUP] Stored referral_code (ASA code) in localStorage:', referralCode);
+        } catch (error) {
+          console.error('❌ [SIGNUP] Failed to store referral_code in localStorage:', error);
+        }
+      } else {
+        console.log('🟡 [SIGNUP] No referral_code found in referred_by object');
+      }
 
       // Verify tokens were stored
       const stored = localStorage.getItem('ev_nexus_auth_data');

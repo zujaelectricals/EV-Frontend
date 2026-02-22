@@ -540,10 +540,26 @@ export function OrderDetailsDialog({
                 <>
                   <Separator />
                   <div>
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">
+                    <p 
+                      className="text-sm sm:text-base font-bold mb-1"
+                      style={{
+                        background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF6347 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }}
+                    >
                       Company Bonus
                     </p>
-                    <p className="text-sm sm:text-base font-semibold text-foreground">
+                    <p 
+                      className="text-base sm:text-lg font-bold"
+                      style={{
+                        background: 'linear-gradient(135deg, #10B981 0%, #059669 50%, #047857 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }}
+                    >
                       ₹{detailedBooking 
                         ? parseFloat(detailedBooking.bonus_amount || '0').toLocaleString()
                         : (booking?.bonusAmount || 0).toLocaleString()}

@@ -716,11 +716,27 @@ export function MyOrders() {
                       </div>
                       {booking.bonusAmount !== undefined && booking.bonusAmount > 0 && (
                         <div className="mb-2 sm:mb-3">
-                          <div className="flex justify-between text-[10px] sm:text-xs">
-                            <span className="text-muted-foreground">
+                          <div className="flex justify-between text-xs sm:text-sm">
+                            <span 
+                              className="font-bold"
+                              style={{
+                                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF6347 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                              }}
+                            >
                               Company Bonus
                             </span>
-                            <span className="font-medium text-foreground">
+                            <span 
+                              className="font-bold"
+                              style={{
+                                background: 'linear-gradient(135deg, #10B981 0%, #059669 50%, #047857 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                              }}
+                            >
                               ₹{booking.bonusAmount.toLocaleString()}
                             </span>
                           </div>

@@ -52,6 +52,12 @@ export interface VerifySignupOTPResponse {
     role: string;
     is_active_buyer: boolean;
     is_distributor: boolean;
+    referred_by?: {
+      id: number;
+      username: string;
+      email: string;
+      referral_code: string;
+    };
   };
   tokens: {
     refresh: string;
@@ -84,6 +90,12 @@ export interface VerifyOTPResponse {
     role: string;
     is_active_buyer: boolean;
     is_distributor: boolean;
+    referred_by?: {
+      id: number;
+      username: string;
+      email: string;
+      referral_code: string;
+    };
   };
   tokens: {
     refresh: string;
