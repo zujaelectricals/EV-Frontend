@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut, ChevronDown, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { logout, isUserAuthenticated } from '@/app/slices/authSlice';
@@ -127,6 +127,19 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
           : 'bg-white/50 backdrop-blur-lg py-4'
       }`}
     >
+      {/* ── Maintenance Notice Banner ── */}
+      <div className="w-screen relative left-1/2 -translate-x-1/2 bg-amber-400 border-b-2 border-amber-500">
+        <div className="w-full px-6 md:px-16 py-5 flex items-center justify-center gap-4">
+          <AlertTriangle className="w-6 h-6 text-amber-900 shrink-0" />
+          <p className="text-center text-[14px] md:text-[16.5px] font-semibold text-amber-950 tracking-wide leading-relaxed">
+            🔧 <span className="underline underline-offset-2">Scheduled Maintenance in Progress</span>
+            {' — '}
+            Our platform is currently undergoing maintenance. Please <strong>do not register</strong> or use the <strong>Join Now</strong> feature until further notice. We apologise for the inconvenience.
+          </p>
+          <AlertTriangle className="w-6 h-6 text-amber-900 shrink-0" />
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-16 md:h-18">
           {/* Logo */}
