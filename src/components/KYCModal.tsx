@@ -428,7 +428,7 @@ export function KYCModal({ isOpen, onClose }: KYCModalProps) {
 
           {/* Aadhar Details */}
           <div className="space-y-4 border rounded-lg p-4">
-            <h3 className="font-semibold text-lg">Aadhar Card Details</h3>
+            <h3 className="font-semibold text-lg">Aadhaar Card Details</h3>
             <div className="space-y-2">
               <Label htmlFor="aadhaar_number">
                 Aadhar Number <span className="text-destructive">*</span>

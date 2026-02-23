@@ -308,14 +308,14 @@ export const PayoutHistory = () => {
   const totalTransactions = activePayoutsData?.payouts?.count ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Payout History</h1>
-        <p className="text-muted-foreground mt-1">View all your payout requests and transaction history</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Payout History</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">View all your payout requests and transaction history</p>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Payouts"
           value={isLoadingPayouts ? '...' : `₹${totalPayouts.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -345,18 +345,20 @@ export const PayoutHistory = () => {
       {/* Wallet Summary Card */}
       {walletSummary && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <CardTitle>Wallet Summary</CardTitle>
               <CardDescription>Your current wallet balance and earnings overview</CardDescription>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <Button
                 onClick={() => {
                   setShowTransactionsDialog(true);
                   setTransactionsPage(1);
                 }}
                 variant="outline"
+                size="sm"
+                className="flex-1 sm:flex-none"
               >
                 <Wallet className="w-4 h-4 mr-2" />
                 Transactions
@@ -391,7 +393,8 @@ export const PayoutHistory = () => {
                         setShowCreatePayoutDialog(true);
                       }}
                       disabled={parseFloat(walletSummary.current_balance || '0') <= 0 || !isKYCVerified}
-                      className={`bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 shadow-md shadow-pink-500/25 ${
+                      size="sm"
+                      className={`flex-1 sm:flex-none bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 shadow-md shadow-pink-500/25 ${
                         !isKYCVerified || parseFloat(walletSummary.current_balance || '0') <= 0
                           ? 'opacity-50 cursor-not-allowed'
                           : 'hover:opacity-90'
@@ -418,22 +421,22 @@ export const PayoutHistory = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               <div>
                 <p className="text-sm text-muted-foreground">Current Balance</p>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-xl sm:text-2xl font-bold text-foreground">
                   ₹{parseFloat(walletSummary.current_balance || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Earned</p>
-                <p className="text-2xl font-bold text-success">
+                <p className="text-xl sm:text-2xl font-bold text-success">
                   ₹{parseFloat(walletSummary.total_earned || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Withdrawn</p>
-                <p className="text-2xl font-bold text-primary">
+                <p className="text-xl sm:text-2xl font-bold text-primary">
                   ₹{parseFloat(walletSummary.total_withdrawn || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
@@ -473,11 +476,11 @@ export const PayoutHistory = () => {
       )}
 
       <Tabs value={statusFilter} onValueChange={setStatusFilter} className="space-y-4">
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="all">All Payouts</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="all" className="flex-1 sm:flex-none">All Payouts</TabsTrigger>
+            <TabsTrigger value="pending" className="flex-1 sm:flex-none">Pending</TabsTrigger>
+            <TabsTrigger value="completed" className="flex-1 sm:flex-none">Completed</TabsTrigger>
           </TabsList>
           <Button
             variant="outline"
@@ -485,6 +488,7 @@ export const PayoutHistory = () => {
             onClick={handleRefresh}
             disabled={isLoadingPayouts || isFetching}
             title="Refresh payouts"
+            className="w-full sm:w-auto"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${(isLoadingPayouts || isFetching) ? 'animate-spin' : ''}`} />
             Refresh
@@ -528,22 +532,23 @@ export const PayoutHistory = () => {
                       )}
                     </div>
                   )}
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>TDS</TableHead>
-                        <TableHead>Net Amount</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="whitespace-nowrap">Date</TableHead>
+                        <TableHead className="whitespace-nowrap">Type</TableHead>
+                        <TableHead className="whitespace-nowrap">Description</TableHead>
+                        <TableHead className="whitespace-nowrap">Amount</TableHead>
+                        <TableHead className="whitespace-nowrap">TDS</TableHead>
+                        <TableHead className="whitespace-nowrap">Net Amount</TableHead>
+                        <TableHead className="whitespace-nowrap">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredPayouts.map((payout) => (
                       <TableRow key={payout.id}>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {new Date(payout.requestedAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
@@ -552,13 +557,13 @@ export const PayoutHistory = () => {
                         <TableCell className="max-w-xs truncate">
                           {payout.description}
                         </TableCell>
-                        <TableCell className="font-semibold">
+                        <TableCell className="font-semibold whitespace-nowrap">
                           ₹{payout.amount.toLocaleString()}
                         </TableCell>
-                        <TableCell className="text-warning">
+                        <TableCell className="text-warning whitespace-nowrap">
                           {payout.tds ? `₹${payout.tds.toLocaleString()}` : '-'}
                         </TableCell>
-                        <TableCell className="font-semibold text-success">
+                        <TableCell className="font-semibold text-success whitespace-nowrap">
                           ₹{(payout.netAmount || payout.amount).toLocaleString()}
                         </TableCell>
                         <TableCell>
@@ -568,6 +573,7 @@ export const PayoutHistory = () => {
                     ))}
                   </TableBody>
                 </Table>
+                  </div>
                 </>
               )}
             </CardContent>
@@ -591,27 +597,28 @@ export const PayoutHistory = () => {
                   <p className="text-muted-foreground">No pending payouts</p>
                 </div>
               ) : (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead className="whitespace-nowrap">Date</TableHead>
+                      <TableHead className="whitespace-nowrap">Type</TableHead>
+                      <TableHead className="whitespace-nowrap">Description</TableHead>
+                      <TableHead className="whitespace-nowrap">Amount</TableHead>
+                      <TableHead className="whitespace-nowrap">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pendingPayouts.map((payout) => (
                       <TableRow key={payout.id}>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {new Date(payout.requestedAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{getTypeLabel(payout.type)}</Badge>
                         </TableCell>
-                        <TableCell>{payout.description}</TableCell>
-                        <TableCell className="font-semibold">
+                        <TableCell className="max-w-xs truncate">{payout.description}</TableCell>
+                        <TableCell className="font-semibold whitespace-nowrap">
                           ₹{payout.amount.toLocaleString()}
                         </TableCell>
                         <TableCell>{getStatusBadge(payout.status)}</TableCell>
@@ -619,6 +626,7 @@ export const PayoutHistory = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -641,30 +649,31 @@ export const PayoutHistory = () => {
                   <p className="text-muted-foreground">No completed payouts yet</p>
                 </div>
               ) : (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Net Amount</TableHead>
-                      <TableHead>Processed Date</TableHead>
+                      <TableHead className="whitespace-nowrap">Date</TableHead>
+                      <TableHead className="whitespace-nowrap">Type</TableHead>
+                      <TableHead className="whitespace-nowrap">Description</TableHead>
+                      <TableHead className="whitespace-nowrap">Net Amount</TableHead>
+                      <TableHead className="whitespace-nowrap">Processed Date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {completedPayouts.map((payout) => (
                       <TableRow key={payout.id}>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {new Date(payout.requestedAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{getTypeLabel(payout.type)}</Badge>
                         </TableCell>
-                        <TableCell>{payout.description}</TableCell>
-                        <TableCell className="font-semibold text-success">
+                        <TableCell className="max-w-xs truncate">{payout.description}</TableCell>
+                        <TableCell className="font-semibold text-success whitespace-nowrap">
                           ₹{(payout.netAmount || payout.amount).toLocaleString()}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {payout.processedAt 
                             ? new Date(payout.processedAt).toLocaleDateString()
                             : '-'}
@@ -673,6 +682,7 @@ export const PayoutHistory = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>

@@ -81,9 +81,6 @@ export interface NomineeSubmissionRequest {
   city: string;
   state: string;
   pincode: string;
-  id_proof_type: string;
-  id_proof_number: string;
-  id_proof_document?: File; // Optional when editing existing nominee
   nomineeId?: number; // Optional - if provided, will use PUT method for update
 }
 
@@ -112,9 +109,6 @@ export interface NomineeDetails {
   city: string;
   state: string;
   pincode: string;
-  id_proof_type: string;
-  id_proof_number: string;
-  id_proof_document?: string; // URL to the document
   created_at?: string;
   updated_at?: string;
   kyc_status?: string;
@@ -767,9 +761,6 @@ export const userApi = api.injectEndpoints({
             city: body.city,
             state: body.state,
             pincode: body.pincode,
-            id_proof_type: body.id_proof_type,
-            id_proof_number: body.id_proof_number,
-            id_proof_document: body.id_proof_document ? `File: ${body.id_proof_document.name} (${body.id_proof_document.size} bytes, type: ${body.id_proof_document.type})` : 'null',
           });
 
           formData.append('full_name', body.full_name);
@@ -781,12 +772,6 @@ export const userApi = api.injectEndpoints({
           formData.append('city', body.city);
           formData.append('state', body.state);
           formData.append('pincode', body.pincode);
-          formData.append('id_proof_type', body.id_proof_type);
-          formData.append('id_proof_number', body.id_proof_number);
-          // Only append file if provided (optional when editing)
-          if (body.id_proof_document) {
-            formData.append('id_proof_document', body.id_proof_document);
-          }
 
           // Log FormData entries
           const formDataEntries = Array.from(formData.entries()).map(([key, value]) => ({

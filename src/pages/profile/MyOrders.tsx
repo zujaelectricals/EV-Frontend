@@ -234,8 +234,8 @@ export function MyOrders() {
         vehicleColor: apiBooking.vehicle_color,
         batteryVariant: apiBooking.battery_variant,
         reservationStatus: apiBooking.reservation_status,
-        bonusAmount: apiBooking.bonus_amount !== null && apiBooking.bonus_amount !== undefined
-          ? parseFloat(apiBooking.bonus_amount) 
+        bonusAmount: (apiBooking.bonus_amount !== null && apiBooking.bonus_amount !== undefined && parseFloat(apiBooking.bonus_amount) > 0)
+          ? parseFloat(apiBooking.bonus_amount)
           : undefined,
       };
     });
@@ -418,9 +418,7 @@ export function MyOrders() {
       // The backend should have updated the booking automatically
       // We just need to refresh the bookings list
       
-      toast.success(
-        `Payment of ₹${paymentAmount.toLocaleString('en-IN')} processed successfully!`
-      );
+      toast.success('Payment Verified Successfully');
       
       // Refresh bookings to get updated data
       await refetch();
@@ -489,9 +487,6 @@ export function MyOrders() {
           <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto p-1 sm:p-1.5 rounded-xl bg-muted/50 border border-border/70 shadow-sm overflow-x-auto">
             <TabsTrigger value="all" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">
               All
-              {activeBookingsData?.count !== undefined && (
-                <span className="ml-0.5 sm:ml-1 text-[9px] sm:text-[10px]">({activeBookingsData.count})</span>
-              )}
             </TabsTrigger>
             <TabsTrigger value="pending" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Pending</TabsTrigger>
             <TabsTrigger value="active" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Active</TabsTrigger>

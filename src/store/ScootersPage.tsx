@@ -132,7 +132,7 @@ export function ScootersPage() {
       <FloatingPetals count={20} />
       <StoreNavbar solidBackground />
 
-      <div className="pt-24 pb-16">
+      <div className="pt-44 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-0">
           {/* Header with Search */}
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10">

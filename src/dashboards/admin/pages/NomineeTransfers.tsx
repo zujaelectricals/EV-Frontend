@@ -429,7 +429,7 @@ export const NomineeTransfers = () => {
                   <p className="text-sm">{selectedTransfer.nominee.address || 'N/A'}</p>
                 </div>
                 <div>
-                  <Label className="text-sm text-muted-foreground">Aadhar Number</Label>
+                  <Label className="text-sm text-muted-foreground">Aadhaar Number</Label>
                   <p>{selectedTransfer.nominee.aadhar || 'N/A'}</p>
                 </div>
               </div>

@@ -125,13 +125,15 @@ export function OrderDetailsDialog({
   if (bookingId && isLoadingDetail) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl">Order Details</DialogTitle>
-            <DialogDescription className="text-sm">Loading booking information...</DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center py-8 sm:py-12">
-            <LoadingSpinner size="md" />
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-hidden p-0 flex flex-col">
+          <div className="overflow-y-auto flex-1 p-4 sm:p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl sm:text-2xl">Order Details</DialogTitle>
+              <DialogDescription className="text-sm">Loading booking information...</DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-center py-8 sm:py-12">
+              <LoadingSpinner size="md" />
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -142,13 +144,15 @@ export function OrderDetailsDialog({
   if (bookingId && detailError) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl">Order Details</DialogTitle>
-            <DialogDescription className="text-sm">Failed to load booking information</DialogDescription>
-          </DialogHeader>
-          <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm sm:text-base">
-            <p>Unable to load booking details. Please try again later.</p>
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-hidden p-0 flex flex-col">
+          <div className="overflow-y-auto flex-1 p-4 sm:p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl sm:text-2xl">Order Details</DialogTitle>
+              <DialogDescription className="text-sm">Failed to load booking information</DialogDescription>
+            </DialogHeader>
+            <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm sm:text-base">
+              <p>Unable to load booking details. Please try again later.</p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -161,7 +165,8 @@ export function OrderDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+      <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-hidden p-0 flex flex-col">
+        <div className="overflow-y-auto flex-1 p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-xl sm:text-2xl">Order Details</DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
@@ -169,7 +174,7 @@ export function OrderDetailsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
           {/* Product Details Section */}
           <Card>
             <CardHeader className="p-4 sm:p-6">
@@ -536,7 +541,7 @@ export function OrderDetailsDialog({
                   </p>
                 </div>
               </div>
-              {((detailedBooking?.bonus_amount && parseFloat(detailedBooking.bonus_amount) > 0) || (booking?.bonusAmount !== undefined && booking.bonusAmount > 0)) ? (
+              {(parseFloat(detailedBooking?.bonus_amount || '0') > 0 || (booking?.bonusAmount ?? 0) > 0) ? (
                 <>
                   <Separator />
                   <div>
@@ -777,6 +782,7 @@ export function OrderDetailsDialog({
               </CardContent>
             </Card>
           )}
+        </div>
         </div>
       </DialogContent>
     </Dialog>

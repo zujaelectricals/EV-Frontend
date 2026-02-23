@@ -264,7 +264,7 @@ export function OrderHistory() {
             remainingAmount: 0,
           },
         }));
-        toast.success('Payment completed successfully!');
+        toast.success('Payment Verified Successfully');
       }
     }
     setShowPaymentModal(false);

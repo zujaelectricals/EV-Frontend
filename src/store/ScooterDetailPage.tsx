@@ -196,7 +196,7 @@ export function ScooterDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <StoreNavbar solidBackground />
-        <div className="pt-20 pb-16 flex items-center justify-center">
+        <div className="pt-44 pb-16 flex items-center justify-center">
           <LoadingSpinner text="Loading scooter details..." size="lg" />
         </div>
         <Footer />
@@ -209,7 +209,7 @@ export function ScooterDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <StoreNavbar solidBackground />
-        <div className="pt-20 pb-16 flex items-center justify-center">
+        <div className="pt-44 pb-16 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground mb-4">Error Loading Scooter</h1>
             <p className="text-muted-foreground mb-4">Failed to load scooter details. Please try again.</p>
@@ -228,7 +228,7 @@ export function ScooterDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <StoreNavbar solidBackground />
-        <div className="pt-20 pb-16 flex items-center justify-center">
+        <div className="pt-44 pb-16 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground mb-4">Scooter Not Found</h1>
             <Link to="/scooters">
@@ -263,7 +263,7 @@ export function ScooterDetailPage() {
     <div className="min-h-screen bg-background">
       <StoreNavbar solidBackground />
 
-      <div className="pt-20 pb-16">
+      <div className="pt-44 pb-16">
         <div className="container mx-auto px-4">
           {/* Breadcrumb */}
           <motion.div

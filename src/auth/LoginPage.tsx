@@ -196,11 +196,18 @@ export const LoginPage = () => {
         const error = err as { data?: { message?: string; detail?: string; error?: string } | string | string[] };
         // Handle array response (e.g., ["User does not have admin/staff privileges"])
         if (Array.isArray(error.data)) {
-          errorMessage = error.data[0] || errorMessage;
+          const rawMessage = error.data[0] || errorMessage;
+          errorMessage = rawMessage.toLowerCase().includes('user not found')
+            ? 'You have to Register First'
+            : rawMessage;
         } else if (typeof error.data === 'string') {
-          errorMessage = error.data;
+          errorMessage = error.data.toLowerCase().includes('user not found')
+            ? 'You have to Register First'
+            : error.data;
         } else if (error.data?.message) {
-          errorMessage = error.data.message;
+          errorMessage = error.data.message.toLowerCase().includes('user not found')
+            ? 'You have to Register First'
+            : error.data.message;
         } else if (error.data?.detail) {
           errorMessage = error.data.detail;
         } else if (error.data?.error) {
@@ -430,8 +437,20 @@ export const LoginPage = () => {
 
       if (!signupData.mobile.trim()) {
         newErrors.mobile = 'Mobile number is required';
-      } else if (!/^[0-9]{10,12}$/.test(signupData.mobile)) {
-        newErrors.mobile = 'Mobile number must be 10-12 digits';
+      } else if (!/^[6-9][0-9]{9}$/.test(signupData.mobile)) {
+        newErrors.mobile = 'Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9';
+      } else if (/^(\d)\1{9}$/.test(signupData.mobile)) {
+        // All same digits: 9999999999, 8888888888, etc.
+        newErrors.mobile = 'Enter a valid mobile number';
+      } else if (
+        signupData.mobile === '1234567890' ||
+        signupData.mobile === '9876543210' ||
+        signupData.mobile === '0123456789' ||
+        signupData.mobile === '9999900000' ||
+        signupData.mobile === '9000000000' ||
+        /^(\d{2,5})\1+$/.test(signupData.mobile)  // repeating blocks like 9898989898, 9090909090
+      ) {
+        newErrors.mobile = 'Enter a valid mobile number';
       }
 
       if (!signupData.gender) {
@@ -1285,8 +1304,8 @@ export const LoginPage = () => {
                                 type="tel"
                                 placeholder="Enter mobile number"
                                 value={signupData.mobile}
-                                onChange={(e) => handleSignupInputChange('mobile', e.target.value.replace(/\D/g, ''))}
-                                maxLength={12}
+                                onChange={(e) => handleSignupInputChange('mobile', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                maxLength={10}
                                 className={`pl-10 h-10 sm:h-11 text-sm sm:text-base ${signupErrors.mobile ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'} transition-all`}
                               />
                             </div>

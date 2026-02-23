@@ -37,7 +37,6 @@ export function KYCVerification() {
   const getStatusBadge = () => {
     switch (kycStatus) {
       case 'verified':
-      case 'approved':
         return (
           <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 shadow-md shadow-green-500/25">
             <CheckCircle className="w-3 h-3 mr-1" />
@@ -99,7 +98,7 @@ export function KYCVerification() {
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
           {/* Status Messages */}
-          {(kycStatus === 'verified' || kycStatus === 'approved') && (
+          {kycStatus === 'verified' && (
             <Alert className="bg-green-50 border-green-200">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
@@ -147,7 +146,7 @@ export function KYCVerification() {
               <AlertDescription>
                 <strong>KYC Not Submitted</strong>
                 <p className="mt-2">
-                  Complete your KYC verification to become an ASA(Authorized Sales Associate). Please upload your PAN and Aadhar documents.
+                  Complete your KYC verification to become an ASA(Authorized Sales Associate). Please upload your PAN and Aadhaar documents.
                 </p>
                 <p className="mt-2 text-sm">
                   KYC verification is required for ASA(Authorized Sales Associate) eligibility and enhanced account security.
@@ -174,7 +173,7 @@ export function KYCVerification() {
                 <span className="text-yellow-800 dark:text-yellow-200 font-medium">Your KYC is Under Review</span>
               </div>
             )}
-            {(kycStatus === 'verified' || kycStatus === 'approved') && (
+            {kycStatus === 'verified' && (
               <Button
                 onClick={() => setIsKYCModalOpen(true)}
                 className="w-full sm:w-auto"

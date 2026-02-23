@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { X, AlertCircle, Info, Calendar, Wallet, Eye, Download, Loader2, FileText } from 'lucide-react';
+import { X, AlertCircle, Info, Calendar, Wallet, Eye, Download, Loader2, FileText, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -1167,11 +1167,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         wantsToJoinDistributor: isAlreadyDistributor ? false : joinDistributorProgram,
       }));
 
-      let successMessage = 'Pre-booking successful! You are now an Active Buyer.';
+      let successMessage = 'Payment Verified Successfully';
       if (isAlreadyDistributor) {
-        successMessage = 'Pre-booking successful! Your order has been added to your order history.';
+        successMessage = 'Payment Verified Successfully';
       } else if (joinDistributorProgram && isDistributorEligible) {
-        successMessage += ' You can now apply for the ASA(Authorized Sales Associate) Program from your profile.';
+        successMessage = 'Payment Verified Successfully';
       }
       
       // Reset submission state after successful payment
@@ -1460,9 +1460,67 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
             )}
           </div>
 
-          {/* Delivery Address - Auto-filled from profile, hidden from UI */}
-          {/* Address fields are autofilled from user profile and not displayed */}
-          
+          {/* Delivery Address */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              Delivery Address
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="deliveryCity" className={`text-xs font-medium ${!deliveryCity.trim() ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  City *
+                </Label>
+                <Input
+                  id="deliveryCity"
+                  type="text"
+                  placeholder="Enter city"
+                  value={deliveryCity}
+                  onChange={(e) => setDeliveryCity(e.target.value)}
+                  className={`h-10 text-sm ${!deliveryCity.trim() ? 'border-destructive focus:border-destructive ring-destructive/20' : ''}`}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="deliveryState" className={`text-xs font-medium ${!deliveryState.trim() ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  State *
+                </Label>
+                <Input
+                  id="deliveryState"
+                  type="text"
+                  placeholder="Enter state"
+                  value={deliveryState}
+                  onChange={(e) => setDeliveryState(e.target.value)}
+                  className={`h-10 text-sm ${!deliveryState.trim() ? 'border-destructive focus:border-destructive ring-destructive/20' : ''}`}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="deliveryPin" className={`text-xs font-medium ${!deliveryPin.trim() ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  PIN Code *
+                </Label>
+                <Input
+                  id="deliveryPin"
+                  type="text"
+                  placeholder="6-digit PIN"
+                  value={deliveryPin}
+                  onChange={(e) => setDeliveryPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  className={`h-10 text-sm ${!deliveryPin.trim() ? 'border-destructive focus:border-destructive ring-destructive/20' : ''}`}
+                />
+              </div>
+            </div>
+            {(!deliveryCity.trim() || !deliveryState.trim() || !deliveryPin.trim()) ? (
+              <p className="text-xs text-destructive flex items-center gap-1.5">
+                <AlertCircle className="w-3 h-3" />
+                Please fill in all delivery address fields to proceed.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Info className="w-3 h-3" />
+                Auto-filled from your profile. You can edit if needed.
+              </p>
+            )}
+          </div>
+
           {/* ASA Code - Auto-filled from localStorage or prop, hidden from UI */}
           {/* ASA code is autofilled from referral link or previous booking and not displayed */}
 
@@ -1683,7 +1741,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
               {preBookingAmount > 0 && (
                 <>
                   <div className="flex justify-between items-center py-2 border-b border-border/30">
-                    <span className="text-sm text-muted-foreground">Platform Fee (2.36%)</span>
+                    <span className="text-sm text-muted-foreground">Platform fee and Taxes (2.36%)</span>
                     <span className="font-medium text-sm text-muted-foreground">₹{((preBookingAmount / 0.9764) - preBookingAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border/30 bg-primary/5 rounded-lg px-3 py-2.5 -mx-1">

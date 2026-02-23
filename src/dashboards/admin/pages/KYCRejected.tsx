@@ -22,8 +22,23 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import type { PendingKYCUser } from '@/app/api/kycApi';
 import { KYCDetails } from '@/app/slices/authSlice';
+
+interface StoredUser {
+  id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+}
+
+interface AuthData {
+  user?: StoredUser;
+}
+
+interface KYCEntry {
+  kycStatus: string;
+  kycDetails: KYCDetails;
+}
 
 interface RejectedKYCUser {
   userId: string;
@@ -56,10 +71,10 @@ export const KYCRejected = () => {
         // Get all users from localStorage
         const usersKey = 'ev_nexus_users';
         const storedUsers = localStorage.getItem(usersKey);
-        let allUsers: any[] = [];
+        let allUsers: StoredUser[] = [];
         if (storedUsers) {
           try {
-            allUsers = JSON.parse(storedUsers);
+            allUsers = JSON.parse(storedUsers) as StoredUser[];
           } catch (e) {
             console.error('Error parsing users:', e);
           }
@@ -67,16 +82,16 @@ export const KYCRejected = () => {
 
         // Get current auth
         const authDataStr = localStorage.getItem('ev_nexus_auth_data');
-        let authData: any = null;
+        let authData: AuthData | null = null;
         if (authDataStr) {
           try {
-            authData = JSON.parse(authDataStr);
+            authData = JSON.parse(authDataStr) as AuthData;
           } catch (e) {
             console.error('Error parsing auth data:', e);
           }
         }
 
-        Object.entries(kycData).forEach(([userId, kyc]: [string, any]) => {
+        Object.entries(kycData).forEach(([userId, kyc]: [string, KYCEntry]) => {
           if (kyc.kycStatus === 'rejected') {
             let userName = 'Unknown User';
             let userEmail = '';
@@ -84,12 +99,12 @@ export const KYCRejected = () => {
 
             // Check current auth
             if (authData?.user?.id === userId) {
-              userName = authData.user.name || 'Unknown User';
-              userEmail = authData.user.email || '';
-              userPhone = authData.user.phone || '';
+              userName = authData.user?.name || 'Unknown User';
+              userEmail = authData.user?.email || '';
+              userPhone = authData.user?.phone || '';
             } else {
               // Check stored users
-              const user = allUsers.find((u: any) => u.id === userId);
+              const user = allUsers.find((u: StoredUser) => u.id === userId);
               if (user) {
                 userName = user.name || 'Unknown User';
                 userEmail = user.email || '';
@@ -228,7 +243,7 @@ export const KYCRejected = () => {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Aadhar</TableHead>
+                <TableHead>Aadhaar</TableHead>
                 <TableHead>PAN</TableHead>
                 <TableHead>Rejection Reason</TableHead>
                 <TableHead>Rejected Date</TableHead>

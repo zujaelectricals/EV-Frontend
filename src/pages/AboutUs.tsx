@@ -37,7 +37,7 @@ export function AboutUs() {
       <StoreNavbar solidBackground />
 
       {/* Hero / Our Story Section - Driving the Future */}
-      <section className="relative pt-24 pb-8 overflow-hidden">
+      <section className="relative pt-44 pb-8 overflow-hidden">
         {/* Left & right background gradient - teal/mint from sides fading to white in center */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -632,7 +632,7 @@ export function AboutUs() {
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Visit Us</h3>
               <p className="text-sm text-gray-600">KUTTIYIDAYIL, ARRATTUVAZHY</p>
-              <p className="text-sm text-gray-600">Alappuzha North, Ambalapuzh A</p>
+              <p className="text-sm text-gray-600">Alappuzha North, Ambalapuzha</p>
               <p className="text-sm text-gray-600">Alappuzha- 688007, Kerala</p>
             </motion.div>
 

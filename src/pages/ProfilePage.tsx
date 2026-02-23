@@ -175,10 +175,7 @@ export function ProfilePage() {
     city: "",
     state: "",
     pincode: "",
-    id_proof_type: "",
-    id_proof_number: "",
   });
-  const [nomineeIdProofDocument, setNomineeIdProofDocument] = useState<File | null>(null);
   const [isEditingNominee, setIsEditingNominee] = useState(false);
 
   // Initialize nominee form data when nominee data is loaded
@@ -195,11 +192,8 @@ export function ProfilePage() {
         city: nomineeData.city || "",
         state: nomineeData.state || "",
         pincode: nomineeData.pincode || "",
-        id_proof_type: nomineeData.id_proof_type || "",
-        id_proof_number: nomineeData.id_proof_number || "",
       });
       setIsEditingNominee(true);
-      setNomineeIdProofDocument(null); // Don't pre-fill file, user needs to re-upload if changing
     } else if (activeTab === "nominee" && !nomineeData) {
       // Reset form when switching to nominee tab and no data exists
       setNomineeFormData({
@@ -212,11 +206,8 @@ export function ProfilePage() {
         city: "",
         state: "",
         pincode: "",
-        id_proof_type: "",
-        id_proof_number: "",
       });
       setIsEditingNominee(false);
-      setNomineeIdProofDocument(null);
     }
   }, [nomineeData, activeTab]);
 
@@ -255,14 +246,6 @@ export function ProfilePage() {
   // Handle nominee form input changes
   const handleNomineeInputChange = (field: string, value: string) => {
     setNomineeFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Handle nominee file change
-  const handleNomineeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setNomineeIdProofDocument(file);
-    }
   };
 
   // Handle profile picture file change
@@ -359,15 +342,6 @@ export function ProfilePage() {
   const handleNomineeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Only require file for new nominees, not when editing
-    if (!isEditingNominee && !nomineeIdProofDocument) {
-      toast.error("Please upload ID proof document");
-      return;
-    }
-    
-    // When editing, file is optional (user can update other fields without re-uploading document)
-    // But if they want to update the document, they need to upload a new one
-    
     try {
       const submitData: {
         full_name: string;
@@ -379,9 +353,6 @@ export function ProfilePage() {
         city: string;
         state: string;
         pincode: string;
-        id_proof_type: string;
-        id_proof_number: string;
-        id_proof_document?: File;
         nomineeId?: number;
       } = {
         full_name: nomineeFormData.full_name,
@@ -393,18 +364,11 @@ export function ProfilePage() {
         city: nomineeFormData.city,
         state: nomineeFormData.state,
         pincode: nomineeFormData.pincode,
-        id_proof_type: nomineeFormData.id_proof_type,
-        id_proof_number: nomineeFormData.id_proof_number,
       };
       
       // Include nominee ID if editing (will use PUT method)
       if (isEditingNominee && nomineeData?.id) {
         submitData.nomineeId = nomineeData.id;
-      }
-      
-      // Only include file if provided (required for new, optional for edit)
-      if (nomineeIdProofDocument) {
-        submitData.id_proof_document = nomineeIdProofDocument;
       }
       
       // Console log the API body
@@ -423,18 +387,7 @@ export function ProfilePage() {
         city: submitData.city,
         state: submitData.state,
         pincode: submitData.pincode,
-        id_proof_type: submitData.id_proof_type,
-        id_proof_number: submitData.id_proof_number,
-        id_proof_document: submitData.id_proof_document 
-          ? `File: ${submitData.id_proof_document.name} (${submitData.id_proof_document.size} bytes, type: ${submitData.id_proof_document.type})` 
-          : 'Not provided (optional when editing)',
       });
-      console.log(`📤 [PROFILE PAGE] ${method} API Body (stringified):`, JSON.stringify({
-        ...submitData,
-        id_proof_document: submitData.id_proof_document 
-          ? `File: ${submitData.id_proof_document.name} (${submitData.id_proof_document.size} bytes, type: ${submitData.id_proof_document.type})` 
-          : 'Not provided',
-      }, null, 2));
       
       await submitNominee(submitData).unwrap();
       
@@ -452,13 +405,7 @@ export function ProfilePage() {
           city: "",
           state: "",
           pincode: "",
-          id_proof_type: "",
-          id_proof_number: "",
         });
-        setNomineeIdProofDocument(null);
-      } else {
-        // When editing, clear the file input but keep form data
-        setNomineeIdProofDocument(null);
       }
       
       // Refetch profile and nominee data to update UI
@@ -883,87 +830,6 @@ export function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* ID Proof Section */}
-                  <div className="space-y-4 pt-4 border-t border-border">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">ID Proof Details</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">ID Proof Type <span className="text-red-500">*</span></label>
-                        <select
-                          value={nomineeFormData.id_proof_type}
-                          onChange={(e) => handleNomineeInputChange("id_proof_type", e.target.value)}
-                          className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm sm:text-base"
-                          required
-                        >
-                          <option value="">Select ID Proof Type</option>
-                          <option value="Aadhar">Aadhar Card</option>
-                          <option value="PAN">PAN Card</option>
-                          <option value="Passport">Passport</option>
-                          <option value="Voter ID">Voter ID</option>
-                          <option value="Driving License">Driving License</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">ID Proof Number <span className="text-red-500">*</span></label>
-                        <input
-                          type="text"
-                          value={nomineeFormData.id_proof_number}
-                          onChange={(e) => handleNomineeInputChange("id_proof_number", e.target.value)}
-                          placeholder="Enter ID proof number"
-                          className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm sm:text-base"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        ID Proof Document 
-                        {!isEditingNominee && <span className="text-red-500">*</span>}
-                        {isEditingNominee && <span className="text-muted-foreground text-xs ml-2">(Optional - upload new document to replace existing)</span>}
-                      </label>
-                      {isEditingNominee && nomineeData?.id_proof_document && (
-                        <div className="mb-2 p-3 bg-muted/50 rounded-md">
-                          <p className="text-xs text-muted-foreground mb-2">Current Document:</p>
-                          <a
-                            href={nomineeData.id_proof_document}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-primary hover:underline"
-                          >
-                            <FileTextIcon className="w-4 h-4" />
-                            View Current Document
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        </div>
-                      )}
-                      <div className="flex flex-col gap-2">
-                        <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex flex-col items-center gap-2">
-                            <Upload className="w-8 h-8 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">
-                              {nomineeIdProofDocument 
-                                ? nomineeIdProofDocument.name 
-                                : isEditingNominee 
-                                  ? "Click to upload new ID proof document (optional)"
-                                  : "Click to upload ID proof document"}
-                            </span>
-                          </div>
-                          <input
-                            type="file"
-                            accept="image/*,.pdf"
-                            onChange={handleNomineeFileChange}
-                            className="hidden"
-                          />
-                        </label>
-                        {nomineeIdProofDocument && (
-                          <p className="text-xs text-muted-foreground">
-                            Selected: {nomineeIdProofDocument.name} ({(nomineeIdProofDocument.size / 1024).toFixed(2)} KB)
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
                       <div className="flex flex-col sm:flex-row gap-3 mt-6">
                         <Button 
                           type="submit" 
@@ -977,44 +843,6 @@ export function ProfilePage() {
                       </div>
                       
                       {/* Display nominee KYC status */}
-                      {rawProfileData?.nominee_exists && rawProfileData?.nominee_kyc_status && (
-                        <div className="mt-4 p-3 rounded-lg border" style={{
-                          backgroundColor: 
-                            rawProfileData.nominee_kyc_status === 'approved' || rawProfileData.nominee_kyc_status === 'verified'
-                              ? 'rgba(34, 197, 94, 0.1)'
-                              : rawProfileData.nominee_kyc_status === 'pending'
-                                ? 'rgba(251, 191, 36, 0.1)'
-                                : rawProfileData.nominee_kyc_status === 'rejected'
-                                  ? 'rgba(239, 68, 68, 0.1)'
-                                  : 'rgba(156, 163, 175, 0.1)',
-                          borderColor:
-                            rawProfileData.nominee_kyc_status === 'approved' || rawProfileData.nominee_kyc_status === 'verified'
-                              ? 'rgba(34, 197, 94, 0.3)'
-                              : rawProfileData.nominee_kyc_status === 'pending'
-                                ? 'rgba(251, 191, 36, 0.3)'
-                                : rawProfileData.nominee_kyc_status === 'rejected'
-                                  ? 'rgba(239, 68, 68, 0.3)'
-                                  : 'rgba(156, 163, 175, 0.3)',
-                        }}>
-                          <p className="text-sm font-medium">
-                            Nominee KYC Status: <span className="capitalize">{rawProfileData.nominee_kyc_status}</span>
-                          </p>
-                          {rawProfileData.nominee_kyc_status === 'pending' && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Your nominee KYC is under review. Please wait for verification.
-                            </p>
-                          )}
-                          {rawProfileData.nominee_kyc_status === 'approved' || rawProfileData.nominee_kyc_status === 'verified' ? (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Your nominee KYC has been verified successfully.
-                            </p>
-                          ) : rawProfileData.nominee_kyc_status === 'rejected' ? (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Your nominee KYC was rejected. Please contact support for more information.
-                            </p>
-                          ) : null}
-                        </div>
-                      )}
                     </form>
                   </CardContent>
                 </Card>

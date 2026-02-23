@@ -3,6 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut, ChevronDown, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { logout, isUserAuthenticated } from '@/app/slices/authSlice';
 import { useLogoutMutation } from '@/app/api/authApi';
@@ -29,6 +37,7 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [profilePicture, setProfilePictureState] = useState<string | null>(null);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -120,6 +129,7 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
   const isActive = (path: string) => location.pathname === path;
 
   return (
+    <>
     <nav 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled || solidBackground
@@ -145,7 +155,7 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
             <div className="relative">
-              <img src="/logo.png" alt="Zuja Electric" className="h-9 md:h-11 w-auto transition-transform duration-300 group-hover:scale-105" />
+              <img src="/Zuja_Logo-removebg-preview.png" alt="Zuja Electric" className="h-14 md:h-16 w-auto transition-transform duration-300 group-hover:scale-105" />
               {!isScrolled && (
                 <div className="absolute -inset-2 bg-primary/5 blur-2xl rounded-full -z-10" />
               )}
@@ -239,20 +249,6 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
                       )}
                     </DropdownMenuItem>
                     
-                    <DropdownMenuItem onClick={() => navigate('/profile?tab=wishlist')} className="rounded-xl focus:bg-primary/5 focus:text-primary transition-colors cursor-pointer py-2.5">
-                      <Heart className="mr-3 h-4 w-4" />
-                      <span className="font-medium text-[13.5px]">Wishlist</span>
-                      {wishlistItems.length > 0 && (
-                        <Badge variant="secondary" className="ml-auto text-[10px] h-5 min-w-[20px] px-1.5">
-                          {wishlistItems.length}
-                        </Badge>
-                      )}
-                    </DropdownMenuItem>
-                    
-                    <DropdownMenuItem onClick={() => navigate('/profile?tab=payments')} className="rounded-xl focus:bg-primary/5 focus:text-primary transition-colors cursor-pointer py-2.5">
-                      <CreditCard className="mr-3 h-4 w-4" />
-                      <span className="font-medium text-[13.5px]">Payments</span>
-                    </DropdownMenuItem>
                   </div>
                   
                   <DropdownMenuSeparator className="bg-border/40" />
@@ -263,7 +259,7 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
                       <span className="font-medium text-[13.5px]">Settings</span>
                     </DropdownMenuItem>
                     
-                    <DropdownMenuItem onClick={handleLogout} className="rounded-xl text-destructive focus:bg-destructive/5 focus:text-destructive transition-colors cursor-pointer py-2.5">
+                    <DropdownMenuItem onClick={() => setShowLogoutDialog(true)} className="rounded-xl text-destructive focus:bg-destructive/5 focus:text-destructive transition-colors cursor-pointer py-2.5">
                       <LogOut className="mr-3 h-4 w-4" />
                       <span className="font-medium text-[13.5px]">Logout</span>
                     </DropdownMenuItem>
@@ -343,7 +339,7 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
                       Orders
                     </Button>
                     <Button
-                      onClick={handleLogout}
+                      onClick={() => { setShowLogoutDialog(true); setIsOpen(false); }}
                       variant="destructive"
                       className="rounded-2xl h-12 shadow-lg shadow-destructive/20"
                     >
@@ -363,5 +359,40 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
         )}
       </AnimatePresence>
     </nav>
+
+    {/* Logout Confirmation Dialog */}
+    <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+      <DialogContent className="sm:max-w-sm rounded-3xl border-border/40 shadow-2xl bg-white/95 backdrop-blur-xl p-8">
+        <DialogHeader className="items-center text-center space-y-3">
+          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10 mb-1">
+            <LogOut className="h-6 w-6 text-destructive" />
+          </div>
+          <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
+            Sign out?
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            Are you sure you want to sign out of your account?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-2">
+          <Button
+            variant="outline"
+            className="flex-1 rounded-2xl h-11 border-border/60 font-semibold"
+            onClick={() => setShowLogoutDialog(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            className="flex-1 rounded-2xl h-11 font-semibold shadow-lg shadow-destructive/20"
+            onClick={() => { setShowLogoutDialog(false); handleLogout(); }}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Yes, sign out
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

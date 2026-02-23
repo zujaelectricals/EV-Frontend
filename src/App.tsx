@@ -44,7 +44,7 @@ import { BinaryTreeView } from './dashboards/distributor/BinaryTreeView';
 import { PairMatchingHistory } from './dashboards/distributor/PairMatchingHistory';
 import { Earnings } from './dashboards/distributor/Earnings';
 import { PayoutHistory } from './dashboards/distributor/PayoutHistory';
-import { OrderHistory } from './dashboards/distributor/OrderHistory';
+// import { OrderHistory } from './dashboards/distributor/OrderHistory';
 import { RoleProtectedRoute } from './components/routes/RoleProtectedRoute';
 import { useAppSelector, useAppDispatch } from './app/hooks';
 import { isUserAuthenticated, setCredentials } from './app/slices/authSlice';
@@ -270,7 +270,7 @@ const AppRoutes = () => {
       <Route path="/distributor/earnings" element={<ProtectedRoute><Earnings /></ProtectedRoute>} />
       <Route path="/distributor/team" element={<ProtectedRoute><TeamPerformance /></ProtectedRoute>} />
       <Route path="/distributor/sales" element={<ProtectedRoute><SalesTracking /></ProtectedRoute>} />
-      <Route path="/distributor/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+      {/* <Route path="/distributor/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} /> */}
       <Route path="/distributor/pool-wallet" element={<ProtectedRoute><PoolMoneyWithdrawal /></ProtectedRoute>} />
       <Route path="/distributor/payouts" element={<ProtectedRoute><PayoutHistory /></ProtectedRoute>} />
       <Route path="/distributor/nominee" element={<ProtectedRoute><NomineeManagement /></ProtectedRoute>} />

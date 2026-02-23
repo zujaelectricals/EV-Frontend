@@ -40,25 +40,25 @@ export const ReferralLink = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">ASA Code</h1>
-          <p className="text-muted-foreground mt-1">Share your ASA code and earn commissions</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">ASA Code</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Share your ASA code and earn commissions</p>
         </div>
         <Button
           variant="ghost"
           size="icon"
           onClick={() => refetch()}
           disabled={isLoading}
-          className="h-8 w-8"
+          className="h-8 w-8 shrink-0"
           title="Refresh"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </Button>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* ASA Code Card */}
         <Card>
           <CardHeader>
@@ -80,10 +80,10 @@ export const ReferralLink = () => {
                   <Input
                     value={referralCode}
                     readOnly
-                    className="font-mono text-xl font-bold text-center tracking-wider"
+                    className="font-mono text-lg sm:text-xl font-bold text-center tracking-wider"
                   />
                 )}
-                <Button onClick={copyReferralCode} size="icon" variant="outline" disabled={referralCode === 'N/A' || isLoading}>
+                <Button onClick={copyReferralCode} size="icon" variant="outline" disabled={referralCode === 'N/A' || isLoading} className="shrink-0">
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>

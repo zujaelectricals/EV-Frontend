@@ -491,7 +491,13 @@ export const TeamPerformance = () => {
                         })}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={member.position === 'left' ? 'default' : 'secondary'}>
+                        <Badge
+                          className={
+                            member.position === 'left'
+                              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0'
+                              : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0'
+                          }
+                        >
                           {member.position === 'left' ? 'RSL' : 'RSR'}
                         </Badge>
                       </TableCell>

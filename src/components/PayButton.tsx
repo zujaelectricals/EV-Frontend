@@ -105,7 +105,7 @@ export function PayButton({
 
       // Payment verified successfully
       if (paymentResult.success) {
-        toast.success('Payment successful!');
+        toast.success('Payment Verified Successfully');
         if (onSuccess) {
           onSuccess(paymentResult);
         }

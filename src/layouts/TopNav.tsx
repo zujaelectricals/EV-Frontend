@@ -1,15 +1,10 @@
 import {
   Bell,
-  Search,
-  Settings,
   LogOut,
   Menu,
   CheckCircle2,
   AlertCircle,
   Info,
-  CreditCard,
-  MapPin,
-  Shield,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -23,7 +18,6 @@ import { clearWallets } from "@/app/slices/walletSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,14 +26,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 interface TopNavProps {
   onMenuClick?: () => void;
@@ -60,8 +56,8 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
   const { user } = useAppSelector((state) => state.auth);
   const isMobile = useIsMobile();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [profilePicture, setProfilePictureState] = useState<string | null>(null);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   // Load profile picture from localStorage or Redux state
   useEffect(() => {
@@ -191,12 +187,8 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
     }
   };
 
-  const handleSettingsNavigate = (path: string) => {
-    setSettingsOpen(false);
-    navigate(path);
-  };
-
   return (
+    <>
     <header className="flex h-16 items-center justify-between border-b border-border bg-card/30 px-3 sm:px-6 backdrop-blur-lg">
       {/* Mobile Menu Button */}
       {isMobile && onMenuClick && (
@@ -210,19 +202,8 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
         </Button>
       )}
 
-      {/* Search */}
-      <div className="flex flex-1 items-center gap-2 sm:gap-4">
-        <div className="relative max-w-md flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={isMobile ? "Search..." : "Search anything..."}
-            className="bg-secondary/50 pl-10 border-border focus:border-primary focus:ring-primary text-sm sm:text-base"
-          />
-        </div>
-      </div>
-
       {/* Actions */}
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 ml-auto">
         {/* Notification bell icon - commented out
         <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
           <PopoverTrigger asChild>
@@ -335,59 +316,6 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
         </Popover>
         */}
 
-        {/* Settings - Hidden on mobile */}
-        {!isMobile && (
-          <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
-            <PopoverTrigger asChild>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-              >
-                <Settings className="h-5 w-5" />
-              </motion.button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-2" align="end" sideOffset={8}>
-              <div className="space-y-1">
-                <button
-                  className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded-md hover:bg-secondary transition-colors cursor-pointer"
-                  onClick={() =>
-                    handleSettingsNavigate("/profile?tab=settings")
-                  }
-                >
-                  <Settings className="h-4 w-4" />
-                  Edit Profile
-                </button>
-                <button
-                  className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded-md hover:bg-secondary transition-colors cursor-pointer"
-                  onClick={() =>
-                    handleSettingsNavigate("/profile?tab=payments")
-                  }
-                >
-                  <CreditCard className="h-4 w-4" />
-                  Payment Methods
-                </button>
-                <button
-                  className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded-md hover:bg-secondary transition-colors cursor-pointer"
-                  onClick={() =>
-                    handleSettingsNavigate("/profile?tab=addresses")
-                  }
-                >
-                  <MapPin className="h-4 w-4" />
-                  Addresses
-                </button>
-                <Separator className="my-1" />
-                <button
-                  className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded-md hover:bg-secondary transition-colors cursor-pointer"
-                  onClick={() => handleSettingsNavigate("/profile?tab=kyc")}
-                >
-                  <Shield className="h-4 w-4" />
-                  KYC Verification
-                </button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        )}
 
         {/* User Menu */}
         <DropdownMenu>
@@ -430,7 +358,7 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={handleLogout}
+              onClick={() => setShowLogoutDialog(true)}
               className="cursor-pointer text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
@@ -440,5 +368,40 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
         </DropdownMenu>
       </div>
     </header>
+
+    {/* Logout Confirmation Dialog */}
+    <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+      <DialogContent className="sm:max-w-sm rounded-2xl border-border shadow-2xl bg-card p-8">
+        <DialogHeader className="items-center text-center space-y-3">
+          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10 mb-1">
+            <LogOut className="h-6 w-6 text-destructive" />
+          </div>
+          <DialogTitle className="text-xl font-bold tracking-tight">
+            Sign out?
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            Are you sure you want to sign out of your account?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-2">
+          <Button
+            variant="outline"
+            className="flex-1 h-11 border-border font-semibold"
+            onClick={() => setShowLogoutDialog(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            className="flex-1 h-11 font-semibold"
+            onClick={() => { setShowLogoutDialog(false); handleLogout(); }}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Yes, sign out
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };

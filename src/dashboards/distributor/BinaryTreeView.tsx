@@ -6,7 +6,6 @@ import {
   TrendingUp,
   Info,
   AlertCircle,
-  RefreshCw,
   Activity,
   User,
   Network,
@@ -73,6 +72,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -550,6 +559,7 @@ export const BinaryTreeView = () => {
   const [selectedPendingNode, setSelectedPendingNode] =
     useState<PendingNode | null>(null);
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
+  const [confirmPositionDialogOpen, setConfirmPositionDialogOpen] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string>("");
   const [selectedSide, setSelectedSide] = useState<"left" | "right">("left");
   const [isParentDropdownOpen, setIsParentDropdownOpen] = useState(false);
@@ -1147,27 +1157,18 @@ export const BinaryTreeView = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Team Network</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Team Network</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             View your referral network and track team performance
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetchStats()}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Revenue Stream Left (RSL) Count"
           value={binaryStats?.leftCount?.toString() || "0"}
@@ -1308,7 +1309,7 @@ export const BinaryTreeView = () => {
             </div>
             <div className="flex justify-end gap-2 pt-4">
               <Button
-                onClick={handlePositionPendingNode}
+                onClick={() => setConfirmPositionDialogOpen(true)}
                 className="w-full sm:w-auto"
               >
                 Position Member
@@ -1318,27 +1319,56 @@ export const BinaryTreeView = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Confirm Position Member Dialog */}
+      <AlertDialog open={confirmPositionDialogOpen} onOpenChange={setConfirmPositionDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Positioning</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to position{" "}
+              <span className="font-semibold text-foreground">{selectedPendingNode?.name}</span>{" "}
+              at the{" "}
+              <span className="font-semibold text-foreground">
+                {selectedSide === "left" ? "RSL" : "RSR"}
+              </span>{" "}
+              position? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmPositionDialogOpen(false);
+                handlePositionPendingNode();
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Team Network Table */}
       <Card className="overflow-hidden border-2 border-pink-500/20 shadow-xl shadow-slate-200/50 bg-gradient-to-b from-white to-slate-50/30">
         <CardHeader className="border-b border-pink-500/20 bg-gradient-to-r from-pink-50/50 to-white pb-6">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div className="flex-1">
-              <CardTitle className="text-xl">Team Network Structure</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Team Network Structure</CardTitle>
               <CardDescription className="mt-1">
                 View and manage your referral network in a structured table
                 format
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleMatchPairs}
                 disabled={isCheckingPairs}
-                className="flex items-center gap-2 border-pink-500/40 hover:bg-pink-500/10 hover:border-pink-500 hover:text-pink-600"
+                className="flex items-center gap-2 border-pink-500/40 hover:bg-pink-500/10 hover:border-pink-500 hover:text-pink-600 text-xs sm:text-sm"
               >
-                <Link2 className="h-4 w-4" />
-                {isCheckingPairs ? "Matching..." : "Match Partner Frameworks"}
+                <Link2 className="h-4 w-4 shrink-0" />
+                <span>{isCheckingPairs ? "Matching..." : "Match Partner Frameworks"}</span>
               </Button>
               {/* <Button
                 variant="outline"
@@ -1354,88 +1384,91 @@ export const BinaryTreeView = () => {
         </CardHeader>
         <CardContent className="pt-6">
           {/* Server-side Filters */}
-          <div className="flex flex-wrap items-center gap-4 mb-6 p-4 rounded-xl bg-gradient-to-r from-pink-50/60 to-slate-50/60 border border-pink-500/15">
-            <Select
-              value={sideFilter}
-              onValueChange={(value: 'left' | 'right' | 'both') => {
-                setSideFilter(value);
-                setLeftPage(1);
-                setRightPage(1);
-                setBothPage(1);
-                // Clear expanded nodes when filter changes
-                setExpandedNodes(new Set());
-                setLoadedChildren(new Map());
-              }}
-            >
-              <SelectTrigger className="w-[140px] border-pink-500/25 bg-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="both">Both Sides</SelectItem>
-                <SelectItem value="left">Left (RSL)</SelectItem>
-                <SelectItem value="right">Right (RSR)</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(value) => {
-                setPageSize(Number(value));
-                setLeftPage(1);
-                setRightPage(1);
-                setBothPage(1);
-                // Clear expanded nodes when page size changes
-                setExpandedNodes(new Set());
-                setLoadedChildren(new Map());
-              }}
-            >
-              <SelectTrigger className="w-[100px] border-pink-500/25 bg-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="75">75</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap text-foreground">Min Depth:</label>
-              <Input
-                type="number"
-                min="0"
-                value={minDepth ?? ''}
-                onChange={(e) => {
-                  const value = e.target.value.trim();
-                  setMinDepth(value === '' ? undefined : Number(value));
-                  // Clear expanded nodes when depth filter changes
+          <div className="flex flex-col gap-3 mb-6 p-4 rounded-xl bg-gradient-to-r from-pink-50/60 to-slate-50/60 border border-pink-500/15">
+            {/* Top row: dropdowns and depth filters */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Select
+                value={sideFilter}
+                onValueChange={(value: 'left' | 'right' | 'both') => {
+                  setSideFilter(value);
+                  setLeftPage(1);
+                  setRightPage(1);
+                  setBothPage(1);
+                  // Clear expanded nodes when filter changes
                   setExpandedNodes(new Set());
                   setLoadedChildren(new Map());
                 }}
-                placeholder="0"
-                className="w-[80px] border-pink-500/25"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap text-foreground">Max Depth:</label>
-              <Input
-                type="number"
-                min="1"
-                value={maxDepth ?? ''}
-                onChange={(e) => {
-                  const value = e.target.value.trim();
-                  setMaxDepth(value === '' ? undefined : Number(value));
-                  // Clear expanded nodes when depth filter changes
+              >
+                <SelectTrigger className="w-[130px] border-pink-500/25 bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="both">Both Sides</SelectItem>
+                  <SelectItem value="left">Left (RSL)</SelectItem>
+                  <SelectItem value="right">Right (RSR)</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(value) => {
+                  setPageSize(Number(value));
+                  setLeftPage(1);
+                  setRightPage(1);
+                  setBothPage(1);
+                  // Clear expanded nodes when page size changes
                   setExpandedNodes(new Set());
                   setLoadedChildren(new Map());
                 }}
-                placeholder="2"
-                className="w-[80px] border-pink-500/25"
-              />
+              >
+                <SelectTrigger className="w-[90px] border-pink-500/25 bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="75">75</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium whitespace-nowrap text-foreground">Min Depth:</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={minDepth ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    setMinDepth(value === '' ? undefined : Number(value));
+                    // Clear expanded nodes when depth filter changes
+                    setExpandedNodes(new Set());
+                    setLoadedChildren(new Map());
+                  }}
+                  placeholder="0"
+                  className="w-[70px] border-pink-500/25"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium whitespace-nowrap text-foreground">Max Depth:</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={maxDepth ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    setMaxDepth(value === '' ? undefined : Number(value));
+                    // Clear expanded nodes when depth filter changes
+                    setExpandedNodes(new Set());
+                    setLoadedChildren(new Map());
+                  }}
+                  placeholder="2"
+                  className="w-[70px] border-pink-500/25"
+                />
+              </div>
             </div>
             
-            {/* Search Input - Right aligned */}
-            <div className="flex items-center gap-2 ml-auto">
-              <div className="relative">
+            {/* Search row - full width on mobile */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
@@ -1450,7 +1483,7 @@ export const BinaryTreeView = () => {
                     }
                   }}
                   placeholder="Search members..."
-                  className="w-[200px] pl-9 pr-8 border-pink-500/25 bg-white"
+                  className="w-full pl-9 pr-8 border-pink-500/25 bg-white"
                 />
                 {searchInput && (
                   <button
@@ -1475,7 +1508,7 @@ export const BinaryTreeView = () => {
                   setExpandedNodes(new Set());
                   setLoadedChildren(new Map());
                 }}
-                className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:from-pink-600 hover:to-rose-600"
+                className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:from-pink-600 hover:to-rose-600 shrink-0"
               >
                 <Search className="h-4 w-4 mr-1" />
                 Search
@@ -1486,10 +1519,10 @@ export const BinaryTreeView = () => {
           {/* Search Results Section - Show when search is active */}
           {searchQuery && searchResults.length > 0 && (
             <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Search className="h-5 w-5 text-pink-500" />
-                  <h3 className="text-lg font-semibold text-foreground">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Search className="h-5 w-5 text-pink-500 shrink-0" />
+                  <h3 className="text-base sm:text-lg font-semibold text-foreground">
                     Search Results for "{treeStructure?.search_query || searchQuery}"
                   </h3>
                   <Badge variant="outline" className="border-pink-500/40 bg-pink-50/50 text-pink-600">
@@ -1505,23 +1538,23 @@ export const BinaryTreeView = () => {
                     setExpandedNodes(new Set());
                     setLoadedChildren(new Map());
                   }}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground self-start sm:self-auto"
                 >
                   <X className="h-4 w-4 mr-1" />
                   Clear Search
                 </Button>
               </div>
-              <div className="rounded-xl overflow-hidden border-2 border-pink-500/25 shadow-inner bg-gradient-to-r from-pink-50/50 to-white">
-                <Table>
+              <div className="rounded-xl overflow-hidden overflow-x-auto border-2 border-pink-500/25 shadow-inner bg-gradient-to-r from-pink-50/50 to-white">
+                <Table className="min-w-[650px]">
                   <TableHeader>
                     <TableRow className="border-b-2 border-pink-500/30 hover:bg-transparent">
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Name</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Level</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Direct Parent</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">ASA Code</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Position</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Joined Date</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground">Status</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Name</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Level</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Direct Parent</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">ASA Code</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Position</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Joined Date</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1620,16 +1653,16 @@ export const BinaryTreeView = () => {
           {/* Team Members Table */}
           {displayMembers.length > 0 ? (
             <>
-              <div className="rounded-xl overflow-hidden border-2 border-pink-500/15 shadow-inner bg-white">
-                <Table>
+              <div className="rounded-xl overflow-hidden border-2 border-pink-500/15 shadow-inner bg-white overflow-x-auto">
+                <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow className="border-b-2 border-pink-500/30 hover:bg-transparent">
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Name</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Direct Parent</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">ASA Code</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Position</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Joined Date</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground">Status</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">Name</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">Direct Parent</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">ASA Code</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">Position</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">Joined Date</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1742,7 +1775,7 @@ export const BinaryTreeView = () => {
               {/* Pagination Controls - Single unified control */}
             {(leftPagination || rightPagination) && (
               <div className="mt-6 pt-4 border-t border-pink-500/15">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="text-sm text-muted-foreground">
                     {sideFilter === 'both' && leftPagination && rightPagination && (
                       <>
@@ -1831,13 +1864,6 @@ export const BinaryTreeView = () => {
             )}
 
               {/* Show pagination info when no pagination is available (backward compatibility) */}
-              {!leftPagination && !rightPagination && treeStructure && (
-                <div className="mt-6 pt-4 border-t border-pink-500/15">
-                  <div className="text-sm text-muted-foreground text-center py-2 rounded-lg bg-slate-50/80">
-                    Showing all {displayMembers.length} members (pagination not enabled)
-                  </div>
-                </div>
-              )}
             </>
           ) : (
             <div className="text-center py-12 text-muted-foreground">

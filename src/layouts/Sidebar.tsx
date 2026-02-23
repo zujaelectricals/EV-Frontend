@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -30,7 +30,6 @@ import {
   Store,
   Shield,
   ScrollText,
-  ChevronLeft,
   UserCheck,
 } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
@@ -61,7 +60,7 @@ const distributorMenuItems: MenuItem[] = [
   //{ label: 'Earnings & Commissions', icon: DollarSign, path: '/distributor/earnings' },
   { label: 'Team Performance', icon: Users, path: '/distributor/team' },
   //{ label: 'Sales Tracking', icon: TrendingUp, path: '/distributor/sales' },
-  { label: 'Order History', icon: Package, path: '/distributor/orders' },
+  //{ label: 'Order History', icon: Package, path: '/distributor/orders' },
   //{ label: 'Reserve Wallet', icon: Landmark, path: '/distributor/pool-wallet' },
   { label: 'Payout History', icon: ClipboardList, path: '/distributor/payouts' },
   //{ label: 'Milestone Tracker', icon: Award, path: '/distributor/milestones' },
@@ -100,7 +99,6 @@ interface SidebarProps {
 export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
   const location = useLocation();
   const { user } = useAppSelector((state) => state.auth);
-  const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
 
   // Check if user is a verified distributor
@@ -181,21 +179,19 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
             isActive ? 'text-pink-500' : 'text-muted-foreground group-hover:text-pink-500'
           )}
         />
-        {!collapsed && (
-          <motion.span
+        <motion.span
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="truncate flex-1"
           >
             {item.label}
           </motion.span>
-        )}
-        {showEligibleBadge && !collapsed && (
+        {showEligibleBadge && (
           <span className="px-2 py-0.5 text-xs bg-success/20 text-success rounded-full">
             Eligible
           </span>
         )}
-        {showNotEligibleBadge && !collapsed && (
+        {showNotEligibleBadge && (
           <span className="px-2 py-0.5 text-xs bg-warning/20 text-warning rounded-full">
             Not Eligible
           </span>
@@ -237,20 +233,12 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
           className="flex items-center gap-2"
           onClick={() => isMobile && onOpenChange?.(false)}
         >
-          <img src="/logo.png" alt="Zuja Electric" className={collapsed ? "h-8 w-auto" : "h-10 w-auto"} />
+          <img src="/logo.png" alt="Zuja Electric" className="h-10 w-auto" />
         </Link>
-        {!isMobile && (
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-pink-500/10 hover:text-pink-600 transition-colors"
-          >
-            <ChevronLeft className={cn('h-5 w-5 transition-transform', collapsed && 'rotate-180')} />
-          </button>
-        )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-pink-50/80 via-pink-50/90 to-rose-50/80">
+      <nav className="flex-1 overflow-y-hidden p-4 bg-gradient-to-b from-pink-50/80 via-pink-50/90 to-rose-50/80">
         <div className="space-y-1">
           {getMenuItems().map((item) => {
             const menuItem = renderMenuItem(item);
@@ -264,7 +252,7 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
       </nav>
 
       {/* User Info */}
-      {!collapsed && user && (
+      {user && (
         <div className="border-t border-pink-500/25 p-4 bg-gradient-to-b from-transparent to-rose-50/50">
           <div className="flex items-center gap-3 rounded-xl p-3 bg-white/90 border border-pink-500/20 shadow-md shadow-slate-200/50 ring-1 ring-[#18b3b2]/10">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-pink-500/20 to-rose-500/20">
@@ -306,7 +294,7 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
         'relative flex h-screen flex-col border-r border-pink-500/30 transition-all duration-300',
         'bg-gradient-to-b from-[#ccfbf1] via-[#f0fdfa] to-rose-50',
         'shadow-[4px_0_28px_-4px_rgba(24,179,178,0.18)]',
-        collapsed ? 'w-16' : 'w-64'
+        'w-64'
       )}
     >
       {sidebarContent}

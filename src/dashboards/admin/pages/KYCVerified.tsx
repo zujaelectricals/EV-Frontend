@@ -24,6 +24,26 @@ import {
 import { Label } from '@/components/ui/label';
 import { KYCDetails } from '@/app/slices/authSlice';
 
+interface StoredUser {
+  id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+}
+
+interface AuthData {
+  user?: StoredUser;
+}
+
+interface AccountEntry {
+  user?: StoredUser;
+}
+
+interface KYCEntry {
+  kycStatus: string;
+  kycDetails: KYCDetails;
+}
+
 interface VerifiedKYCUser {
   userId: string;
   name: string;
@@ -55,10 +75,10 @@ export const KYCVerified = () => {
         // Get all users from localStorage
         const usersKey = 'ev_nexus_users';
         const storedUsers = localStorage.getItem(usersKey);
-        let allUsers: any[] = [];
+        let allUsers: StoredUser[] = [];
         if (storedUsers) {
           try {
-            allUsers = JSON.parse(storedUsers);
+            allUsers = JSON.parse(storedUsers) as StoredUser[];
           } catch (e) {
             console.error('Error parsing users:', e);
           }
@@ -66,10 +86,10 @@ export const KYCVerified = () => {
 
         // Get current auth
         const authDataStr = localStorage.getItem('ev_nexus_auth_data');
-        let authData: any = null;
+        let authData: AuthData | null = null;
         if (authDataStr) {
           try {
-            authData = JSON.parse(authDataStr);
+            authData = JSON.parse(authDataStr) as AuthData;
           } catch (e) {
             console.error('Error parsing auth data:', e);
           }
@@ -78,16 +98,16 @@ export const KYCVerified = () => {
         // Check multiple accounts
         const multipleAccountsKey = 'ev_nexus_multiple_accounts';
         const multipleAccountsStr = localStorage.getItem(multipleAccountsKey);
-        let multipleAccounts: any[] = [];
+        let multipleAccounts: AccountEntry[] = [];
         if (multipleAccountsStr) {
           try {
-            multipleAccounts = JSON.parse(multipleAccountsStr);
+            multipleAccounts = JSON.parse(multipleAccountsStr) as AccountEntry[];
           } catch (e) {
             console.error('Error parsing multiple accounts:', e);
           }
         }
 
-        Object.entries(kycData).forEach(([userId, kyc]: [string, any]) => {
+        Object.entries(kycData).forEach(([userId, kyc]: [string, KYCEntry]) => {
           if (kyc.kycStatus === 'verified') {
             let userName = 'Unknown User';
             let userEmail = '';
@@ -95,19 +115,19 @@ export const KYCVerified = () => {
 
             // Check current auth
             if (authData?.user?.id === userId) {
-              userName = authData.user.name || 'Unknown User';
-              userEmail = authData.user.email || '';
-              userPhone = authData.user.phone || '';
+              userName = authData.user?.name || 'Unknown User';
+              userEmail = authData.user?.email || '';
+              userPhone = authData.user?.phone || '';
             } else {
               // Check stored users
-              const user = allUsers.find((u: any) => u.id === userId);
+              const user = allUsers.find((u: StoredUser) => u.id === userId);
               if (user) {
                 userName = user.name || 'Unknown User';
                 userEmail = user.email || '';
                 userPhone = user.phone || '';
               } else {
                 // Check multiple accounts
-                const account = multipleAccounts.find((acc: any) => acc.user?.id === userId);
+                const account = multipleAccounts.find((acc: AccountEntry) => acc.user?.id === userId);
                 if (account?.user) {
                   userName = account.user.name || 'Unknown User';
                   userEmail = account.user.email || '';
@@ -268,7 +288,7 @@ export const KYCVerified = () => {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Aadhar</TableHead>
+                  <TableHead>Aadhaar</TableHead>
                   <TableHead>PAN</TableHead>
                   <TableHead>Verified Date</TableHead>
                   <TableHead>Verified By</TableHead>
@@ -362,7 +382,7 @@ export const KYCVerified = () => {
                 </div>
                 {viewingUser.kycDetails?.aadharNumber && (
                   <div>
-                    <Label className="text-xs text-muted-foreground">Aadhar Number</Label>
+                    <Label className="text-xs text-muted-foreground">Aadhaar Number</Label>
                     <p className="font-medium">{viewingUser.kycDetails.aadharNumber}</p>
                   </div>
                 )}

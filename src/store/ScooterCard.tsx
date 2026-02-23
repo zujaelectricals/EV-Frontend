@@ -1,11 +1,8 @@
 import { motion } from "framer-motion";
-import { Heart, Star, ArrowUpRight } from "lucide-react";
+import { Star, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useAppDispatch, useAppSelector } from "@/app/hooks";
-import { addToWishlist, removeFromWishlist } from "@/app/slices/wishlistSlice";
-import { toast } from "sonner";
 import { VehicleGroup, VehicleVariant } from "@/app/api/inventoryApi";
 
 export interface Scooter {
@@ -53,10 +50,7 @@ interface ScooterCardProps {
 }
 
 export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
-  const isFavorited = wishlistItems.some((item) => item.id === scooter.id);
 
   const discount = scooter.originalPrice
     ? Math.round(((scooter.originalPrice - scooter.price) / scooter.originalPrice) * 100)
@@ -98,29 +92,6 @@ export function ScooterCard({ scooter, index = 0 }: ScooterCardProps) {
               (e.target as HTMLImageElement).src = "/placeholder.svg";
             }}
           />
-
-          {/* Favorite Icon */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (isFavorited) {
-                dispatch(removeFromWishlist(scooter.id));
-                toast.success("Removed from wishlist");
-              } else {
-                dispatch(addToWishlist(scooter));
-                toast.success("Added to wishlist");
-              }
-            }}
-            className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-slate-200/60 shadow-sm hover:scale-110 hover:bg-white transition-all duration-200"
-          >
-            <Heart
-              className={cn(
-                "w-4 h-4 transition-colors",
-                isFavorited ? "fill-destructive text-destructive" : "text-slate-400 hover:text-slate-600",
-              )}
-            />
-          </button>
 
           {/* Badges */}
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">

@@ -64,8 +64,9 @@ export const StaffKYCVerification = () => {
       }).unwrap();
       toast.success('KYC approved successfully');
       refetch();
-    } catch (error: any) {
-      toast.error(error?.data || 'Failed to approve KYC');
+    } catch (error: unknown) {
+      const err = error as { data?: string };
+      toast.error(err?.data || 'Failed to approve KYC');
     }
   };
 
@@ -87,8 +88,9 @@ export const StaffKYCVerification = () => {
         setRejectingUser(null);
         setRejectionReason('');
         refetch();
-      } catch (error: any) {
-        toast.error(error?.data || 'Failed to reject KYC');
+      } catch (error: unknown) {
+        const err = error as { data?: string };
+        toast.error(err?.data || 'Failed to reject KYC');
       }
     }
   };
@@ -196,7 +198,7 @@ export const StaffKYCVerification = () => {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>Aadhar</TableHead>
+                  <TableHead>Aadhaar</TableHead>
                   <TableHead>PAN</TableHead>
                   <TableHead>Submitted Date</TableHead>
                   <TableHead>Actions</TableHead>
@@ -313,7 +315,7 @@ export const StaffKYCVerification = () => {
                     )}
                     {viewingUser.kycDetails?.aadharNumber && (
                       <div>
-                        <Label className="text-xs text-muted-foreground">Aadhar Number</Label>
+                        <Label className="text-xs text-muted-foreground">Aadhaar Number</Label>
                         <p className="font-medium">{viewingUser.kycDetails.aadharNumber}</p>
                       </div>
                     )}

@@ -87,7 +87,7 @@ export function Gallery() {
       <StoreNavbar solidBackground />
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-16 overflow-hidden">
+      <section className="relative pt-44 pb-16 overflow-hidden">
         {/* Curved gradient background */}
         <div 
           className="absolute inset-0"

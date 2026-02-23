@@ -81,11 +81,18 @@ export const AdminLoginPage = () => {
         const error = err as { data?: { message?: string; detail?: string; error?: string } | string | string[] };
         // Handle array response (e.g., ["User does not have admin/staff privileges"])
         if (Array.isArray(error.data)) {
-          errorMessage = error.data[0] || errorMessage;
+          const rawMessage = error.data[0] || errorMessage;
+          errorMessage = rawMessage.toLowerCase().includes('user not found')
+            ? 'You have to Register First'
+            : rawMessage;
         } else if (typeof error.data === 'string') {
-          errorMessage = error.data;
+          errorMessage = error.data.toLowerCase().includes('user not found')
+            ? 'You have to Register First'
+            : error.data;
         } else if (error.data?.message) {
-          errorMessage = error.data.message;
+          errorMessage = error.data.message.toLowerCase().includes('user not found')
+            ? 'You have to Register First'
+            : error.data.message;
         } else if (error.data?.detail) {
           errorMessage = error.data.detail;
         } else if (error.data?.error) {

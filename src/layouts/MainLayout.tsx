@@ -52,10 +52,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   }, [user?.id, dispatch]);
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       <Sidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
       <div 
-        className="flex flex-1 flex-col w-full transition-all duration-300"
+        className="flex flex-1 flex-col min-h-0 w-full transition-all duration-300"
         style={isAdminLayout ? { marginLeft: adminSidebarCollapsed ? '64px' : '288px' } : undefined}
       >
         <TopNav onMenuClick={() => setSidebarOpen(true)} />
@@ -63,7 +63,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex-1 overflow-auto p-3 sm:p-6"
+          className="flex-1 overflow-auto p-3 pt-6 sm:p-6 sm:pt-10"
         >
           {children}
         </motion.main>

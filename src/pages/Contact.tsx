@@ -10,7 +10,7 @@ export function Contact() {
     {
       icon: MapPin,
       title: 'Visit Us',
-      lines: ['KUTTIYIDAYIL, ARRATTUVAZHY', 'Alappuzha North, Ambalapuzh A', 'Alappuzha- 688007, Kerala'],
+      lines: ['KUTTIYIDAYIL, ARRATTUVAZHY', 'Alappuzha North, Ambalapuzha', 'Alappuzha- 688007, Kerala'],
     },
     {
       icon: Phone,
@@ -44,7 +44,7 @@ export function Contact() {
       <StoreNavbar solidBackground />
 
       {/* Hero Section - "Let's Start a Conversation" */}
-      <section className="relative pt-24 pb-16 overflow-hidden">
+      <section className="relative pt-44 pb-16 overflow-hidden">
         {/* Curved gradient background - positioned below navbar */}
         <div 
           className="absolute inset-0"
@@ -238,7 +238,7 @@ export function Contact() {
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">Our Showroom</h3>
                   <p className="text-gray-600">KUTTIYIDAYIL, ARRATTUVAZHY</p>
-                  <p className="text-gray-600">Alappuzha North, Ambalapuzh A</p>
+                  <p className="text-gray-600">Alappuzha North, Ambalapuzha</p>
                   <p className="text-gray-600">Alappuzha- 688007, Kerala</p>
                 </div>
               </div>
