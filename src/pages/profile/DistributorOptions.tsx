@@ -33,9 +33,9 @@ export function DistributorOptions() {
       title: 'Team Network',
       description: 'View your referral network and track team performance',
       icon: GitBranch,
-      action: () => window.location.href = '/distributor/binary-tree',
+      action: () => window.location.href = '/distributor/team-network',
       actionLabel: 'View Tree',
-      value: `${distributorInfo?.totalPairs || 0} pairs`,
+      value: `${Math.min(distributorInfo?.leftCount || 0, distributorInfo?.rightCount || 0)} pairs`,
     },
     {
       id: 'earnings',
@@ -72,15 +72,6 @@ export function DistributorOptions() {
       action: () => window.location.href = '/distributor/nominee',
       actionLabel: 'Manage Nominee',
       value: distributorInfo?.nominee ? 'Added' : 'Not Added',
-    },
-    {
-      id: 'payouts',
-      title: 'Payout History',
-      description: 'View your payout requests and history',
-      icon: DollarSign,
-      action: () => window.location.href = '/distributor/payouts',
-      actionLabel: 'View History',
-      value: 'View Details',
     },
   ];
 

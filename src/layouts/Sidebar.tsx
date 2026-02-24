@@ -55,7 +55,7 @@ const userMenuItems: MenuItem[] = [
 const distributorMenuItems: MenuItem[] = [
   { label: 'ASA(Authorized Sales Associate) Dashboard', icon: LayoutDashboard, path: '/distributor' },
   { label: 'ASA Link', icon: LinkIcon, path: '/distributor/referral' },
-  { label: 'Team Network', icon: GitBranch, path: '/distributor/binary-tree' },
+  { label: 'Team Network', icon: GitBranch, path: '/distributor/team-network' },
   //{ label: 'Team Matching History', icon: History, path: '/distributor/pair-history' },
   //{ label: 'Earnings & Commissions', icon: DollarSign, path: '/distributor/earnings' },
   { label: 'Team Performance', icon: Users, path: '/distributor/team' },

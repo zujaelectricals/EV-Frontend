@@ -123,7 +123,7 @@ export const TeamPerformance = () => {
   // When there are no team members (same as Team Network empty state), redirect to Team Network
   const hasTeamMembers = ((binaryStats?.leftCount ?? 0) + (binaryStats?.rightCount ?? 0)) > 0;
   if (binaryStats !== undefined && !hasTeamMembers) {
-    return <Navigate to="/distributor/binary-tree" replace />;
+    return <Navigate to="/distributor/team-network" replace />;
   }
 
   // Calculate metrics

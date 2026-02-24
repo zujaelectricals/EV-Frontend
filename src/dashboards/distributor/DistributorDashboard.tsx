@@ -138,7 +138,7 @@ export const DistributorDashboard = () => {
         transition={{ duration: 0.4, delay: 0.2 }}
         className="grid md:grid-cols-2 lg:grid-cols-2 gap-4"
       >
-        <Link to="/distributor/binary-tree">
+        <Link to="/distributor/team-network">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}

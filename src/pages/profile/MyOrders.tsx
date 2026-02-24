@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -635,15 +634,6 @@ export function MyOrders() {
                           ₹{(booking.totalAmount || 0).toLocaleString()}
                         </span>
                       </div>
-                      {booking.paymentDueDate && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          <span>Due Date:</span>
-                          <span className="font-medium text-foreground">
-                            {formatDisplayDate(booking.paymentDueDate)}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -708,16 +698,6 @@ export function MyOrders() {
                           ₹{(booking.remainingAmount || 0).toLocaleString()}
                         </span>
                       </div>
-
-                      {/* Progress Bar */}
-                      {booking.totalAmount > 0 && (
-                        <div className="pt-2">
-                          <Progress 
-                            value={((booking.totalPaid || booking.preBookingAmount || 0) / booking.totalAmount) * 100} 
-                            className="h-2 bg-muted"
-                          />
-                        </div>
-                      )}
                     </div>
                   </div>
 

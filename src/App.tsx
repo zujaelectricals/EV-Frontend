@@ -265,7 +265,7 @@ const AppRoutes = () => {
       <Route path="/redemption" element={<ProtectedRoute><RedemptionShop /></ProtectedRoute>} />
       <Route path="/distributor" element={<ProtectedRoute><DistributorDashboard /></ProtectedRoute>} />
       <Route path="/distributor/referral" element={<ProtectedRoute><ReferralLink /></ProtectedRoute>} />
-      <Route path="/distributor/binary-tree" element={<ProtectedRoute><BinaryTreeView /></ProtectedRoute>} />
+      <Route path="/distributor/team-network" element={<ProtectedRoute><BinaryTreeView /></ProtectedRoute>} />
       <Route path="/distributor/pair-history" element={<ProtectedRoute><PairMatchingHistory /></ProtectedRoute>} />
       <Route path="/distributor/earnings" element={<ProtectedRoute><Earnings /></ProtectedRoute>} />
       <Route path="/distributor/team" element={<ProtectedRoute><TeamPerformance /></ProtectedRoute>} />
