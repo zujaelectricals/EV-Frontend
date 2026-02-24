@@ -519,6 +519,17 @@ export const LoginPage = () => {
         newErrors.pincode = 'Pincode is required';
       } else if (!/^[0-9]{6}$/.test(signupData.pincode)) {
         newErrors.pincode = 'Pincode must be 6 digits';
+      } else if (!/^[1-9]/.test(signupData.pincode)) {
+        newErrors.pincode = 'Indian pincode cannot start with 0';
+      } else if (/^(\d)\1{5}$/.test(signupData.pincode)) {
+        // All same digits: 111111, 222222, etc.
+        newErrors.pincode = 'Please enter a valid Indian pincode';
+      } else if (
+        signupData.pincode === '123456' ||
+        signupData.pincode === '654321' ||
+        /^(012345|123456|234567|345678|456789|567890|098765|987654|876543|765432|654321|543210)$/.test(signupData.pincode)
+      ) {
+        newErrors.pincode = 'Please enter a valid Indian pincode';
       }
     }
 

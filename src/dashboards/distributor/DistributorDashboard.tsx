@@ -135,7 +135,7 @@ export const DistributorDashboard = () => {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="grid md:grid-cols-2 lg:grid-cols-2 gap-4"
+        className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl"
       >
         <Link to="/distributor/team-network">
           <motion.div
@@ -157,31 +157,11 @@ export const DistributorDashboard = () => {
           </motion.div>
         </Link>
 
-        <Link to="/distributor/payouts">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            whileHover={{ scale: 1.02, y: -6 }}
-            className="group relative flex items-center gap-4 rounded-2xl border-2 border-pink-400/20 bg-gradient-to-br from-white to-pink-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-rose-500/40 hover:shadow-xl hover:shadow-pink-500/15"
-          >
-            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-pink-500 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="rounded-xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 p-4">
-              <TrendingUp className="h-6 w-6 text-pink-600" />
-            </div>
-            {/* <div className="flex-1 min-w-0">
-              <p className="font-bold text-foreground">Payouts</p>
-              <p className="text-sm text-muted-foreground">View history</p>
-            </div> */}
-            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-rose-500" />
-          </motion.div>
-        </Link>
-
         <Link to="/distributor/sales">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.3 }}
             whileHover={{ scale: 1.02, y: -6 }}
             className="group relative flex items-center gap-4 rounded-2xl border-2 border-sky-400/20 bg-gradient-to-br from-white to-sky-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-sky-400/40 hover:shadow-xl hover:shadow-sky-500/15"
           >

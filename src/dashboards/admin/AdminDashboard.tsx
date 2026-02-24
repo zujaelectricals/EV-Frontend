@@ -6,14 +6,12 @@ import {
   Car,
   DollarSign,
   Activity,
-  BarChart3,
   PieChart,
   Target,
   Shield,
   Zap,
   ArrowUpRight,
   ArrowDownRight,
-  ArrowRight,
   ShoppingCart,
   CheckCircle,
   Clock,
@@ -44,7 +42,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 export const AdminDashboard = () => {
   const { data: dashboardData, isLoading, isError } = useGetAdminDashboardQuery();
-  const userType: 'combined' = 'combined';
+  const userType = 'combined' as const;
   
   // Feature flags to show/hide sections
   const showPreBookings = false;
@@ -116,92 +114,7 @@ export const AdminDashboard = () => {
       ]
     : [];
 
-  const staffPerformance = dashboardData?.staff_performance
-    ? dashboardData.staff_performance.map((staff) => ({
-        name: staff.name,
-        value: staff.achievement,
-      }))
-    : [];
 
-  const getFunnelData = (type: 'normal_users' | 'staff_users' | 'combined') => {
-    if (!dashboardData?.sales_funnel) return [];
-    
-    if (type === 'combined') {
-      // Combine both user types
-      const normal = dashboardData.sales_funnel.normal_users;
-      const staff = dashboardData.sales_funnel.staff_users;
-      return normal.map((stage, index) => {
-        const staffStage = staff[index] || { count: 0, percentage: 0, drop_off: null };
-        return {
-          name: stage.stage,
-          value: stage.count + staffStage.count,
-          percentage: ((stage.count + staffStage.count) / (normal[0]?.count || 1)) * 100,
-          drop_off: stage.drop_off,
-          fill:
-            index === 0
-              ? "hsl(221 83% 53%)"
-              : index === 1
-              ? "hsl(199 89% 48%)"
-              : index === 2
-              ? "hsl(38 92% 50%)"
-              : index === 3
-              ? "hsl(142 76% 36%)"
-              : "hsl(0 84% 60%)",
-        };
-      });
-    } else {
-      return dashboardData.sales_funnel[type].map((stage, index) => ({
-        name: stage.stage,
-        value: stage.count,
-        percentage: stage.percentage,
-        drop_off: stage.drop_off,
-        fill:
-          index === 0
-            ? "hsl(221 83% 53%)"
-            : index === 1
-            ? "hsl(199 89% 48%)"
-            : index === 2
-            ? "hsl(38 92% 50%)"
-            : index === 3
-            ? "hsl(142 76% 36%)"
-            : "hsl(0 84% 60%)",
-      }));
-    }
-  };
-
-  const funnelData = getFunnelData(userType);
-
-  const getConversionRates = (type: 'normal_users' | 'staff_users' | 'combined') => {
-    if (!dashboardData?.conversion_rates) return [];
-    
-    if (type === 'combined') {
-      // Combine both user types - average the rates
-      const normal = dashboardData.conversion_rates.normal_users;
-      const staff = dashboardData.conversion_rates.staff_users;
-      return normal.map((rate, index) => {
-        const staffRate = staff[index];
-        const combinedRate = staffRate ? (rate.rate + staffRate.rate) / 2 : rate.rate;
-        const combinedChange = staffRate ? (rate.change + staffRate.change) / 2 : rate.change;
-        return {
-          stage: `${rate.from} → ${rate.to}`,
-          rate: combinedRate,
-          change: combinedChange,
-          trend: combinedChange >= 0 ? 'up' : 'down' as 'up' | 'down',
-          converted_count: rate.converted_count + (staffRate?.converted_count || 0),
-        };
-      });
-    } else {
-      return dashboardData.conversion_rates[type].map((rate) => ({
-        stage: `${rate.from} → ${rate.to}`,
-        rate: rate.rate,
-        change: rate.change,
-        trend: rate.trend,
-        converted_count: rate.converted_count,
-      }));
-    }
-  };
-
-  const conversionRates = getConversionRates(userType);
 
   const getBuyerGrowthData = (type: 'normal_users' | 'staff_users' | 'combined') => {
     if (!dashboardData?.buyer_growth_trend) return [];
@@ -308,10 +221,11 @@ export const AdminDashboard = () => {
       return dashboardData.kpi_cards;
     } else {
       // Derive user-type-specific KPIs from other sections
-      const segments = dashboardData.buyer_segments?.[userType];
-      const funnel = dashboardData.sales_funnel?.[userType];
+      const userTypeKey = userType as 'normal_users' | 'staff_users';
+      const segments = dashboardData.buyer_segments?.[userTypeKey];
+      const funnel = dashboardData.sales_funnel?.[userTypeKey];
       
-      if (!segments || !funnel) return dashboardData.kpi_cards;
+      if (!segments || !funnel || !Array.isArray(funnel)) return dashboardData.kpi_cards;
 
       return {
         active_buyers: {
@@ -631,7 +545,7 @@ export const AdminDashboard = () => {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3 items-stretch">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 items-stretch">
         {/* Booking Trends */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -659,7 +573,7 @@ export const AdminDashboard = () => {
                   <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4" />
                   {userType === 'combined' 
                     ? ((dashboardData.booking_trends.normal_users.growth + dashboardData.booking_trends.staff_users.growth) / 2).toFixed(1)
-                    : dashboardData.booking_trends[userType]?.growth?.toFixed(1) || '0.0'}%
+                    : (dashboardData.booking_trends[userType as 'normal_users' | 'staff_users']?.growth?.toFixed(1) || '0.0')}%
                 </span>
               </div>
             </div>
@@ -858,59 +772,6 @@ export const AdminDashboard = () => {
             </div>
           </Card>
         </motion.div>
-
-        {/* Staff Performance */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="h-full"
-        >
-          <Card className="p-4 sm:p-6 h-full flex flex-col">
-            <div className="mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <div className="rounded-lg bg-warning/20 p-1.5 sm:p-2 flex-shrink-0">
-                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-semibold text-foreground">
-                  Staff Performance
-                </h3>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  Target achievement %
-                </p>
-              </div>
-            </div>
-            <div className="flex-1 min-h-[250px] sm:min-h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={staffPerformance}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(214 32% 91%)"
-                  />
-                  <XAxis
-                    dataKey="name"
-                    stroke="hsl(215 16% 47%)"
-                    fontSize={12}
-                  />
-                  <YAxis stroke="hsl(215 16% 47%)" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(0 0% 100%)",
-                      border: "1px solid hsl(214 32% 91%)",
-                      borderRadius: "8px",
-                      color: "hsl(222 47% 11%)",
-                    }}
-                  />
-                  <Bar
-                    dataKey="value"
-                    fill="hsl(38 92% 50%)"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </motion.div>
       </div>
 
       {/* Buyer Growth Trend and Buyer Segments */}
@@ -1080,313 +941,6 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
               ))}
-            </div>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Sales Funnel Visualization and Conversion Rates */}
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 items-stretch">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="h-full"
-        >
-          <Card className="p-4 sm:p-6 h-full flex flex-col">
-            <div className="mb-4 sm:mb-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:mb-2">
-                <div>
-                  <h3 className="text-sm sm:text-base font-semibold text-foreground">
-                    Sales Funnel Visualization
-                  </h3>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">
-                    Customer journey through sales pipeline
-                  </p>
-                </div>
-                <div className="text-left sm:text-right">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">
-                    Total Visitors
-                  </p>
-                  <p className="text-xs sm:text-sm font-bold text-foreground">
-                    {funnelData[0].value.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 flex flex-col justify-between space-y-4">
-              {funnelData.map((item, index) => {
-                const percentage = item.percentage || (item.value / funnelData[0].value) * 100;
-                const dropOff = item.drop_off !== null && item.drop_off !== undefined
-                  ? item.drop_off
-                  : index > 0
-                  ? ((funnelData[index - 1].value - item.value) /
-                      funnelData[index - 1].value) *
-                    100
-                  : 0;
-                return (
-                  <div key={item.name} className="space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
-                        <span className="text-xs sm:text-sm font-medium text-foreground truncate">
-                          {item.name}
-                        </span>
-                        {index > 0 && dropOff !== null && dropOff !== undefined && dropOff > 0 && (
-                          <span className="text-[10px] sm:text-xs text-muted-foreground">
-                            ({dropOff.toFixed(1)}% drop-off)
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <span className="text-[10px] sm:text-xs text-muted-foreground">
-                          {percentage.toFixed(1)}%
-                        </span>
-                        <span className="text-xs sm:text-sm font-bold text-foreground">
-                          {item.value.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="relative h-8 sm:h-10 bg-secondary rounded-lg overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${percentage}%` }}
-                        transition={{ delay: 0.7 + index * 0.1, duration: 0.5 }}
-                        className="h-full rounded-lg flex items-center"
-                        style={{ backgroundColor: item.fill }}
-                      >
-                        {percentage > 15 && (
-                          <span className="text-[10px] sm:text-xs font-semibold text-white ml-2 sm:ml-3">
-                            {percentage.toFixed(1)}%
-                          </span>
-                        )}
-                      </motion.div>
-                      {percentage <= 15 && (
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="text-[10px] sm:text-xs font-semibold text-foreground ml-2 sm:ml-3">
-                            {percentage.toFixed(1)}%
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    {index < funnelData.length - 1 && (
-                      <div className="flex items-center justify-center py-1">
-                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="p-2 sm:p-3 rounded-lg bg-primary/5 border border-primary/20">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">
-                      Overall Conversion
-                    </p>
-                    <p className="text-base sm:text-lg font-bold text-primary">
-                      {(
-                        (funnelData[funnelData.length - 1].value /
-                          funnelData[0].value) *
-                        100
-                      ).toFixed(1)}
-                      %
-                    </p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                      {funnelData[funnelData.length - 1].value.toLocaleString()}{" "}
-                      of {funnelData[0].value.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-2 sm:p-3 rounded-lg bg-info/5 border border-info/20">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">
-                      Biggest Drop
-                    </p>
-                    <p className="text-base sm:text-lg font-bold text-info">
-                      {(() => {
-                        const dropOffs = funnelData.map((item, idx) =>
-                          item.drop_off !== null && item.drop_off !== undefined
-                            ? item.drop_off
-                            : idx > 0
-                            ? ((funnelData[idx - 1].value - item.value) /
-                                funnelData[idx - 1].value) *
-                              100
-                            : 0
-                        );
-                        return Math.max(...dropOffs).toFixed(1);
-                      })()}
-                      %
-                    </p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                      {(() => {
-                        const dropOffs = funnelData.map((item, idx) =>
-                          item.drop_off !== null && item.drop_off !== undefined
-                            ? item.drop_off
-                            : idx > 0
-                            ? ((funnelData[idx - 1].value - item.value) /
-                                funnelData[idx - 1].value) *
-                              100
-                            : 0
-                        );
-                        const maxIndex = dropOffs.indexOf(
-                          Math.max(...dropOffs)
-                        );
-                        return maxIndex > 0
-                          ? `${funnelData[maxIndex - 1].name} → ${
-                              funnelData[maxIndex].name
-                            }`
-                          : "N/A";
-                      })()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="h-full"
-        >
-          <Card className="p-4 sm:p-6 h-full flex flex-col">
-            <div className="mb-4 sm:mb-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:mb-2">
-                <div>
-                  <h3 className="text-sm sm:text-base font-semibold text-foreground">
-                    Conversion Rates
-                  </h3>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">
-                    Stage-to-stage conversion efficiency
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-left sm:text-right">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">
-                      Avg. Rate
-                    </p>
-                    <p className="text-xs sm:text-sm font-bold text-foreground">
-                      {(
-                        conversionRates.reduce(
-                          (sum, item) => sum + item.rate,
-                          0
-                        ) / conversionRates.length
-                      ).toFixed(1)}
-                      %
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 flex flex-col justify-between space-y-5">
-              {conversionRates.map((item, index) => {
-                const isPositive = item.change >= 0;
-                const TrendIcon = isPositive ? ArrowUpRight : ArrowDownRight;
-                const trend = item.trend || (isPositive ? "up" : "down");
-                return (
-                  <div key={index} className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                          <span className="text-xs sm:text-sm font-medium text-foreground truncate">
-                            {item.stage}
-                          </span>
-                          <div
-                            className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
-                              isPositive
-                                ? "bg-success/10 text-success"
-                                : "bg-destructive/10 text-destructive"
-                            }`}
-                          >
-                            <TrendIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                            <span>
-                              {isPositive ? "+" : ""}
-                              {item.change}%
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
-                          <span className="text-xl sm:text-2xl font-bold text-foreground">
-                            {item.rate}%
-                          </span>
-                          <span className="text-[10px] sm:text-xs text-muted-foreground">
-                            {item.converted_count
-                              ? `${item.converted_count.toLocaleString()} converted`
-                              : ""}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <Progress value={item.rate} className="h-3" />
-                      {item.rate >= 50 && (
-                        <div className="absolute inset-0 flex items-center justify-end pr-2">
-                          <span className="text-[10px] font-medium text-white">
-                            {item.rate >= 50
-                              ? "Excellent"
-                              : item.rate >= 35
-                              ? "Good"
-                              : "Needs Improvement"}
-                          </span>
-                        </div>
-                      )}
-                      {item.rate < 50 && (
-                        <div className="absolute inset-0 flex items-center justify-end pr-2">
-                          <span className="text-[10px] font-medium text-foreground">
-                            {item.rate >= 35 ? "Good" : "Needs Improvement"}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    {index < conversionRates.length - 1 && (
-                      <div className="border-t border-border/50" />
-                    )}
-                  </div>
-                );
-              })}
-              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="p-2 sm:p-3 rounded-lg bg-success/5 border border-success/20">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">
-                      Best Rate
-                    </p>
-                    <p className="text-base sm:text-lg font-bold text-success">
-                      {Math.max(...conversionRates.map((r) => r.rate)).toFixed(
-                        1
-                      )}
-                      %
-                    </p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
-                      {
-                        conversionRates.find(
-                          (r) =>
-                            r.rate ===
-                            Math.max(...conversionRates.map((r) => r.rate))
-                        )?.stage
-                      }
-                    </p>
-                  </div>
-                  <div className="p-2 sm:p-3 rounded-lg bg-warning/5 border border-warning/20">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">
-                      Needs Focus
-                    </p>
-                    <p className="text-base sm:text-lg font-bold text-warning">
-                      {Math.min(...conversionRates.map((r) => r.rate)).toFixed(
-                        1
-                      )}
-                      %
-                    </p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
-                      {
-                        conversionRates.find(
-                          (r) =>
-                            r.rate ===
-                            Math.min(...conversionRates.map((r) => r.rate))
-                        )?.stage
-                      }
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           </Card>
         </motion.div>

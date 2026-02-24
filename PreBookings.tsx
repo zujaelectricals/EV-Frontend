@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Clock, CheckCircle, XCircle, Search, Filter, Download, ChevronLeft, ChevronRight, X, User, Mail, Phone, Car, MapPin, CreditCard, FileText, Eye, Edit } from 'lucide-react';
+import { ShoppingCart, Clock, CheckCircle, XCircle, Search, ChevronLeft, ChevronRight, X, User, Mail, Phone, Car, MapPin, CreditCard, FileText, Eye, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -296,31 +296,10 @@ export const PreBookings = () => {
   }, [bookingsData, searchQuery, statusFilter, isLoadingBookings, isFetchingBookings]);
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Pre-Bookings</h1>
-          <p className="text-muted-foreground mt-1">Manage and track all pre-booking orders</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Pre-Bookings</h1>
+        <p className="text-muted-foreground mt-1">Manage and track all pre-booking orders</p>
       </div>
-
-      {/* User Type Tabs */}
-      <Tabs value={userType} onValueChange={(v) => setUserType(v as typeof userType)}>
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="combined">Combined</TabsTrigger>
-          <TabsTrigger value="normal_users">Normal Users</TabsTrigger>
-          <TabsTrigger value="staff_users">Staff Users</TabsTrigger>
-        </TabsList>
-      </Tabs>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">

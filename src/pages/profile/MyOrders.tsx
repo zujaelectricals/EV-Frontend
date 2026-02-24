@@ -421,24 +421,31 @@ export function MyOrders() {
       // We just need to refresh the bookings list
       
       // Check if payment was already verified by webhook
-      // If so, show a user-friendly message instead of the raw backend message
+      // Be very aggressive - catch ANY message that contains "already" + "success" in any form
       const normalizedMessage = paymentMessage?.toLowerCase().trim() || '';
+      const hasAlready = normalizedMessage.includes('already');
+      const hasSuccess = normalizedMessage.includes('success') || normalizedMessage.includes('succeed');
+      const hasWebhook = normalizedMessage.includes('webhook');
+      const hasProcessed = normalizedMessage.includes('processed');
+      
+      // If message contains "already" AND ("success" OR "webhook" OR "processed"), it's webhook-verified
       const isWebhookVerified = normalizedMessage && (
+        (hasAlready && (hasSuccess || hasWebhook || hasProcessed)) ||
         normalizedMessage.includes('already verified') ||
-        normalizedMessage.includes('already success') ||
-        normalizedMessage.includes('payment already success') ||
         normalizedMessage.includes('payment already') ||
-        normalizedMessage.includes('webhook') ||
-        normalizedMessage.includes('already processed')
+        normalizedMessage.includes('already verified by')
       );
       
       // Debug logging
       if (paymentMessage) {
         console.log('🔍 [PAYMENT] Backend message:', paymentMessage);
+        console.log('🔍 [PAYMENT] Normalized:', normalizedMessage);
+        console.log('🔍 [PAYMENT] Has already:', hasAlready, 'Has success:', hasSuccess);
         console.log('🔍 [PAYMENT] Is webhook verified?', isWebhookVerified);
       }
       
-      // Always show user-friendly message, not the raw backend response
+      // ALWAYS show user-friendly message for webhook-verified payments
+      // NEVER show the raw backend message like "payment already success"
       const successMessage = isWebhookVerified 
         ? 'Payment Verified Successfully' 
         : (paymentMessage || 'Payment Verified Successfully');

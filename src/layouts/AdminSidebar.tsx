@@ -77,7 +77,7 @@ const adminMenuSections: MenuSection[] = [
     children: [
       { label: "Pre-Bookings", path: "/admin/sales/pre-bookings" },
       //{ label: "EMI Orders", path: "/admin/sales/emi-orders" },
-      { label: "Cancelled Orders", path: "/admin/sales/cancelled" },
+      // { label: "Cancelled Orders", path: "/admin/sales/cancelled" },
       // { label: "Drop-off Users", path: "/admin/sales/drop-off" },
       // { label: "Partner Redemptions", path: "/admin/sales/redemptions" },
     ],
@@ -605,12 +605,15 @@ export const AdminSidebar = () => {
       }}
     >
       {/* Logo */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
         <Link to="/admin" className="flex items-center gap-2">
           <img
             src="/Zuja_Logo-removebg-preview.png"
             alt="Zuja Electric"
-            className={collapsed ? "h-12 w-auto" : "h-16 w-auto"}
+            className={cn(
+              "w-auto object-contain",
+              collapsed ? "h-10" : "h-12"
+            )}
           />
         </Link>
         <button
