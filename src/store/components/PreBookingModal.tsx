@@ -1168,23 +1168,39 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         wantsToJoinDistributor: isAlreadyDistributor ? false : joinDistributorProgram,
       }));
 
-      // Use API message if available (e.g., "payment already success" from webhook)
-      // Otherwise use default success message
+      // Check if payment was already verified by webhook
+      // If so, show a user-friendly message instead of the raw backend message
+      const normalizedMessage = paymentMessage?.toLowerCase().trim() || '';
+      const isWebhookVerified = normalizedMessage && (
+        normalizedMessage.includes('already verified') ||
+        normalizedMessage.includes('already success') ||
+        normalizedMessage.includes('payment already success') ||
+        normalizedMessage.includes('payment already') ||
+        normalizedMessage.includes('webhook') ||
+        normalizedMessage.includes('already processed')
+      );
+      
+      // Debug logging
+      if (paymentMessage) {
+        console.log('🔍 [PAYMENT] Backend message:', paymentMessage);
+        console.log('🔍 [PAYMENT] Is webhook verified?', isWebhookVerified);
+      }
+      
+      // Always show user-friendly message, not the raw backend response
       let successMessage = 'Payment Verified Successfully';
       
-      // Check if payment was already verified by webhook
-      if (paymentMessage && (
-        paymentMessage.toLowerCase().includes('already verified') ||
-        paymentMessage.toLowerCase().includes('already success') ||
-        paymentMessage.toLowerCase().includes('payment already success') ||
-        paymentMessage.toLowerCase().includes('webhook') ||
-        paymentMessage.toLowerCase().includes('already processed')
-      )) {
+      if (isWebhookVerified) {
+        // Payment was already verified by webhook - show standard success message
+        successMessage = 'Payment Verified Successfully';
+      } else if (paymentMessage && !isWebhookVerified) {
+        // Use API message if provided and not webhook-related
         successMessage = paymentMessage;
-      } else if (paymentMessage) {
-        // Use API message if provided, even if not webhook-related
-        successMessage = paymentMessage;
-      } else if (isAlreadyDistributor) {
+      }
+      
+      console.log('🔍 [PAYMENT] Final success message:', successMessage);
+      
+      // Distributor-specific messages (unchanged)
+      if (isAlreadyDistributor) {
         successMessage = 'Payment Verified Successfully';
       } else if (joinDistributorProgram && isDistributorEligible) {
         successMessage = 'Payment Verified Successfully';
@@ -1757,7 +1773,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
               {preBookingAmount > 0 && (
                 <>
                   <div className="flex justify-between items-center py-2 border-b border-border/30">
-                    <span className="text-sm text-muted-foreground">Platform fee and Taxes (2.36%)</span>
+                    <span className="text-sm text-muted-foreground">Platform Fee & Taxes</span>
                     <span className="font-medium text-sm text-muted-foreground">₹{((preBookingAmount / 0.9764) - preBookingAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border/30 bg-primary/5 rounded-lg px-3 py-2.5 -mx-1">

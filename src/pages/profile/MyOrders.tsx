@@ -421,16 +421,30 @@ export function MyOrders() {
       // The backend should have updated the booking automatically
       // We just need to refresh the bookings list
       
-      // Use API message if available (e.g., "payment already success" from webhook)
-      // Otherwise use default success message
-      const successMessage = paymentMessage && (
-        paymentMessage.toLowerCase().includes('already verified') ||
-        paymentMessage.toLowerCase().includes('already success') ||
-        paymentMessage.toLowerCase().includes('payment already success') ||
-        paymentMessage.toLowerCase().includes('webhook') ||
-        paymentMessage.toLowerCase().includes('already processed')
-      ) ? paymentMessage : (paymentMessage || 'Payment Verified Successfully');
+      // Check if payment was already verified by webhook
+      // If so, show a user-friendly message instead of the raw backend message
+      const normalizedMessage = paymentMessage?.toLowerCase().trim() || '';
+      const isWebhookVerified = normalizedMessage && (
+        normalizedMessage.includes('already verified') ||
+        normalizedMessage.includes('already success') ||
+        normalizedMessage.includes('payment already success') ||
+        normalizedMessage.includes('payment already') ||
+        normalizedMessage.includes('webhook') ||
+        normalizedMessage.includes('already processed')
+      );
       
+      // Debug logging
+      if (paymentMessage) {
+        console.log('🔍 [PAYMENT] Backend message:', paymentMessage);
+        console.log('🔍 [PAYMENT] Is webhook verified?', isWebhookVerified);
+      }
+      
+      // Always show user-friendly message, not the raw backend response
+      const successMessage = isWebhookVerified 
+        ? 'Payment Verified Successfully' 
+        : (paymentMessage || 'Payment Verified Successfully');
+      
+      console.log('🔍 [PAYMENT] Final success message:', successMessage);
       toast.success(successMessage);
       
       // Refresh bookings to get updated data
@@ -818,7 +832,7 @@ export function MyOrders() {
                     <span className="font-medium">₹{Number(customPaymentAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Platform Fee (2.36%):</span>
+                    <span className="text-muted-foreground">Platform Fee & Taxes:</span>
                     <span className="font-medium">₹{((Number(customPaymentAmount) / 0.9764) - Number(customPaymentAmount)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="border-t pt-1.5 mt-1.5 flex justify-between">

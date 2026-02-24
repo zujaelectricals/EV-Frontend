@@ -105,16 +105,30 @@ export function PayButton({
 
       // Payment verified successfully
       if (paymentResult.success) {
-        // Use API message if available (e.g., "payment already success" from webhook)
-        // Otherwise use default success message
-        const successMessage = paymentResult.message && (
-          paymentResult.message.toLowerCase().includes('already verified') ||
-          paymentResult.message.toLowerCase().includes('already success') ||
-          paymentResult.message.toLowerCase().includes('payment already success') ||
-          paymentResult.message.toLowerCase().includes('webhook') ||
-          paymentResult.message.toLowerCase().includes('already processed')
-        ) ? paymentResult.message : (paymentResult.message || 'Payment Verified Successfully');
+        // Check if payment was already verified by webhook
+        // If so, show a user-friendly message instead of the raw backend message
+        const normalizedMessage = paymentResult.message?.toLowerCase().trim() || '';
+        const isWebhookVerified = normalizedMessage && (
+          normalizedMessage.includes('already verified') ||
+          normalizedMessage.includes('already success') ||
+          normalizedMessage.includes('payment already success') ||
+          normalizedMessage.includes('payment already') ||
+          normalizedMessage.includes('webhook') ||
+          normalizedMessage.includes('already processed')
+        );
         
+        // Debug logging
+        if (paymentResult.message) {
+          console.log('🔍 [PAYMENT] Backend message:', paymentResult.message);
+          console.log('🔍 [PAYMENT] Is webhook verified?', isWebhookVerified);
+        }
+        
+        // Always show user-friendly message, not the raw backend response
+        const successMessage = isWebhookVerified 
+          ? 'Payment Verified Successfully' 
+          : (paymentResult.message || 'Payment Verified Successfully');
+        
+        console.log('🔍 [PAYMENT] Final success message:', successMessage);
         toast.success(successMessage);
         if (onSuccess) {
           onSuccess(paymentResult);
