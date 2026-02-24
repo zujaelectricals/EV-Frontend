@@ -41,6 +41,7 @@ import {
 } from 'recharts';
 import { BinaryNode } from '@/app/api/binaryApi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatDisplayDate } from '@/lib/utils';
 
 interface TeamMember {
   id: string;

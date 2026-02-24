@@ -32,6 +32,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { formatDisplayDate } from '@/lib/utils';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--info))', 'hsl(var(--warning))'];
 

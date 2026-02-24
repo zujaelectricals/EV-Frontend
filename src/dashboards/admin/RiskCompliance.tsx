@@ -33,6 +33,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { formatDisplayDate } from '@/lib/utils';
 
 const metrics = {
   totalAlerts: 145,

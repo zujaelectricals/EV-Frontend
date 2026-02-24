@@ -35,6 +35,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useGetAllWithdrawalRequestsQuery, useApproveWithdrawalRequestMutation, useRejectWithdrawalRequestMutation } from '@/app/api/poolWithdrawalApi';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatDisplayDate } from '@/lib/utils';
 
 export const PoolWalletController = () => {
   const { data: allRequests = [], isLoading, refetch } = useGetAllWithdrawalRequestsQuery(undefined, {
