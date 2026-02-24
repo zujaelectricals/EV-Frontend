@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut, ChevronDown, Info } from 'lucide-react';
+import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -151,19 +151,6 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
           : 'bg-white/50 backdrop-blur-lg py-4'
       }`}
     >
-      {/* ── Enhancement Announcement Banner ── */}
-      <div className="w-screen relative left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#3CB2B2]/90 via-[#3CB2B2]/85 to-[#59F09F]/90 border-b-2 border-[#3CB2B2] shadow-md">
-        <div className="w-full px-6 md:px-16 py-5 flex items-center justify-center gap-4">
-          <Info className="w-6 h-6 text-white shrink-0" />
-          <p className="text-center text-[14px] md:text-[16.5px] font-semibold text-white tracking-wide leading-relaxed">
-            <span className="font-bold text-white drop-shadow-sm">Exciting News:</span>
-            {' '}
-            We are pleased to announce that we are developing an enhanced customer experience platform with new features and improvements. Stay tuned for exciting updates coming soon!
-          </p>
-          <Info className="w-6 h-6 text-white shrink-0" />
-        </div>
-      </div>
-
       <div className="container mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-16 md:h-18">
           {/* Logo */}
