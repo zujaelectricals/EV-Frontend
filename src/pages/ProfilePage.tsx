@@ -173,6 +173,7 @@ export function ProfilePage() {
   });
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Form state for nominee
   const [nomineeFormData, setNomineeFormData] = useState({
@@ -251,6 +252,14 @@ export function ProfilePage() {
   // Handle form input changes
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error for this field when user starts typing
+    if (formErrors[field]) {
+      setFormErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   // Handle nominee form input changes
@@ -284,9 +293,59 @@ export function ProfilePage() {
     }
   };
 
+  // Validate form
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate mobile number
+    if (!formData.mobile.trim()) {
+      newErrors.mobile = 'Mobile number is required';
+    } else if (!/^[6-9][0-9]{9}$/.test(formData.mobile)) {
+      newErrors.mobile = 'Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9';
+    } else if (/^(\d)\1{9}$/.test(formData.mobile)) {
+      // All same digits: 9999999999, 8888888888, etc.
+      newErrors.mobile = 'Enter a valid mobile number';
+    } else if (
+      formData.mobile === '1234567890' ||
+      formData.mobile === '9876543210' ||
+      formData.mobile === '0123456789' ||
+      formData.mobile === '9999900000' ||
+      formData.mobile === '9000000000' ||
+      /^(\d{2,5})\1+$/.test(formData.mobile)  // repeating blocks like 9898989898, 9090909090
+    ) {
+      newErrors.mobile = 'Enter a valid mobile number';
+    }
+
+    // Validate pincode
+    if (!formData.pincode.trim()) {
+      newErrors.pincode = 'Pincode is required';
+    } else if (!/^[0-9]{6}$/.test(formData.pincode)) {
+      newErrors.pincode = 'Pincode must be 6 digits';
+    } else if (!/^[1-9]/.test(formData.pincode)) {
+      newErrors.pincode = 'Indian pincode cannot start with 0';
+    } else if (/^(\d)\1{5}$/.test(formData.pincode)) {
+      // All same digits: 111111, 222222, etc.
+      newErrors.pincode = 'Please enter a valid Indian pincode';
+    } else if (
+      formData.pincode === '123456' ||
+      formData.pincode === '654321' ||
+      /^(012345|123456|234567|345678|456789|567890|098765|987654|876543|765432|654321|543210)$/.test(formData.pincode)
+    ) {
+      newErrors.pincode = 'Please enter a valid Indian pincode';
+    }
+
+    setFormErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
     
     try {
       // Prepare the request body with profile picture if provided
@@ -1101,10 +1160,16 @@ export function ProfilePage() {
                     <input
                       type="tel"
                       value={formData.mobile}
-                      onChange={(e) => handleInputChange("mobile", e.target.value)}
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm sm:text-base"
+                      onChange={(e) => handleInputChange("mobile", e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      className={`w-full px-3 py-2 border rounded-md bg-background text-sm sm:text-base ${
+                        formErrors.mobile ? 'border-destructive focus:border-destructive ring-destructive/20' : 'border-border'
+                      }`}
                       required
+                      maxLength={10}
                     />
+                    {formErrors.mobile && (
+                      <p className="text-xs text-destructive">{formErrors.mobile}</p>
+                    )}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -1219,9 +1284,15 @@ export function ProfilePage() {
                       <input
                         type="text"
                         value={formData.pincode}
-                        onChange={(e) => handleInputChange("pincode", e.target.value)}
-                        className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm sm:text-base"
+                        onChange={(e) => handleInputChange("pincode", e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className={`w-full px-3 py-2 border rounded-md bg-background text-sm sm:text-base ${
+                          formErrors.pincode ? 'border-destructive focus:border-destructive ring-destructive/20' : 'border-border'
+                        }`}
+                        maxLength={6}
                       />
+                      {formErrors.pincode && (
+                        <p className="text-xs text-destructive">{formErrors.pincode}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Country (Optional)</label>

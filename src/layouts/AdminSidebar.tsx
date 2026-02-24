@@ -267,8 +267,8 @@ const adminMenuSections: MenuSection[] = [
     value: "reports",
     children: [
       { label: "Transaction History", path: "/admin/reports/transactions" },
-      { label: "Investment Logs", path: "/admin/reports/investments" },
-      { label: "BV Logs", path: "/admin/reports/bv" },
+      //{ label: "Investment Logs", path: "/admin/reports/investments" },
+      //{ label: "BV Logs", path: "/admin/reports/bv" },
       //{ label: "Referral Commission", path: "/admin/reports/referral" },
       { label: "Team Commission", path: "/admin/reports/binary" },
       //{ label: "Login History", path: "/admin/reports/login" },
@@ -605,20 +605,20 @@ export const AdminSidebar = () => {
       }}
     >
       {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
-        <Link to="/admin" className="flex items-center gap-2">
+      <div className="relative flex h-20 shrink-0 items-center justify-center border-b border-border px-4">
+        <Link to="/admin" className="flex items-center justify-center">
           <img
             src="/Zuja_Logo-removebg-preview.png"
             alt="Zuja Electric"
             className={cn(
               "w-auto object-contain",
-              collapsed ? "h-10" : "h-12"
+              collapsed ? "h-12" : "h-16"
             )}
           />
         </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          className="absolute right-4 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
         >
           <ChevronLeft
             className={cn(

@@ -146,7 +146,7 @@ export const TeamCommission = () => {
           <h1 className="text-3xl font-bold text-foreground">Team Commission (Binary)</h1>
           <p className="text-muted-foreground mt-1">Track binary/team commission payouts and Total Partner Framework matching</p>
         </div>
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <Button variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
             Filter
@@ -155,7 +155,7 @@ export const TeamCommission = () => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Stats */}

@@ -40,7 +40,7 @@ import {
 import { useAppSelector, useAppDispatch } from "@/app/hooks";
 import { updateBooking } from "@/app/slices/bookingSlice";
 import { updatePreBooking } from "@/app/slices/authSlice";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useRazorpay } from "@/hooks/useRazorpay";
 import { payForEntity, VerifyPaymentResponse } from "@/services/paymentService";
@@ -58,6 +58,8 @@ import { formatDisplayDate } from "@/lib/utils";
 const DISTRIBUTOR_ELIGIBILITY_AMOUNT = 5000;
 
 export function MyOrders() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const { bookings } = useAppSelector((state) => state.booking);
   const { user } = useAppSelector((state) => state.auth);
@@ -265,6 +267,34 @@ export function MyOrders() {
     }
   }, [mappedBookings, dispatch, activeBookingsData]);
 
+  // Refetch bookings when returning from payment processing
+  useEffect(() => {
+    const state = location.state as { paymentCompleted?: boolean } | null;
+    if (state?.paymentCompleted) {
+      console.log('✅ [MY-ORDERS] Payment completed, refreshing bookings...');
+      
+      // Invalidate cache tags
+      const status = apiStatus || 'all';
+      dispatch(
+        api.util.invalidateTags([
+          { type: 'Booking', id: 'LIST' },
+          { type: 'Booking', id: `LIST-${status}` },
+        ])
+      );
+      
+      // Force refetch
+      refetch().then((result) => {
+        if (result.data) {
+          console.log('✅ [MY-ORDERS] Bookings refreshed after payment');
+          setRefreshKey(prev => prev + 1);
+        }
+      });
+      
+      // Clear the location state to prevent repeated refetches
+      window.history.replaceState({}, document.title, location.pathname + location.search);
+    }
+  }, [location.state, dispatch, refetch, apiStatus]);
+
   // Always use API data when available - never fallback to Redux for display
   // This ensures we always show the latest data from the API after refresh
   // Deduplicate bookings by ID to prevent duplicate displays
@@ -335,20 +365,34 @@ export function MyOrders() {
       );
       return;
     }
-    setPaymentAmount(amount);
-    setShowPaymentAmountDialog(false);
     
-    // Show loading screen immediately when Continue to Payment is clicked
-    setIsLoadingRazorpay(true);
-    
-    // Trigger Razorpay payment flow
     if (!selectedBooking) {
       toast.error("Booking not selected");
-      setIsLoadingRazorpay(false);
       return;
     }
+
+    // Find booking to get vehicle name
+    const booking = bookings.find((b) => b.id === selectedBooking);
+    if (!booking) {
+      toast.error("Booking not found");
+      return;
+    }
+
+    // Close the payment amount dialog
+    setShowPaymentAmountDialog(false);
     
-    await handleRazorpayAdditionalPayment(selectedBooking, amount);
+    // Navigate to payment processing page with additional payment data
+    navigate('/payment-processing', {
+      state: {
+        additionalPaymentData: {
+          type: 'additional_payment',
+          bookingId: selectedBooking,
+          amount: amount,
+          vehicleName: booking.vehicleName || 'booking',
+        },
+      },
+      replace: false,
+    });
   };
   
   const handleRazorpayAdditionalPayment = async (bookingId: string, amount: number) => {

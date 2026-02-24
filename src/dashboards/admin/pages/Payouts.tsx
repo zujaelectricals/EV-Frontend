@@ -346,7 +346,7 @@ export const Payouts = () => {
           <h1 className="text-3xl font-bold text-foreground">Payouts</h1>
           <p className="text-muted-foreground mt-1">Manage user payout requests</p>
         </div>
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
@@ -442,7 +442,7 @@ export const Payouts = () => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Stats */}

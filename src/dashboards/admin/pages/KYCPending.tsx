@@ -415,7 +415,7 @@ export const KYCPending = () => {
           <h1 className="text-3xl font-bold text-foreground">KYC Records</h1>
           <p className="text-muted-foreground mt-1">View and manage all KYC applications</p>
         </div>
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
@@ -531,11 +531,11 @@ export const KYCPending = () => {
               </div>
             </PopoverContent>
           </Popover>
-          {/* <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
-          </Button> */}
-        </div>
+          </Button>
+        </div> */}
       </div>
 
       {/* Stats */}

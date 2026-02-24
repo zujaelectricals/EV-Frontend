@@ -96,7 +96,7 @@ export function Footer() {
         </div>
         <div className="pt-8 border-t border-border/50 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
           <div>
-            © 2025 Suja Electric Scooters. All rights reserved.
+            © 2026 Suja Electric Scooters. All rights reserved.
           </div>
           <div className="flex items-center gap-6">
             <Link to="/privacy-policy" className="transition-colors hover:text-[#15adc1]">

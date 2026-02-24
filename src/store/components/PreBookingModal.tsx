@@ -674,61 +674,48 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       return;
     }
 
-    // All validations passed - set ref and state to prevent duplicate submissions
+    // All validations passed - prepare booking data and navigate to payment processing page
     isSubmittingRef.current = true;
     setIsBookingInProgress(true);
-    // Show loading screen immediately when button is clicked
-    setIsLoadingRazorpay(true);
 
-    try {
-      
-      // Prepare booking request (without payment_gateway_ref initially)
-      const bookingRequest = {
-        vehicle_model_code: stockData.vehicle_model_code,
-        vehicle_color: selectedColor,
-        battery_variant: selectedBatteryVariant,
-        booking_amount: preBookingAmount,
-        total_amount: totalAmount,
-        delivery_city: deliveryCity.trim(),
-        delivery_state: deliveryState.trim(),
-        delivery_pin: deliveryPin.trim(),
-        terms_accepted: termsAccepted,
-        referral_code: referralCodeInput.trim(),
-        join_distributor_program: joinDistributorProgram || undefined,
-      };
+    // Prepare booking data to pass to payment processing page
+    const bookingData = {
+      vehicle_model_code: stockData.vehicle_model_code,
+      vehicle_color: selectedColor,
+      battery_variant: selectedBatteryVariant,
+      booking_amount: preBookingAmount,
+      total_amount: totalAmount,
+      delivery_city: deliveryCity.trim(),
+      delivery_state: deliveryState.trim(),
+      delivery_pin: deliveryPin.trim(),
+      terms_accepted: termsAccepted,
+      referral_code: referralCodeInput.trim(),
+      join_distributor_program: joinDistributorProgram || undefined,
+      scooter: {
+        id: scooter.id,
+        name: scooter.name,
+        price: scooter.price,
+      },
+      redemptionPoints,
+      remainingAmount,
+      paymentDueDate: paymentDueDate.toISOString(),
+      isDistributorEligible,
+      joinDistributorProgram: joinDistributorProgram,
+      isAlreadyDistributor: isAlreadyDistributor || false,
+    };
 
-      console.log('🟢 [PRE-BOOK] Creating booking...', {
-        timestamp: new Date().toISOString(),
-        requestId: `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      });
-      
-      // Call booking API - only once
-      const response = await createBooking(bookingRequest).unwrap();
-      console.log('🟢 [PRE-BOOK] Booking created successfully:', response);
-      
-      // Store booking response immediately to prevent duplicate calls
-      setBookingResponse(response);
-      
-      // Trigger Razorpay payment flow after successful booking
-      // Keep isSubmittingRef true until payment is processed to prevent duplicate bookings
-      await handleRazorpayPayment(response);
-      
-      // Don't reset ref here - keep it true until payment completes or modal closes
-    } catch (error: unknown) {
-      console.error('🔴 [PRE-BOOK] Booking API Error:', error);
-      
-      // Extract and format error messages from API response
-      const errorMessage = extractErrorMessage(error, 'Failed to create booking. Please try again.');
-      
-      toast.error(errorMessage, {
-        duration: 5000, // Show for longer since it might contain multiple errors
-      });
-      
-      // Reset submission state on error
-      isSubmittingRef.current = false;
-      setIsBookingInProgress(false);
-      setIsLoadingRazorpay(false);
-    }
+    console.log('🟢 [PRE-BOOK] Navigating to payment processing page...', {
+      timestamp: new Date().toISOString(),
+    });
+
+    // Close modal first
+    onClose();
+
+    // Navigate to payment processing page with booking data
+    navigate('/payment-processing', {
+      state: { bookingData },
+      replace: false,
+    });
   };
 
 

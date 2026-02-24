@@ -32,6 +32,7 @@ import { Contact } from './pages/Contact';
 import { Gallery } from './pages/Gallery';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
+import { PaymentProcessingPage } from './pages/PaymentProcessingPage';
 import { DistributorApplication } from './dashboards/user/DistributorApplication';
 import { RedemptionShop } from './dashboards/user/RedemptionShop';
 import { PoolMoneyWithdrawal } from './dashboards/distributor/PoolMoneyWithdrawal';
@@ -64,6 +65,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   return <MainLayout>{children}</MainLayout>;
+};
+
+// Protected route without layout (no sidebar) - for payment processing page
+const ProtectedRouteNoLayout = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const location = useLocation();
+  
+  // Check both Redux state and localStorage
+  const authenticated = isAuthenticated || isUserAuthenticated();
+  
+  if (!authenticated) {
+    // Save the current location to redirect back after login
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  return <>{children}</>;
 };
 
 // Component to handle ASA link redirects
@@ -261,6 +277,7 @@ const AppRoutes = () => {
       {/* Protected Routes - User/Distributor */}
       <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
       <Route path="/profile" element={<RoleProtectedRoute allowedRoles={['user', 'staff']}><ProfilePage /></RoleProtectedRoute>} />
+      <Route path="/payment-processing" element={<ProtectedRouteNoLayout><PaymentProcessingPage /></ProtectedRouteNoLayout>} />
       <Route path="/become-distributor" element={<ProtectedRoute><DistributorApplication /></ProtectedRoute>} />
       <Route path="/redemption" element={<ProtectedRoute><RedemptionShop /></ProtectedRoute>} />
       <Route path="/distributor" element={<ProtectedRoute><DistributorDashboard /></ProtectedRoute>} />
