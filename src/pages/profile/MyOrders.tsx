@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Package,
   Calendar,
@@ -12,6 +13,7 @@ import {
   RefreshCw,
   AlertTriangle,
   CreditCard,
+  Shield,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +76,7 @@ export function MyOrders() {
   const [refreshKey, setRefreshKey] = useState(0); // Force re-render key
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
+  const [isLoadingRazorpay, setIsLoadingRazorpay] = useState(false);
   
   // Fetch user profile to get vehicle_delivery_date
   const { data: profileData } = useGetUserProfileRawQuery();
@@ -335,9 +338,13 @@ export function MyOrders() {
     setPaymentAmount(amount);
     setShowPaymentAmountDialog(false);
     
+    // Show loading screen immediately when Continue to Payment is clicked
+    setIsLoadingRazorpay(true);
+    
     // Trigger Razorpay payment flow
     if (!selectedBooking) {
       toast.error("Booking not selected");
+      setIsLoadingRazorpay(false);
       return;
     }
     
@@ -347,16 +354,19 @@ export function MyOrders() {
   const handleRazorpayAdditionalPayment = async (bookingId: string, amount: number) => {
     if (!bookingId) {
       toast.error("Booking ID is required");
+      setIsLoadingRazorpay(false);
       return;
     }
 
     const booking = bookings.find((b) => b.id === bookingId);
     if (!booking) {
       toast.error("Booking not found");
+      setIsLoadingRazorpay(false);
       return;
     }
 
     setIsProcessingPayment(true);
+    // Loading screen is already shown from handleConfirmPaymentAmount
 
     try {
       // Get user info for prefill
@@ -379,11 +389,13 @@ export function MyOrders() {
           onClose: () => {
             // User closed the modal - reset payment state
             setIsProcessingPayment(false);
+            setIsLoadingRazorpay(false);
             toast.info('Payment cancelled. You can try again later.');
           },
           onDismiss: () => {
             // User dismissed the modal - reset payment state
             setIsProcessingPayment(false);
+            setIsLoadingRazorpay(false);
             toast.info('Payment cancelled. You can try again later.');
           },
         }
@@ -391,6 +403,8 @@ export function MyOrders() {
 
       // Payment verified successfully
       if (paymentResult.success) {
+        // Hide loading screen and call success handler
+        setIsLoadingRazorpay(false);
         // Call the existing handleAdditionalPaymentSuccess function with payment message
         await handleAdditionalPaymentSuccess(paymentResult.message);
       } else {
@@ -406,6 +420,7 @@ export function MyOrders() {
       
       // Reset payment processing state
       setIsProcessingPayment(false);
+      setIsLoadingRazorpay(false);
     }
   };
 
@@ -462,6 +477,7 @@ export function MyOrders() {
       setCustomPaymentAmount("");
       setMaxPaymentAmount(0);
       setIsProcessingPayment(false);
+      setIsLoadingRazorpay(false);
       
       console.log("✅ [PAYMENT] Payment processed successfully via Razorpay");
     } catch (error) {
@@ -469,6 +485,7 @@ export function MyOrders() {
       const errorMessage = error instanceof Error ? error.message : "Failed to refresh booking data. Please refresh the page.";
       toast.error(errorMessage);
       setIsProcessingPayment(false);
+      setIsLoadingRazorpay(false);
     }
   };
 
@@ -513,7 +530,135 @@ export function MyOrders() {
            booking.status !== "expired";
   };
 
+  // Monitor Razorpay modal appearance and hide loading when it closes
+  useEffect(() => {
+    if (!isLoadingRazorpay) return;
+
+    let wasRazorpayOpen = false;
+
+    const checkRazorpayModal = () => {
+      // Check for Razorpay modal elements
+      const razorpayModal = document.querySelector(
+        '.razorpay-checkout-frame, ' +
+        'iframe[src*="razorpay"], ' +
+        '[class*="razorpay"], ' +
+        '#razorpay-checkout-iframe'
+      );
+      
+      // Also check for high z-index divs that might contain Razorpay iframe
+      const highZIndexDivs = Array.from(document.querySelectorAll('body > div')).filter((div) => {
+        const style = window.getComputedStyle(div);
+        const zIndex = parseInt(style.zIndex, 10);
+        return zIndex > 1000 && div.querySelector('iframe[src*="razorpay"]');
+      });
+      
+      const isOpen = !!(razorpayModal || highZIndexDivs.length > 0);
+      
+      // If Razorpay was open and now it's closed, hide loading screen
+      if (wasRazorpayOpen && !isOpen && isLoadingRazorpay) {
+        setIsLoadingRazorpay(false);
+      }
+      
+      wasRazorpayOpen = isOpen;
+      return isOpen;
+    };
+
+    // Poll for Razorpay modal status
+    const interval = setInterval(() => {
+      checkRazorpayModal();
+    }, 200);
+
+    // Cleanup
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isLoadingRazorpay]);
+
   return (
+    <>
+      {/* Razorpay Loading Overlay - Shows before Razorpay window loads, then goes behind it */}
+      {typeof window !== 'undefined' && createPortal(
+        <AnimatePresence mode="wait">
+          {isLoadingRazorpay && (
+            <motion.div
+              key="razorpay-loading-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[9998] bg-background/95 backdrop-blur-sm flex items-center justify-center"
+              style={{ pointerEvents: isLoadingRazorpay ? 'auto' : 'none' }}
+            >
+              <div className="text-center space-y-6">
+                {/* Security Icon */}
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="flex justify-center"
+                >
+                  <div className="w-20 h-20 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Shield className="w-10 h-10 text-pink-600 dark:text-pink-400" />
+                    </motion.div>
+                  </div>
+                </motion.div>
+
+                {/* Title */}
+                <motion.h2
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="text-2xl font-bold text-foreground"
+                >
+                  Processing Your Payment
+                </motion.h2>
+
+                {/* Instructions */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
+                  className="space-y-2 text-muted-foreground"
+                >
+                  <p className="text-sm">Please do not refresh or press back</p>
+                  <p className="text-sm">This may take up to 20 seconds</p>
+                </motion.div>
+
+                {/* Progress Bar */}
+                <motion.div
+                  initial={{ opacity: 0, scaleX: 0 }}
+                  animate={{ opacity: 1, scaleX: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="w-64 h-2 bg-muted rounded-full overflow-hidden"
+                >
+                  <motion.div
+                    animate={{ width: ['0%', '66%', '100%'] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500"
+                  />
+                </motion.div>
+
+                {/* Status Message */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.4, delay: 0.5 }}
+                  className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>Connecting to secure payment gateway...</span>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-4 gap-3 sm:gap-2">
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1 w-full sm:w-auto">
@@ -773,7 +918,13 @@ export function MyOrders() {
       {/* Payment Amount Dialog */}
       <Dialog
         open={showPaymentAmountDialog}
-        onOpenChange={setShowPaymentAmountDialog}
+        onOpenChange={(open) => {
+          setShowPaymentAmountDialog(open);
+          // Reset loading state if dialog is closed without payment
+          if (!open) {
+            setIsLoadingRazorpay(false);
+          }
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -917,5 +1068,6 @@ export function MyOrders() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </>
   );
 }

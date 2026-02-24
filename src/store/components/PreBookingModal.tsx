@@ -805,7 +805,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         // Extract error message
         let errorMessage = 'Failed to initiate payment terms acceptance. Please try again.';
         if (error && typeof error === 'object' && 'data' in error) {
-          const errorData = error.data as any;
+          const errorData = error.data as Record<string, unknown>;
           if (errorData?.error && typeof errorData.error === 'string') {
             errorMessage = errorData.error;
           } else if (errorData?.message && typeof errorData.message === 'string') {
@@ -886,9 +886,9 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       // Extract error message
       let errorMessage = 'Invalid or expired OTP. Please try again.';
       if (error && typeof error === 'object' && 'data' in error) {
-        const errorData = error.data as any;
+        const errorData = error.data as Record<string, unknown>;
         if (errorData?.non_field_errors && Array.isArray(errorData.non_field_errors) && errorData.non_field_errors.length > 0) {
-          errorMessage = errorData.non_field_errors[0];
+          errorMessage = errorData.non_field_errors[0] as string;
         } else if (errorData?.error && typeof errorData.error === 'string') {
           errorMessage = errorData.error;
         } else if (errorData?.message && typeof errorData.message === 'string') {
@@ -1926,7 +1926,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                     <span className="text-sm text-muted-foreground">Platform Fee & Taxes</span>
                     <span className="font-medium text-sm text-muted-foreground">₹{((preBookingAmount / 0.9764) - preBookingAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border/30 bg-primary/5 rounded-lg px-3 py-2.5 -mx-1">
+                  <div className="flex justify-between items-center border-b border-border/30 bg-primary/5 rounded-lg px-3 py-2.5 -mx-1">
                     <span className="text-sm font-semibold text-foreground">Total Amount to Pay</span>
                     <span className="font-bold text-lg text-primary">₹{(preBookingAmount / 0.9764).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
