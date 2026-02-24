@@ -392,8 +392,8 @@ export function MyOrders() {
 
       // Payment verified successfully
       if (paymentResult.success) {
-        // Call the existing handleAdditionalPaymentSuccess function
-        await handleAdditionalPaymentSuccess();
+        // Call the existing handleAdditionalPaymentSuccess function with payment message
+        await handleAdditionalPaymentSuccess(paymentResult.message);
       } else {
         throw new Error(paymentResult.message || 'Payment verification failed');
       }
@@ -410,7 +410,7 @@ export function MyOrders() {
     }
   };
 
-  const handleAdditionalPaymentSuccess = async () => {
+  const handleAdditionalPaymentSuccess = async (paymentMessage?: string) => {
     if (!selectedBooking) {
       setIsProcessingPayment(false);
       return;
@@ -421,7 +421,17 @@ export function MyOrders() {
       // The backend should have updated the booking automatically
       // We just need to refresh the bookings list
       
-      toast.success('Payment Verified Successfully');
+      // Use API message if available (e.g., "payment already success" from webhook)
+      // Otherwise use default success message
+      const successMessage = paymentMessage && (
+        paymentMessage.toLowerCase().includes('already verified') ||
+        paymentMessage.toLowerCase().includes('already success') ||
+        paymentMessage.toLowerCase().includes('payment already success') ||
+        paymentMessage.toLowerCase().includes('webhook') ||
+        paymentMessage.toLowerCase().includes('already processed')
+      ) ? paymentMessage : (paymentMessage || 'Payment Verified Successfully');
+      
+      toast.success(successMessage);
       
       // Refresh bookings to get updated data
       await refetch();
@@ -487,14 +497,13 @@ export function MyOrders() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-4 gap-3 sm:gap-2">
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1 w-full sm:w-auto">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto p-1 sm:p-1.5 rounded-xl bg-muted/50 border border-border/70 shadow-sm overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto p-1 sm:p-1.5 rounded-xl bg-muted/50 border border-border/70 shadow-sm overflow-x-auto">
             <TabsTrigger value="all" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">
               All
             </TabsTrigger>
             <TabsTrigger value="pending" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Pending</TabsTrigger>
             <TabsTrigger value="active" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Active</TabsTrigger>
             <TabsTrigger value="completed" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Completed</TabsTrigger>
-            <TabsTrigger value="cancelled" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Cancelled</TabsTrigger>
             <TabsTrigger value="expired" className="text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#18b3b2] data-[state=active]:to-[#22cc7b] data-[state=active]:text-white data-[state=active]:border-0 data-[state=active]:shadow-md rounded-lg whitespace-nowrap">Expired</TabsTrigger>
           </TabsList>
         </Tabs>

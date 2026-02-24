@@ -990,8 +990,8 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         await new Promise(resolve => setTimeout(resolve, 200));
         
         console.log('✅ [PAYMENT] Calling handlePaymentSuccess');
-        // Call the existing handlePaymentSuccess function
-        await handlePaymentSuccess();
+        // Call the existing handlePaymentSuccess function with payment result message
+        await handlePaymentSuccess(undefined, paymentResult.message);
       } else {
         throw new Error(paymentResult.message || 'Payment verification failed');
       }
@@ -1016,7 +1016,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     }
   };
 
-  const handlePaymentSuccess = async (paymentGatewayRef?: string) => {
+  const handlePaymentSuccess = async (paymentGatewayRef?: string, paymentMessage?: string) => {
     if (!stockData || !bookingResponse) {
       toast.error('Booking details not available. Please refresh the page.');
       setIsVerifyingPayment(false);
@@ -1168,8 +1168,23 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         wantsToJoinDistributor: isAlreadyDistributor ? false : joinDistributorProgram,
       }));
 
+      // Use API message if available (e.g., "payment already success" from webhook)
+      // Otherwise use default success message
       let successMessage = 'Payment Verified Successfully';
-      if (isAlreadyDistributor) {
+      
+      // Check if payment was already verified by webhook
+      if (paymentMessage && (
+        paymentMessage.toLowerCase().includes('already verified') ||
+        paymentMessage.toLowerCase().includes('already success') ||
+        paymentMessage.toLowerCase().includes('payment already success') ||
+        paymentMessage.toLowerCase().includes('webhook') ||
+        paymentMessage.toLowerCase().includes('already processed')
+      )) {
+        successMessage = paymentMessage;
+      } else if (paymentMessage) {
+        // Use API message if provided, even if not webhook-related
+        successMessage = paymentMessage;
+      } else if (isAlreadyDistributor) {
         successMessage = 'Payment Verified Successfully';
       } else if (joinDistributorProgram && isDistributorEligible) {
         successMessage = 'Payment Verified Successfully';

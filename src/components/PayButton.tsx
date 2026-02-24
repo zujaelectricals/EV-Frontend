@@ -105,7 +105,17 @@ export function PayButton({
 
       // Payment verified successfully
       if (paymentResult.success) {
-        toast.success('Payment Verified Successfully');
+        // Use API message if available (e.g., "payment already success" from webhook)
+        // Otherwise use default success message
+        const successMessage = paymentResult.message && (
+          paymentResult.message.toLowerCase().includes('already verified') ||
+          paymentResult.message.toLowerCase().includes('already success') ||
+          paymentResult.message.toLowerCase().includes('payment already success') ||
+          paymentResult.message.toLowerCase().includes('webhook') ||
+          paymentResult.message.toLowerCase().includes('already processed')
+        ) ? paymentResult.message : (paymentResult.message || 'Payment Verified Successfully');
+        
+        toast.success(successMessage);
         if (onSuccess) {
           onSuccess(paymentResult);
         }

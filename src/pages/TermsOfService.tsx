@@ -89,8 +89,8 @@ export function TermsOfService() {
                   <p className="font-semibold mb-2">ZUJA ELECTRICAL INNOVATION PRIVATE LIMITED</p>
                   <p className="mb-1"><strong>Registered Address:</strong></p>
                   <p className="mb-4">
-                    C/O Sabu Mathew, Kuttiyadiyil, Arrattuvazhy,<br />
-                    Alappuzha North, Ambalapuzha A,<br />
+                    Kuttiyadiyil, Arrattuvazhy,<br />
+                    Alappuzha North, Ambalapuzha,<br />
                     Alappuzha – 688007, Kerala, India
                   </p>
                   <p className="mb-1">Email: <a href="mailto:zujaelectric@gmail.com" className="text-[#15adc1] hover:underline">zujaelectric@gmail.com</a></p>
