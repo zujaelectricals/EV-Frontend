@@ -327,24 +327,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const [isLoadingRazorpay, setIsLoadingRazorpay] = useState(false);
-  
-  // Refs to track payment processing state for event handlers
-  const isProcessingPaymentRef = useRef(false);
-  const isVerifyingPaymentRef = useRef(false);
-  const isLoadingRazorpayRef = useRef(false);
-  
-  // Keep refs in sync with state
-  useEffect(() => {
-    isProcessingPaymentRef.current = isProcessingPayment;
-  }, [isProcessingPayment]);
-  
-  useEffect(() => {
-    isVerifyingPaymentRef.current = isVerifyingPayment;
-  }, [isVerifyingPayment]);
-  
-  useEffect(() => {
-    isLoadingRazorpayRef.current = isLoadingRazorpay;
-  }, [isLoadingRazorpay]);
 
   // Sync inputValue when preBookingAmount changes externally
   useEffect(() => {
@@ -923,52 +905,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     }
   };
 
-  // Prevent browser back navigation during payment processing
-  useEffect(() => {
-    const isPaymentProcessing = isLoadingRazorpay || isVerifyingPayment || isProcessingPayment;
-    
-    if (!isPaymentProcessing) {
-      return;
-    }
-
-    // Push a dummy state to history to prevent back navigation
-    window.history.pushState(null, '', window.location.href);
-
-    // Handle browser back button
-    const handlePopState = (event: PopStateEvent) => {
-      // Check refs for latest state
-      const isCurrentlyProcessing = isLoadingRazorpayRef.current || isVerifyingPaymentRef.current || isProcessingPaymentRef.current;
-      if (isCurrentlyProcessing) {
-        // Push state again to prevent navigation
-        window.history.pushState(null, '', window.location.href);
-        // Show warning to user
-        toast.warning('Please do not go back during payment processing');
-      }
-    };
-
-    // Handle browser back/forward buttons
-    window.addEventListener('popstate', handlePopState);
-
-    // Also prevent closing via Escape key during payment
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Check refs for latest state
-      const isCurrentlyProcessing = isLoadingRazorpayRef.current || isVerifyingPaymentRef.current || isProcessingPaymentRef.current;
-      if (event.key === 'Escape' && isCurrentlyProcessing) {
-        event.preventDefault();
-        event.stopPropagation();
-        toast.warning('Please wait for payment processing to complete');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isLoadingRazorpay, isVerifyingPayment, isProcessingPayment]);
-
   // Monitor Razorpay modal appearance and hide loading when it closes
   useEffect(() => {
     if (!isLoadingRazorpay) return;
@@ -1448,16 +1384,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
               transition={{ duration: 0.3 }}
               className="fixed inset-0 z-[9998] bg-background/95 backdrop-blur-sm flex items-center justify-center"
               style={{ pointerEvents: isLoadingRazorpay ? 'auto' : 'none' }}
-              onClick={(e) => {
-                // Prevent any clicks from closing or navigating
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onContextMenu={(e) => {
-                // Prevent right-click context menu
-                e.preventDefault();
-                e.stopPropagation();
-              }}
             >
               <div className="text-center space-y-6">
                 {/* Security Icon */}
@@ -1541,16 +1467,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
               transition={{ duration: 0.15 }}
               className="fixed inset-0 z-[99999] bg-background/98 backdrop-blur-md flex items-center justify-center"
               style={{ pointerEvents: isVerifyingPayment ? 'auto' : 'none' }}
-              onClick={(e) => {
-                // Prevent any clicks from closing or navigating
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onContextMenu={(e) => {
-                // Prevent right-click context menu
-                e.preventDefault();
-                e.stopPropagation();
-              }}
               onAnimationComplete={() => {
                 // Force remove any blocking overlays after animation
                 if (!isVerifyingPayment) {
@@ -1637,15 +1553,8 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       )}
 
       <Dialog open={isOpen} onOpenChange={(open) => {
-        // Prevent closing during payment processing (loading, verifying, or processing)
-        const isPaymentProcessing = isLoadingRazorpay || isVerifyingPayment || isProcessingPayment || isBookingInProgress;
-        if (!open && isPaymentProcessing) {
-          toast.warning('Please wait for payment processing to complete');
-          return;
-        }
-        // Also prevent closing if booking is in progress
-        if (!open && isBookingInProgress) {
-          toast.warning('Please wait for booking to complete');
+        // Prevent closing during payment verification
+        if (!open && isVerifyingPayment) {
           return;
         }
         onClose();

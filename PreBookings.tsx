@@ -444,8 +444,6 @@ export const PreBookings = () => {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
               {hasActiveFilters && (
