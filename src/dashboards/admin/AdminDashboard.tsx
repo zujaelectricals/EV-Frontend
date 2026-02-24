@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   TrendingUp,
@@ -42,11 +42,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 export const AdminDashboard = () => {
   const { data: dashboardData, isLoading, isError } = useGetAdminDashboardQuery();
-  const [userType, setUserType] = useState<'normal_users' | 'staff_users' | 'combined'>('combined');
+  const userType: 'combined' = 'combined';
   
   // Feature flags to show/hide sections
   const showPreBookings = false;
@@ -470,21 +468,6 @@ export const AdminDashboard = () => {
             Live Mode
           </Button>
         </div> */}
-      </motion.div>
-
-      {/* User Type Tabs */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Tabs value={userType} onValueChange={(v) => setUserType(v as typeof userType)}>
-          <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="combined">Combined</TabsTrigger>
-            <TabsTrigger value="normal_users">Normal Users</TabsTrigger>
-            <TabsTrigger value="staff_users">Staff Users</TabsTrigger>
-          </TabsList>
-        </Tabs>
       </motion.div>
 
       {/* KPI Cards */}

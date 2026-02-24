@@ -30,6 +30,7 @@ import {
   Copy,
   AlertTriangle,
   Clock,
+  Download,
 } from "lucide-react";
 import {
   Card,
@@ -134,6 +135,43 @@ export function ProfilePage() {
 
   const handleRefresh = () => {
     refetchProfile();
+  };
+
+  // Handle document download
+  const handleDownloadDocument = async (url: string, filename?: string) => {
+    try {
+      const { getAuthTokens } = await import('@/app/api/baseApi');
+      const { accessToken } = getAuthTokens();
+      
+      const response = await fetch(url, {
+        headers: accessToken ? {
+          'Authorization': `Bearer ${accessToken}`,
+        } : {},
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download document');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      
+      // Extract filename from URL if not provided
+      const finalFilename = filename || url.split('/').pop() || 'document.pdf';
+      link.download = finalFilename;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast.success('Document downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast.error('Failed to download document. Please try again.');
+    }
   };
 
   useEffect(() => {
@@ -450,6 +488,7 @@ export function ProfilePage() {
     //{ id: "addresses", label: "Addresses", icon: MapPin },
     //{ id: "redemption", label: "Redemption Points", icon: Gift },
     { id: "referral", label: "ASA Link", icon: LinkIcon },
+    { id: "documents", label: "Documents", icon: FileText },
     { id: "settings", label: "Edit Profile", icon: Settings },
     // ...(isDistributor
     //   ? [{ id: "distributor", label: "ASA(Authorized Sales Associate)", icon: Award }]
@@ -559,6 +598,7 @@ export function ProfilePage() {
                 const getMobileLabel = (id: string, label: string) => {
                   if (id === "kyc") return "KYC";
                   if (id === "referral") return "ASA Link";
+                  if (id === "documents") return "Documents";
                   if (id === "settings") return "Profile";
                   if (id === "nominee") return "Nominee";
                   return label;
@@ -656,6 +696,181 @@ export function ProfilePage() {
                   <div className="text-center py-8">
                     <LinkIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">ASA link will be available after account setup.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          {activeTab === "documents" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Documents
+                </CardTitle>
+                <CardDescription>
+                  View and download your important documents
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6">
+                {isLoadingRawProfile ? (
+                  <div className="flex items-center justify-center py-8">
+                    <LoadingSpinner text="Loading documents..." size="md" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Payment Terms Acceptance Document */}
+                    {rawProfileData?.payment_terms_acceptance_document_url ? (
+                      <div className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <FileTextIcon className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm sm:text-base truncate">
+                              Payment Terms Acceptance
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              Payment terms and conditions document
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocument(
+                            rawProfileData.payment_terms_acceptance_document_url!,
+                            'payment_terms_acceptance.pdf'
+                          )}
+                          className="ml-4 flex-shrink-0"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                            <FileTextIcon className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm sm:text-base text-muted-foreground">
+                              Payment Terms Acceptance
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              No document available
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Payment Receipts */}
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-foreground mb-3">
+                        Payment Receipts
+                      </h3>
+                      {rawProfileData?.payment_receipt_urls && rawProfileData.payment_receipt_urls.length > 0 ? (
+                        <div className="space-y-2">
+                          {rawProfileData.payment_receipt_urls.map((url, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                  <FileTextIcon className="w-5 h-5 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm sm:text-base truncate">
+                                    Payment Receipt #{index + 1}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    Payment receipt document
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDownloadDocument(
+                                  url,
+                                  `payment_receipt_${index + 1}.pdf`
+                                )}
+                                className="ml-4 flex-shrink-0"
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                              <FileTextIcon className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm sm:text-base text-muted-foreground">
+                                Payment Receipts
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                No receipts available
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ASA Document Acceptance */}
+                    {rawProfileData?.asa_document_acceptance_url ? (
+                      <div className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <FileTextIcon className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm sm:text-base truncate">
+                              ASA Document Acceptance
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              Authorized Sales Associate agreement
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocument(
+                            rawProfileData.asa_document_acceptance_url!,
+                            'asa_document_acceptance.pdf'
+                          )}
+                          className="ml-4 flex-shrink-0"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                            <FileTextIcon className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm sm:text-base text-muted-foreground">
+                              ASA Document Acceptance
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              No document available
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

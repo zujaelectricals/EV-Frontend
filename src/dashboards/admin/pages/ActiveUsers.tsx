@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState, useMemo, useEffect } from 'react';
-import { Users, UserCheck, Search, Filter, Download, Eye, Edit, Ban, Mail, Phone, Calendar, TrendingUp, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Users, UserCheck, Search, Filter, Download, Eye, Edit, Ban, Mail, Phone, Calendar, TrendingUp, ChevronLeft, ChevronRight, X, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,9 +41,11 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { UserExtended } from '../types/userManagement';
-import { useGetNormalUsersQuery, useGetUserByIdQuery, useUpdateUserByIdMutation, useDeleteUserByIdMutation, type UserProfileResponse } from '@/app/api/userApi';
+import { useGetNormalUsersQuery, useGetUserByIdQuery, useUpdateUserByIdMutation, useDeleteUserByIdMutation, useGetUserDocumentsQuery, type UserProfileResponse } from '@/app/api/userApi';
+import { getAuthTokens } from '@/app/api/baseApi';
 import { LoadingSpinner, InlineLoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
+import { formatDisplayDate } from '@/lib/utils';
 
 
 const getStatusBadge = (status: string) => {
@@ -185,6 +187,8 @@ export const ActiveUsers = () => {
   }, [usersResponse]);
   const [viewingUserId, setViewingUserId] = useState<number | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDocumentsDialogOpen, setIsDocumentsDialogOpen] = useState(false);
+  const [documentsUserId, setDocumentsUserId] = useState<number | null>(null);
 
   // Reset to page 1 when filters change (but not when searchQuery changes, as handleSearch handles it)
   useEffect(() => {
@@ -225,6 +229,12 @@ export const ActiveUsers = () => {
   const { data: userDetails, isLoading: isLoadingUserDetails } = useGetUserByIdQuery(
     viewingUserId!,
     { skip: !viewingUserId }
+  );
+
+  // Fetch user documents when documentsUserId is set
+  const { data: userDocuments, isLoading: isLoadingDocuments } = useGetUserDocumentsQuery(
+    documentsUserId!,
+    { skip: !documentsUserId }
   );
 
   // Edit dialog state
@@ -759,7 +769,7 @@ export const ActiveUsers = () => {
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Date of Birth</Label>
-                  <p className="font-medium">{userDetails.date_of_birth ? new Date(userDetails.date_of_birth).toLocaleDateString() : 'N/A'}</p>
+                  <p className="font-medium">{formatDisplayDate(userDetails.date_of_birth)}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Role</Label>
@@ -858,6 +868,18 @@ export const ActiveUsers = () => {
               setViewingUserId(null);
             }}>
               Close
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (viewingUserId) {
+                  setDocumentsUserId(viewingUserId);
+                  setIsDocumentsDialogOpen(true);
+                }
+              }}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Documents
             </Button>
             <Button
               onClick={() => {
@@ -1114,6 +1136,198 @@ export const ActiveUsers = () => {
               </DialogFooter>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Documents Dialog */}
+      <Dialog open={isDocumentsDialogOpen} onOpenChange={(open) => {
+        setIsDocumentsDialogOpen(open);
+        if (!open) {
+          setDocumentsUserId(null);
+        }
+      }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>User Documents</DialogTitle>
+            <DialogDescription>
+              {userDocuments ? `Documents for ${userDocuments.user_full_name} (${userDocuments.user_email})` : 'Loading documents...'}
+            </DialogDescription>
+          </DialogHeader>
+          {isLoadingDocuments ? (
+            <div className="flex items-center justify-center py-8">
+              <LoadingSpinner />
+            </div>
+          ) : userDocuments ? (
+            <div className="space-y-4">
+              {/* ASA Document Acceptance */}
+              {userDocuments.asa_document_acceptance_url && (
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium">ASA Document Acceptance</Label>
+                      <p className="text-xs text-muted-foreground mt-1">Agreement document</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const { accessToken } = getAuthTokens();
+                          if (!accessToken) {
+                            toast.error('Authentication required');
+                            return;
+                          }
+                          const response = await fetch(userDocuments.asa_document_acceptance_url!, {
+                            headers: {
+                              'Authorization': `Bearer ${accessToken}`,
+                            },
+                          });
+                          if (!response.ok) throw new Error('Failed to download');
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = userDocuments.asa_document_acceptance_url.split('/').pop() || 'asa_document.pdf';
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                          toast.success('Document downloaded successfully');
+                        } catch (error) {
+                          console.error('Download error:', error);
+                          toast.error('Failed to download document');
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Terms Acceptance Document */}
+              {userDocuments.payment_terms_acceptance_document_url && (
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium">Payment Terms Acceptance</Label>
+                      <p className="text-xs text-muted-foreground mt-1">Payment terms document</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const { accessToken } = getAuthTokens();
+                          if (!accessToken) {
+                            toast.error('Authentication required');
+                            return;
+                          }
+                          const response = await fetch(userDocuments.payment_terms_acceptance_document_url!, {
+                            headers: {
+                              'Authorization': `Bearer ${accessToken}`,
+                            },
+                          });
+                          if (!response.ok) throw new Error('Failed to download');
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = userDocuments.payment_terms_acceptance_document_url.split('/').pop() || 'payment_terms.pdf';
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                          toast.success('Document downloaded successfully');
+                        } catch (error) {
+                          console.error('Download error:', error);
+                          toast.error('Failed to download document');
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Receipts */}
+              {userDocuments.payment_receipt_urls && userDocuments.payment_receipt_urls.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Payment Receipts ({userDocuments.payment_receipt_urls.length})</Label>
+                  {userDocuments.payment_receipt_urls.map((url, index) => (
+                    <div key={index} className="p-4 border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm font-medium">Receipt #{index + 1}</Label>
+                          <p className="text-xs text-muted-foreground mt-1">Payment receipt document</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const { accessToken } = getAuthTokens();
+                              if (!accessToken) {
+                                toast.error('Authentication required');
+                                return;
+                              }
+                              const response = await fetch(url, {
+                                headers: {
+                                  'Authorization': `Bearer ${accessToken}`,
+                                },
+                              });
+                              if (!response.ok) throw new Error('Failed to download');
+                              const blob = await response.blob();
+                              const urlObj = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = urlObj;
+                              a.download = url.split('/').pop() || `receipt_${index + 1}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(urlObj);
+                              document.body.removeChild(a);
+                              toast.success('Document downloaded successfully');
+                            } catch (error) {
+                              console.error('Download error:', error);
+                              toast.error('Failed to download document');
+                            }
+                          }}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* No documents message */}
+              {!userDocuments.asa_document_acceptance_url && 
+               !userDocuments.payment_terms_acceptance_document_url && 
+               (!userDocuments.payment_receipt_urls || userDocuments.payment_receipt_urls.length === 0) && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No documents available for this user.</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              Failed to load documents
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsDocumentsDialogOpen(false);
+              setDocumentsUserId(null);
+            }}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

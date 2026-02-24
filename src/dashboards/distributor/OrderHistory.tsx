@@ -21,7 +21,7 @@ import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { updateBooking, setBookings, Booking, PaymentMethod } from '@/app/slices/bookingSlice';
 import { PaymentGateway } from '@/store/components/PaymentGateway';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { formatDisplayDate, formatDisplayDateTime } from '@/lib/utils';
 import { useGetBookingsQuery, useCancelBookingMutation } from '@/app/api/bookingApi';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { api } from '@/app/api/baseApi';
@@ -540,7 +540,7 @@ export function OrderHistory() {
                         <div>
                           <p className="text-muted-foreground">Booked On</p>
                           <p className="font-semibold text-foreground">
-                            {format(new Date(booking.bookedAt), 'MMM dd, yyyy')}
+                            {formatDisplayDate(booking.bookedAt)}
                           </p>
                         </div>
                       </div>
@@ -554,7 +554,7 @@ export function OrderHistory() {
                               ? 'text-destructive'
                               : 'text-foreground'
                           }`}>
-                            {format(new Date(booking.paymentDueDate), 'MMM dd, yyyy')}
+                            {formatDisplayDate(booking.paymentDueDate)}
                           </span>
                         </div>
                       )}
@@ -676,14 +676,14 @@ export function OrderHistory() {
                 <div>
                   <p className="text-sm text-muted-foreground">Booked On</p>
                   <p className="font-semibold">
-                    {format(new Date(selectedBookingData.bookedAt), 'MMM dd, yyyy HH:mm')}
+                    {formatDisplayDateTime(selectedBookingData.bookedAt)}
                   </p>
                 </div>
                 {selectedBookingData.paymentDueDate && (
                   <div>
                     <p className="text-sm text-muted-foreground">Payment Due Date</p>
                     <p className="font-semibold">
-                      {format(new Date(selectedBookingData.paymentDueDate), 'MMM dd, yyyy')}
+                      {formatDisplayDate(selectedBookingData.paymentDueDate)}
                     </p>
                   </div>
                 )}

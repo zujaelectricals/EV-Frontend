@@ -233,7 +233,7 @@ export const Sidebar = ({ open, onOpenChange }: SidebarProps) => {
           className="flex items-center gap-2"
           onClick={() => isMobile && onOpenChange?.(false)}
         >
-          <img src="/Zuja_Logo-removebg-preview.png" alt="Zuja Electric" className="h-20 w-auto" />
+          <img src="/Zuja_Logo-removebg-preview.png" alt="Zuja Electric" className="h-16 w-auto" />
         </Link>
       </div>
 

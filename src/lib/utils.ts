@@ -74,3 +74,59 @@ export function getTokenExpiryTime(token: string | null): number | null {
   const currentTime = Date.now();
   return Math.max(0, expiryTime - currentTime);
 }
+
+/**
+ * Format a date to DD/MM/YYYY format for UI display
+ * @param date - Date string, Date object, or null/undefined
+ * @param separator - Separator to use between date parts (default: '/')
+ * @returns Formatted date string in DD/MM/YYYY or DD-MM-YYYY format, or 'N/A' if invalid
+ */
+export function formatDisplayDate(date: string | Date | null | undefined, separator: '/' | '-' = '/'): string {
+  if (!date) return 'N/A';
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return 'N/A';
+    }
+    
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = dateObj.getFullYear();
+    
+    return `${day}${separator}${month}${separator}${year}`;
+  } catch {
+    return 'N/A';
+  }
+}
+
+/**
+ * Format a date with time to DD/MM/YYYY HH:mm format for UI display
+ * @param date - Date string, Date object, or null/undefined
+ * @param separator - Separator to use between date parts (default: '/')
+ * @returns Formatted date string in DD/MM/YYYY HH:mm or DD-MM-YYYY HH:mm format, or 'N/A' if invalid
+ */
+export function formatDisplayDateTime(date: string | Date | null | undefined, separator: '/' | '-' = '/'): string {
+  if (!date) return 'N/A';
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return 'N/A';
+    }
+    
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = dateObj.getFullYear();
+    const hours = String(dateObj.getHours()).padStart(2, '0');
+    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+    
+    return `${day}${separator}${month}${separator}${year} ${hours}:${minutes}`;
+  } catch {
+    return 'N/A';
+  }
+}

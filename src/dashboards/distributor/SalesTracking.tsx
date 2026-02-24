@@ -409,11 +409,7 @@ export const SalesTracking = () => {
                       {recentPairs.map((pair) => (
                         <TableRow key={pair.id}>
                           <TableCell>
-                            {new Date(pair.matchedAt).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
+                            {formatDisplayDate(pair.matchedAt)}
                           </TableCell>
                           <TableCell>₹{pair.leftPV.toLocaleString()}</TableCell>
                           <TableCell>₹{pair.rightPV.toLocaleString()}</TableCell>

@@ -610,7 +610,7 @@ export const AdminSidebar = () => {
           <img
             src="/Zuja_Logo-removebg-preview.png"
             alt="Zuja Electric"
-            className={collapsed ? "h-14 w-auto" : "h-20 w-auto"}
+            className={collapsed ? "h-12 w-auto" : "h-16 w-auto"}
           />
         </Link>
         <button

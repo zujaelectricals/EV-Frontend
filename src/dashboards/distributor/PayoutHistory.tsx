@@ -38,6 +38,7 @@ import { useGetUserProfileQuery } from '@/app/api/userApi';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { api } from '@/app/api/baseApi';
 import { useSendUniversalOTPMutation, useVerifyUniversalOTPMutation } from '@/app/api/authApi';
+import { formatDisplayDate } from '@/lib/utils';
 
 const getStatusBadge = (status: PayoutStatus | 'rejected') => {
   switch (status) {
@@ -549,7 +550,7 @@ export const PayoutHistory = () => {
                       {filteredPayouts.map((payout) => (
                       <TableRow key={payout.id}>
                         <TableCell className="whitespace-nowrap">
-                          {new Date(payout.requestedAt).toLocaleDateString()}
+                          {formatDisplayDate(payout.requestedAt)}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{getTypeLabel(payout.type)}</Badge>
@@ -612,7 +613,7 @@ export const PayoutHistory = () => {
                     {pendingPayouts.map((payout) => (
                       <TableRow key={payout.id}>
                         <TableCell className="whitespace-nowrap">
-                          {new Date(payout.requestedAt).toLocaleDateString()}
+                          {formatDisplayDate(payout.requestedAt)}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{getTypeLabel(payout.type)}</Badge>
@@ -664,7 +665,7 @@ export const PayoutHistory = () => {
                     {completedPayouts.map((payout) => (
                       <TableRow key={payout.id}>
                         <TableCell className="whitespace-nowrap">
-                          {new Date(payout.requestedAt).toLocaleDateString()}
+                          {formatDisplayDate(payout.requestedAt)}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{getTypeLabel(payout.type)}</Badge>
@@ -675,7 +676,7 @@ export const PayoutHistory = () => {
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {payout.processedAt 
-                            ? new Date(payout.processedAt).toLocaleDateString()
+                            ? formatDisplayDate(payout.processedAt)
                             : '-'}
                         </TableCell>
                       </TableRow>

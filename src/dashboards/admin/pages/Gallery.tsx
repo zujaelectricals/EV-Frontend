@@ -53,6 +53,7 @@ import {
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/config';
+import { formatDisplayDate } from '@/lib/utils';
 
 export const Gallery = () => {
   const { data: galleryResponse, isLoading, error, refetch } = useGetGalleryItemsQuery();
@@ -505,7 +506,7 @@ export const Gallery = () => {
                       </TableCell>
                       <TableCell>{item.created_by_username}</TableCell>
                       <TableCell>
-                        {new Date(item.created_at).toLocaleDateString()}
+                        {formatDisplayDate(item.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

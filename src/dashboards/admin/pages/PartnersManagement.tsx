@@ -26,6 +26,7 @@ import {
 import { useGetDistributorApplicationsQuery, useUpdateDistributorApplicationStatusMutation } from '@/app/api/userApi';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
+import { formatDisplayDate } from '@/lib/utils';
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -210,13 +211,7 @@ export const PartnersManagement = () => {
                     <TableCell className="align-middle">
                       <div className="text-sm text-muted-foreground">
                         {app.submitted_at
-                          ? new Date(app.submitted_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
+                          ? formatDisplayDate(app.submitted_at)
                           : 'N/A'}
                       </div>
                     </TableCell>

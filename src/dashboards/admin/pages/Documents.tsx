@@ -50,6 +50,7 @@ import {
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/config';
+import { formatDisplayDate } from '@/lib/utils';
 
 export const Documents = () => {
   const { data: documentsResponse, isLoading, error, refetch } = useGetDistributorDocumentsQuery();
@@ -229,17 +230,9 @@ export const Documents = () => {
     }
   };
 
-  // Format date helper
+  // Format date helper - using utility function
   const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return dateString;
-    }
+    return formatDisplayDate(dateString);
   };
 
   // Get document type display name

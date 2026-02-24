@@ -33,7 +33,8 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useGetEmergencyWithdrawalRequestsQuery, useApproveWithdrawalRequestMutation, useRejectWithdrawalRequestMutation } from '@/app/api/poolWithdrawalApi';
 import { toast } from 'sonner';
-import { format, differenceInHours } from 'date-fns';
+import { differenceInHours } from 'date-fns';
+import { formatDisplayDateTime } from '@/lib/utils';
 
 export const EmergencyWithdrawals = () => {
   const { data: emergencyRequests = [], isLoading, refetch } = useGetEmergencyWithdrawalRequestsQuery();
@@ -386,7 +387,7 @@ export const EmergencyWithdrawals = () => {
                     <TableCell className="font-medium">{request.distributorName}</TableCell>
                     <TableCell className="font-bold">₹{request.amount.toLocaleString()}</TableCell>
                     <TableCell>{getReasonLabel(request.reason)}</TableCell>
-                    <TableCell>{format(new Date(request.requestedAt), 'MMM dd, yyyy HH:mm')}</TableCell>
+                    <TableCell>{formatDisplayDateTime(request.requestedAt)}</TableCell>
                     <TableCell>{getUrgencyIndicator(request.requestedAt)}</TableCell>
                     <TableCell>{getStatusBadge(request.status)}</TableCell>
                     <TableCell>
@@ -475,7 +476,7 @@ export const EmergencyWithdrawals = () => {
                 </div>
                 <div>
                   <Label className="text-sm text-muted-foreground">Requested Date</Label>
-                  <p>{format(new Date(selectedRequest.requestedAt), 'MMM dd, yyyy HH:mm')}</p>
+                  <p>{formatDisplayDateTime(selectedRequest.requestedAt)}</p>
                 </div>
                 <div>
                   <Label className="text-sm text-muted-foreground">Priority</Label>

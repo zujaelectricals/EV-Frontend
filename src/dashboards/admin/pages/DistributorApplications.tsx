@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { formatDisplayDate } from '@/lib/utils';
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -259,7 +260,7 @@ export const DistributorApplications = () => {
                     <TableCell>₹{parseInt(app.applicationData.vehicleMRP || '0').toLocaleString()}</TableCell>
                     <TableCell>{getStatusBadge(app.status)}</TableCell>
                     <TableCell>
-                      {new Date(app.submittedAt).toLocaleDateString()}
+                      {formatDisplayDate(app.submittedAt)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

@@ -28,6 +28,7 @@ import { useSendUniversalOTPMutation, useVerifyUniversalOTPMutation } from '@/ap
 import { useGetUserProfileQuery, useGetUserProfileRawQuery } from '@/app/api/userApi';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { formatDisplayDate } from '@/lib/utils';
 
 export function DistributorApplication() {
   const dispatch = useAppDispatch();
@@ -738,7 +739,7 @@ export function DistributorApplication() {
                 </p>
                 {existingApplication && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Submitted on: {new Date(existingApplication.submittedAt).toLocaleDateString()}
+                    Submitted on: {formatDisplayDate(existingApplication.submittedAt)}
                   </p>
                 )}
               </div>
@@ -1186,7 +1187,7 @@ export function DistributorApplication() {
                   <div className="text-xs text-muted-foreground space-y-1">
                     <p><strong>Version:</strong> {activeASATerm.version}</p>
                     {activeASATerm.effective_from && (
-                      <p><strong>Effective From:</strong> {new Date(activeASATerm.effective_from).toLocaleDateString()}</p>
+                      <p><strong>Effective From:</strong> {formatDisplayDate(activeASATerm.effective_from)}</p>
                     )}
                   </div>
                 </div>

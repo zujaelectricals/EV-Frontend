@@ -46,7 +46,7 @@ import {
   endOfQuarter,
   subDays,
 } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatDisplayDate } from "@/lib/utils";
 
 type PeriodFilter = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
 
@@ -494,7 +494,7 @@ export const StaffTargets = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {format(new Date(target.deadline), "MMM dd, yyyy")}
+                          {formatDisplayDate(target.deadline)}
                         </TableCell>
                       </TableRow>
                     );

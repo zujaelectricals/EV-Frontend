@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { KYCDetails } from '@/app/slices/authSlice';
+import { formatDisplayDate } from '@/lib/utils';
 
 interface StoredUser {
   id: string;
@@ -328,7 +329,7 @@ export const KYCVerified = () => {
                     </TableCell>
                     <TableCell>
                       {user.kycDetails?.verifiedAt ? (
-                        <span className="text-sm">{new Date(user.kycDetails.verifiedAt).toLocaleDateString()}</span>
+                        <span className="text-sm">{formatDisplayDate(user.kycDetails.verifiedAt)}</span>
                       ) : (
                         <span className="text-sm text-muted-foreground">-</span>
                       )}

@@ -322,6 +322,9 @@ const authSlice = createSlice({
         localStorage.removeItem(AUTH_STORAGE_KEY);
         // Clear profile picture from localStorage
         localStorage.removeItem('ev_nexus_profile_picture');
+        // Clear referral code from localStorage
+        localStorage.removeItem('ev_nexus_referral_code');
+        localStorage.removeItem('ev_nexus_referrer_name');
       }
     },
     setLoading: (state, action: PayloadAction<boolean>) => {

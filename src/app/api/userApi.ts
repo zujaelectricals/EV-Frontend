@@ -39,9 +39,19 @@ export interface UserProfileResponse {
   is_distributor_terms_and_conditions_accepted: boolean | null;
   distributor_application_status: 'pending' | 'approved' | 'rejected' | null;
   profile_picture?: string; // URL to the profile picture
+  profile_picture_url?: string | null;
   days_remaining_for_full_payment?: number;
   active_buyer_warning?: string;
   vehicle_delivery_date?: string; // Vehicle delivery date (YYYY-MM-DD) or message string
+  payment_terms_acceptance_document_url?: string | null;
+  payment_receipt_urls?: string[];
+  asa_document_acceptance_url?: string | null;
+  referred_by?: {
+    id: number;
+    fullname: string;
+    email: string;
+    profile_picture_url: string | null;
+  } | null;
 }
 
 // KYC submission request (multipart/form-data)
@@ -1925,6 +1935,94 @@ export const userApi = api.injectEndpoints({
       providesTags: ['User'],
     }),
 
+    // GET users/documents/ - Get user documents (Admin only)
+    getUserDocuments: builder.query<{
+      user_id: number;
+      user_email: string;
+      user_full_name: string;
+      asa_document_acceptance_url: string | null;
+      payment_receipt_urls: string[];
+      payment_terms_acceptance_document_url: string | null;
+    }, number>({
+      queryFn: async (userId) => {
+        const { accessToken } = getAuthTokens();
+
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          const url = `${API_BASE_URL}users/documents/?user_id=${userId}`;
+          console.log('📤 [USER API - getUserDocuments] Request URL:', url);
+
+          let response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Handle 401 Unauthorized - try to refresh token
+          if (response.status === 401) {
+            console.log('🟡 [USER API - getUserDocuments] Access token expired, attempting to refresh...');
+            const refreshData = await refreshAccessToken();
+
+            if (refreshData) {
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                console.log('🔄 [USER API - getUserDocuments] Retrying request with new token...');
+                response = await fetch(url, {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                });
+              }
+            } else {
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return {
+                error: {
+                  status: 401,
+                  data: error,
+                } as FetchBaseQueryError,
+              };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to fetch user documents' }));
+            console.error('❌ [USER API - getUserDocuments] Error Response:', error);
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data = await response.json();
+          console.log('✅ [USER API - getUserDocuments] Response:', JSON.stringify(data, null, 2));
+          return { data };
+        } catch (error) {
+          console.error('❌ [USER API - getUserDocuments] Error:', error);
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      providesTags: ['User'],
+    }),
+
     // POST users/distributor-application/{id}/update-status/ - Update distributor application status (Admin only)
     updateDistributorApplicationStatus: builder.mutation<
       { success: boolean; message: string },
@@ -2037,5 +2135,6 @@ export const {
   useRejectNomineeKYCMutation,
   useGetDistributorApplicationsQuery,
   useUpdateDistributorApplicationStatusMutation,
+  useGetUserDocumentsQuery,
 } = userApi;
 

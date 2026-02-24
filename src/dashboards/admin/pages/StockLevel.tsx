@@ -46,6 +46,7 @@ import {
 import { useGetStockListQuery, StockListQueryParams, useUpdateStockByVehicleIdMutation } from '@/app/api/inventoryApi';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDisplayDateTime } from '@/lib/utils';
 
 // Helper function to format currency
 const formatCurrency = (value: number): string => {
@@ -61,14 +62,7 @@ const formatCurrency = (value: number): string => {
 
 // Helper function to format date
 const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-GB', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).replace(',', '');
+  return formatDisplayDateTime(dateString);
 };
 
 const getStatusBadge = (status: string) => {

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { KYCDetails } from '@/app/slices/authSlice';
+import { formatDisplayDate } from '@/lib/utils';
 
 interface StoredUser {
   id: string;
@@ -291,7 +292,7 @@ export const KYCRejected = () => {
                   </TableCell>
                   <TableCell>
                     {user.kycDetails?.rejectedAt ? (
-                      <span className="text-sm">{new Date(user.kycDetails.rejectedAt).toLocaleDateString()}</span>
+                      <span className="text-sm">{formatDisplayDate(user.kycDetails.rejectedAt)}</span>
                     ) : (
                       <span className="text-sm text-muted-foreground">-</span>
                     )}

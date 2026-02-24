@@ -5,7 +5,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { EnhancedTarget } from '../types';
-import { format, differenceInDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
+import { formatDisplayDateTime } from '@/lib/utils';
 
 interface TargetCardProps {
   target: EnhancedTarget;
@@ -147,7 +148,7 @@ export const TargetCard = ({ target, showSparkline = false }: TargetCardProps) =
             {/* Last Updated */}
             {target.lastUpdated && (
               <p className="text-xs text-muted-foreground">
-                Updated: {format(new Date(target.lastUpdated), 'MMM dd, yyyy HH:mm')}
+                Updated: {formatDisplayDateTime(target.lastUpdated)}
               </p>
             )}
           </div>

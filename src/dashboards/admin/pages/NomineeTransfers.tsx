@@ -40,7 +40,7 @@ import {
   useRejectNomineeTransferMutation,
 } from '@/app/api/nomineeTransferApi';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/utils';
 
 export const NomineeTransfers = () => {
   const { data: transfers = [], isLoading, refetch } = useGetAllNomineeTransfersQuery();
@@ -313,7 +313,7 @@ export const NomineeTransfers = () => {
                     </TableCell>
                     <TableCell>{transfer.nominee.relationship}</TableCell>
                     <TableCell className="font-bold">₹{transfer.poolAmount.toLocaleString()}</TableCell>
-                    <TableCell>{format(new Date(transfer.requestedAt), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell>{formatDisplayDate(transfer.requestedAt)}</TableCell>
                     <TableCell>{getStatusBadge(transfer.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

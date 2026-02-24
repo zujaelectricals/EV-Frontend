@@ -32,6 +32,7 @@ import {
 } from '@/app/api/kycApi';
 import { toast } from 'sonner';
 import type { PendingKYCUser } from '@/app/api/kycApi';
+import { formatDisplayDate } from '@/lib/utils';
 
 export const StaffKYCVerification = () => {
   const { user: currentUser } = useAppSelector((state) => state.auth);
@@ -237,7 +238,7 @@ export const StaffKYCVerification = () => {
                     </TableCell>
                     <TableCell>
                       {user.kycDetails?.submittedAt ? (
-                        <span className="text-sm">{new Date(user.kycDetails.submittedAt).toLocaleDateString()}</span>
+                        <span className="text-sm">{formatDisplayDate(user.kycDetails.submittedAt)}</span>
                       ) : (
                         <span className="text-sm text-muted-foreground">-</span>
                       )}

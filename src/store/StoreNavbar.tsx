@@ -89,6 +89,13 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
       // Clear profile picture from localStorage
       clearProfilePicture();
       
+      // Clear referral code from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('ev_nexus_referral_code');
+        localStorage.removeItem('ev_nexus_referrer_name');
+        console.log('✅ [LOGOUT HANDLER] Cleared referral code from localStorage');
+      }
+      
       // Clear RTK Query cache to remove previous user's cached data
       dispatch(api.util.resetApiState());
       
@@ -107,6 +114,13 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
       
       // Clear profile picture from localStorage
       clearProfilePicture();
+      
+      // Clear referral code from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('ev_nexus_referral_code');
+        localStorage.removeItem('ev_nexus_referrer_name');
+        console.log('✅ [LOGOUT HANDLER] Cleared referral code from localStorage (after error)');
+      }
       
       // Clear RTK Query cache
       dispatch(api.util.resetApiState());
@@ -155,7 +169,7 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
             <div className="relative">
-              <img src="/Zuja_Logo-removebg-preview.png" alt="Zuja Electric" className="h-20 md:h-24 w-auto transition-transform duration-300 group-hover:scale-105" />
+              <img src="/Zuja_Logo-removebg-preview.png" alt="Zuja Electric" className="h-16 md:h-20 w-auto transition-transform duration-300 group-hover:scale-105" />
               {!isScrolled && (
                 <div className="absolute -inset-2 bg-primary/5 blur-2xl rounded-full -z-10" />
               )}

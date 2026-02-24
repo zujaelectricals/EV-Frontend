@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useGetAllPoolBalancesQuery, useGetDistributorPoolDetailsQuery } from '@/app/api/poolBalancesApi';
-import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/utils';
 
 type SortField = 'distributorName' | 'poolBalance' | 'totalWithdrawals' | 'lastWithdrawalDate';
 type SortDirection = 'asc' | 'desc';
@@ -360,7 +360,7 @@ export const ActivePoolBalances = () => {
                       <TableCell>{balance.totalWithdrawals}</TableCell>
                       <TableCell>
                         {balance.lastWithdrawalDate
-                          ? format(new Date(balance.lastWithdrawalDate), 'MMM dd, yyyy')
+                          ? formatDisplayDate(balance.lastWithdrawalDate)
                           : 'N/A'}
                       </TableCell>
                       <TableCell>
@@ -503,7 +503,7 @@ export const ActivePoolBalances = () => {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              {format(new Date(req.requestedAt), 'MMM dd, yyyy')}
+                              {formatDisplayDate(req.requestedAt)}
                             </TableCell>
                           </TableRow>
                         ))}

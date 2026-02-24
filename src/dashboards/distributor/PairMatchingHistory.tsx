@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { StatsCard } from "@/shared/components/StatsCard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { formatDisplayDate } from "@/lib/utils";
 
 export const PairMatchingHistory = () => {
   const { user } = useAppSelector((state) => state.auth);
@@ -144,7 +145,7 @@ export const PairMatchingHistory = () => {
                       ₹{pair.netAmount.toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      {new Date(pair.matchedAt).toLocaleDateString()}
+                      {formatDisplayDate(pair.matchedAt)}
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(index, binaryStats?.totalPairs || 0)}

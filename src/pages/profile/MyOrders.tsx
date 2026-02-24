@@ -11,12 +11,14 @@ import {
   Wallet,
   RefreshCw,
   AlertTriangle,
+  CreditCard,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +52,7 @@ import { Booking, PaymentMethod } from "@/app/slices/bookingSlice";
 import { setBookings } from "@/app/slices/bookingSlice";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/app/api/baseApi";
+import { formatDisplayDate } from "@/lib/utils";
 
 const DISTRIBUTOR_ELIGIBILITY_AMOUNT = 5000;
 
@@ -584,271 +587,171 @@ export function MyOrders() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className="hover:shadow-lg transition-shadow relative">
-                <CardContent className="p-3 sm:p-4">
-                  {/* Status Badge - Top Right Corner */}
-                  <div className="absolute top-2 right-2 sm:top-4 sm:right-4">
-                    <Badge className={getStatusColor(booking.status)}>
-                      <span className="flex items-center gap-1 text-[10px] sm:text-xs">
-                        {getStatusIcon(booking.status)}
-                        {(() => {
-                          const baseText =
-                            (booking.status === "pre-booked" || booking.status === "expired") &&
-                            (booking as Booking).reservationStatus
-                              ? (booking as Booking).reservationStatus!
-                              : booking.status.replace("-", " ");
-
-                          const label = baseText.toUpperCase();
-
-                          return (
-                            <>
-                              <span className="hidden sm:inline">{label}</span>
-                              <span className="sm:hidden">{label.slice(0, 3)}</span>
-                            </>
-                          );
-                        })()}
-                      </span>
-                    </Badge>
-                  </div>
-
-                  <div className="pr-16 sm:pr-20">
-                    <div className="mb-3">
-                      <Link
-                        to={`/scooters/${booking.vehicleId}`}
-                        className="text-sm sm:text-base font-semibold text-foreground mb-1 hover:text-primary transition-colors cursor-pointer inline-block"
-                      >
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-4 sm:p-6">
+                  {/* Order Title */}
+                  <div className="mb-4">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <h3 className="text-lg sm:text-xl font-bold text-foreground">
                         {booking.vehicleName}
-                      </Link>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        Order ID: {booking.id}
-                      </p>
+                      </h3>
+                      {booking.reservationStatus && (
+                        <Badge className={`${getStatusColor(booking.reservationStatus)} text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 flex-shrink-0`}>
+                          {booking.reservationStatus.replace(/_/g, " ").toUpperCase()}
+                        </Badge>
+                      )}
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-3">
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground">
-                            Order Date
-                          </p>
-                          <p className="text-xs sm:text-sm font-medium truncate">
-                            {new Date(booking.bookedAt).toLocaleDateString()}
-                          </p>
-                        </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>Order ID:</span>
+                        <span className="font-medium text-foreground">#{booking.id}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground">
-                            Total Amount
-                          </p>
-                          <p className="text-xs sm:text-sm font-medium truncate">
-                            ₹{(booking.totalAmount || 0).toLocaleString()}
-                          </p>
-                        </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>One Price:</span>
+                        <span className="font-semibold text-foreground">
+                          ₹{(booking.totalAmount || 0).toLocaleString()}
+                        </span>
                       </div>
                       {booking.paymentDueDate && (
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[10px] sm:text-xs text-muted-foreground">
-                              Due Date
-                            </p>
-                            <p className="text-xs sm:text-sm font-medium truncate">
-                              {new Date(
-                                booking.paymentDueDate
-                              ).toLocaleDateString()}
-                            </p>
-                          </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          <span>Due Date:</span>
+                          <span className="font-medium text-foreground">
+                            {formatDisplayDate(booking.paymentDueDate)}
+                          </span>
                         </div>
                       )}
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground">
-                            Payment Method
-                          </p>
-                          <p className="text-xs sm:text-sm font-medium capitalize truncate">
-                            {booking.paymentMethod}
-                          </p>
-                        </div>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Payment Summary with Buttons */}
-                  {booking.status === "pre-booked" ||
-                  booking.paymentStatus === "partial" ? (
-                    <div className="p-2 sm:p-3 bg-muted/30 border border-border rounded-lg">
-                      <div className="flex items-center justify-between mb-2 sm:mb-3">
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <Wallet className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
-                          <span className="text-[10px] sm:text-xs font-medium text-foreground">
-                            Payment Summary
-                          </span>
-                        </div>
+                  {/* Payment Summary Section */}
+                  <div className="p-4 bg-muted/30 border border-border rounded-lg mb-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <CreditCard className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">
+                        Payment Summary
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {/* Total Price */}
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Total Price</span>
+                        <span className="text-base font-semibold text-foreground">
+                          ₹{(booking.totalAmount || 0).toLocaleString()}
+                        </span>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3 mb-2 sm:mb-3">
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">
-                            Amount Paid
-                          </p>
-                          <p className="text-sm sm:text-base font-semibold text-foreground">
-                            ₹
-                            {(
-                              booking.totalPaid || booking.preBookingAmount || 0
-                            ).toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">
-                            Balance to Pay
-                          </p>
-                          <p className="text-sm sm:text-base font-semibold text-warning">
-                            ₹{(booking.remainingAmount || 0).toLocaleString()}
-                          </p>
-                        </div>
+
+                      {/* Paid Amount */}
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Paid</span>
+                        <span className="text-base font-semibold text-success">
+                          ₹{((booking.totalPaid || booking.preBookingAmount || 0)).toLocaleString()}
+                        </span>
                       </div>
+
+                      {/* Bonus Amount */}
                       {booking.bonusAmount !== undefined && booking.bonusAmount > 0 && (
-                        <div className="mb-2 sm:mb-3">
-                          <div className="flex justify-between text-xs sm:text-sm">
-                            <span 
-                              className="font-bold"
-                              style={{
-                                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF6347 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                backgroundClip: 'text',
-                              }}
-                            >
-                              Company Bonus
-                            </span>
-                            <span 
-                              className="font-bold"
-                              style={{
-                                background: 'linear-gradient(135deg, #10B981 0%, #059669 50%, #047857 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                backgroundClip: 'text',
-                              }}
-                            >
-                              ₹{booking.bonusAmount.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      <div className="mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-border/50">
-                        <div className="flex justify-between text-[10px] sm:text-xs">
-                          <span className="text-muted-foreground">
-                            Total Amount
-                          </span>
-                          <span className="font-medium text-foreground">
-                            ₹{(booking.totalAmount || 0).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2">
-                        {/* Vehicle Delivery Date - Left Side */}
-                        {profileData?.vehicle_delivery_date && (
-                          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
-                            <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-                            <span>
-                              {(() => {
-                                const deliveryDate = profileData.vehicle_delivery_date;
-                                // Check if it's a date string (YYYY-MM-DD format) or a message
-                                if (/^\d{4}-\d{2}-\d{2}$/.test(deliveryDate)) {
-                                  return `Delivery: ${new Date(deliveryDate).toLocaleDateString()}`;
-                                }
-                                return deliveryDate;
-                              })()}
-                            </span>
-                          </div>
-                        )}
-                        {/* Buttons - Right Side */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full sm:w-auto text-xs sm:text-sm"
-                            onClick={() => {
-                              setSelectedBookingForDetails(booking);
-                              setShowOrderDetails(true);
+                        <div className="flex justify-between items-center">
+                          <span 
+                            className="text-sm font-semibold"
+                            style={{
+                              background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF6347 100%)',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              backgroundClip: 'text',
                             }}
                           >
-                            View Details
-                          </Button>
-                        {/* Cancel Booking button commented out - users should not be able to cancel bookings currently */}
-                        {/* {canCancelBooking(booking) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full sm:w-auto text-xs sm:text-sm text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => handleCancelBookingClick(booking.id)}
-                            disabled={isCancellingBooking}
+                            Bonus Amount
+                          </span>
+                          <span 
+                            className="text-base font-bold"
+                            style={{
+                              background: 'linear-gradient(135deg, #10B981 0%, #059669 50%, #047857 100%)',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              backgroundClip: 'text',
+                            }}
                           >
-                            {isCancellingBooking ? "Cancelling..." : "Cancel Booking"}
-                          </Button>
-                        )} */}
-                        {booking.remainingAmount > 0 && (
-                          <Button
-                            size="sm"
-                            className="w-full sm:w-auto text-xs sm:text-sm bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 shadow-md shadow-pink-500/25"
-                            onClick={() =>
-                              handlePayMore(booking.id, booking.remainingAmount)
-                            }
-                          >
-                            Pay More
-                          </Button>
-                        )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-3">
-                      {/* Vehicle Delivery Date - Left Side */}
-                      {profileData?.vehicle_delivery_date && (
-                        <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
-                          <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-                          <span>
-                            {(() => {
-                              const deliveryDate = profileData.vehicle_delivery_date;
-                              // Check if it's a date string (YYYY-MM-DD format) or a message
-                              if (/^\d{4}-\d{2}-\d{2}$/.test(deliveryDate)) {
-                                return `Delivery: ${new Date(deliveryDate).toLocaleDateString()}`;
-                              }
-                              return deliveryDate;
-                            })()}
+                            ₹{booking.bonusAmount.toLocaleString()}
                           </span>
                         </div>
                       )}
-                      {/* Buttons - Right Side */}
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs sm:text-sm"
-                          onClick={() => {
-                            setSelectedBookingForDetails(booking);
-                            setShowOrderDetails(true);
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      {/* Cancel Booking button commented out - users should not be able to cancel bookings currently */}
-                      {/* {canCancelBooking(booking) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs sm:text-sm text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={() => handleCancelBookingClick(booking.id)}
-                          disabled={isCancellingBooking}
-                        >
-                          {isCancellingBooking ? "Cancelling..." : "Cancel Booking"}
-                        </Button>
-                      )} */}
+
+                      {/* Remaining Amount */}
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Remaining</span>
+                        <span className="text-base font-semibold text-destructive">
+                          ₹{(booking.remainingAmount || 0).toLocaleString()}
+                        </span>
                       </div>
+
+                      {/* Progress Bar */}
+                      {booking.totalAmount > 0 && (
+                        <div className="pt-2">
+                          <Progress 
+                            value={((booking.totalPaid || booking.preBookingAmount || 0) / booking.totalAmount) * 100} 
+                            className="h-2 bg-muted"
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Payment Plan and Due Date */}
+                  <div className="mb-4 space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">Payment Plan:</span>
+                      <span className="font-medium text-foreground">
+                        {booking.paymentMethod === 'full' 
+                          ? 'One-Time (Full Payment)' 
+                          : booking.paymentMethod === 'emi'
+                          ? 'EMI'
+                          : booking.paymentMethod === 'flexible'
+                          ? 'Flexible'
+                          : 'One-Time (Full Payment)'}
+                      </span>
+                    </div>
+                    {booking.paymentDueDate && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Due Date:</span>
+                        <span className="font-medium text-foreground">
+                          {new Date(booking.paymentDueDate).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-4 border-t border-border/50">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto text-xs sm:text-sm"
+                      onClick={() => {
+                        setSelectedBookingForDetails(booking);
+                        setShowOrderDetails(true);
+                      }}
+                    >
+                      View Details
+                    </Button>
+                    {booking.remainingAmount > 0 && (
+                      <Button
+                        size="sm"
+                        className="w-full sm:w-auto text-xs sm:text-sm bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:opacity-90 shadow-md shadow-pink-500/25"
+                        onClick={() =>
+                          handlePayMore(booking.id, booking.remainingAmount)
+                        }
+                      >
+                        Pay More
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>

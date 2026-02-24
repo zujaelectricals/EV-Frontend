@@ -126,6 +126,13 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
       // Clear profile picture from localStorage
       clearProfilePicture();
       
+      // Clear referral code from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('ev_nexus_referral_code');
+        localStorage.removeItem('ev_nexus_referrer_name');
+        console.log('✅ [ADMIN LOGOUT HANDLER] Cleared referral code from localStorage');
+      }
+      
       // Clear RTK Query cache to remove previous user's cached data
       dispatch(api.util.resetApiState());
       
@@ -144,6 +151,13 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
       
       // Clear profile picture from localStorage
       clearProfilePicture();
+      
+      // Clear referral code from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('ev_nexus_referral_code');
+        localStorage.removeItem('ev_nexus_referrer_name');
+        console.log('✅ [ADMIN LOGOUT HANDLER] Cleared referral code from localStorage (after error)');
+      }
       
       // Clear RTK Query cache
       dispatch(api.util.resetApiState());

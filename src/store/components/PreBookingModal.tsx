@@ -27,6 +27,7 @@ import { StockDetailResponse } from '@/app/api/inventoryApi';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { payForEntity, VerifyPaymentResponse } from '@/services/paymentService';
 import { api } from '@/app/api/baseApi';
+import { formatDisplayDate } from '@/lib/utils';
 
 interface PreBookingModalProps {
   scooter: Scooter;
@@ -1840,7 +1841,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                   <div className="text-xs text-muted-foreground space-y-1">
                     <p><strong>Version:</strong> {activePaymentTerm.version}</p>
                     {activePaymentTerm.effective_from && (
-                      <p><strong>Effective From:</strong> {new Date(activePaymentTerm.effective_from).toLocaleDateString()}</p>
+                      <p><strong>Effective From:</strong> {formatDisplayDate(activePaymentTerm.effective_from)}</p>
                     )}
                   </div>
                 </div>

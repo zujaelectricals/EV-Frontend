@@ -262,7 +262,7 @@ export const PoolWalletController = () => {
                           {request.description || '-'}
                         </TableCell>
                         <TableCell>
-                          {new Date(request.requestedAt).toLocaleDateString()}
+                          {formatDisplayDate(request.requestedAt)}
                         </TableCell>
                         <TableCell>{getStatusBadge(request.status)}</TableCell>
                         <TableCell>
@@ -321,7 +321,7 @@ export const PoolWalletController = () => {
                         <TableCell>{getReasonLabel(request.reason)}</TableCell>
                         <TableCell>
                           {request.processedAt 
-                            ? new Date(request.processedAt).toLocaleDateString()
+                            ? formatDisplayDate(request.processedAt)
                             : '-'}
                         </TableCell>
                         <TableCell>{getStatusBadge(request.status)}</TableCell>
@@ -362,7 +362,7 @@ export const PoolWalletController = () => {
                         </TableCell>
                         <TableCell>
                           {request.processedAt 
-                            ? new Date(request.processedAt).toLocaleDateString()
+                            ? formatDisplayDate(request.processedAt)
                             : '-'}
                         </TableCell>
                         <TableCell>{getStatusBadge(request.status)}</TableCell>

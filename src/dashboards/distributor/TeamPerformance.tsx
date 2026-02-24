@@ -484,11 +484,7 @@ export const TeamPerformance = () => {
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">{member.name}</TableCell>
                       <TableCell>
-                        {new Date(member.joinedAt).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
+                        {formatDisplayDate(member.joinedAt)}
                       </TableCell>
                       <TableCell>
                         <Badge

@@ -52,9 +52,33 @@ export function SignupModal({ isOpen, onClose, onSignupSuccess }: SignupModalPro
     } else {
       const dob = new Date(formData.dateOfBirth);
       const today = new Date();
-      const age = today.getFullYear() - dob.getFullYear();
-      if (age < 18) {
-        newErrors.dateOfBirth = 'You must be at least 18 years old';
+      
+      // Check if the date is valid
+      if (isNaN(dob.getTime())) {
+        newErrors.dateOfBirth = 'Please enter a valid date';
+      } else {
+        // Check if year is within reasonable range (1900 to current year)
+        const year = dob.getFullYear();
+        const currentYear = today.getFullYear();
+        if (year < 1900 || year > currentYear) {
+          newErrors.dateOfBirth = `Year must be between 1900 and ${currentYear}`;
+        } else if (dob > today) {
+          // Check if date is in the future
+          newErrors.dateOfBirth = 'Date of Birth cannot be in the future';
+        } else {
+          // Calculate accurate age considering month and day
+          let age = currentYear - year;
+          const monthDiff = today.getMonth() - dob.getMonth();
+          const dayDiff = today.getDate() - dob.getDate();
+          
+          if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+            age--;
+          }
+          
+          if (age < 18) {
+            newErrors.dateOfBirth = 'You must be at least 18 years old';
+          }
+        }
       }
     }
 
@@ -169,6 +193,7 @@ export function SignupModal({ isOpen, onClose, onSignupSuccess }: SignupModalPro
                 type="date"
                 value={formData.dateOfBirth}
                 onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                min="1900-01-01"
                 max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                 className={`pl-10 ${errors.dateOfBirth ? 'border-red-500' : ''}`}
               />

@@ -82,8 +82,14 @@ export function ScootersPage() {
     return params;
   }, [search, selectedStatus, selectedColor, selectedBattery, selectedPriceRange, currentPage]);
 
-  // Fetch vehicles from API
+  // Fetch vehicles from API (with filters)
   const { data: inventoryData, isLoading, error } = useGetVehiclesQuery(queryParams);
+
+  // Fetch all vehicles without filters to get all available options for dropdowns
+  const { data: allInventoryData } = useGetVehiclesQuery({
+    page: 1,
+    page_size: 1000, // Large page size to get all options
+  });
 
   // Map API response to Scooter format
   const scooters = useMemo(() => {
@@ -92,22 +98,23 @@ export function ScootersPage() {
       : [];
   }, [inventoryData]);
 
-  // Extract available colors and batteries for filter options
+  // Extract available colors and batteries for filter options from ALL vehicles (not filtered)
+  // This ensures dropdowns always show all possible options
   const availableColors = useMemo(() => {
     const colors = new Set<string>();
-    inventoryData?.results.forEach(vehicle => {
+    allInventoryData?.results.forEach(vehicle => {
       vehicle.colors_available.forEach(color => colors.add(color));
     });
     return Array.from(colors).sort();
-  }, [inventoryData]);
+  }, [allInventoryData]);
 
   const availableBatteries = useMemo(() => {
     const batteries = new Set<string>();
-    inventoryData?.results.forEach(vehicle => {
+    allInventoryData?.results.forEach(vehicle => {
       vehicle.battery_capacities_available.forEach(battery => batteries.add(battery));
     });
     return Array.from(batteries).sort();
-  }, [inventoryData]);
+  }, [allInventoryData]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -199,7 +206,11 @@ export function ScootersPage() {
               </Select>
 
               {/* Color Dropdown */}
-              <Select value={selectedColor} onValueChange={setSelectedColor}>
+              <Select 
+                key={`color-${availableColors.join('-')}`}
+                value={selectedColor} 
+                onValueChange={setSelectedColor}
+              >
                 <SelectTrigger className="w-full h-11 rounded-full bg-background border-input shadow-sm">
                   <SelectValue placeholder="Color" />
                 </SelectTrigger>
@@ -214,7 +225,11 @@ export function ScootersPage() {
               </Select>
 
               {/* Battery Dropdown */}
-              <Select value={selectedBattery} onValueChange={setSelectedBattery}>
+              <Select 
+                key={`battery-${availableBatteries.join('-')}`}
+                value={selectedBattery} 
+                onValueChange={setSelectedBattery}
+              >
                 <SelectTrigger className="w-full h-11 rounded-full bg-background border-input shadow-sm">
                   <SelectValue placeholder="Battery" />
                 </SelectTrigger>
@@ -442,28 +457,7 @@ export function ScootersPage() {
           </div>
 
           {/* Cards */}
-          <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
-            {/* Book a Test Ride Card */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              className="relative bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-slate-100"
-            >
-              <div className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-orange-300/60" />
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Book a Test Ride</h3>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                Experience our scooters firsthand. Visit our showroom or request a home test ride.
-              </p>
-              <Link to="/test-ride">
-                <Button className="rounded-full bg-gradient-to-r from-[#15b0bb] to-[#16bf9b] hover:from-[#13a0aa] hover:to-[#14af8b] shadow-[0_8px_20px_rgba(21,176,187,0.35)] px-6">
-                  Schedule Now
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
-            </motion.div>
-
+          <div className="grid md:grid-cols-1 gap-6 lg:gap-8 max-w-2xl mx-auto">
             {/* Talk to an Expert Card */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}

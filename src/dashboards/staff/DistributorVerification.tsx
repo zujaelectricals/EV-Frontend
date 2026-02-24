@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { formatDisplayDate } from '@/lib/utils';
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -166,7 +167,7 @@ export const DistributorVerification = () => {
                       {app.applicationData.distributorId} • {app.applicationData.mobileNumber}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Submitted: {new Date(app.submittedAt).toLocaleDateString()}
+                      Submitted: {formatDisplayDate(app.submittedAt)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -230,11 +231,11 @@ export const DistributorVerification = () => {
                     </p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                       <span>
-                        Submitted: {new Date(app.submittedAt).toLocaleDateString()}
+                        Submitted: {formatDisplayDate(app.submittedAt)}
                       </span>
                       {app.reviewedAt && (
                         <span>
-                          Approved: {new Date(app.reviewedAt).toLocaleDateString()}
+                          Approved: {formatDisplayDate(app.reviewedAt)}
                         </span>
                       )}
                       {app.reviewedBy && (

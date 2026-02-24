@@ -91,6 +91,7 @@ import { toast } from "sonner";
 import { BinaryTreeNode } from "@/binary/components/BinaryTreeNode";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { formatDisplayDate } from "@/lib/utils";
 
 interface TeamMember {
   id: string;
@@ -551,7 +552,7 @@ export const BinaryTreeView = () => {
   } = useGetBinaryStatsQuery(distributorId, { skip: !distributorId });
   const { data: pendingNodes = [], isLoading: pendingLoading } =
     useGetPendingNodesQuery(distributorId, { skip: !distributorId });
-  const [positionPendingNode] = usePositionPendingNodeMutation();
+  const [positionPendingNode, { isLoading: isPositioningNode }] = usePositionPendingNodeMutation();
   const [checkPairs, { isLoading: isCheckingPairs }] = useCheckPairsMutation();
 
 
@@ -1001,12 +1002,14 @@ export const BinaryTreeView = () => {
         toast.success(`${selectedPendingNode.name} positioned successfully!`);
         setSelectedPendingNode(null);
         setPositionDialogOpen(false);
+        setConfirmPositionDialogOpen(false);
         setSelectedSide("left");
         // Refetch tree structure after positioning
         await refetchTree();
         await refetchStructure();
       } else {
         toast.error(result.message || "Failed to position node");
+        setConfirmPositionDialogOpen(false);
       }
     } catch (error: unknown) {
       // Console log the error
@@ -1053,6 +1056,7 @@ export const BinaryTreeView = () => {
       }
 
       toast.error(errorMessage);
+      setConfirmPositionDialogOpen(false);
     }
   };
 
@@ -1320,7 +1324,14 @@ export const BinaryTreeView = () => {
       </Dialog>
 
       {/* Confirm Position Member Dialog */}
-      <AlertDialog open={confirmPositionDialogOpen} onOpenChange={setConfirmPositionDialogOpen}>
+      <AlertDialog 
+        open={confirmPositionDialogOpen} 
+        onOpenChange={(open) => {
+          if (!isPositioningNode) {
+            setConfirmPositionDialogOpen(open);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Positioning</AlertDialogTitle>
@@ -1335,14 +1346,21 @@ export const BinaryTreeView = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPositioningNode}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                setConfirmPositionDialogOpen(false);
-                handlePositionPendingNode();
+              onClick={async () => {
+                await handlePositionPendingNode();
               }}
+              disabled={isPositioningNode}
             >
-              Confirm
+              {isPositioningNode ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Positioning...
+                </>
+              ) : (
+                "Confirm"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1603,11 +1621,7 @@ export const BinaryTreeView = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="py-3 text-muted-foreground">
-                          {new Date(member.joinedAt).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                          {formatDisplayDate(member.joinedAt)}
                         </TableCell>
                         <TableCell className="py-3">
                           {member.isActive ? (
@@ -1729,11 +1743,7 @@ export const BinaryTreeView = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="py-4 text-muted-foreground">
-                          {new Date(member.joinedAt).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                          {formatDisplayDate(member.joinedAt)}
                         </TableCell>
                         <TableCell className="py-4">
                           {member.isActive ? (

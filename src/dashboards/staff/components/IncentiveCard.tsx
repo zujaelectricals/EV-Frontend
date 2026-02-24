@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { EnhancedIncentive } from '../types';
-import { format } from 'date-fns';
+import { formatDisplayDate } from '@/lib/utils';
 
 interface IncentiveCardProps {
   incentive: EnhancedIncentive;
@@ -99,7 +99,7 @@ export const IncentiveCard = ({ incentive, variant = 'default' }: IncentiveCardP
             </div>
             {incentive.date && (
               <p className="text-xs text-muted-foreground mt-1">
-                {format(new Date(incentive.date), 'MMM dd, yyyy')}
+                {formatDisplayDate(incentive.date)}
               </p>
             )}
           </div>
@@ -170,17 +170,17 @@ export const IncentiveCard = ({ incentive, variant = 'default' }: IncentiveCardP
             <div className="flex items-center justify-between text-xs">
               {incentive.earnedDate && (
                 <span className="text-muted-foreground">
-                  Earned: {format(new Date(incentive.earnedDate), 'MMM dd, yyyy')}
+                  Earned: {formatDisplayDate(incentive.earnedDate)}
                 </span>
               )}
               {incentive.paidDate && (
                 <span className="text-muted-foreground">
-                  Paid: {format(new Date(incentive.paidDate), 'MMM dd, yyyy')}
+                  Paid: {formatDisplayDate(incentive.paidDate)}
                 </span>
               )}
               {!incentive.earnedDate && !incentive.paidDate && incentive.date && (
                 <span className="text-muted-foreground">
-                  Date: {format(new Date(incentive.date), 'MMM dd, yyyy')}
+                  Date: {formatDisplayDate(incentive.date)}
                 </span>
               )}
             </div>

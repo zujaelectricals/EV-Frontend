@@ -119,11 +119,6 @@ export function HomePage() {
       title: "After-sales & support",
       desc: "Dedicated service, maintenance, and genuine spare parts support.",
     },
-    {
-      icon: Battery,
-      title: "Test rides & guidance",
-      desc: "Expert guidance and test rides to help you choose the perfect scooter.",
-    },
   ];
 
   // Key Features title - slide up only, no fade with smooth easing
@@ -272,12 +267,12 @@ export function HomePage() {
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black leading-tight">
-                <span className="text-foreground">Ride The</span>
+                <span className="text-white">Ride The</span>
                 <br />
                 <span className="bg-gradient-to-r from-[#16b0bb] to-[#15bba1] bg-clip-text text-transparent">Electric Wave</span>
               </h1>
 
-              <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
+              <p className="text-base sm:text-lg lg:text-xl text-white max-w-lg">
                 Experience the perfect blend of style, performance, and sustainability. Our electric scooters are designed for the modern urban explorer.
               </p>
 
@@ -827,30 +822,10 @@ export function HomePage() {
               Ready to Go Electric?
             </h2>
             <p className="text-lg sm:text-xl lg:text-2xl text-white max-w-4xl mx-auto leading-relaxed">
-              Book a free test ride today and experience the future of urban mobility.
+              Experience the future of urban mobility with our premium electric scooters.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-              <Link to="/login">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto rounded-full px-8 py-6 text-slate-800 border-none shadow-lg transition-all duration-200 font-medium"
-                  style={{
-                    background: 'rgba(230, 246, 247, 0.8)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(230, 246, 247, 0.9)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(230, 246, 247, 0.8)';
-                  }}
-                >
-                  Book Test Ride
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-              </Link>
               <Link to="/scooters" className="w-full sm:w-auto">
                 <Button
                   size="lg"

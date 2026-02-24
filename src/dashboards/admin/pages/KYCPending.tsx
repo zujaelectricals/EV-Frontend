@@ -696,7 +696,7 @@ export const KYCPending = () => {
                         </TableCell>
                         <TableCell>{getStatusBadge(kyc.status)}</TableCell>
                         <TableCell>
-                          <span className="text-sm">{new Date(kyc.submitted_at).toLocaleDateString()}</span>
+                          <span className="text-sm">{formatDisplayDate(kyc.submitted_at)}</span>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -853,7 +853,7 @@ export const KYCPending = () => {
                         </div>
                         <div>
                           <Label className="text-xs text-muted-foreground">Date of Birth</Label>
-                          <p className="font-medium">{viewingKYC.date_of_birth ? new Date(viewingKYC.date_of_birth).toLocaleDateString() : 'N/A'}</p>
+                          <p className="font-medium">{formatDisplayDate(viewingKYC.date_of_birth)}</p>
                         </div>
                         <div>
                           <Label className="text-xs text-muted-foreground">Nominee Email</Label>

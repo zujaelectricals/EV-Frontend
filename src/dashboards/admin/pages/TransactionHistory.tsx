@@ -621,10 +621,6 @@ export const TransactionHistory = () => {
                   <div className="mt-1">{getStatusBadge(viewingTransaction.status)}</div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Description</p>
-                  <p className="font-medium">{viewingTransaction.description}</p>
-                </div>
-                <div>
                   <p className="text-sm font-medium text-muted-foreground">Created At</p>
                   <p className="font-medium">{new Date(viewingTransaction.created_at).toLocaleString()}</p>
                 </div>

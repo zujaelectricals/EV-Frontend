@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { Booking } from "@/app/slices/bookingSlice";
 import { scooters } from "@/store/data/scooters";
-import { format } from "date-fns";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/utils";
 import { useGetBookingDetailQuery } from "@/app/api/bookingApi";
 import { BookingResponse } from "@/app/api/bookingApi";
 
@@ -327,23 +327,25 @@ export function OrderDetailsDialog({
                     {(detailedBooking?.payment_status || booking?.paymentStatus || '').replace(/_/g, " ").toUpperCase()}
                   </Badge>
                 </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                    Reservation Status
-                  </p>
-                  <Badge className={`${getStatusColor(detailedBooking?.reservation_status || '')} text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1`}>
-                    {detailedBooking?.reservation_status?.replace(/_/g, " ").toUpperCase() || 'N/A'}
-                  </Badge>
-                </div>
+                {(detailedBooking?.reservation_status || booking?.reservationStatus) && (
+                  <div>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">
+                      Reservation Status
+                    </p>
+                    <Badge className={`${getStatusColor(detailedBooking?.reservation_status || booking?.reservationStatus || '')} text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1`}>
+                      {(detailedBooking?.reservation_status || booking?.reservationStatus || '').replace(/_/g, " ").toUpperCase()}
+                    </Badge>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs sm:text-sm text-muted-foreground mb-1">
                     Order Date
                   </p>
                   <p className="text-sm sm:text-base font-semibold text-foreground">
                     {detailedBooking?.created_at 
-                      ? format(new Date(detailedBooking.created_at), "dd MMM yyyy HH:mm")
+                      ? formatDisplayDateTime(detailedBooking.created_at)
                       : booking?.bookedAt 
-                        ? format(new Date(booking.bookedAt), "dd MMM yyyy")
+                        ? formatDisplayDate(booking.bookedAt)
                         : 'N/A'}
                   </p>
                 </div>
@@ -353,7 +355,7 @@ export function OrderDetailsDialog({
                       Confirmed At
                     </p>
                     <p className="text-sm sm:text-base font-semibold text-foreground">
-                      {format(new Date(detailedBooking.confirmed_at), "dd MMM yyyy HH:mm")}
+                      {formatDisplayDateTime(detailedBooking.confirmed_at)}
                     </p>
                   </div>
                 )}
@@ -391,7 +393,7 @@ export function OrderDetailsDialog({
                           EMI Start Date
                         </p>
                         <p className="text-sm sm:text-base font-semibold text-foreground">
-                          {format(new Date(detailedBooking.emi_start_date), "dd MMM yyyy")}
+                          {formatDisplayDate(detailedBooking.emi_start_date)}
                         </p>
                       </div>
                     )}
@@ -426,6 +428,26 @@ export function OrderDetailsDialog({
                     <Badge className="bg-primary/10 text-primary border-primary/30 text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1">
                       Joined
                     </Badge>
+                  </div>
+                )}
+                {(parseFloat(detailedBooking?.bonus_amount || '0') > 0 || (booking?.bonusAmount ?? 0) > 0) && (
+                  <div>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">
+                      Company Bonus
+                    </p>
+                    <p 
+                      className="text-sm sm:text-base font-semibold"
+                      style={{
+                        background: 'linear-gradient(135deg, #10B981 0%, #059669 50%, #047857 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }}
+                    >
+                      ₹{detailedBooking 
+                        ? parseFloat(detailedBooking.bonus_amount || '0').toLocaleString()
+                        : (booking?.bonusAmount || 0).toLocaleString()}
+                    </p>
                   </div>
                 )}
               </div>
@@ -500,138 +522,6 @@ export function OrderDetailsDialog({
             </Card>
           )}
 
-          {/* Payment & Amount Details Section */}
-          <Card>
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
-                Payment & Amount Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                    Total Amount
-                  </p>
-                  <p className="text-base sm:text-lg font-semibold text-foreground">
-                    ₹{detailedBooking 
-                      ? parseFloat(detailedBooking.total_amount || '0').toLocaleString()
-                      : booking?.totalAmount?.toLocaleString() || '0'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                    Amount Paid
-                  </p>
-                  <p className="text-base sm:text-lg font-semibold text-success">
-                    ₹{detailedBooking 
-                      ? parseFloat(detailedBooking.total_paid || '0').toLocaleString()
-                      : (booking?.totalPaid || booking?.preBookingAmount || 0).toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                    Remaining Amount
-                  </p>
-                  <p className="text-base sm:text-lg font-semibold text-warning">
-                    ₹{detailedBooking 
-                      ? parseFloat(detailedBooking.remaining_amount || '0').toLocaleString()
-                      : booking?.remainingAmount?.toLocaleString() || '0'}
-                  </p>
-                </div>
-              </div>
-              {(parseFloat(detailedBooking?.bonus_amount || '0') > 0 || (booking?.bonusAmount ?? 0) > 0) ? (
-                <>
-                  <Separator />
-                  <div>
-                    <p 
-                      className="text-sm sm:text-base font-bold mb-1"
-                      style={{
-                        background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF6347 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                      }}
-                    >
-                      Company Bonus
-                    </p>
-                    <p 
-                      className="text-base sm:text-lg font-bold"
-                      style={{
-                        background: 'linear-gradient(135deg, #10B981 0%, #059669 50%, #047857 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                      }}
-                    >
-                      ₹{detailedBooking 
-                        ? parseFloat(detailedBooking.bonus_amount || '0').toLocaleString()
-                        : (booking?.bonusAmount || 0).toLocaleString()}
-                    </p>
-                  </div>
-                </>
-              ) : null}
-              <Separator />
-              <div>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                  Booking Amount
-                </p>
-                <p className="text-sm sm:text-base font-semibold text-foreground">
-                  ₹{detailedBooking 
-                    ? parseFloat(detailedBooking.booking_amount || '0').toLocaleString()
-                    : booking?.preBookingAmount?.toLocaleString() || '0'}
-                </p>
-              </div>
-              {(detailedBooking?.expires_at || booking?.paymentDueDate) && (
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                    Payment Due Date / Expires At
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p
-                      className={`text-sm sm:text-base font-semibold ${
-                        isOverdue ? "text-destructive" : "text-foreground"
-                      }`}
-                    >
-                      {detailedBooking?.expires_at
-                        ? format(new Date(detailedBooking.expires_at), "dd MMM yyyy HH:mm")
-                        : booking?.paymentDueDate
-                          ? format(new Date(booking.paymentDueDate), "dd MMM yyyy")
-                          : 'N/A'}
-                    </p>
-                    {isOverdue && (
-                      <Badge variant="destructive" className="text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1">
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        {daysOverdue} day{daysOverdue > 1 ? "s" : ""} overdue
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-              {detailedBooking?.reservation_expires_at && (
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                    Reservation Expires At
-                  </p>
-                  <p className="text-sm sm:text-base font-semibold text-foreground">
-                    {format(new Date(detailedBooking.reservation_expires_at), "dd MMM yyyy HH:mm")}
-                  </p>
-                </div>
-              )}
-              {detailedBooking?.payment_gateway_ref && (
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
-                    Payment Gateway Reference
-                  </p>
-                  <p className="text-xs sm:text-sm font-semibold text-foreground font-mono break-all">
-                    {detailedBooking.payment_gateway_ref}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Late Payment Consequences Section - Removed per user request */}
           {/* {(detailedBooking?.expires_at || booking?.paymentDueDate) && 
            ((detailedBooking ? parseFloat(detailedBooking.remaining_amount || '0') : booking?.remainingAmount || 0) > 0) && (
@@ -700,9 +590,9 @@ export function OrderDetailsDialog({
                       <p className="text-sm text-foreground">
                         Your payment is due on{" "}
                         {detailedBooking?.expires_at
-                          ? format(new Date(detailedBooking.expires_at), "dd MMM yyyy")
-                          : booking?.paymentDueDate
-                            ? format(new Date(booking.paymentDueDate), "dd MMM yyyy")
+                          ? formatDisplayDate(detailedBooking.expires_at)
+                            : booking?.paymentDueDate 
+                              ? formatDisplayDate(booking.paymentDueDate)
                             : 'N/A'}
                         . Please ensure payment is made before the due date to
                         avoid late fees.

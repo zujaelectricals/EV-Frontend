@@ -34,6 +34,7 @@ import { useGetAdminDashboardQuery } from '@/app/api/reportsApi';
 import { useGetBookingsQuery, useGetBookingDetailQuery, useUpdateBookingStatusMutation } from '@/app/api/bookingApi';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatDisplayDate, formatDisplayDateTime } from '@/lib/utils';
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -157,17 +158,7 @@ export const PreBookings = () => {
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-IN', { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit' 
-      });
-    } catch {
-      return dateString;
-    }
+    return formatDisplayDate(dateString);
   };
 
   // Calculate total pages
@@ -281,20 +272,7 @@ export const PreBookings = () => {
 
   // Format date and time for display
   const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return '-';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString('en-IN', { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-    } catch {
-      return dateString;
-    }
+    return formatDisplayDateTime(dateString);
   };
 
   // Use server-side filtered results directly (no client-side filtering needed)

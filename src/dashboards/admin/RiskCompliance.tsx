@@ -448,7 +448,7 @@ export const RiskCompliance = () => {
                     <TableCell>{getStatusBadge(alert.status)}</TableCell>
                     <TableCell>{getPriorityBadge(alert.priority)}</TableCell>
                     <TableCell className="text-sm">
-                      {new Date(alert.detectedAt).toLocaleDateString()}
+                      {formatDisplayDate(alert.detectedAt)}
                     </TableCell>
                   </TableRow>
                 ))}
