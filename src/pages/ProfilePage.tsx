@@ -137,41 +137,13 @@ export function ProfilePage() {
     refetchProfile();
   };
 
-  // Handle document download
-  const handleDownloadDocument = async (url: string, filename?: string) => {
-    try {
-      const { getAuthTokens } = await import('@/app/api/baseApi');
-      const { accessToken } = getAuthTokens();
-      
-      const response = await fetch(url, {
-        headers: accessToken ? {
-          'Authorization': `Bearer ${accessToken}`,
-        } : {},
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to download document');
-      }
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      
-      // Extract filename from URL if not provided
-      const finalFilename = filename || url.split('/').pop() || 'document.pdf';
-      link.download = finalFilename;
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
-      
-      toast.success('Document downloaded successfully');
-    } catch (error) {
-      console.error('Error downloading document:', error);
-      toast.error('Failed to download document. Please try again.');
+  // Handle document download - open URL directly without Authorization headers
+  const handleDownloadDocument = (url: string, filename?: string) => {
+    if (!url) {
+      toast.error('Invalid document URL');
+      return;
     }
+    window.open(url, '_blank');
   };
 
   useEffect(() => {

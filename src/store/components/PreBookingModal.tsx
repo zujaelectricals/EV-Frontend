@@ -326,6 +326,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const openRazorpayCheckout = useRazorpay();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const [showPaymentLoading, setShowPaymentLoading] = useState(false);
 
   // Sync inputValue when preBookingAmount changes externally
   useEffect(() => {
@@ -414,6 +415,64 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     }
   }, [isVerifyingPayment]);
 
+  // Monitor for Razorpay modal appearance to hide loading screen
+  useEffect(() => {
+    if (!isProcessingPayment || !showPaymentLoading) return;
+
+    let checkInterval: NodeJS.Timeout | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const checkRazorpayModal = () => {
+      // Check for Razorpay modal elements
+      const razorpayModal = document.querySelector(
+        '.razorpay-checkout-frame, ' +
+        'iframe[src*="razorpay"], ' +
+        '[class*="razorpay"], ' +
+        '#razorpay-checkout-iframe'
+      );
+      
+      // Also check for high z-index divs that might contain Razorpay iframe
+      const highZIndexDivs = Array.from(document.querySelectorAll('body > div')).filter((div) => {
+        const style = window.getComputedStyle(div);
+        const zIndex = parseInt(style.zIndex, 10);
+        return zIndex > 1000 && div.querySelector('iframe[src*="razorpay"]');
+      });
+      
+      if (razorpayModal || highZIndexDivs.length > 0) {
+        // Razorpay modal is visible, hide loading screen
+        setShowPaymentLoading(false);
+        if (checkInterval) {
+          clearInterval(checkInterval);
+          checkInterval = null;
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+      }
+    };
+
+    // Start checking for Razorpay modal
+    checkInterval = setInterval(checkRazorpayModal, 200);
+
+    // Safety timeout: hide loading after 10 seconds even if Razorpay doesn't appear
+    timeoutId = setTimeout(() => {
+      setShowPaymentLoading(false);
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
+    }, 10000);
+
+    return () => {
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isProcessingPayment, showPaymentLoading]);
+
   // Reset booking response and submission state when modal closes
   useEffect(() => {
     if (!isOpen) {
@@ -421,6 +480,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       setIsBookingInProgress(false);
       setIsVerifyingPayment(false);
       setIsProcessingPayment(false);
+      setShowPaymentLoading(false);
       isSubmittingRef.current = false;
       // Reset OTP state
       setTermsAccepted(false);
@@ -905,6 +965,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
     }
 
     setIsProcessingPayment(true);
+    setShowPaymentLoading(true);
 
     try {
       // Get user info for prefill
@@ -926,6 +987,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
           onClose: () => {
             // User closed the modal - reset payment state but keep booking
             setIsProcessingPayment(false);
+            setShowPaymentLoading(false);
             toast.info('Payment cancelled. You can complete payment later.');
             // Invalidate inventory cache to refresh vehicle data
             dispatch(api.util.invalidateTags(['Inventory']));
@@ -933,6 +995,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
           onDismiss: () => {
             // User dismissed the modal - reset payment state but keep booking
             setIsProcessingPayment(false);
+            setShowPaymentLoading(false);
             toast.info('Payment cancelled. You can complete payment later.');
             // Invalidate inventory cache to refresh vehicle data
             dispatch(api.util.invalidateTags(['Inventory']));
@@ -945,6 +1008,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         console.log('✅ [PAYMENT] Razorpay payment verified, showing loading overlay');
         // Show verification loading immediately after Razorpay payment success
         setIsProcessingPayment(false);
+        setShowPaymentLoading(false);
         setIsVerifyingPayment(true);
         
         // Restore pointer-events immediately after payment success
@@ -1005,6 +1069,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       
       // Reset payment processing state
       setIsProcessingPayment(false);
+      setShowPaymentLoading(false);
       
       // Restore pointer-events on error as well
       restoreAllPointerEvents();
@@ -1278,6 +1343,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       isSubmittingRef.current = false;
       setIsBookingInProgress(false);
       setIsProcessingPayment(false);
+      setShowPaymentLoading(false);
       setIsVerifyingPayment(false);
       
       // Restore pointer-events on error
@@ -1305,6 +1371,99 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
 
   return (
     <>
+      {/* Payment Processing Loading Overlay - Shows while Razorpay loads */}
+      {typeof window !== 'undefined' && createPortal(
+        <AnimatePresence mode="wait">
+          {showPaymentLoading && (
+            <motion.div
+              key="payment-processing-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="fixed inset-0 z-[99998] bg-background/98 backdrop-blur-md flex flex-col items-center justify-center"
+              style={{ pointerEvents: showPaymentLoading ? 'auto' : 'none' }}
+            >
+              <div className="text-center space-y-6 max-w-md px-6">
+                {/* Security Icon with pink background */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                  className="flex items-center justify-center mb-2"
+                >
+                  <div className="w-20 h-20 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center shadow-lg">
+                    <Shield className="w-10 h-10 text-pink-600 dark:text-pink-400" fill="currentColor" />
+                  </div>
+                </motion.div>
+                
+                {/* Main Title */}
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.4 }}
+                  className="text-3xl font-bold text-foreground"
+                >
+                  Processing Your Payment
+                </motion.p>
+                
+                {/* Instructions */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                  className="space-y-1"
+                >
+                  <p className="text-base text-muted-foreground">
+                    Please do not refresh or press back
+                  </p>
+                  <p className="text-base text-muted-foreground">
+                    This may take up to 20 seconds
+                  </p>
+                </motion.div>
+                
+                {/* Progress bar with gradient */}
+                <motion.div
+                  initial={{ opacity: 0, scaleX: 0 }}
+                  animate={{ opacity: 1, scaleX: 1 }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
+                  className="w-full max-w-xs mx-auto h-2.5 bg-muted/50 rounded-full overflow-hidden mt-6"
+                >
+                  <motion.div
+                    animate={{ 
+                      width: ['0%', '33%', '66%', '100%']
+                    }}
+                    transition={{ 
+                      duration: 20,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                    className="h-full rounded-full"
+                    style={{
+                      background: 'linear-gradient(to right, #ec4899, #a855f7)'
+                    }}
+                  />
+                </motion.div>
+                
+                {/* Status message with padlock icon */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6, duration: 0.4 }}
+                  className="flex items-center justify-center gap-2 mt-4"
+                >
+                  <Shield className="w-4 h-4 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Connecting to secure payment gateway...
+                  </p>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
       {/* Payment Verification Loading Overlay - Outside Dialog using Portal */}
       {typeof window !== 'undefined' && createPortal(
         <AnimatePresence mode="wait">

@@ -42,7 +42,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { UserExtended } from '../types/userManagement';
 import { useGetNormalUsersQuery, useGetUserByIdQuery, useUpdateUserByIdMutation, useDeleteUserByIdMutation, useGetUserDocumentsQuery, type UserProfileResponse } from '@/app/api/userApi';
-import { getAuthTokens } from '@/app/api/baseApi';
 import { LoadingSpinner, InlineLoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
 import { formatDisplayDate } from '@/lib/utils';
@@ -1170,33 +1169,12 @@ export const ActiveUsers = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={async () => {
-                        try {
-                          const { accessToken } = getAuthTokens();
-                          if (!accessToken) {
-                            toast.error('Authentication required');
-                            return;
-                          }
-                          const response = await fetch(userDocuments.asa_document_acceptance_url!, {
-                            headers: {
-                              'Authorization': `Bearer ${accessToken}`,
-                            },
-                          });
-                          if (!response.ok) throw new Error('Failed to download');
-                          const blob = await response.blob();
-                          const url = window.URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = userDocuments.asa_document_acceptance_url.split('/').pop() || 'asa_document.pdf';
-                          document.body.appendChild(a);
-                          a.click();
-                          window.URL.revokeObjectURL(url);
-                          document.body.removeChild(a);
-                          toast.success('Document downloaded successfully');
-                        } catch (error) {
-                          console.error('Download error:', error);
-                          toast.error('Failed to download document');
+                      onClick={() => {
+                        if (!userDocuments.asa_document_acceptance_url) {
+                          toast.error('Document URL not available');
+                          return;
                         }
+                        window.open(userDocuments.asa_document_acceptance_url, '_blank');
                       }}
                     >
                       <Download className="h-4 w-4 mr-2" />
@@ -1217,33 +1195,12 @@ export const ActiveUsers = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={async () => {
-                        try {
-                          const { accessToken } = getAuthTokens();
-                          if (!accessToken) {
-                            toast.error('Authentication required');
-                            return;
-                          }
-                          const response = await fetch(userDocuments.payment_terms_acceptance_document_url!, {
-                            headers: {
-                              'Authorization': `Bearer ${accessToken}`,
-                            },
-                          });
-                          if (!response.ok) throw new Error('Failed to download');
-                          const blob = await response.blob();
-                          const url = window.URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = userDocuments.payment_terms_acceptance_document_url.split('/').pop() || 'payment_terms.pdf';
-                          document.body.appendChild(a);
-                          a.click();
-                          window.URL.revokeObjectURL(url);
-                          document.body.removeChild(a);
-                          toast.success('Document downloaded successfully');
-                        } catch (error) {
-                          console.error('Download error:', error);
-                          toast.error('Failed to download document');
+                      onClick={() => {
+                        if (!userDocuments.payment_terms_acceptance_document_url) {
+                          toast.error('Document URL not available');
+                          return;
                         }
+                        window.open(userDocuments.payment_terms_acceptance_document_url, '_blank');
                       }}
                     >
                       <Download className="h-4 w-4 mr-2" />
@@ -1267,33 +1224,12 @@ export const ActiveUsers = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={async () => {
-                            try {
-                              const { accessToken } = getAuthTokens();
-                              if (!accessToken) {
-                                toast.error('Authentication required');
-                                return;
-                              }
-                              const response = await fetch(url, {
-                                headers: {
-                                  'Authorization': `Bearer ${accessToken}`,
-                                },
-                              });
-                              if (!response.ok) throw new Error('Failed to download');
-                              const blob = await response.blob();
-                              const urlObj = window.URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = urlObj;
-                              a.download = url.split('/').pop() || `receipt_${index + 1}.pdf`;
-                              document.body.appendChild(a);
-                              a.click();
-                              window.URL.revokeObjectURL(urlObj);
-                              document.body.removeChild(a);
-                              toast.success('Document downloaded successfully');
-                            } catch (error) {
-                              console.error('Download error:', error);
-                              toast.error('Failed to download document');
+                          onClick={() => {
+                            if (!url) {
+                              toast.error('Document URL not available');
+                              return;
                             }
+                            window.open(url, '_blank');
                           }}
                         >
                           <Download className="h-4 w-4 mr-2" />
