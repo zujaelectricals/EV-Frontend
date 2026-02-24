@@ -10,7 +10,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <img src="/logo.png" alt="Zuja Electric" className="h-10 w-auto" />
+              <img src="/Zuja_Logo-removebg-preview.png" alt="Zuja Electric" className="h-20 w-auto" />
             </Link>
             <p className="text-sm text-muted-foreground mb-6">
               Leading the electric mobility revolution with innovative, eco-friendly scooters designed for the modern urban commuter.

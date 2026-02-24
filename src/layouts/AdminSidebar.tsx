@@ -608,9 +608,9 @@ export const AdminSidebar = () => {
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
         <Link to="/admin" className="flex items-center gap-2">
           <img
-            src="/logo.png"
+            src="/Zuja_Logo-removebg-preview.png"
             alt="Zuja Electric"
-            className={collapsed ? "h-7 w-auto" : "h-9 w-auto"}
+            className={collapsed ? "h-14 w-auto" : "h-20 w-auto"}
           />
         </Link>
         <button

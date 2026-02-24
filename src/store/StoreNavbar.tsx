@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut, ChevronDown, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -137,16 +137,16 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
           : 'bg-white/50 backdrop-blur-lg py-4'
       }`}
     >
-      {/* ── Maintenance Notice Banner ── */}
-      <div className="w-screen relative left-1/2 -translate-x-1/2 bg-amber-400 border-b-2 border-amber-500">
+      {/* ── Enhancement Announcement Banner ── */}
+      <div className="w-screen relative left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#3CB2B2]/90 via-[#3CB2B2]/85 to-[#59F09F]/90 border-b-2 border-[#3CB2B2] shadow-md">
         <div className="w-full px-6 md:px-16 py-5 flex items-center justify-center gap-4">
-          <AlertTriangle className="w-6 h-6 text-amber-900 shrink-0" />
-          <p className="text-center text-[14px] md:text-[16.5px] font-semibold text-amber-950 tracking-wide leading-relaxed">
-            🔧 <span className="underline underline-offset-2">Scheduled Maintenance in Progress</span>
-            {' — '}
-            Our platform is currently undergoing maintenance. Please <strong>do not register</strong> or use the <strong>Join Now</strong> feature until further notice. We apologise for the inconvenience.
+          <Info className="w-6 h-6 text-white shrink-0" />
+          <p className="text-center text-[14px] md:text-[16.5px] font-semibold text-white tracking-wide leading-relaxed">
+            <span className="font-bold text-white drop-shadow-sm">Exciting News:</span>
+            {' '}
+            We are pleased to announce that we are developing an enhanced customer experience platform with new features and improvements. Stay tuned for exciting updates coming soon!
           </p>
-          <AlertTriangle className="w-6 h-6 text-amber-900 shrink-0" />
+          <Info className="w-6 h-6 text-white shrink-0" />
         </div>
       </div>
 
@@ -155,7 +155,7 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
             <div className="relative">
-              <img src="/Zuja_Logo-removebg-preview.png" alt="Zuja Electric" className="h-14 md:h-16 w-auto transition-transform duration-300 group-hover:scale-105" />
+              <img src="/Zuja_Logo-removebg-preview.png" alt="Zuja Electric" className="h-20 md:h-24 w-auto transition-transform duration-300 group-hover:scale-105" />
               {!isScrolled && (
                 <div className="absolute -inset-2 bg-primary/5 blur-2xl rounded-full -z-10" />
               )}
