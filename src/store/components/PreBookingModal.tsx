@@ -1546,8 +1546,8 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         }
         onClose();
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-          <div className="relative">
+        <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden">
+          <div className="relative max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2 sm:gap-3 flex-nowrap overflow-hidden">
               <span className="whitespace-nowrap">Pre-Book {scooter.name}</span>
@@ -1713,16 +1713,6 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                     title="View Terms"
                   >
                     <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleDownloadBookingTerms}
-                    className="h-8 w-8"
-                    title="Download Terms"
-                  >
-                    <Download className="h-4 w-4" />
                   </Button>
                 </div>
               </div>

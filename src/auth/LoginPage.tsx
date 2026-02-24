@@ -1046,22 +1046,11 @@ export const LoginPage = () => {
                 ) : (
                   <div className="space-y-4 sm:space-y-5">
                     <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <p className="text-xs sm:text-sm text-gray-600 mb-1 break-words">
+                      <p className="text-xs sm:text-sm text-gray-600 break-words">
                         OTP sent to: <span className="font-medium text-gray-900">
                           {loginMethod === 'mobile' ? mobile : email}
                         </span>
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowOTPInput(false);
-                          setLoginOtpCode("");
-                          setLoginOtpError("");
-                        }}
-                        className="text-xs text-gray-600 hover:text-gray-900 underline"
-                      >
-                        Change {loginMethod === 'mobile' ? 'mobile number' : 'email'}
-                      </button>
                     </div>
 
                     <form onSubmit={handleVerifyLoginOTP} className="space-y-5">

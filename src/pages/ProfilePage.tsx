@@ -188,15 +188,28 @@ export function ProfilePage() {
     pincode: "",
   });
   const [isEditingNominee, setIsEditingNominee] = useState(false);
+  const [nomineeFormErrors, setNomineeFormErrors] = useState<Record<string, string>>({});
+
+  // Helper function to format date for date input (YYYY-MM-DD)
+  const formatDateForInput = (dateString: string | undefined | null): string => {
+    if (!dateString) return "";
+    // If date is in DD-MM-YYYY format, convert to YYYY-MM-DD
+    const dateMatch = dateString.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (dateMatch) {
+      return `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+    }
+    // Assume it's already in YYYY-MM-DD format
+    return dateString;
+  };
 
   // Initialize nominee form data when nominee data is loaded
   useEffect(() => {
-    if (nomineeData && activeTab === "nominee") {
+    if (nomineeData) {
       console.log('📋 [PROFILE PAGE] Pre-filling nominee form with data:', nomineeData);
       setNomineeFormData({
         full_name: nomineeData.full_name || "",
         relationship: nomineeData.relationship || "",
-        date_of_birth: nomineeData.date_of_birth || "",
+        date_of_birth: formatDateForInput(nomineeData.date_of_birth),
         mobile: nomineeData.mobile || "",
         email: nomineeData.email || "",
         address_line1: nomineeData.address_line1 || "",
@@ -205,8 +218,9 @@ export function ProfilePage() {
         pincode: nomineeData.pincode || "",
       });
       setIsEditingNominee(true);
-    } else if (activeTab === "nominee" && !nomineeData) {
-      // Reset form when switching to nominee tab and no data exists
+      setNomineeFormErrors({}); // Clear errors when loading existing data
+    } else if (activeTab === "nominee" && !nomineeData && !isLoadingNominee) {
+      // Reset form when switching to nominee tab and no data exists (and not loading)
       setNomineeFormData({
         full_name: "",
         relationship: "",
@@ -219,19 +233,20 @@ export function ProfilePage() {
         pincode: "",
       });
       setIsEditingNominee(false);
+      setNomineeFormErrors({}); // Clear errors when resetting form
     }
-  }, [nomineeData, activeTab]);
+  }, [nomineeData, activeTab, isLoadingNominee]);
 
   // Initialize form data when raw profile data is loaded
   useEffect(() => {
-    if (rawProfileData && activeTab === "settings") {
+    if (rawProfileData) {
       setFormData({
         first_name: rawProfileData.first_name || "",
         last_name: rawProfileData.last_name || "",
         email: rawProfileData.email || "",
         mobile: rawProfileData.mobile || "",
         gender: rawProfileData.gender || "",
-        date_of_birth: rawProfileData.date_of_birth || "",
+        date_of_birth: formatDateForInput(rawProfileData.date_of_birth),
         address_line1: rawProfileData.address_line1 || "",
         address_line2: rawProfileData.address_line2 || "",
         city: rawProfileData.city || "",
@@ -240,14 +255,41 @@ export function ProfilePage() {
         country: rawProfileData.country || "India",
       });
       // Set profile picture preview if available
-      if (rawProfileData.profile_picture) {
-        setProfilePicturePreview(rawProfileData.profile_picture);
+      if (rawProfileData.profile_picture || rawProfileData.profile_picture_url) {
+        setProfilePicturePreview(rawProfileData.profile_picture || rawProfileData.profile_picture_url || null);
       } else {
         setProfilePicturePreview(null);
       }
       setProfilePicture(null); // Reset file input when loading existing data
     }
-  }, [rawProfileData, activeTab]);
+  }, [rawProfileData]);
+
+  // Also populate form when switching to settings tab if data is already available
+  useEffect(() => {
+    if (activeTab === "settings" && rawProfileData) {
+      setFormData({
+        first_name: rawProfileData.first_name || "",
+        last_name: rawProfileData.last_name || "",
+        email: rawProfileData.email || "",
+        mobile: rawProfileData.mobile || "",
+        gender: rawProfileData.gender || "",
+        date_of_birth: formatDateForInput(rawProfileData.date_of_birth),
+        address_line1: rawProfileData.address_line1 || "",
+        address_line2: rawProfileData.address_line2 || "",
+        city: rawProfileData.city || "",
+        state: rawProfileData.state || "",
+        pincode: rawProfileData.pincode || "",
+        country: rawProfileData.country || "India",
+      });
+      // Set profile picture preview if available
+      if (rawProfileData.profile_picture || rawProfileData.profile_picture_url) {
+        setProfilePicturePreview(rawProfileData.profile_picture || rawProfileData.profile_picture_url || null);
+      } else {
+        setProfilePicturePreview(null);
+      }
+      setProfilePicture(null); // Reset file input when loading existing data
+    }
+  }, [activeTab, rawProfileData]);
 
   // Handle form input changes
   const handleInputChange = (field: string, value: string) => {
@@ -265,6 +307,14 @@ export function ProfilePage() {
   // Handle nominee form input changes
   const handleNomineeInputChange = (field: string, value: string) => {
     setNomineeFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error for this field when user starts typing
+    if (nomineeFormErrors[field]) {
+      setNomineeFormErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   // Handle profile picture file change
@@ -407,9 +457,59 @@ export function ProfilePage() {
     }
   };
 
+  // Validate nominee form
+  const validateNomineeForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate mobile number (if provided)
+    if (nomineeFormData.mobile.trim()) {
+      if (!/^[6-9][0-9]{9}$/.test(nomineeFormData.mobile)) {
+        newErrors.mobile = 'Enter a valid 10-digit mobile number starting with 6, 7, 8 or 9';
+      } else if (/^(\d)\1{9}$/.test(nomineeFormData.mobile)) {
+        // All same digits: 9999999999, 8888888888, etc.
+        newErrors.mobile = 'Enter a valid mobile number';
+      } else if (
+        nomineeFormData.mobile === '1234567890' ||
+        nomineeFormData.mobile === '9876543210' ||
+        nomineeFormData.mobile === '0123456789' ||
+        nomineeFormData.mobile === '9999900000' ||
+        nomineeFormData.mobile === '9000000000' ||
+        /^(\d{2,5})\1+$/.test(nomineeFormData.mobile)  // repeating blocks like 9898989898, 9090909090
+      ) {
+        newErrors.mobile = 'Enter a valid mobile number';
+      }
+    }
+
+    // Validate pincode
+    if (!nomineeFormData.pincode.trim()) {
+      newErrors.pincode = 'Pincode is required';
+    } else if (!/^[0-9]{6}$/.test(nomineeFormData.pincode)) {
+      newErrors.pincode = 'Pincode must be 6 digits';
+    } else if (!/^[1-9]/.test(nomineeFormData.pincode)) {
+      newErrors.pincode = 'Indian pincode cannot start with 0';
+    } else if (/^(\d)\1{5}$/.test(nomineeFormData.pincode)) {
+      // All same digits: 111111, 222222, etc.
+      newErrors.pincode = 'Please enter a valid Indian pincode';
+    } else if (
+      nomineeFormData.pincode === '123456' ||
+      nomineeFormData.pincode === '654321' ||
+      /^(012345|123456|234567|345678|456789|567890|098765|987654|876543|765432|654321|543210)$/.test(nomineeFormData.pincode)
+    ) {
+      newErrors.pincode = 'Please enter a valid Indian pincode';
+    }
+
+    setNomineeFormErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   // Handle nominee form submission
   const handleNomineeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateNomineeForm()) {
+      return;
+    }
     
     try {
       const submitData: {
@@ -461,6 +561,9 @@ export function ProfilePage() {
       await submitNominee(submitData).unwrap();
       
       toast.success(isEditingNominee ? "Nominee updated successfully!" : "Nominee added successfully!");
+      
+      // Clear errors on successful submission
+      setNomineeFormErrors({});
       
       // Don't reset form when editing - keep the data
       if (!isEditingNominee) {
@@ -1007,10 +1110,16 @@ export function ProfilePage() {
                         <input
                           type="tel"
                           value={nomineeFormData.mobile}
-                          onChange={(e) => handleNomineeInputChange("mobile", e.target.value)}
+                          onChange={(e) => handleNomineeInputChange("mobile", e.target.value.replace(/\D/g, '').slice(0, 10))}
                           placeholder="Enter mobile number"
-                          className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm sm:text-base"
+                          className={`w-full px-3 py-2 border rounded-md bg-background text-sm sm:text-base ${
+                            nomineeFormErrors.mobile ? 'border-destructive focus:border-destructive ring-destructive/20' : 'border-border'
+                          }`}
+                          maxLength={10}
                         />
+                        {nomineeFormErrors.mobile && (
+                          <p className="text-xs text-destructive">{nomineeFormErrors.mobile}</p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -1067,11 +1176,17 @@ export function ProfilePage() {
                         <input
                           type="text"
                           value={nomineeFormData.pincode}
-                          onChange={(e) => handleNomineeInputChange("pincode", e.target.value)}
+                          onChange={(e) => handleNomineeInputChange("pincode", e.target.value.replace(/\D/g, '').slice(0, 6))}
                           placeholder="Enter pincode"
-                          className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm sm:text-base"
+                          className={`w-full px-3 py-2 border rounded-md bg-background text-sm sm:text-base ${
+                            nomineeFormErrors.pincode ? 'border-destructive focus:border-destructive ring-destructive/20' : 'border-border'
+                          }`}
                           required
+                          maxLength={6}
                         />
+                        {nomineeFormErrors.pincode && (
+                          <p className="text-xs text-destructive">{nomineeFormErrors.pincode}</p>
+                        )}
                       </div>
                     </div>
                   </div>
