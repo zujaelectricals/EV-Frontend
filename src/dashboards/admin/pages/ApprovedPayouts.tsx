@@ -51,7 +51,7 @@ const mockApprovedPayouts: PayoutExtended[] = [
     amount: 64000,
     type: 'binary',
     status: 'completed',
-    description: 'Binary commission for 10 pairs',
+    description: 'Partner Framework commission for 10 pairs',
     requestedAt: '2024-03-15 10:00',
     approvedAt: '2024-03-15 11:30',
     processedAt: '2024-03-15 14:00',
@@ -126,7 +126,7 @@ const monthlyData = [
 ];
 
 const typeDistribution = [
-  { type: 'Binary', count: 120, amount: 3000000 },
+  { type: 'Partner Framework', count: 120, amount: 3000000 },
   { type: 'Referral', count: 85, amount: 1275000 },
   { type: 'Milestone', count: 45, amount: 450000 },
   { type: 'Pool', count: 30, amount: 600000 },
@@ -343,7 +343,7 @@ export const ApprovedPayouts = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="binary">Binary</SelectItem>
+                  <SelectItem value="binary">Partner Framework</SelectItem>
                   <SelectItem value="referral">Referral</SelectItem>
                   <SelectItem value="milestone">Milestone</SelectItem>
                   <SelectItem value="pool">Pool</SelectItem>

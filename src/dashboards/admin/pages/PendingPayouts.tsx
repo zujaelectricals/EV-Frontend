@@ -42,7 +42,7 @@ const mockPendingPayouts: PayoutExtended[] = [
     amount: 25000,
     type: 'binary',
     status: 'pending',
-    description: 'Binary commission for 5 pairs',
+    description: 'Partner Framework commission for 5 pairs',
     requestedAt: '2024-03-20 10:30',
     tds: 2500,
     netAmount: 22500,
@@ -84,7 +84,7 @@ const mockPendingPayouts: PayoutExtended[] = [
     amount: 35000,
     type: 'binary',
     status: 'pending',
-    description: 'Binary commission for 10 pairs',
+    description: 'Partner Framework commission for 10 pairs',
     requestedAt: '2024-03-22 09:15',
     tds: 3500,
     netAmount: 31500,
@@ -327,7 +327,7 @@ export const PendingPayouts = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="binary">Binary</SelectItem>
+                  <SelectItem value="binary">Partner Framework</SelectItem>
                   <SelectItem value="referral">Referral</SelectItem>
                   <SelectItem value="milestone">Milestone</SelectItem>
                   <SelectItem value="pool">Pool</SelectItem>

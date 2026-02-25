@@ -40,7 +40,7 @@ const mockRejectedPayouts: PayoutExtended[] = [
     amount: 20000,
     type: 'binary',
     status: 'cancelled',
-    description: 'Binary commission for 5 pairs',
+    description: 'Partner Framework commission for 5 pairs',
     requestedAt: '2024-03-10 10:00',
     rejectedAt: '2024-03-10 15:30',
     rejectionReason: 'Invalid bank account details. Account number mismatch.',
@@ -234,7 +234,7 @@ export const RejectedPayouts = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="binary">Binary</SelectItem>
+                  <SelectItem value="binary">Partner Framework</SelectItem>
                   <SelectItem value="referral">Referral</SelectItem>
                   <SelectItem value="milestone">Milestone</SelectItem>
                   <SelectItem value="pool">Pool</SelectItem>

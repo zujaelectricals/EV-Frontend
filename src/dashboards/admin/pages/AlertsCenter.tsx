@@ -37,7 +37,7 @@ const alerts = [
   {
     id: 3,
     type: 'info',
-    title: 'Binary engine sync delayed by 15 mins',
+    title: 'Partner Framework engine sync delayed by 15 mins',
     description: 'Last sync completed at 10:45 AM, expected at 10:30 AM',
     category: 'System',
     timestamp: '1 hour ago',

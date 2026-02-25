@@ -28,7 +28,7 @@ export const MonthlyResetEngine = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Monthly Reset Engine</h1>
-          <p className="text-muted-foreground mt-1">Manage monthly binary tree and commission resets</p>
+          <p className="text-muted-foreground mt-1">Manage monthly partner Framework and commission resets</p>
         </div>
         <Dialog>
           <DialogTrigger asChild>
@@ -41,7 +41,7 @@ export const MonthlyResetEngine = () => {
             <DialogHeader>
               <DialogTitle>Confirm Monthly Reset</DialogTitle>
               <DialogDescription>
-                This will reset all binary tree pairs and commissions for the current month. This action cannot be undone.
+                This will reset all Partner Framework tree pairs and commissions for the current month. This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>

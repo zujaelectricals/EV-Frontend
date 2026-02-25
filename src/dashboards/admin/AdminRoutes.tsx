@@ -139,7 +139,7 @@ export const AdminRoutes = () => {
       <Route path="staff-performance/approval-delay" element={<ApprovalDelayReport />} />
       <Route path="staff-performance/conversion" element={<LeadConversionRate />} />
 
-      {/* Binary Engine Control Routes */}
+      {/* Partner Framework Engine Control Routes */}
       <Route path="binary-engine" element={<BinaryEngineControl />} />
       <Route path="binary-engine/pair-rules" element={<PairRules />} />
       <Route path="binary-engine/ceiling" element={<CeilingSettings />} />
@@ -230,7 +230,7 @@ export const AdminRoutes = () => {
       <Route path="audit" element={<AuditLogs />} />
       <Route path="audit/wallet" element={<PlaceholderPage title="Wallet Changes" />} />
       <Route path="audit/payout" element={<PlaceholderPage title="Payout Modifications" />} />
-      <Route path="audit/binary" element={<PlaceholderPage title="Binary Adjustments" />} />
+      <Route path="audit/binary" element={<PlaceholderPage title="Partner Framework Adjustments" />} />
       <Route path="audit/activity" element={<PlaceholderPage title="Admin Activity Logs" />} />
 
       {/* Catch-all route */}

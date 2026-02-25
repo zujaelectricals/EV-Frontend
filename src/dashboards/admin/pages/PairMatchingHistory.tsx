@@ -60,7 +60,7 @@ export const PairMatchingHistory = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Total Partner Framework Matching History</h1>
-          <p className="text-muted-foreground mt-1">Track binary Total Partner Framework matching and commission payouts</p>
+          <p className="text-muted-foreground mt-1">Track partner framework Total Partner Framework matching and commission payouts</p>
         </div>
         <div className="flex items-center gap-2">
           <Input placeholder="Search..." className="w-64" />

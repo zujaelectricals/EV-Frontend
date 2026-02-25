@@ -88,7 +88,7 @@ const adminMenuSections: MenuSection[] = [
   //   value: "distributor-intel",
   //   children: [
   //     {
-  //       label: "Binary Tree Viewer",
+  //       label: "Partner Framework Tree Viewer",
   //       path: "/admin/distributor-intel/binary-tree",
   //     },
   //     {
@@ -309,7 +309,7 @@ const adminMenuSections: MenuSection[] = [
   //   children: [
   //     { label: "Wallet Changes", path: "/admin/audit/wallet" },
   //     { label: "Payout Modifications", path: "/admin/audit/payout" },
-  //     { label: "Binary Adjustments", path: "/admin/audit/binary" },
+  //     { label: "Partner Framework Adjustments", path: "/admin/audit/binary" },
   //     { label: "Admin Activity Logs", path: "/admin/audit/activity" },
   //   ],
   // },

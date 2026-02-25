@@ -84,8 +84,8 @@ export const TeamCommission = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Team Commission (Binary)</h1>
-            <p className="text-muted-foreground mt-1">Track binary/team commission payouts and pair matching</p>
+            <h1 className="text-3xl font-bold text-foreground">Team Commission</h1>
+            <p className="text-muted-foreground mt-1">Track Partner Framework/team commission payouts and pair matching</p>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-6">
@@ -112,8 +112,8 @@ export const TeamCommission = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Team Commission (Binary)</h1>
-            <p className="text-muted-foreground mt-1">Track binary/team commission payouts and pair matching</p>
+            <h1 className="text-3xl font-bold text-foreground">Team Commission</h1>
+            <p className="text-muted-foreground mt-1">Track Partner Framework/team commission payouts and pair matching</p>
           </div>
         </div>
         <Card>
@@ -143,8 +143,8 @@ export const TeamCommission = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Team Commission (Binary)</h1>
-          <p className="text-muted-foreground mt-1">Track binary/team commission payouts and Total Partner Framework matching</p>
+          <h1 className="text-3xl font-bold text-foreground">Team Commission</h1>
+          <p className="text-muted-foreground mt-1">Track Partner Framework/team commission payouts and Total Partner Framework matching</p>
         </div>
         {/* <div className="flex items-center gap-2">
           <Button variant="outline" size="sm">

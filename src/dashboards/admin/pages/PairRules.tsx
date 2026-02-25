@@ -109,7 +109,7 @@ export const PairRules = () => {
     try {
       // Validate form data
       if (formData.binary_commission_activation_count < 1) {
-        toast.error('Binary activation count must be at least 1');
+        toast.error('Partner Framework activation count must be at least 1');
         return;
       }
       if (formData.binary_tds_threshold_pairs < 0) {
@@ -320,7 +320,7 @@ export const PairRules = () => {
             <div className="space-y-2">
               <div className="flex items-center">
                 <Label htmlFor="direct_commission">Direct User Commission Amount (₹)</Label>
-                <InfoButton info="The commission amount (in rupees) paid to an ASA for each direct referral before their binary commission is activated. This is the initial commission earned per direct user signup before the ASA reaches the activation threshold." />
+                <InfoButton info="The commission amount (in rupees) paid to an ASA for each direct referral before their Partner Framework commission is activated. This is the initial commission earned per direct user signup before the ASA reaches the activation threshold." />
               </div>
               <Input
                 id="direct_commission"
@@ -350,7 +350,7 @@ export const PairRules = () => {
             <div className="space-y-2">
               <div className="flex items-center">
                 <Label htmlFor="activation_amount">Activation Amount (₹)</Label>
-                <InfoButton info="The minimum payment amount required per booking for senior ASAs (upline) to earn commission. If a booking payment is less than this amount, no commission is credited to seniors, but the user is still counted in the descendant calculation for the binary tree. When a booking is cancelled, this amount is withheld and can be used for future point redemption." />
+                <InfoButton info="The minimum payment amount required per booking for senior ASAs (upline) to earn commission. If a booking payment is less than this amount, no commission is credited to seniors, but the user is still counted in the descendant calculation for the Partner Framework tree. When a booking is cancelled, this amount is withheld and can be used for future point redemption." />
               </div>
               <Input
                 id="activation_amount"
@@ -380,17 +380,17 @@ export const PairRules = () => {
         </CardContent>
       </Card>
 
-      {/* Binary Commission Settings */}
+      {/* Partner Framework Commission Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Binary Commission Configuration</CardTitle>
+          <CardTitle>Partner Framework Commission Configuration</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <div className="flex items-center">
-                <Label htmlFor="activation_count">Binary Activation Count (users)</Label>
-                <InfoButton info="The number of direct referrals an ASA must have before their binary commission system becomes active. Until this threshold is reached, the ASA earns direct commission only. Once activated, they start earning from the Total Partner Framework matching system." />
+                <Label htmlFor="activation_count">Partner Framework Activation Count (users)</Label>
+                <InfoButton info="The number of direct referrals an ASA must have before their Partner Framework commission system becomes active. Until this threshold is reached, the ASA earns direct commission only. Once activated, they start earning from the Total Partner Framework matching system." />
               </div>
               <Input
                 id="activation_count"
@@ -420,7 +420,7 @@ export const PairRules = () => {
             <div className="space-y-2">
               <div className="flex items-center">
                 <Label htmlFor="pair_commission">Total Partner Framework Commission Amount (₹)</Label>
-                <InfoButton info="The commission amount (in rupees) earned by an ASA for each successful Total Partner Framework match in the binary tree. A Total Partner Framework match occurs when there is at least one new member on both the left and right legs of the binary tree. This commission is earned after the binary activation threshold is met." />
+                <InfoButton info="The commission amount (in rupees) earned by an ASA for each successful Total Partner Framework match in the Partner Framework tree. A Total Partner Framework match occurs when there is at least one new member on both the left and right legs of the Partner Framework tree. This commission is earned after the Partner Framework activation threshold is met." />
               </div>
               <Input
                 id="pair_commission"
@@ -510,7 +510,7 @@ export const PairRules = () => {
             <div className="space-y-2">
               <div className="flex items-center">
                 <Label htmlFor="default_side">Default Tree Placement Side</Label>
-                <InfoButton info="Determines which side of the binary tree new users are placed by default when no specific placement preference is given. 'Left Side' places new users on the left leg first, while 'Right Side' places them on the right leg first. This affects the automatic spillover placement in the binary tree structure." />
+                <InfoButton info="Determines which side of the Partner Framework tree new users are placed by default when no specific placement preference is given. 'Left Side' places new users on the left leg first, while 'Right Side' places them on the right leg first. This affects the automatic spillover placement in the Partner Framework tree structure." />
               </div>
               <Select
                 value={formData.binary_tree_default_placement_side}
@@ -528,8 +528,8 @@ export const PairRules = () => {
 
             <div className="space-y-2">
               <div className="flex items-center">
-                <Label htmlFor="initial_bonus">Binary Commission Initial Bonus (₹)</Label>
-                <InfoButton info="A one-time bonus amount (in rupees) credited to the user's wallet and total earnings when their binary commission is first activated (after reaching the required number of direct referrals). TDS is deducted from this bonus amount, but TDS is NOT deducted from the booking balance portion." />
+                <Label htmlFor="initial_bonus">Partner Framework Commission Initial Bonus (₹)</Label>
+                <InfoButton info="A one-time bonus amount (in rupees) credited to the user's wallet and total earnings when their Partner Framework commission is first activated (after reaching the required number of direct referrals). TDS is deducted from this bonus amount, but TDS is NOT deducted from the booking balance portion." />
               </div>
               <Input
                 id="initial_bonus"
@@ -568,8 +568,8 @@ export const PairRules = () => {
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <div className="flex items-center">
-                <Label htmlFor="tds_percentage">Binary Commission TDS Percentage (%)</Label>
-                <InfoButton info="The Tax Deducted at Source (TDS) percentage applied to ALL binary commissions earned by ASAs. This percentage is automatically deducted from each commission payment before crediting to the user's wallet. Valid range is 0-100%." />
+                <Label htmlFor="tds_percentage">Partner Framework Commission TDS Percentage (%)</Label>
+                <InfoButton info="The Tax Deducted at Source (TDS) percentage applied to ALL Partner Framework commissions earned by ASAs. This percentage is automatically deducted from each commission payment before crediting to the user's wallet. Valid range is 0-100%." />
               </div>
               <Input
                 id="tds_percentage"
@@ -629,7 +629,7 @@ export const PairRules = () => {
             <div className="space-y-2">
               <div className="flex items-center">
                 <Label htmlFor="extra_deduction">Extra Deduction Percentage (%)</Label>
-                <InfoButton info="An additional percentage deducted from binary commissions after the TDS threshold is exceeded. This extra deduction is applied on top of the regular TDS percentage for Total Partner Framework matches beyond the threshold. Valid range is 0-100%." />
+                <InfoButton info="An additional percentage deducted from Partner Framework commissions after the TDS threshold is exceeded. This extra deduction is applied on top of the regular TDS percentage for Total Partner Framework matches beyond the threshold. Valid range is 0-100%." />
               </div>
               <Input
                 id="extra_deduction"
@@ -681,7 +681,7 @@ export const PairRules = () => {
             <div className="space-y-2">
               <div className="flex items-center">
                 <Label htmlFor="payout_tds">Payout TDS Percentage (%)</Label>
-                <InfoButton info="The Tax Deducted at Source (TDS) percentage applied specifically to payout withdrawals. This is separate from the binary commission TDS and is deducted when an ASA withdraws funds from their wallet. Set to 0 for no additional TDS on withdrawals. Valid range is 0-100%." />
+                <InfoButton info="The Tax Deducted at Source (TDS) percentage applied specifically to payout withdrawals. This is separate from the Partner Framework commission TDS and is deducted when an ASA withdraws funds from their wallet. Set to 0 for no additional TDS on withdrawals. Valid range is 0-100%." />
               </div>
               <Input
                 id="payout_tds"

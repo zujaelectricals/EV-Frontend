@@ -38,7 +38,7 @@ export const BinaryEngineControl = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Binary Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Partner Framework Users</CardTitle>
             <Users className="h-4 w-4 text-info" />
           </CardHeader>
           <CardContent>
@@ -61,7 +61,7 @@ export const BinaryEngineControl = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Binary System Configuration</CardTitle>
+          <CardTitle>Partner Framework System Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">

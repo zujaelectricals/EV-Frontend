@@ -53,7 +53,7 @@ const monthlyTrend = [
 ];
 
 const typeDistribution = [
-  { type: 'Binary', count: 150, amount: 3750000 },
+  { type: 'Partner Framework', count: 150, amount: 3750000 },
   { type: 'Referral', count: 75, amount: 1125000 },
   { type: 'Milestone', count: 30, amount: 300000 },
   { type: 'Pool', count: 8, amount: 1400000 },

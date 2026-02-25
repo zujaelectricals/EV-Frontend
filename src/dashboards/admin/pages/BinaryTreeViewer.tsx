@@ -10,8 +10,8 @@ export const BinaryTreeViewer = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Binary Tree Viewer</h1>
-          <p className="text-muted-foreground mt-1">Visualize and analyze the authorized channel partner binary tree structure</p>
+          <h1 className="text-3xl font-bold text-foreground">Partner Framework Tree Viewer</h1>
+          <p className="text-muted-foreground mt-1">Visualize and analyze the authorized channel partner Partner Framework tree structure</p>
         </div>
         <div className="flex items-center gap-2">
           <Input placeholder="Search authorized channel partner..." className="w-64" />
@@ -98,13 +98,13 @@ export const BinaryTreeViewer = () => {
       {/* Tree Visualization */}
       <Card>
         <CardHeader>
-          <CardTitle>Binary Tree Structure</CardTitle>
+          <CardTitle>Partner Framework Tree Structure</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center min-h-[400px] bg-secondary/20 rounded-lg border-2 border-dashed border-border">
             <div className="text-center">
               <GitBranch className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium text-foreground mb-2">Binary Tree Visualization</p>
+              <p className="text-lg font-medium text-foreground mb-2">Partner Framework Tree Visualization</p>
               <p className="text-sm text-muted-foreground">
                 Interactive tree viewer will be integrated here
               </p>

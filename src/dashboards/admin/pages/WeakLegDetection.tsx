@@ -48,7 +48,7 @@ export const WeakLegDetection = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Weak-Leg Detection</h1>
-        <p className="text-muted-foreground mt-1">Identify authorized channel partners with imbalanced binary tree legs</p>
+        <p className="text-muted-foreground mt-1">Identify authorized channel partners with imbalanced partner framework legs</p>
       </div>
 
       {/* Stats */}
