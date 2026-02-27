@@ -308,6 +308,9 @@ export const PayoutHistory = () => {
   // Total Transactions: Use count from API response
   const totalTransactions = activePayoutsData?.payouts?.count ?? 0;
 
+  // Set to true when payout feature goes live; until then only the "coming soon" message is shown
+  const SHOW_PAYOUT_PAGE_CONTENT = false;
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
@@ -323,6 +326,9 @@ export const PayoutHistory = () => {
         </AlertDescription>
       </Alert>
 
+      {/* Rest of payout page content hidden until payouts go live */}
+      {SHOW_PAYOUT_PAGE_CONTENT && (
+      <>
       {/* Stats Overview */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatsCard
@@ -1431,6 +1437,8 @@ export const PayoutHistory = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </div>
   );
 };
