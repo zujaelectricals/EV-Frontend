@@ -315,6 +315,14 @@ export const PayoutHistory = () => {
         <p className="text-muted-foreground mt-1 text-sm sm:text-base">View all your payout requests and transaction history</p>
       </div>
 
+      <Alert className="border-primary/20 bg-primary/5">
+        <AlertCircle className="h-4 w-4 text-primary" />
+        <AlertDescription>
+          Payouts are coming soon. We&apos;re finalizing the payout experience to ensure your withdrawals are processed
+          smoothly and securely.
+        </AlertDescription>
+      </Alert>
+
       {/* Stats Overview */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatsCard
@@ -432,7 +440,7 @@ export const PayoutHistory = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Total Earned</p>
                 <p className="text-xl sm:text-2xl font-bold text-success">
-                  ₹{parseFloat(walletSummary.total_earned || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹••••
                 </p>
               </div>
               <div>

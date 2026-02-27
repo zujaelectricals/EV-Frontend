@@ -1195,7 +1195,7 @@ export const BinaryTreeView = () => {
         />
         <StatsCard
           title="Total Earnings"
-          value={`₹${(binaryStats?.totalEarnings || 0).toLocaleString()}`}
+          value="₹••••"
           icon={TrendingUp}
           variant="success"
         />
