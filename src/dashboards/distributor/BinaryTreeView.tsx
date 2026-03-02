@@ -1444,7 +1444,7 @@ export const BinaryTreeView = () => {
         />
         <StatsCard
           title="Total Earnings"
-          value={`₹${(binaryStats?.totalEarnings || 0).toLocaleString()}`}
+          value="••••"
           icon={TrendingUp}
           variant="success"
         />
@@ -1585,16 +1585,24 @@ export const BinaryTreeView = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Positioning</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to position{" "}
-              <span className="font-semibold text-foreground">
-                {selectedPendingNode?.name}
-              </span>{" "}
-              at the{" "}
-              <span className="font-semibold text-foreground">
-                {selectedSide === "left" ? "RSL" : "RSR"}
-              </span>{" "}
-              position? This action cannot be undone.
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Are you sure you want to position{" "}
+                  <span className="font-semibold text-foreground">
+                    {selectedPendingNode?.name}
+                  </span>{" "}
+                  at the{" "}
+                  <span className="font-semibold text-foreground">
+                    {selectedSide === "left" ? "RSL" : "RSR"}
+                  </span>{" "}
+                  position?
+                </p>
+                <p className="text-muted-foreground">
+                  Once placed, this position cannot be changed or undone. Please
+                  verify your selection before confirming.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1704,6 +1712,7 @@ export const BinaryTreeView = () => {
                   <SelectItem value="50">50</SelectItem>
                   <SelectItem value="75">75</SelectItem>
                   <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="500">500</SelectItem>
                 </SelectContent>
               </Select>
               <div className="flex items-center gap-2">
@@ -1899,13 +1908,13 @@ export const BinaryTreeView = () => {
                         </TableCell>
                         <TableCell className="py-3">
                           {member.isActive ? (
-                            <Badge className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0">
+                            <Badge className="bg-green-600 text-white border-0 hover:bg-green-600">
                               <Activity className="mr-1 h-3 w-3" />
-                              Active
+                              Active Booking
                             </Badge>
                           ) : (
-                            <Badge className="bg-yellow-500 text-yellow-900 border-0">
-                              Inactive
+                            <Badge className="bg-muted text-muted-foreground border border-border">
+                              Inactive Booking
                             </Badge>
                           )}
                         </TableCell>
@@ -2049,16 +2058,16 @@ export const BinaryTreeView = () => {
                           </TableCell>
                           <TableCell className="py-4">
                             {member.isActive ? (
-                              <Badge className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0">
+                              <Badge className="bg-green-600 text-white border-0 hover:bg-green-600">
                                 <Activity className="mr-1 h-3 w-3" />
-                                Active
+                                Active Booking
                               </Badge>
                             ) : (
                               <Tooltip delayDuration={300}>
                                 <TooltipTrigger asChild>
                                   <div className="inline-block">
-                                    <Badge className="bg-yellow-500 text-yellow-900 border-0 cursor-help hover:bg-yellow-600">
-                                      Inactive
+                                    <Badge className="bg-muted text-muted-foreground border border-border cursor-help">
+                                      Inactive Booking
                                     </Badge>
                                   </div>
                                 </TooltipTrigger>
