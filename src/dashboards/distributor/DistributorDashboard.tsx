@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import {
   GitBranch,
   Users,
-  DollarSign,
   TrendingUp,
   TrendingDown,
   Link as LinkIcon,
@@ -115,18 +114,11 @@ export const DistributorDashboard = () => {
           transitionDelay={0.05}
         />
         <StatsCard
-          title="Total Gross Earnings"
-          value={`₹${totalGross.toLocaleString()}`}
-          icon={DollarSign}
-          variant="primary"
-          transitionDelay={0.1}
-        />
-        <StatsCard
           title="Total TDS Deducted"
           value={`₹${totalTDS.toLocaleString()}`}
           icon={TrendingDown}
           variant="warning"
-          transitionDelay={0.15}
+          transitionDelay={0.1}
         />
       </motion.div>
 
