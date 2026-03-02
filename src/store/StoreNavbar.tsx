@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Settings, Award, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, X, User, Package, Heart, CreditCard, MapPin, Gift, Award, LogOut, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -240,6 +240,10 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
                   <DropdownMenuSeparator className="bg-border/40" />
                   
                   <div className="py-1">
+                    <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-xl focus:bg-primary/5 focus:text-primary transition-colors cursor-pointer py-2.5">
+                      <User className="mr-3 h-4 w-4" />
+                      <span className="font-medium text-[13.5px]">Profile</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/profile?tab=orders')} className="rounded-xl focus:bg-primary/5 focus:text-primary transition-colors cursor-pointer py-2.5">
                       <Package className="mr-3 h-4 w-4" />
                       <span className="font-medium text-[13.5px]">My Orders</span>
@@ -249,17 +253,11 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
                         </Badge>
                       )}
                     </DropdownMenuItem>
-                    
                   </div>
                   
                   <DropdownMenuSeparator className="bg-border/40" />
                   
                   <div className="py-1">
-                    <DropdownMenuItem onClick={() => navigate('/profile?tab=settings')} className="rounded-xl focus:bg-primary/5 focus:text-primary transition-colors cursor-pointer py-2.5">
-                      <Settings className="mr-3 h-4 w-4" />
-                      <span className="font-medium text-[13.5px]">Settings</span>
-                    </DropdownMenuItem>
-                    
                     <DropdownMenuItem onClick={() => setShowLogoutDialog(true)} className="rounded-xl text-destructive focus:bg-destructive/5 focus:text-destructive transition-colors cursor-pointer py-2.5">
                       <LogOut className="mr-3 h-4 w-4" />
                       <span className="font-medium text-[13.5px]">Logout</span>

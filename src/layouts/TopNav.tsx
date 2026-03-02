@@ -364,11 +364,11 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
             align="end"
             className="w-48 bg-card border-border"
           >
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => navigate("/profile")}
+            >
               Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
