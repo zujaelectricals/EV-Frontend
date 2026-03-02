@@ -43,8 +43,8 @@ import {
   type AvailablePosition,
   type SearchResultNode,
 } from "@/app/api/binaryApi";
-import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import type { SerializedError } from '@reduxjs/toolkit';
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import type { SerializedError } from "@reduxjs/toolkit";
 import { StatsCard } from "@/shared/components/StatsCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -120,7 +120,7 @@ function extractTeamMembers(
   parentId?: string,
   parentName?: string,
   minDepth?: number,
-  maxDepth?: number
+  maxDepth?: number,
 ): TeamMember[] {
   // Check depth limits
   if (minDepth !== undefined && level < minDepth) {
@@ -141,8 +141,8 @@ function extractTeamMembers(
           node.id,
           node.name,
           minDepth,
-          maxDepth
-        )
+          maxDepth,
+        ),
       );
     }
     if (node?.children.right) {
@@ -154,8 +154,8 @@ function extractTeamMembers(
           node.id,
           node.name,
           minDepth,
-          maxDepth
-        )
+          maxDepth,
+        ),
       );
     }
     return members;
@@ -176,9 +176,12 @@ function extractTeamMembers(
   };
 
   const members: TeamMember[] = [];
-  
+
   // Only include member if it's within depth range
-  if ((minDepth === undefined || level >= minDepth) && (maxDepth === undefined || level <= maxDepth)) {
+  if (
+    (minDepth === undefined || level >= minDepth) &&
+    (maxDepth === undefined || level <= maxDepth)
+  ) {
     members.push(member);
   }
 
@@ -191,8 +194,8 @@ function extractTeamMembers(
         node.id,
         node.name,
         minDepth,
-        maxDepth
-      )
+        maxDepth,
+      ),
     );
   }
   if (node.children.right) {
@@ -204,8 +207,8 @@ function extractTeamMembers(
         node.id,
         node.name,
         minDepth,
-        maxDepth
-      )
+        maxDepth,
+      ),
     );
   }
 
@@ -222,29 +225,37 @@ function countDescendants(node: BinaryNode | null): number {
 
 // Helper function to create a lookup map for parent names (fallback for backward compatibility)
 // Note: The API now provides parent_name directly, but we keep this for cases where it might not be available
-function createParentNameMap(treeStructure: TreeNodeResponse | undefined): Map<number, string> {
+function createParentNameMap(
+  treeStructure: TreeNodeResponse | undefined,
+): Map<number, string> {
   const parentMap = new Map<number, string>();
-  
+
   if (!treeStructure) return parentMap;
-  
+
   // Add root node
-  parentMap.set(treeStructure.node_id, treeStructure.user_full_name || treeStructure.user_username || 'Root');
-  
+  parentMap.set(
+    treeStructure.node_id,
+    treeStructure.user_full_name || treeStructure.user_username || "Root",
+  );
+
   // Recursively add all nodes to the map
   function addNodeToMap(node: TreeNodeResponse | null) {
     if (!node) return;
-    
-    parentMap.set(node.node_id, node.user_full_name || node.user_username || node.user_email || 'Unknown');
-    
+
+    parentMap.set(
+      node.node_id,
+      node.user_full_name || node.user_username || node.user_email || "Unknown",
+    );
+
     // When pagination is enabled, left_child and right_child only show direct children (no nested recursion)
     // So we only need to check direct children
     if (node.left_child) addNodeToMap(node.left_child);
     if (node.right_child) addNodeToMap(node.right_child);
   }
-  
+
   if (treeStructure.left_child) addNodeToMap(treeStructure.left_child);
   if (treeStructure.right_child) addNodeToMap(treeStructure.right_child);
-  
+
   return parentMap;
 }
 
@@ -252,9 +263,9 @@ function createParentNameMap(treeStructure: TreeNodeResponse | undefined): Map<n
 // Respects the API filtering - only extracts from what the API returns
 function extractTeamMembersFromSideMembers(
   treeStructure: TreeNodeResponse | undefined,
-  sideFilter: 'left' | 'right' | 'both' = 'both',
+  sideFilter: "left" | "right" | "both" = "both",
   minDepth?: number,
-  maxDepth?: number
+  maxDepth?: number,
 ): TeamMember[] {
   if (!treeStructure) {
     return [];
@@ -265,18 +276,27 @@ function extractTeamMembersFromSideMembers(
   const processedNodeIds = new Set<number>(); // Track processed nodes to avoid duplicates
 
   // Helper function to convert TreeNodeResponse to TeamMember
-  const nodeToMember = (node: TreeNodeResponse, position: 'left' | 'right', parentId?: number): TeamMember => {
+  const nodeToMember = (
+    node: TreeNodeResponse,
+    position: "left" | "right",
+    parentId?: number,
+  ): TeamMember => {
     // Use parent_name from API response if available, otherwise fallback to map lookup
-    const parentName = node.parent_name || (parentId ? parentNameMap.get(parentId) : undefined);
+    const parentName =
+      node.parent_name || (parentId ? parentNameMap.get(parentId) : undefined);
     const totalDescendants = (node.left_count || 0) + (node.right_count || 0);
     return {
       id: `node-${node.node_id || node.id || node.user_id}`,
-      name: node.user_full_name || node.user_username || node.user_email || 'Unknown',
+      name:
+        node.user_full_name ||
+        node.user_username ||
+        node.user_email ||
+        "Unknown",
       userId: node.user_id?.toString(),
       nodeId: node.node_id || node.id || node.user_id,
       joinedAt: node.date_joined || node.created_at || new Date().toISOString(),
       position: position,
-      pv: parseFloat(node.total_earnings || node.total_amount || '0'),
+      pv: parseFloat(node.total_earnings || node.total_amount || "0"),
       level: node.level || 0,
       referrals: totalDescendants,
       isActive: node.is_active_buyer !== false,
@@ -292,9 +312,14 @@ function extractTeamMembersFromSideMembers(
   // Helper function to extract direct children (left_child and right_child)
   // Note: When pagination is enabled, direct children don't have nested side_members
   // Nested descendants are accessible through paginated left_side_members and right_side_members
-  const extractFromChild = (child: TreeNodeResponse | null, position: 'left' | 'right', rootNodeId: number, currentLevel: number = 1) => {
+  const extractFromChild = (
+    child: TreeNodeResponse | null,
+    position: "left" | "right",
+    rootNodeId: number,
+    currentLevel: number = 1,
+  ) => {
     if (!child) return;
-    
+
     // Check depth limits
     if (minDepth !== undefined && currentLevel < minDepth) {
       // Continue but don't include this level yet
@@ -303,51 +328,67 @@ function extractTeamMembersFromSideMembers(
       // Stop traversing beyond max depth
       return;
     }
-    
+
     // Only extract if this position matches the filter
-    if (sideFilter !== 'both' && sideFilter !== position) return;
-    
+    if (sideFilter !== "both" && sideFilter !== position) return;
+
     const nodeId = child.node_id || child.id || child.user_id;
     if (processedNodeIds.has(nodeId)) return; // Avoid duplicates
     processedNodeIds.add(nodeId);
-    
+
     // Only include member if it's within depth range
-    if ((minDepth === undefined || currentLevel >= minDepth) && (maxDepth === undefined || currentLevel <= maxDepth)) {
+    if (
+      (minDepth === undefined || currentLevel >= minDepth) &&
+      (maxDepth === undefined || currentLevel <= maxDepth)
+    ) {
       members.push(nodeToMember(child, position, rootNodeId));
     }
-    
+
     // When pagination is enabled, we don't recursively extract from children
     // because nested descendants are in side_members (which are already paginated)
     // However, if pagination is not enabled (backward compatibility), we can still recurse
     // We check if side_members exist and are paginated - if so, don't recurse
-    const hasPaginatedSideMembers = 
-      (child.left_side_members && typeof child.left_side_members === 'object' && 'results' in child.left_side_members) ||
-      (child.right_side_members && typeof child.right_side_members === 'object' && 'results' in child.right_side_members);
-    
+    const hasPaginatedSideMembers =
+      (child.left_side_members &&
+        typeof child.left_side_members === "object" &&
+        "results" in child.left_side_members) ||
+      (child.right_side_members &&
+        typeof child.right_side_members === "object" &&
+        "results" in child.right_side_members);
+
     // Only recursively process children if pagination is not enabled (backward compatibility)
     if (!hasPaginatedSideMembers) {
-      if (child.left_child && (sideFilter === 'both' || sideFilter === 'left')) {
-        extractFromChild(child.left_child, 'left', nodeId, currentLevel + 1);
+      if (
+        child.left_child &&
+        (sideFilter === "both" || sideFilter === "left")
+      ) {
+        extractFromChild(child.left_child, "left", nodeId, currentLevel + 1);
       }
-      if (child.right_child && (sideFilter === 'both' || sideFilter === 'right')) {
-        extractFromChild(child.right_child, 'right', nodeId, currentLevel + 1);
+      if (
+        child.right_child &&
+        (sideFilter === "both" || sideFilter === "right")
+      ) {
+        extractFromChild(child.right_child, "right", nodeId, currentLevel + 1);
       }
     }
   };
 
   // Helper function to extract members from either array or paginated format
-  const extractMembers = (sideMembers: SideMemberNode[] | PaginatedSideMembers | null | undefined, position: 'left' | 'right') => {
+  const extractMembers = (
+    sideMembers: SideMemberNode[] | PaginatedSideMembers | null | undefined,
+    position: "left" | "right",
+  ) => {
     if (!sideMembers) return;
-    
+
     // Only extract if this position matches the filter
-    if (sideFilter !== 'both' && sideFilter !== position) return;
+    if (sideFilter !== "both" && sideFilter !== position) return;
 
     let memberArray: SideMemberNode[] = [];
-    
+
     // Check if it's a paginated response
-    if (typeof sideMembers === 'object' && 'results' in sideMembers) {
+    if (typeof sideMembers === "object" && "results" in sideMembers) {
       memberArray = sideMembers.results;
-    } 
+    }
     // Check if it's an array
     else if (Array.isArray(sideMembers)) {
       memberArray = sideMembers;
@@ -356,10 +397,14 @@ function extractTeamMembersFromSideMembers(
     memberArray.forEach((member: SideMemberNode) => {
       if (member) {
         // Additional safety check: ensure member's side matches filter
-        if (sideFilter !== 'both' && member.side && member.side !== sideFilter) {
+        if (
+          sideFilter !== "both" &&
+          member.side &&
+          member.side !== sideFilter
+        ) {
           return;
         }
-        
+
         // Check depth limits
         const memberLevel = member.level || 0;
         if (minDepth !== undefined && memberLevel < minDepth) {
@@ -368,25 +413,33 @@ function extractTeamMembersFromSideMembers(
         if (maxDepth !== undefined && memberLevel > maxDepth) {
           return;
         }
-        
+
         const nodeId = member.node_id || member.user_id;
         // Skip if already processed
         if (processedNodeIds.has(nodeId)) return;
         processedNodeIds.add(nodeId);
-        
+
         const parentId = member.parent;
         // Use parent_name from API response if available, otherwise fallback to map lookup
-        const parentName = member.parent_name || (parentId ? parentNameMap.get(parentId) : undefined);
-        
-        const totalDescendants = (member.left_count || 0) + (member.right_count || 0);
+        const parentName =
+          member.parent_name ||
+          (parentId ? parentNameMap.get(parentId) : undefined);
+
+        const totalDescendants =
+          (member.left_count || 0) + (member.right_count || 0);
         members.push({
           id: `node-${nodeId}`,
-          name: member.user_full_name || member.user_username || member.user_email || 'Unknown',
+          name:
+            member.user_full_name ||
+            member.user_username ||
+            member.user_email ||
+            "Unknown",
           userId: member.user_id?.toString(),
           nodeId: nodeId,
-          joinedAt: member.date_joined || member.created_at || new Date().toISOString(),
+          joinedAt:
+            member.date_joined || member.created_at || new Date().toISOString(),
           position: position,
-          pv: parseFloat(member.total_earnings || '0'),
+          pv: parseFloat(member.total_earnings || "0"),
           level: memberLevel,
           referrals: totalDescendants,
           isActive: member.is_active_buyer !== false,
@@ -401,19 +454,26 @@ function extractTeamMembersFromSideMembers(
     });
   };
 
-  const rootNodeId = treeStructure.node_id || treeStructure.id || treeStructure.user_id;
+  const rootNodeId =
+    treeStructure.node_id || treeStructure.id || treeStructure.user_id;
 
   // Extract direct children (left_child and right_child) based on filter
   // NOTE: Direct children are ALWAYS shown separately and are NOT included in side_members pagination
   // According to API docs: "Direct children are excluded from side_members count"
   // Start at level 1 (children of root are at level 1)
   let directChildrenCount = 0;
-  if (treeStructure.left_child && (sideFilter === 'both' || sideFilter === 'left')) {
-    extractFromChild(treeStructure.left_child, 'left', rootNodeId, 1);
+  if (
+    treeStructure.left_child &&
+    (sideFilter === "both" || sideFilter === "left")
+  ) {
+    extractFromChild(treeStructure.left_child, "left", rootNodeId, 1);
     directChildrenCount++;
   }
-  if (treeStructure.right_child && (sideFilter === 'both' || sideFilter === 'right')) {
-    extractFromChild(treeStructure.right_child, 'right', rootNodeId, 1);
+  if (
+    treeStructure.right_child &&
+    (sideFilter === "both" || sideFilter === "right")
+  ) {
+    extractFromChild(treeStructure.right_child, "right", rootNodeId, 1);
     directChildrenCount++;
   }
 
@@ -422,30 +482,30 @@ function extractTeamMembersFromSideMembers(
   // The processedNodeIds Set will prevent duplicates if a node appears in both children and side_members
   let leftSideMembersCount = 0;
   let rightSideMembersCount = 0;
-  if (sideFilter === 'both' || sideFilter === 'left') {
+  if (sideFilter === "both" || sideFilter === "left") {
     const beforeCount = members.length;
-    extractMembers(treeStructure.left_side_members, 'left');
+    extractMembers(treeStructure.left_side_members, "left");
     leftSideMembersCount = members.length - beforeCount;
   }
-  if (sideFilter === 'both' || sideFilter === 'right') {
+  if (sideFilter === "both" || sideFilter === "right") {
     const beforeCount = members.length;
-    extractMembers(treeStructure.right_side_members, 'right');
+    extractMembers(treeStructure.right_side_members, "right");
     rightSideMembersCount = members.length - beforeCount;
   }
-  
+
   // Log extraction breakdown for debugging
-  console.log('📊 [Binary Tree Extraction] Breakdown:', {
+  console.log("📊 [Binary Tree Extraction] Breakdown:", {
     directChildren: directChildrenCount,
     leftSideMembers: leftSideMembersCount,
     rightSideMembers: rightSideMembersCount,
     totalExtracted: members.length,
-    note: 'Direct children are always shown separately and not included in side_members pagination',
+    note: "Direct children are always shown separately and not included in side_members pagination",
   });
 
   // Final safety filter: ensure all members match the selected side and depth
-  return members.filter(member => {
+  return members.filter((member) => {
     // Filter by side
-    if (sideFilter !== 'both' && member.position !== sideFilter) {
+    if (sideFilter !== "both" && member.position !== sideFilter) {
       return false;
     }
     // Filter by depth (additional safety check)
@@ -465,34 +525,42 @@ export const BinaryTreeView = () => {
 
   // Pagination and filtering state - must be declared before use
   // Default values: page=1, page_size=100 (max), max_depth=100 (max)
-  const [sideFilter, setSideFilter] = useState<'left' | 'right' | 'both'>('both');
+  const [sideFilter, setSideFilter] = useState<"left" | "right" | "both">(
+    "both",
+  );
   const [leftPage, setLeftPage] = useState(1); // Default: 1 (API default when page_size is provided)
   const [rightPage, setRightPage] = useState(1); // Default: 1
   const [bothPage, setBothPage] = useState(1); // Default: 1 (for when side='both')
-  const [pageSize, setPageSize] = useState(100); // Default: 100 (max)
+  const [pageSize, setPageSize] = useState(500); // Default: 500
   const [minDepth, setMinDepth] = useState<number | undefined>(undefined); // Optional, no default
-  const [maxDepth, setMaxDepth] = useState<number | undefined>(100); // Default: 100 (max)
-  
-  // Search state
-  const [searchInput, setSearchInput] = useState(''); // Input field value
-  const [searchQuery, setSearchQuery] = useState(''); // Actual search query sent to API
+  const [maxDepth, setMaxDepth] = useState<number | undefined>(500); // Default: 500
 
-  const { data: binaryTree, isLoading: treeLoading, refetch: refetchTree } = useGetBinaryTreeQuery(
-    distributorId,
-    { skip: !distributorId }
-  );
-  
+  // Search state
+  const [searchInput, setSearchInput] = useState(""); // Input field value
+  const [searchQuery, setSearchQuery] = useState(""); // Actual search query sent to API
+
+  const {
+    data: binaryTree,
+    isLoading: treeLoading,
+    refetch: refetchTree,
+  } = useGetBinaryTreeQuery(distributorId, { skip: !distributorId });
+
   // Determine which page to use based on side filter
   // When side='both', use bothPage; otherwise use the specific side's page
-  const currentPage = sideFilter === 'left' ? leftPage : sideFilter === 'right' ? rightPage : bothPage;
-  
+  const currentPage =
+    sideFilter === "left"
+      ? leftPage
+      : sideFilter === "right"
+        ? rightPage
+        : bothPage;
+
   // Memoize query parameters to prevent unnecessary API calls and re-renders
   // This ensures the API is only called when actual parameter values change
   // Default values: page=1, page_size=20 (matching API defaults)
   const queryParams = useMemo(() => {
     const params: {
       distributorId: string;
-      side: 'left' | 'right' | 'both';
+      side: "left" | "right" | "both";
       page: number;
       page_size: number;
       min_depth?: number;
@@ -504,7 +572,7 @@ export const BinaryTreeView = () => {
       page: currentPage,
       page_size: pageSize,
     };
-    
+
     // Only include min_depth and max_depth if they are explicitly set
     // This prevents sending undefined/null values which could cause:
     // 1. Unnecessary query string parameters
@@ -516,33 +584,44 @@ export const BinaryTreeView = () => {
     if (maxDepth !== undefined && maxDepth !== null) {
       params.max_depth = maxDepth;
     }
-    
+
     // Include search query if provided
     if (searchQuery && searchQuery.trim()) {
       params.search = searchQuery.trim();
     }
-    
+
     return params;
-  }, [distributorId, sideFilter, currentPage, pageSize, minDepth, maxDepth, searchQuery]);
-  
-  const { data: treeStructure, isLoading: structureLoading, refetch: refetchStructure } = useGetTreeStructureQuery(
-    queryParams,
-    { 
-      skip: !distributorId,
-      refetchOnMountOrArgChange: true, // Ensure API is called when page_size or other params change
-    }
-  );
-  
+  }, [
+    distributorId,
+    sideFilter,
+    currentPage,
+    pageSize,
+    minDepth,
+    maxDepth,
+    searchQuery,
+  ]);
+
+  const {
+    data: treeStructure,
+    isLoading: structureLoading,
+    refetch: refetchStructure,
+  } = useGetTreeStructureQuery(queryParams, {
+    skip: !distributorId,
+    refetchOnMountOrArgChange: true, // Ensure API is called when page_size or other params change
+  });
+
   // Track timing for data processing and display
   const dataProcessingStartRef = useRef<number | null>(null);
-  
+
   useEffect(() => {
     if (treeStructure && !structureLoading) {
       const processingStartTime = performance.now();
       dataProcessingStartRef.current = processingStartTime;
-      performance.mark('binary-tree-data-processing-start');
-      
-      console.log('⏱️ [Binary Tree Component] Data received, starting processing...');
+      performance.mark("binary-tree-data-processing-start");
+
+      console.log(
+        "⏱️ [Binary Tree Component] Data received, starting processing...",
+      );
     }
   }, [treeStructure, structureLoading]);
   const {
@@ -552,15 +631,16 @@ export const BinaryTreeView = () => {
   } = useGetBinaryStatsQuery(distributorId, { skip: !distributorId });
   const { data: pendingNodes = [], isLoading: pendingLoading } =
     useGetPendingNodesQuery(distributorId, { skip: !distributorId });
-  const [positionPendingNode, { isLoading: isPositioningNode }] = usePositionPendingNodeMutation();
+  const [positionPendingNode, { isLoading: isPositioningNode }] =
+    usePositionPendingNodeMutation();
   const [checkPairs, { isLoading: isCheckingPairs }] = useCheckPairsMutation();
-
 
   // Pending node positioning state
   const [selectedPendingNode, setSelectedPendingNode] =
     useState<PendingNode | null>(null);
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
-  const [confirmPositionDialogOpen, setConfirmPositionDialogOpen] = useState(false);
+  const [confirmPositionDialogOpen, setConfirmPositionDialogOpen] =
+    useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string>("");
   const [selectedSide, setSelectedSide] = useState<"left" | "right">("left");
   const [isParentDropdownOpen, setIsParentDropdownOpen] = useState(false);
@@ -570,67 +650,100 @@ export const BinaryTreeView = () => {
 
   // Lazy loading state - track expanded nodes and their children
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
-  const [loadedChildren, setLoadedChildren] = useState<Map<number, TeamMember[]>>(new Map());
+  const [loadedChildren, setLoadedChildren] = useState<
+    Map<number, TeamMember[]>
+  >(new Map());
   const [loadingNodes, setLoadingNodes] = useState<Set<number>>(new Set());
-  const [currentLoadingNodeId, setCurrentLoadingNodeId] = useState<number | null>(null);
+  const [currentLoadingNodeId, setCurrentLoadingNodeId] = useState<
+    number | null
+  >(null);
 
   // Query hook for loading node children (only active when currentLoadingNodeId is set)
-  const { data: nodeChildrenData, isLoading: isLoadingChildren, isFetching: isFetchingChildren } = useGetNodeChildrenQuery(
-    { node_id: currentLoadingNodeId!, side: 'both' },
-    { skip: !currentLoadingNodeId, refetchOnMountOrArgChange: true }
+  const {
+    data: nodeChildrenData,
+    isLoading: isLoadingChildren,
+    isFetching: isFetchingChildren,
+  } = useGetNodeChildrenQuery(
+    { node_id: currentLoadingNodeId!, side: "both" },
+    { skip: !currentLoadingNodeId, refetchOnMountOrArgChange: true },
   );
 
   // Query hook for available positions (only active when dropdown is open)
-  const { data: availablePositionsData, isLoading: isLoadingPositions, error: availablePositionsError } = useGetAvailablePositionsQuery(
-    undefined,
-    { skip: !isParentDropdownOpen }
-  );
+  const {
+    data: availablePositionsData,
+    isLoading: isLoadingPositions,
+    error: availablePositionsError,
+  } = useGetAvailablePositionsQuery(undefined, { skip: !isParentDropdownOpen });
 
   // Log when data is received
   useEffect(() => {
     if (availablePositionsData) {
-      console.log('🟢 [BinaryTreeView] Available Positions Data Received:', JSON.stringify(availablePositionsData, null, 2));
-      console.log('🟢 [BinaryTreeView] Available Positions Count:', availablePositionsData.count);
-      console.log('🟢 [BinaryTreeView] Available Positions Array Length:', availablePositionsData.available_positions?.length || 0);
+      console.log(
+        "🟢 [BinaryTreeView] Available Positions Data Received:",
+        JSON.stringify(availablePositionsData, null, 2),
+      );
+      console.log(
+        "🟢 [BinaryTreeView] Available Positions Count:",
+        availablePositionsData.count,
+      );
+      console.log(
+        "🟢 [BinaryTreeView] Available Positions Array Length:",
+        availablePositionsData.available_positions?.length || 0,
+      );
     }
     if (availablePositionsError) {
-      console.error('🔴 [BinaryTreeView] Available Positions Error:', availablePositionsError);
+      console.error(
+        "🔴 [BinaryTreeView] Available Positions Error:",
+        availablePositionsError,
+      );
     }
   }, [availablePositionsData, availablePositionsError]);
-
 
   // Handle loading children when query completes
   useEffect(() => {
     // Only process when we have data, a loading node ID, and we're not still fetching
     if (nodeChildrenData && currentLoadingNodeId && !isFetchingChildren) {
       const nodeId = currentLoadingNodeId;
-      
+
       // Verify the data is for the node we're loading (check node_id in response)
       const responseNodeId = nodeChildrenData.node_id;
       if (responseNodeId && responseNodeId !== nodeId) {
-        console.log('⏳ [Children Loading] Data is for different node, waiting...', {
-          expectedNodeId: nodeId,
-          receivedNodeId: responseNodeId
-        });
+        console.log(
+          "⏳ [Children Loading] Data is for different node, waiting...",
+          {
+            expectedNodeId: nodeId,
+            receivedNodeId: responseNodeId,
+          },
+        );
         return;
       }
-      
+
       const children: TeamMember[] = [];
       const parentNameMap = createParentNameMap(treeStructure);
-      
+
       // Helper to convert TreeNodeResponse to TeamMember
-      const nodeToMember = (node: TreeNodeResponse | null, position: 'left' | 'right', parentNodeId: number): TeamMember | null => {
+      const nodeToMember = (
+        node: TreeNodeResponse | null,
+        position: "left" | "right",
+        parentNodeId: number,
+      ): TeamMember | null => {
         if (!node) return null;
         const parentName = node.parent_name || parentNameMap.get(parentNodeId);
-        const totalDescendants = (node.left_count || 0) + (node.right_count || 0);
+        const totalDescendants =
+          (node.left_count || 0) + (node.right_count || 0);
         return {
           id: `node-${node.node_id}`,
-          name: node.user_full_name || node.user_username || node.user_email || 'Unknown',
+          name:
+            node.user_full_name ||
+            node.user_username ||
+            node.user_email ||
+            "Unknown",
           userId: node.user_id?.toString(),
           nodeId: node.node_id,
-          joinedAt: node.date_joined || node.created_at || new Date().toISOString(),
+          joinedAt:
+            node.date_joined || node.created_at || new Date().toISOString(),
           position: position,
-          pv: parseFloat(node.total_earnings || node.total_amount || '0'),
+          pv: parseFloat(node.total_earnings || node.total_amount || "0"),
           level: node.level || 0,
           referrals: totalDescendants,
           isActive: node.is_active_buyer !== false,
@@ -644,71 +757,88 @@ export const BinaryTreeView = () => {
       };
 
       if (nodeChildrenData.left_child) {
-        const leftChild = nodeToMember(nodeChildrenData.left_child, 'left', nodeId);
+        const leftChild = nodeToMember(
+          nodeChildrenData.left_child,
+          "left",
+          nodeId,
+        );
         if (leftChild) children.push(leftChild);
       }
       if (nodeChildrenData.right_child) {
-        const rightChild = nodeToMember(nodeChildrenData.right_child, 'right', nodeId);
+        const rightChild = nodeToMember(
+          nodeChildrenData.right_child,
+          "right",
+          nodeId,
+        );
         if (rightChild) children.push(rightChild);
       }
 
-      console.log('✅ [Children Loaded]', {
+      console.log("✅ [Children Loaded]", {
         nodeId: nodeId,
         childrenCount: children.length,
-        children: children.map(c => ({ id: c.nodeId, name: c.name }))
+        children: children.map((c) => ({ id: c.nodeId, name: c.name })),
       });
 
       // React 18+ automatically batches these state updates
       // Store children in the map and mark node as expanded
-      setLoadedChildren(prev => {
+      setLoadedChildren((prev) => {
         const newMap = new Map(prev);
         newMap.set(nodeId, children);
         return newMap;
       });
 
       // Mark node as expanded
-      setExpandedNodes(prev => {
+      setExpandedNodes((prev) => {
         const newSet = new Set(prev);
         newSet.add(nodeId);
         return newSet;
       });
-      
+
       // Clear loading state
-      setLoadingNodes(prev => {
+      setLoadingNodes((prev) => {
         const newSet = new Set(prev);
         newSet.delete(nodeId);
         return newSet;
       });
       setCurrentLoadingNodeId(null);
     }
-  }, [nodeChildrenData, currentLoadingNodeId, isFetchingChildren, treeStructure]);
+  }, [
+    nodeChildrenData,
+    currentLoadingNodeId,
+    isFetchingChildren,
+    treeStructure,
+  ]);
 
   // Recursively collapse all nested children of a node
-  const collapseNodeAndChildren = (nodeId: number, expandedNodesSet: Set<number>, loadedChildrenMap: Map<number, TeamMember[]>) => {
+  const collapseNodeAndChildren = (
+    nodeId: number,
+    expandedNodesSet: Set<number>,
+    loadedChildrenMap: Map<number, TeamMember[]>,
+  ) => {
     const processedNodes = new Set<number>();
     const nodesToProcess = [nodeId];
-    
+
     // Use iterative approach instead of recursion to avoid stack issues
     while (nodesToProcess.length > 0) {
       const currentNodeId = nodesToProcess.pop()!;
-      
+
       // Skip if already processed
       if (processedNodes.has(currentNodeId)) {
         continue;
       }
       processedNodes.add(currentNodeId);
-      
+
       // Remove this node from expanded set
       expandedNodesSet.delete(currentNodeId);
-      
+
       // Get children of this node and queue them for processing
       const children = loadedChildrenMap.get(currentNodeId) || [];
-      children.forEach(child => {
+      children.forEach((child) => {
         if (child.nodeId && !processedNodes.has(child.nodeId)) {
           nodesToProcess.push(child.nodeId);
         }
       });
-      
+
       // Remove children from loaded map
       loadedChildrenMap.delete(currentNodeId);
     }
@@ -717,22 +847,22 @@ export const BinaryTreeView = () => {
   // Handle node click to load children
   const handleNodeClick = (member: TeamMember) => {
     if (!member.nodeId || !member.hasChildren) return;
-    
+
     const nodeId = member.nodeId;
     const isNestedChild = member.isChild || false;
-    
-    console.log('🖱️ [Node Click]', {
+
+    console.log("🖱️ [Node Click]", {
       nodeId,
       name: member.name,
       isNestedChild,
       isExpanded: expandedNodes.has(nodeId),
       hasLoadedChildren: loadedChildren.has(nodeId),
     });
-    
+
     // Toggle expansion
     if (expandedNodes.has(nodeId)) {
       // Collapse: recursively remove children and mark as not expanded
-      console.log('🔽 [Node Collapsed]', { nodeId, name: member.name });
+      console.log("🔽 [Node Collapsed]", { nodeId, name: member.name });
       const newExpandedNodes = new Set(expandedNodes);
       const newLoadedChildren = new Map(loadedChildren);
       collapseNodeAndChildren(nodeId, newExpandedNodes, newLoadedChildren);
@@ -741,21 +871,26 @@ export const BinaryTreeView = () => {
     } else {
       // Expand: load children if not already loaded
       if (!loadedChildren.has(nodeId)) {
-        console.log('⏳ [Loading Children]', { nodeId, name: member.name });
-        setLoadingNodes(prev => new Set(prev).add(nodeId));
+        console.log("⏳ [Loading Children]", { nodeId, name: member.name });
+        setLoadingNodes((prev) => new Set(prev).add(nodeId));
         setCurrentLoadingNodeId(nodeId);
       } else {
         // Already loaded, just mark as expanded
-        console.log('✅ [Expanding Already Loaded]', { nodeId, name: member.name });
-        setExpandedNodes(prev => new Set(prev).add(nodeId));
+        console.log("✅ [Expanding Already Loaded]", {
+          nodeId,
+          name: member.name,
+        });
+        setExpandedNodes((prev) => new Set(prev).add(nodeId));
       }
     }
   };
 
   // Helper to get pagination info from side members
-  const getPaginationInfo = (sideMembers: SideMemberNode[] | PaginatedSideMembers | null | undefined) => {
+  const getPaginationInfo = (
+    sideMembers: SideMemberNode[] | PaginatedSideMembers | null | undefined,
+  ) => {
     if (!sideMembers) return null;
-    if (typeof sideMembers === 'object' && 'results' in sideMembers) {
+    if (typeof sideMembers === "object" && "results" in sideMembers) {
       return {
         count: sideMembers.count,
         page: sideMembers.page,
@@ -768,24 +903,39 @@ export const BinaryTreeView = () => {
     return null;
   };
 
-  const leftPagination = useMemo(() => getPaginationInfo(treeStructure?.left_side_members), [treeStructure]);
-  const rightPagination = useMemo(() => getPaginationInfo(treeStructure?.right_side_members), [treeStructure]);
+  const leftPagination = useMemo(
+    () => getPaginationInfo(treeStructure?.left_side_members),
+    [treeStructure],
+  );
+  const rightPagination = useMemo(
+    () => getPaginationInfo(treeStructure?.right_side_members),
+    [treeStructure],
+  );
 
   // Extract search results from API response
   const searchResults = useMemo((): TeamMember[] => {
-    if (!treeStructure?.search_results || treeStructure.search_results.length === 0) {
+    if (
+      !treeStructure?.search_results ||
+      treeStructure.search_results.length === 0
+    ) {
       return [];
     }
-    
+
     return treeStructure.search_results.map((result: SearchResultNode) => {
-      const totalDescendants = (result.left_count || 0) + (result.right_count || 0);
+      const totalDescendants =
+        (result.left_count || 0) + (result.right_count || 0);
       return {
         id: `node-${result.node_id}`,
-        name: result.user_full_name || result.user_username || result.user_email || 'Unknown',
+        name:
+          result.user_full_name ||
+          result.user_username ||
+          result.user_email ||
+          "Unknown",
         userId: result.user_id?.toString(),
         nodeId: result.node_id,
-        joinedAt: result.date_joined || result.created_at || new Date().toISOString(),
-        position: result.tree_side || result.side || 'left',
+        joinedAt:
+          result.date_joined || result.created_at || new Date().toISOString(),
+        position: result.tree_side || result.side || "left",
         pv: 0,
         level: result.level || 0,
         referrals: totalDescendants,
@@ -803,88 +953,141 @@ export const BinaryTreeView = () => {
   // Extract team members from side_members arrays (preferred) or fallback to tree structure
   const teamMembers = useMemo(() => {
     const extractionStartTime = performance.now();
-    
+
     // First try to use side_members from the full API response
     if (treeStructure) {
-      console.log('BinaryTreeView: Using tree structure with side_members');
-      console.log('BinaryTreeView: Side filter:', sideFilter);
-      console.log('BinaryTreeView: Min depth:', minDepth, 'Max depth:', maxDepth);
-      console.log('BinaryTreeView: Left side members:', treeStructure.left_side_members);
-      console.log('BinaryTreeView: Right side members:', treeStructure.right_side_members);
-      const members = extractTeamMembersFromSideMembers(treeStructure, sideFilter, minDepth, maxDepth);
-      console.log('BinaryTreeView: Extracted team members from side_members:', members);
-      
+      console.log("BinaryTreeView: Using tree structure with side_members");
+      console.log("BinaryTreeView: Side filter:", sideFilter);
+      console.log(
+        "BinaryTreeView: Min depth:",
+        minDepth,
+        "Max depth:",
+        maxDepth,
+      );
+      console.log(
+        "BinaryTreeView: Left side members:",
+        treeStructure.left_side_members,
+      );
+      console.log(
+        "BinaryTreeView: Right side members:",
+        treeStructure.right_side_members,
+      );
+      const members = extractTeamMembersFromSideMembers(
+        treeStructure,
+        sideFilter,
+        minDepth,
+        maxDepth,
+      );
+      console.log(
+        "BinaryTreeView: Extracted team members from side_members:",
+        members,
+      );
+
       const extractionEndTime = performance.now();
       const extractionDuration = extractionEndTime - extractionStartTime;
-      console.log('⏱️ [Binary Tree Component] Data extraction time:', `${extractionDuration.toFixed(2)}ms`);
-      console.log('⏱️ [Binary Tree Component] Extracted members count:', members.length);
-      
+      console.log(
+        "⏱️ [Binary Tree Component] Data extraction time:",
+        `${extractionDuration.toFixed(2)}ms`,
+      );
+      console.log(
+        "⏱️ [Binary Tree Component] Extracted members count:",
+        members.length,
+      );
+
       if (members.length > 0) {
         return members;
       }
     }
-    
+
     // Fallback to tree structure traversal if side_members are not available
     if (binaryTree) {
-      console.log('BinaryTreeView: Falling back to binary tree traversal');
-      console.log('BinaryTreeView: Binary tree data:', binaryTree);
-      const members = extractTeamMembers(binaryTree, 0, 'left', undefined, undefined, minDepth, maxDepth);
-      console.log('BinaryTreeView: Extracted team members from tree:', members);
-      
+      console.log("BinaryTreeView: Falling back to binary tree traversal");
+      console.log("BinaryTreeView: Binary tree data:", binaryTree);
+      const members = extractTeamMembers(
+        binaryTree,
+        0,
+        "left",
+        undefined,
+        undefined,
+        minDepth,
+        maxDepth,
+      );
+      console.log("BinaryTreeView: Extracted team members from tree:", members);
+
       const extractionEndTime = performance.now();
       const extractionDuration = extractionEndTime - extractionStartTime;
-      console.log('⏱️ [Binary Tree Component] Data extraction time (fallback):', `${extractionDuration.toFixed(2)}ms`);
-      
+      console.log(
+        "⏱️ [Binary Tree Component] Data extraction time (fallback):",
+        `${extractionDuration.toFixed(2)}ms`,
+      );
+
       // Filter by side if needed
-      if (sideFilter !== 'both') {
-        return members.filter(m => m.position === sideFilter);
+      if (sideFilter !== "both") {
+        return members.filter((m) => m.position === sideFilter);
       }
       return members;
     }
-    
-    console.log('BinaryTreeView: No data available');
+
+    console.log("BinaryTreeView: No data available");
     return [];
   }, [treeStructure, binaryTree, sideFilter, minDepth, maxDepth]);
-  
+
   // Measure total time from API response to display
   useEffect(() => {
     if (teamMembers.length > 0 && dataProcessingStartRef.current) {
       const displayEndTime = performance.now();
-      const totalProcessingTime = displayEndTime - dataProcessingStartRef.current;
-      
-      performance.mark('binary-tree-display-complete');
-      
+      const totalProcessingTime =
+        displayEndTime - dataProcessingStartRef.current;
+
+      performance.mark("binary-tree-display-complete");
+
       try {
         performance.measure(
-          'binary-tree-total-processing',
-          'binary-tree-data-processing-start',
-          'binary-tree-display-complete'
+          "binary-tree-total-processing",
+          "binary-tree-data-processing-start",
+          "binary-tree-display-complete",
         );
-        const measure = performance.getEntriesByName('binary-tree-total-processing')[0];
+        const measure = performance.getEntriesByName(
+          "binary-tree-total-processing",
+        )[0];
         const totalDuration = measure.duration;
-        
-        console.log('⏱️ [Binary Tree Component] Total processing + display time:', `${totalDuration.toFixed(2)}ms`);
-        console.log('⏱️ [Binary Tree Component] Team members ready for display:', teamMembers.length);
-        
+
+        console.log(
+          "⏱️ [Binary Tree Component] Total processing + display time:",
+          `${totalDuration.toFixed(2)}ms`,
+        );
+        console.log(
+          "⏱️ [Binary Tree Component] Team members ready for display:",
+          teamMembers.length,
+        );
+
         // Calculate total time from request start if available
         try {
-          const apiMeasure = performance.getEntriesByName('binary-tree-api-duration')[0];
+          const apiMeasure = performance.getEntriesByName(
+            "binary-tree-api-duration",
+          )[0];
           if (apiMeasure) {
             const totalTimeFromRequest = apiMeasure.duration + totalDuration;
-            console.log('⏱️ [Binary Tree Component] Total time (API + Processing + Display):', `${totalTimeFromRequest.toFixed(2)}ms`);
-            console.log('📊 [Binary Tree Component] Performance Breakdown:', {
-              'API Response Time': `${apiMeasure.duration.toFixed(2)}ms`,
-              'Data Processing Time': `${totalDuration.toFixed(2)}ms`,
-              'Total Time': `${totalTimeFromRequest.toFixed(2)}ms`,
+            console.log(
+              "⏱️ [Binary Tree Component] Total time (API + Processing + Display):",
+              `${totalTimeFromRequest.toFixed(2)}ms`,
+            );
+            console.log("📊 [Binary Tree Component] Performance Breakdown:", {
+              "API Response Time": `${apiMeasure.duration.toFixed(2)}ms`,
+              "Data Processing Time": `${totalDuration.toFixed(2)}ms`,
+              "Total Time": `${totalTimeFromRequest.toFixed(2)}ms`,
             });
           }
         } catch (e) {
           // API timing not available
         }
       } catch (error) {
-        console.warn('⏱️ [Binary Tree Component] Performance measurement error:', error);
+        console.warn(
+          "⏱️ [Binary Tree Component] Performance measurement error:",
+          error,
+        );
       }
-      
+
       // Reset ref
       dataProcessingStartRef.current = null;
     }
@@ -895,57 +1098,65 @@ export const BinaryTreeView = () => {
     const result: TeamMember[] = [];
     const addedNodeIds = new Set<number>(); // Track added nodes to prevent duplicates
     const MAX_DEPTH = 50; // Safety limit to prevent infinite recursion
-    
+
     // First, collect all node IDs that are children of expanded nodes (to prefer child positions)
     // This helps us know which nodes should be shown as children rather than top-level
     const childNodeIds = new Set<number>();
-    
+
     // Simple collection: just gather all children of expanded nodes
-    expandedNodes.forEach(parentNodeId => {
+    expandedNodes.forEach((parentNodeId) => {
       const children = loadedChildren.get(parentNodeId) || [];
-      children.forEach(child => {
+      children.forEach((child) => {
         if (child.nodeId) {
           childNodeIds.add(child.nodeId);
         }
       });
     });
-    
+
     // Recursive function to add a member and its children if expanded
-    const addMemberWithChildren = (member: TeamMember, depth: number = 0, isFromLazyLoad: boolean = false) => {
+    const addMemberWithChildren = (
+      member: TeamMember,
+      depth: number = 0,
+      isFromLazyLoad: boolean = false,
+    ) => {
       // Safety check: prevent infinite recursion by depth
       if (depth > MAX_DEPTH) {
-        console.error('❌ [Display Members] Maximum depth exceeded, stopping recursion at:', member.name, member.nodeId);
+        console.error(
+          "❌ [Display Members] Maximum depth exceeded, stopping recursion at:",
+          member.name,
+          member.nodeId,
+        );
         return;
       }
-      
+
       // Skip if this node has already been added to the result (prevent duplicates)
       // This is the primary mechanism to prevent circular references
       if (member.nodeId && addedNodeIds.has(member.nodeId)) {
         return;
       }
-      
+
       // If this node is a child of an expanded node, skip it from the initial list
       // (it will be shown in its proper child position when we process its parent)
       if (!isFromLazyLoad && member.nodeId && childNodeIds.has(member.nodeId)) {
         return;
       }
-      
+
       // Mark this node as added BEFORE processing children to prevent circular references
       if (member.nodeId) {
         addedNodeIds.add(member.nodeId);
       }
-      
+
       // Add the member itself with updated expansion status
       const memberWithExpansion: TeamMember = {
         ...member,
         isExpanded: member.nodeId ? expandedNodes.has(member.nodeId) : false,
       };
       result.push(memberWithExpansion);
-      
+
       // If this member is expanded and has loaded children, add them recursively
       if (member.nodeId && expandedNodes.has(member.nodeId)) {
         const children = loadedChildren.get(member.nodeId) || [];
-        children.forEach(child => {
+        children.forEach((child) => {
           // Only add child if it hasn't been added yet (prevents circular refs)
           if (!child.nodeId || !addedNodeIds.has(child.nodeId)) {
             addMemberWithChildren(child, depth + 1, true);
@@ -953,12 +1164,12 @@ export const BinaryTreeView = () => {
         });
       }
     };
-    
+
     // Process all top-level team members (not from lazy load)
-    teamMembers.forEach(member => {
+    teamMembers.forEach((member) => {
       addMemberWithChildren(member, 0, false);
     });
-    
+
     return result;
   }, [teamMembers, expandedNodes, loadedChildren]);
 
@@ -979,8 +1190,11 @@ export const BinaryTreeView = () => {
     };
 
     // Console log the request body
-    console.log('🔵 [Position Member] Request Body:', JSON.stringify(requestBody, null, 2));
-    console.log('🔵 [Position Member] Request Details:', {
+    console.log(
+      "🔵 [Position Member] Request Body:",
+      JSON.stringify(requestBody, null, 2),
+    );
+    console.log("🔵 [Position Member] Request Details:", {
       selectedPendingNode: selectedPendingNode.name,
       userId: selectedPendingNode.userId,
       side: selectedSide,
@@ -994,9 +1208,12 @@ export const BinaryTreeView = () => {
       }).unwrap();
 
       // Console log the response
-      console.log('🟢 [Position Member] Response:', JSON.stringify(result, null, 2));
-      console.log('🟢 [Position Member] Response Success:', result.success);
-      console.log('🟢 [Position Member] Response Message:', result.message);
+      console.log(
+        "🟢 [Position Member] Response:",
+        JSON.stringify(result, null, 2),
+      );
+      console.log("🟢 [Position Member] Response Success:", result.success);
+      console.log("🟢 [Position Member] Response Message:", result.message);
 
       if (result.success) {
         toast.success(`${selectedPendingNode.name} positioned successfully!`);
@@ -1017,42 +1234,59 @@ export const BinaryTreeView = () => {
       console.error("🔴 [Position Member] Error Type:", typeof error);
       if (error && typeof error === "object") {
         console.error("🔴 [Position Member] Error Keys:", Object.keys(error));
-        console.error("🔴 [Position Member] Error Stringified:", JSON.stringify(error, null, 2));
+        console.error(
+          "🔴 [Position Member] Error Stringified:",
+          JSON.stringify(error, null, 2),
+        );
       }
 
       // Type guard to check if it's a FetchBaseQueryError
-      const isFetchBaseQueryError = (err: unknown): err is FetchBaseQueryError => {
-        return typeof err === 'object' && err !== null && 'status' in err;
+      const isFetchBaseQueryError = (
+        err: unknown,
+      ): err is FetchBaseQueryError => {
+        return typeof err === "object" && err !== null && "status" in err;
       };
 
       // Type guard to check if it's a SerializedError
       const isSerializedError = (err: unknown): err is SerializedError => {
-        return typeof err === 'object' && err !== null && 'message' in err && !('status' in err);
+        return (
+          typeof err === "object" &&
+          err !== null &&
+          "message" in err &&
+          !("status" in err)
+        );
       };
 
       let errorMessage = "Failed to position node. Please try again.";
 
       if (isFetchBaseQueryError(error)) {
         const errorData = error.data;
-        
+
         // Check for nested error structure: { error: "message" }
-        if (errorData && typeof errorData === 'object') {
-          if ('error' in errorData && typeof errorData.error === 'string') {
+        if (errorData && typeof errorData === "object") {
+          if ("error" in errorData && typeof errorData.error === "string") {
             errorMessage = errorData.error;
-          } else if ('message' in errorData && typeof errorData.message === 'string') {
+          } else if (
+            "message" in errorData &&
+            typeof errorData.message === "string"
+          ) {
             errorMessage = errorData.message;
-          } else if ('detail' in errorData && typeof errorData.detail === 'string') {
+          } else if (
+            "detail" in errorData &&
+            typeof errorData.detail === "string"
+          ) {
             errorMessage = errorData.detail;
           } else if (Array.isArray(errorData) && errorData.length > 0) {
             // Handle array responses (e.g., ["Error message"])
             errorMessage = String(errorData[0]);
           }
-        } else if (typeof errorData === 'string') {
+        } else if (typeof errorData === "string") {
           // If error.data is directly a string
           errorMessage = errorData;
         }
       } else if (isSerializedError(error)) {
-        errorMessage = error.message || "Failed to position node. Please try again.";
+        errorMessage =
+          error.message || "Failed to position node. Please try again.";
       }
 
       toast.error(errorMessage);
@@ -1065,19 +1299,18 @@ export const BinaryTreeView = () => {
     setPositionDialogOpen(true);
   };
 
-
   const handleMatchPairs = async () => {
     try {
       const result = await checkPairs().unwrap();
-      console.log('Check Pairs Response:', result);
-      toast.success('Pairs matched successfully!');
+      console.log("Check Pairs Response:", result);
+      toast.success("Pairs matched successfully!");
       // Refetch tree structure after matching pairs
       await refetchTree();
       await refetchStructure();
       // Also refetch stats
       await refetchStats();
     } catch (error: unknown) {
-      console.error('Check pairs error:', error);
+      console.error("Check pairs error:", error);
       let errorMessage = "Failed to match pairs. Please try again.";
       if (error && typeof error === "object") {
         if ("data" in error && error.data && typeof error.data === "object") {
@@ -1103,19 +1336,29 @@ export const BinaryTreeView = () => {
   // Use API data if available, otherwise fallback to computed data
   const availableParents = useMemo(() => {
     // If we have fetched data from API, transform it to the format needed for dropdown
-    if (availablePositionsData && availablePositionsData.available_positions && availablePositionsData.available_positions.length > 0) {
-      return availablePositionsData.available_positions.map((position: AvailablePosition) => ({
-        id: `node-${position.node_id}`,
-        name: position.user_full_name || position.user_username || position.user_email || 'Unknown',
-        node_id: position.node_id,
-        user_id: position.user_id,
-        left_available: position.left_available,
-        right_available: position.right_available,
-        level: position.level,
-        referral_code: position.referral_code,
-      }));
+    if (
+      availablePositionsData &&
+      availablePositionsData.available_positions &&
+      availablePositionsData.available_positions.length > 0
+    ) {
+      return availablePositionsData.available_positions.map(
+        (position: AvailablePosition) => ({
+          id: `node-${position.node_id}`,
+          name:
+            position.user_full_name ||
+            position.user_username ||
+            position.user_email ||
+            "Unknown",
+          node_id: position.node_id,
+          user_id: position.user_id,
+          left_available: position.left_available,
+          right_available: position.right_available,
+          level: position.level,
+          referral_code: position.referral_code,
+        }),
+      );
     }
-    
+
     // Fallback to computed data from existing tree structure
     if (!binaryTree) return [];
     const parents: Array<{ id: string; name: string; node_id?: number }> = [];
@@ -1125,7 +1368,11 @@ export const BinaryTreeView = () => {
 
     // Include all team members as potential parents
     teamMembers.forEach((member) => {
-      parents.push({ id: member.id, name: member.name, node_id: member.nodeId });
+      parents.push({
+        id: member.id,
+        name: member.name,
+        node_id: member.nodeId,
+      });
     });
 
     return parents;
@@ -1164,7 +1411,9 @@ export const BinaryTreeView = () => {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Team Network</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            Team Network
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             View your referral network and track team performance
           </p>
@@ -1195,7 +1444,7 @@ export const BinaryTreeView = () => {
         />
         <StatsCard
           title="Total Earnings"
-          value="₹••••"
+          value={`₹${(binaryStats?.totalEarnings || 0).toLocaleString()}`}
           icon={TrendingUp}
           variant="success"
         />
@@ -1290,7 +1539,8 @@ export const BinaryTreeView = () => {
           <DialogHeader>
             <DialogTitle>Position {selectedPendingNode?.name}</DialogTitle>
             <DialogDescription>
-              Select position (RSL or RSR) to position this team member in your network.
+              Select position (RSL or RSR) to position this team member in your
+              network.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1324,8 +1574,8 @@ export const BinaryTreeView = () => {
       </Dialog>
 
       {/* Confirm Position Member Dialog */}
-      <AlertDialog 
-        open={confirmPositionDialogOpen} 
+      <AlertDialog
+        open={confirmPositionDialogOpen}
         onOpenChange={(open) => {
           if (!isPositioningNode) {
             setConfirmPositionDialogOpen(open);
@@ -1337,7 +1587,9 @@ export const BinaryTreeView = () => {
             <AlertDialogTitle>Confirm Positioning</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to position{" "}
-              <span className="font-semibold text-foreground">{selectedPendingNode?.name}</span>{" "}
+              <span className="font-semibold text-foreground">
+                {selectedPendingNode?.name}
+              </span>{" "}
               at the{" "}
               <span className="font-semibold text-foreground">
                 {selectedSide === "left" ? "RSL" : "RSR"}
@@ -1346,7 +1598,9 @@ export const BinaryTreeView = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPositioningNode}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPositioningNode}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
                 await handlePositionPendingNode();
@@ -1371,7 +1625,9 @@ export const BinaryTreeView = () => {
         <CardHeader className="border-b border-pink-500/20 bg-gradient-to-r from-pink-50/50 to-white pb-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div className="flex-1">
-              <CardTitle className="text-lg sm:text-xl">Team Network Structure</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">
+                Team Network Structure
+              </CardTitle>
               <CardDescription className="mt-1">
                 View and manage your referral network in a structured table
                 format
@@ -1386,7 +1642,9 @@ export const BinaryTreeView = () => {
                 className="flex items-center gap-2 border-pink-500/40 hover:bg-pink-500/10 hover:border-pink-500 hover:text-pink-600 text-xs sm:text-sm"
               >
                 <Link2 className="h-4 w-4 shrink-0" />
-                <span>{isCheckingPairs ? "Matching..." : "Match Partner Frameworks"}</span>
+                <span>
+                  {isCheckingPairs ? "Matching..." : "Match Partner Frameworks"}
+                </span>
               </Button>
               {/* <Button
                 variant="outline"
@@ -1407,7 +1665,7 @@ export const BinaryTreeView = () => {
             <div className="flex flex-wrap items-center gap-3">
               <Select
                 value={sideFilter}
-                onValueChange={(value: 'left' | 'right' | 'both') => {
+                onValueChange={(value: "left" | "right" | "both") => {
                   setSideFilter(value);
                   setLeftPage(1);
                   setRightPage(1);
@@ -1449,14 +1707,16 @@ export const BinaryTreeView = () => {
                 </SelectContent>
               </Select>
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium whitespace-nowrap text-foreground">Min Depth:</label>
+                <label className="text-sm font-medium whitespace-nowrap text-foreground">
+                  Min Depth:
+                </label>
                 <Input
                   type="number"
                   min="0"
-                  value={minDepth ?? ''}
+                  value={minDepth ?? ""}
                   onChange={(e) => {
                     const value = e.target.value.trim();
-                    setMinDepth(value === '' ? undefined : Number(value));
+                    setMinDepth(value === "" ? undefined : Number(value));
                     // Clear expanded nodes when depth filter changes
                     setExpandedNodes(new Set());
                     setLoadedChildren(new Map());
@@ -1466,14 +1726,16 @@ export const BinaryTreeView = () => {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium whitespace-nowrap text-foreground">Max Depth:</label>
+                <label className="text-sm font-medium whitespace-nowrap text-foreground">
+                  Max Depth:
+                </label>
                 <Input
                   type="number"
                   min="1"
-                  value={maxDepth ?? ''}
+                  value={maxDepth ?? ""}
                   onChange={(e) => {
                     const value = e.target.value.trim();
-                    setMaxDepth(value === '' ? undefined : Number(value));
+                    setMaxDepth(value === "" ? undefined : Number(value));
                     // Clear expanded nodes when depth filter changes
                     setExpandedNodes(new Set());
                     setLoadedChildren(new Map());
@@ -1483,7 +1745,7 @@ export const BinaryTreeView = () => {
                 />
               </div>
             </div>
-            
+
             {/* Search row - full width on mobile */}
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
@@ -1493,7 +1755,7 @@ export const BinaryTreeView = () => {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       setSearchQuery(searchInput);
                       // Clear expanded nodes when search changes
                       setExpandedNodes(new Set());
@@ -1506,8 +1768,8 @@ export const BinaryTreeView = () => {
                 {searchInput && (
                   <button
                     onClick={() => {
-                      setSearchInput('');
-                      setSearchQuery('');
+                      setSearchInput("");
+                      setSearchQuery("");
                       // Clear expanded nodes when search is cleared
                       setExpandedNodes(new Set());
                       setLoadedChildren(new Map());
@@ -1541,9 +1803,13 @@ export const BinaryTreeView = () => {
                 <div className="flex flex-wrap items-center gap-2">
                   <Search className="h-5 w-5 text-pink-500 shrink-0" />
                   <h3 className="text-base sm:text-lg font-semibold text-foreground">
-                    Search Results for "{treeStructure?.search_query || searchQuery}"
+                    Search Results for "
+                    {treeStructure?.search_query || searchQuery}"
                   </h3>
-                  <Badge variant="outline" className="border-pink-500/40 bg-pink-50/50 text-pink-600">
+                  <Badge
+                    variant="outline"
+                    className="border-pink-500/40 bg-pink-50/50 text-pink-600"
+                  >
                     {treeStructure?.search_count || searchResults.length} found
                   </Badge>
                 </div>
@@ -1551,8 +1817,8 @@ export const BinaryTreeView = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setSearchInput('');
-                    setSearchQuery('');
+                    setSearchInput("");
+                    setSearchQuery("");
                     setExpandedNodes(new Set());
                     setLoadedChildren(new Map());
                   }}
@@ -1566,19 +1832,31 @@ export const BinaryTreeView = () => {
                 <Table className="min-w-[650px]">
                   <TableHeader>
                     <TableRow className="border-b-2 border-pink-500/30 hover:bg-transparent">
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Name</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Direct Parent</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">ASA Code</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Position</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Joined Date</TableHead>
-                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">Status</TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">
+                        Name
+                      </TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">
+                        Direct Parent
+                      </TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">
+                        ASA Code
+                      </TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">
+                        Position
+                      </TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">
+                        Joined Date
+                      </TableHead>
+                      <TableHead className="h-12 bg-gradient-to-r from-pink-500/20 to-rose-500/15 font-semibold text-foreground whitespace-nowrap">
+                        Status
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {searchResults.map((member, index) => (
                       <TableRow
                         key={`search-${member.id}-${index}`}
-                        className={`border-b border-pink-200/50 hover:bg-pink-500/10 ${index % 2 === 1 ? 'bg-pink-50/30' : ''}`}
+                        className={`border-b border-pink-200/50 hover:bg-pink-500/10 ${index % 2 === 1 ? "bg-pink-50/30" : ""}`}
                       >
                         <TableCell className="font-medium py-3">
                           <div className="flex items-center gap-2">
@@ -1600,7 +1878,9 @@ export const BinaryTreeView = () => {
                               {member.referralCode}
                             </code>
                           ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
+                            <span className="text-muted-foreground text-sm">
+                              -
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="py-3">
@@ -1641,14 +1921,18 @@ export const BinaryTreeView = () => {
           {searchQuery && searchResults.length === 0 && !structureLoading && (
             <div className="mb-6 p-6 rounded-xl border-2 border-pink-500/20 bg-gradient-to-r from-pink-50/50 to-white text-center">
               <Search className="h-12 w-12 mx-auto mb-3 text-pink-300" />
-              <p className="text-lg font-medium text-foreground">No results found for "{searchQuery}"</p>
-              <p className="text-sm text-muted-foreground mt-1">Try a different search term or clear the search</p>
+              <p className="text-lg font-medium text-foreground">
+                No results found for "{searchQuery}"
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Try a different search term or clear the search
+              </p>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setSearchInput('');
-                  setSearchQuery('');
+                  setSearchInput("");
+                  setSearchQuery("");
                 }}
                 className="mt-4 border-pink-500/40 hover:bg-pink-500/10"
               >
@@ -1665,12 +1949,24 @@ export const BinaryTreeView = () => {
                 <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow className="border-b-2 border-pink-500/30 hover:bg-transparent">
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">Name</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">Direct Parent</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">ASA Code</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">Position</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">Joined Date</TableHead>
-                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">Status</TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">
+                        Name
+                      </TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">
+                        Direct Parent
+                      </TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">
+                        ASA Code
+                      </TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">
+                        Position
+                      </TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">
+                        Joined Date
+                      </TableHead>
+                      <TableHead className="h-14 bg-gradient-to-r from-pink-500/15 to-rose-500/10 font-semibold text-foreground whitespace-nowrap">
+                        Status
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1678,194 +1974,277 @@ export const BinaryTreeView = () => {
                       const isChild = member.isChild || false;
                       const hasChildren = member.hasChildren || false;
                       // Get expansion state from both member object and expandedNodes Set to ensure accuracy
-                      const isExpandedFromSet = member.nodeId ? expandedNodes.has(member.nodeId) : false;
-                      const isExpanded = member.isExpanded !== undefined ? member.isExpanded : isExpandedFromSet;
-                      const isLoading = member.nodeId ? loadingNodes.has(member.nodeId) : false;
+                      const isExpandedFromSet = member.nodeId
+                        ? expandedNodes.has(member.nodeId)
+                        : false;
+                      const isExpanded =
+                        member.isExpanded !== undefined
+                          ? member.isExpanded
+                          : isExpandedFromSet;
+                      const isLoading = member.nodeId
+                        ? loadingNodes.has(member.nodeId)
+                        : false;
                       const isClickable = hasChildren;
-                      
+
                       return (
-                      <TableRow
-                        key={`${member.id}-${member.nodeId || index}`}
-                        className={`border-b border-slate-100 ${isClickable ? 'cursor-pointer hover:bg-pink-500/10' : 'hover:bg-pink-500/5'} ${index % 2 === 1 ? 'bg-slate-50/50' : ''} ${isChild ? 'bg-pink-50/30' : ''}`}
-                        onClick={() => isClickable && handleNodeClick(member)}
-                      >
-                        <TableCell className="font-medium py-4">
-                          <div className="flex items-center gap-2" style={{ paddingLeft: isChild ? '2rem' : '0' }}>
-                            {hasChildren ? (
-                              <div className="flex items-center justify-center w-5 h-5">
-                                {isLoading ? (
-                                  <Loader2 className="h-4 w-4 text-pink-600 animate-spin" />
-                                ) : isExpanded ? (
-                                  <ChevronDown className="h-4 w-4 text-pink-600" />
-                                ) : (
-                                  <ChevronRightIcon className="h-4 w-4 text-pink-600" />
-                                )}
-                              </div>
-                            ) : (
-                              <div className="w-5 h-5" /> // Spacer for alignment
-                            )}
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-500/10">
-                              <User className="h-4 w-4 text-pink-600" />
-                            </div>
-                            {member.name}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium py-4">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            {member.parentName || "Root"}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          {member.referralCode ? (
-                            <code className="text-sm font-mono font-medium px-3 py-1.5 rounded-lg bg-gradient-to-r from-pink-500/15 to-rose-500/15 text-pink-600 border border-pink-500/30">
-                              {member.referralCode}
-                            </code>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <Badge
-                            className={
-                              member.position === "left"
-                                ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0"
-                                : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0"
-                            }
-                          >
-                            {member.position === "left" ? "RSL" : "RSR"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-4 text-muted-foreground">
-                          {formatDisplayDate(member.joinedAt)}
-                        </TableCell>
-                        <TableCell className="py-4">
-                          {member.isActive ? (
-                            <Badge
-                              className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0"
+                        <TableRow
+                          key={`${member.id}-${member.nodeId || index}`}
+                          className={`border-b border-slate-100 ${isClickable ? "cursor-pointer hover:bg-pink-500/10" : "hover:bg-pink-500/5"} ${index % 2 === 1 ? "bg-slate-50/50" : ""} ${isChild ? "bg-pink-50/30" : ""}`}
+                          onClick={() => isClickable && handleNodeClick(member)}
+                        >
+                          <TableCell className="font-medium py-4">
+                            <div
+                              className="flex items-center gap-2"
+                              style={{ paddingLeft: isChild ? "2rem" : "0" }}
                             >
-                              <Activity className="mr-1 h-3 w-3" />
-                              Active
-                            </Badge>
-                          ) : (
-                            <Tooltip delayDuration={300}>
-                              <TooltipTrigger asChild>
-                                <div className="inline-block">
-                                  <Badge
-                                    className="bg-yellow-500 text-yellow-900 border-0 cursor-help hover:bg-yellow-600"
-                                  >
-                                    Inactive
-                                  </Badge>
+                              {hasChildren ? (
+                                <div className="flex items-center justify-center w-5 h-5">
+                                  {isLoading ? (
+                                    <Loader2 className="h-4 w-4 text-pink-600 animate-spin" />
+                                  ) : isExpanded ? (
+                                    <ChevronDown className="h-4 w-4 text-pink-600" />
+                                  ) : (
+                                    <ChevronRightIcon className="h-4 w-4 text-pink-600" />
+                                  )}
                                 </div>
-                              </TooltipTrigger>
-                              <TooltipContent 
-                                side="top" 
-                                align="center"
-                                className="max-w-xs"
-                                sideOffset={8}
-                              >
-                                Only active member nodes are eligible for commission earnings.
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
+                              ) : (
+                                <div className="w-5 h-5" /> // Spacer for alignment
+                              )}
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-500/10">
+                                <User className="h-4 w-4 text-pink-600" />
+                              </div>
+                              {member.name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium py-4">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              {member.parentName || "Root"}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            {member.referralCode ? (
+                              <code className="text-sm font-mono font-medium px-3 py-1.5 rounded-lg bg-gradient-to-r from-pink-500/15 to-rose-500/15 text-pink-600 border border-pink-500/30">
+                                {member.referralCode}
+                              </code>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">
+                                -
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <Badge
+                              className={
+                                member.position === "left"
+                                  ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0"
+                                  : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0"
+                              }
+                            >
+                              {member.position === "left" ? "RSL" : "RSR"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-4 text-muted-foreground">
+                            {formatDisplayDate(member.joinedAt)}
+                          </TableCell>
+                          <TableCell className="py-4">
+                            {member.isActive ? (
+                              <Badge className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0">
+                                <Activity className="mr-1 h-3 w-3" />
+                                Active
+                              </Badge>
+                            ) : (
+                              <Tooltip delayDuration={300}>
+                                <TooltipTrigger asChild>
+                                  <div className="inline-block">
+                                    <Badge className="bg-yellow-500 text-yellow-900 border-0 cursor-help hover:bg-yellow-600">
+                                      Inactive
+                                    </Badge>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  side="top"
+                                  align="center"
+                                  className="max-w-xs"
+                                  sideOffset={8}
+                                >
+                                  Only active member nodes are eligible for
+                                  commission earnings.
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
                     })}
                   </TableBody>
                 </Table>
               </div>
 
               {/* Pagination Controls - Single unified control */}
-            {(leftPagination || rightPagination) && (
-              <div className="mt-6 pt-4 border-t border-pink-500/15">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="text-sm text-muted-foreground">
-                    {sideFilter === 'both' && leftPagination && rightPagination && (
-                      <>
-                        Showing {((bothPage - 1) * pageSize) + 1} to {Math.min(bothPage * pageSize, leftPagination.count + rightPagination.count)} of{' '}
-                        {leftPagination.count + rightPagination.count} total members
-                        {' '}(Left: {leftPagination.count}, Right: {rightPagination.count})
-                      </>
-                    )}
-                    {sideFilter === 'left' && leftPagination && (
-                      <>
-                        Showing {((leftPagination.page - 1) * leftPagination.page_size) + 1} to{' '}
-                        {Math.min(leftPagination.page * leftPagination.page_size, leftPagination.count)} of{' '}
-                        {leftPagination.count} members
-                      </>
-                    )}
-                    {sideFilter === 'right' && rightPagination && (
-                      <>
-                        Showing {((rightPagination.page - 1) * rightPagination.page_size) + 1} to{' '}
-                        {Math.min(rightPagination.page * rightPagination.page_size, rightPagination.count)} of{' '}
-                        {rightPagination.count} members
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (sideFilter === 'both') {
-                          setBothPage(prev => Math.max(1, prev - 1));
-                        } else if (sideFilter === 'left') {
-                          setLeftPage(prev => Math.max(1, prev - 1));
-                        } else {
-                          setRightPage(prev => Math.max(1, prev - 1));
+              {(leftPagination || rightPagination) && (
+                <div className="mt-6 pt-4 border-t border-pink-500/15">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="text-sm text-muted-foreground">
+                      {sideFilter === "both" &&
+                        leftPagination &&
+                        rightPagination && (
+                          <>
+                            Showing {(bothPage - 1) * pageSize + 1} to{" "}
+                            {Math.min(
+                              bothPage * pageSize,
+                              leftPagination.count + rightPagination.count,
+                            )}{" "}
+                            of {leftPagination.count + rightPagination.count}{" "}
+                            total members (Left: {leftPagination.count}, Right:{" "}
+                            {rightPagination.count})
+                          </>
+                        )}
+                      {sideFilter === "left" && leftPagination && (
+                        <>
+                          Showing{" "}
+                          {(leftPagination.page - 1) *
+                            leftPagination.page_size +
+                            1}{" "}
+                          to{" "}
+                          {Math.min(
+                            leftPagination.page * leftPagination.page_size,
+                            leftPagination.count,
+                          )}{" "}
+                          of {leftPagination.count} members
+                        </>
+                      )}
+                      {sideFilter === "right" && rightPagination && (
+                        <>
+                          Showing{" "}
+                          {(rightPagination.page - 1) *
+                            rightPagination.page_size +
+                            1}{" "}
+                          to{" "}
+                          {Math.min(
+                            rightPagination.page * rightPagination.page_size,
+                            rightPagination.count,
+                          )}{" "}
+                          of {rightPagination.count} members
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (sideFilter === "both") {
+                            setBothPage((prev) => Math.max(1, prev - 1));
+                          } else if (sideFilter === "left") {
+                            setLeftPage((prev) => Math.max(1, prev - 1));
+                          } else {
+                            setRightPage((prev) => Math.max(1, prev - 1));
+                          }
+                        }}
+                        disabled={
+                          (sideFilter === "both" &&
+                            leftPagination &&
+                            rightPagination &&
+                            ((!leftPagination.previous &&
+                              !rightPagination.previous) ||
+                              bothPage === 1)) ||
+                          (sideFilter === "left" &&
+                            (!leftPagination?.previous ||
+                              leftPagination.page === 1)) ||
+                          (sideFilter === "right" &&
+                            (!rightPagination?.previous ||
+                              rightPagination.page === 1))
                         }
-                      }}
-                      disabled={
-                        (sideFilter === 'both' && leftPagination && rightPagination && (!leftPagination.previous && !rightPagination.previous || bothPage === 1)) ||
-                        (sideFilter === 'left' && (!leftPagination?.previous || leftPagination.page === 1)) ||
-                        (sideFilter === 'right' && (!rightPagination?.previous || rightPagination.page === 1))
-                      }
-                      className="border-pink-500/30 hover:bg-pink-500/10 hover:border-pink-500"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                    <span className="text-sm">
-                      {sideFilter === 'both' && leftPagination && rightPagination && (
-                        <>Page {bothPage} of {Math.max(leftPagination.total_pages, rightPagination.total_pages)}</>
-                      )}
-                      {sideFilter === 'left' && leftPagination && (
-                        <>Page {leftPagination.page} of {leftPagination.total_pages}</>
-                      )}
-                      {sideFilter === 'right' && rightPagination && (
-                        <>Page {rightPagination.page} of {rightPagination.total_pages}</>
-                      )}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (sideFilter === 'both') {
-                          const maxPages = leftPagination && rightPagination 
-                            ? Math.max(leftPagination.total_pages, rightPagination.total_pages) 
-                            : leftPagination?.total_pages || rightPagination?.total_pages || 1;
-                          setBothPage(prev => Math.min(maxPages, prev + 1));
-                        } else if (sideFilter === 'left') {
-                          setLeftPage(prev => Math.min(leftPagination?.total_pages || 1, prev + 1));
-                        } else {
-                          setRightPage(prev => Math.min(rightPagination?.total_pages || 1, prev + 1));
+                        className="border-pink-500/30 hover:bg-pink-500/10 hover:border-pink-500"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Previous
+                      </Button>
+                      <span className="text-sm">
+                        {sideFilter === "both" &&
+                          leftPagination &&
+                          rightPagination && (
+                            <>
+                              Page {bothPage} of{" "}
+                              {Math.max(
+                                leftPagination.total_pages,
+                                rightPagination.total_pages,
+                              )}
+                            </>
+                          )}
+                        {sideFilter === "left" && leftPagination && (
+                          <>
+                            Page {leftPagination.page} of{" "}
+                            {leftPagination.total_pages}
+                          </>
+                        )}
+                        {sideFilter === "right" && rightPagination && (
+                          <>
+                            Page {rightPagination.page} of{" "}
+                            {rightPagination.total_pages}
+                          </>
+                        )}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (sideFilter === "both") {
+                            const maxPages =
+                              leftPagination && rightPagination
+                                ? Math.max(
+                                    leftPagination.total_pages,
+                                    rightPagination.total_pages,
+                                  )
+                                : leftPagination?.total_pages ||
+                                  rightPagination?.total_pages ||
+                                  1;
+                            setBothPage((prev) => Math.min(maxPages, prev + 1));
+                          } else if (sideFilter === "left") {
+                            setLeftPage((prev) =>
+                              Math.min(
+                                leftPagination?.total_pages || 1,
+                                prev + 1,
+                              ),
+                            );
+                          } else {
+                            setRightPage((prev) =>
+                              Math.min(
+                                rightPagination?.total_pages || 1,
+                                prev + 1,
+                              ),
+                            );
+                          }
+                        }}
+                        disabled={
+                          (sideFilter === "both" &&
+                            leftPagination &&
+                            rightPagination &&
+                            ((!leftPagination.next && !rightPagination.next) ||
+                              bothPage ===
+                                Math.max(
+                                  leftPagination.total_pages,
+                                  rightPagination.total_pages,
+                                ))) ||
+                          (sideFilter === "left" &&
+                            (!leftPagination?.next ||
+                              leftPagination.page ===
+                                leftPagination.total_pages)) ||
+                          (sideFilter === "right" &&
+                            (!rightPagination?.next ||
+                              rightPagination.page ===
+                                rightPagination.total_pages))
                         }
-                      }}
-                      disabled={
-                        (sideFilter === 'both' && leftPagination && rightPagination && (!leftPagination.next && !rightPagination.next || bothPage === Math.max(leftPagination.total_pages, rightPagination.total_pages))) ||
-                        (sideFilter === 'left' && (!leftPagination?.next || leftPagination.page === leftPagination.total_pages)) ||
-                        (sideFilter === 'right' && (!rightPagination?.next || rightPagination.page === rightPagination.total_pages))
-                      }
-                      className="border-pink-500/30 hover:bg-pink-500/10 hover:border-pink-500"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                        className="border-pink-500/30 hover:bg-pink-500/10 hover:border-pink-500"
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
               {/* Show pagination info when no pagination is available (backward compatibility) */}
             </>
@@ -1873,9 +2252,7 @@ export const BinaryTreeView = () => {
             <div className="text-center py-12 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No team members found</p>
-              <p className="text-sm mt-2">
-                Try adjusting your filters
-              </p>
+              <p className="text-sm mt-2">Try adjusting your filters</p>
             </div>
           )}
         </CardContent>
@@ -1900,7 +2277,7 @@ export const BinaryTreeView = () => {
               className="flex justify-center items-start p-8 overflow-auto bg-gradient-to-b from-transparent via-[#f0fdfa]/30 to-transparent min-h-full"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
               {binaryTree ? (
                 <BinaryTreeNode node={binaryTree} depth={0} />
@@ -1909,8 +2286,12 @@ export const BinaryTreeView = () => {
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-rose-500/15 mb-4">
                     <GitBranch className="h-8 w-8 text-[#18b3b2]" />
                   </div>
-                  <p className="text-base font-medium text-foreground">No referral tree data available</p>
-                  <p className="text-sm text-muted-foreground mt-1">Your network will appear here once you have referrals</p>
+                  <p className="text-base font-medium text-foreground">
+                    No referral tree data available
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Your network will appear here once you have referrals
+                  </p>
                 </div>
               )}
             </motion.div>
