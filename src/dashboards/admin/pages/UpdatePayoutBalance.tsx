@@ -158,16 +158,20 @@ export const UpdatePayoutBalance = () => {
   };
 
   // Edit Balance modal state
-  const [editBalanceUser, setEditBalanceUser] = useState<UserExtended | null>(null);
+  const [editBalanceUser, setEditBalanceUser] = useState<PayoutBalanceUser | null>(null);
   const [balanceInput, setBalanceInput] = useState('');
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
   const [updateTotalEarnings, { isLoading: isUpdating }] = useUpdateTotalEarningsMutation();
 
-  const openEditBalance = (user: UserExtended) => {
+  const openEditBalance = (user: PayoutBalanceUser) => {
     setEditBalanceUser(user);
-    setBalanceInput('');
+    setBalanceInput(
+      user.totalEarnings != null && user.totalEarnings !== ''
+        ? formatTotalEarned(String(user.totalEarnings))
+        : '0.00'
+    );
     setBalanceError(null);
     setShowConfirm(false);
   };
