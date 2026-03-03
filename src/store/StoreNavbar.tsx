@@ -240,7 +240,7 @@ export function StoreNavbar({ solidBackground = false }: StoreNavbarProps) {
                   <DropdownMenuSeparator className="bg-border/40" />
                   
                   <div className="py-1">
-                    <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-xl focus:bg-primary/5 focus:text-primary transition-colors cursor-pointer py-2.5">
+                    <DropdownMenuItem onClick={() => navigate('/profile?tab=settings')} className="rounded-xl focus:bg-primary/5 focus:text-primary transition-colors cursor-pointer py-2.5">
                       <User className="mr-3 h-4 w-4" />
                       <span className="font-medium text-[13.5px]">Profile</span>
                     </DropdownMenuItem>

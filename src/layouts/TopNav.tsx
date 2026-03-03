@@ -70,7 +70,7 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: "1",
-      title: "Welcome to EV Nexus!",
+      title: "Welcome to Zuja Electricals!",
       message: "Your account has been successfully created.",
       type: "success",
       time: "2 hours ago",
@@ -366,7 +366,7 @@ export const TopNav = ({ onMenuClick }: TopNavProps) => {
           >
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => navigate("/profile")}
+              onClick={() => navigate("/profile?tab=settings")}
             >
               Profile
             </DropdownMenuItem>
