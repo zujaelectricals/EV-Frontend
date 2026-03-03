@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, AlertCircle, User, Mail, Phone, FileCheck, Shield, Eye, Download, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, User, Mail, Phone, FileCheck, Shield, Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -368,25 +368,6 @@ export function DistributorApplication() {
   const handleViewTerms = () => {
     if (activeASATerm) {
       setIsTermsModalOpen(true);
-    } else {
-      toast.error('ASA Terms are not available. Please try again later.');
-    }
-  };
-
-  // Handle downloading Terms of Service
-  const handleDownloadTerms = () => {
-    if (activeASATerm) {
-      // Create a downloadable text file with the terms
-      const blob = new Blob([activeASATerm.full_text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${activeASATerm.title.replace(/\s+/g, '_')}_${activeASATerm.version}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success('Terms of Service download started');
     } else {
       toast.error('ASA Terms are not available. Please try again later.');
     }
@@ -824,28 +805,16 @@ export function DistributorApplication() {
                       Terms & Conditions
                     </h3>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleViewTerms}
-                      className="h-8 w-8"
-                      title="View Terms"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleDownloadTerms}
-                      className="h-8 w-8"
-                      title="Download Terms"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleViewTerms}
+                    className="h-8 w-8"
+                    title="View Terms"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">
                   Please review and accept all terms before proceeding to verification.
@@ -880,7 +849,13 @@ export function DistributorApplication() {
                           htmlFor="final-confirmation"
                           className="cursor-pointer text-sm font-semibold block"
                         >
-                          Terms & Conditions
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); handleViewTerms(); }}
+                            className="text-primary hover:underline font-semibold text-left p-0 bg-transparent border-0 cursor-pointer"
+                          >
+                            Terms & Conditions
+                          </button>
                         </label>
                         <p className="text-xs text-muted-foreground mt-1 mb-2">
                           I confirm that I have read, understood, and voluntarily accepted all the terms and conditions including all conditions stated above.
