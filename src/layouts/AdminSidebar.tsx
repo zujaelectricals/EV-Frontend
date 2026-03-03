@@ -282,6 +282,13 @@ const adminMenuSections: MenuSection[] = [
     path: "/admin/binary-engine/pair-rules",
     children: [],
   },
+  {
+    label: "Update Payout Balance",
+    icon: DollarSign,
+    value: "update-payout-balance",
+    path: "/admin/update-payout-balance",
+    children: [],
+  },
   // {
   //   label: "Risk & Compliance",
   //   icon: Shield,

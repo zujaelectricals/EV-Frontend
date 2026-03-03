@@ -25,7 +25,13 @@ export interface UserProfileResponse {
   is_active_buyer: boolean;
   referral_code: string;
   referral_link?: string;
-  referred_by: string | null;
+  /** May be referrer ID string or expanded referrer object (e.g. from profile) */
+  referred_by?: string | {
+    id: number;
+    fullname: string;
+    email: string;
+    profile_picture_url: string | null;
+  } | null;
   kyc_status: 'not_submitted' | 'pending' | 'verified' | 'approved' | 'rejected' | null;
   nominee_exists: boolean;
   nominee_kyc_status: 'not_submitted' | 'pending' | 'verified' | 'approved' | 'rejected' | null;
@@ -46,12 +52,8 @@ export interface UserProfileResponse {
   payment_terms_acceptance_document_url?: string | null;
   payment_receipt_urls?: string[];
   asa_document_acceptance_url?: string | null;
-  referred_by?: {
-    id: number;
-    fullname: string;
-    email: string;
-    profile_picture_url: string | null;
-  } | null;
+  /** Present in users/normal list response (payout wallet total earned) */
+  total_earnings?: string;
 }
 
 // KYC submission request (multipart/form-data)
@@ -92,6 +94,9 @@ export interface NomineeSubmissionRequest {
   state: string;
   pincode: string;
   nomineeId?: number; // Optional - if provided, will use PUT method for update
+  id_proof_type?: string;
+  id_proof_number?: string;
+  id_proof_document?: File;
 }
 
 export interface NomineeSubmissionResponse {
@@ -171,7 +176,11 @@ const transformUserProfile = (profile: UserProfileResponse): User => {
             ? 'rejected'
             : undefined,
       referralCode: profile.referral_code || '',
-      referredBy: profile.referred_by || undefined,
+      referredBy: profile.referred_by == null
+        ? undefined
+        : typeof profile.referred_by === 'string'
+          ? profile.referred_by
+          : profile.referred_by.fullname || profile.referred_by.email,
       leftCount: profile.left_leg_count || 0,
       rightCount: profile.right_leg_count || 0,
       totalReferrals: (profile.left_leg_count || 0) + (profile.right_leg_count || 0),
@@ -1320,6 +1329,87 @@ export const userApi = api.injectEndpoints({
       invalidatesTags: ['User'],
     }),
 
+    // PATCH users/{id}/update_total_earnings/ - Update user total_earned (Admin/Superuser only)
+    updateTotalEarnings: builder.mutation<
+      { user_id: number; total_earned: string; wallet_balance: string },
+      { userId: number; total_earned: string }
+    >({
+      queryFn: async ({ userId, total_earned }) => {
+        const { accessToken } = getAuthTokens();
+
+        if (!accessToken) {
+          return {
+            error: {
+              status: 401,
+              data: { message: 'No access token found' },
+            } as FetchBaseQueryError,
+          };
+        }
+
+        try {
+          const url = `${API_BASE_URL}users/${userId}/update_total_earnings/`;
+          const body = JSON.stringify({ total_earned });
+
+          let response = await fetch(url, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body,
+          });
+
+          if (response.status === 401) {
+            const refreshData = await refreshAccessToken();
+            if (refreshData) {
+              const { accessToken: newAccessToken } = getAuthTokens();
+              if (newAccessToken) {
+                response = await fetch(url, {
+                  method: 'PATCH',
+                  headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body,
+                });
+              }
+            }
+            if (response.status === 401) {
+              const error = await response.json().catch(() => ({ message: 'Authentication failed' }));
+              return { error: { status: 401, data: error } as FetchBaseQueryError };
+            }
+          }
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to update total earnings' }));
+            return {
+              error: {
+                status: response.status,
+                data: error,
+              } as FetchBaseQueryError,
+            };
+          }
+
+          const data = await response.json();
+          return {
+            data: {
+              user_id: data.user_id,
+              total_earned: data.total_earned,
+              wallet_balance: data.wallet_balance,
+            },
+          };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR' as const,
+              error: String(error),
+            } as FetchBaseQueryError,
+          };
+        }
+      },
+      invalidatesTags: ['User'],
+    }),
+
     // DELETE users/{id}/ - Delete user by ID (for admin)
     deleteUserById: builder.mutation<{ success: boolean; message: string }, number>({
       queryFn: async (userId) => {
@@ -2128,6 +2218,7 @@ export const {
   useGetNormalUsersQuery,
   useGetUserByIdQuery,
   useUpdateUserByIdMutation,
+  useUpdateTotalEarningsMutation,
   useDeleteUserByIdMutation,
   useGetKYCListQuery,
   useUpdateKYCStatusMutation,

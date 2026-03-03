@@ -86,6 +86,7 @@ import { BankAbuseMonitor } from './pages/BankAbuseMonitor';
 import { ReferralFarmingAlerts } from './pages/ReferralFarmingAlerts';
 import { RapidGrowthSuspicion } from './pages/RapidGrowthSuspicion';
 import { Gallery } from './pages/Gallery';
+import { UpdatePayoutBalance } from './pages/UpdatePayoutBalance';
 // import { Documents } from './pages/Documents';
 
 // Placeholder components for nested routes (can be replaced with actual components later)
@@ -205,6 +206,9 @@ export const AdminRoutes = () => {
 
       {/* Gallery Routes */}
       <Route path="gallery" element={<Gallery />} />
+
+      {/* Update Payout Balance (below Platform Settings in sidebar) */}
+      <Route path="update-payout-balance" element={<UpdatePayoutBalance />} />
 
       {/* Documents Routes */}
       {/* <Route path="documents" element={<Documents />} /> */}
