@@ -1,47 +1,25 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Award, Search, Filter, ArrowUpDown, Activity } from 'lucide-react';
+import { Users, Award } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppSelector } from '@/app/hooks';
 import { useGetBinaryTreeQuery, useGetBinaryStatsQuery } from '@/app/api/binaryApi';
 import { useGetDistributorDashboardQuery } from '@/app/api/distributorApi';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
   LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   PieChart,
   Pie,
   Cell,
 } from 'recharts';
 import { BinaryNode } from '@/app/api/binaryApi';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatDisplayDate } from '@/lib/utils';
 
 interface TeamMember {
   id: string;
@@ -56,6 +34,7 @@ interface TeamMember {
 }
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--info))', 'hsl(var(--warning))'];
+const RSR_BLUE = 'hsl(217, 91%, 60%)'; // blue for RSR in pie chart
 
 // Helper function to extract team members from binary tree
 function extractTeamMembers(node: BinaryNode | null, level = 0, position: 'left' | 'right' = 'left'): TeamMember[] {
@@ -109,11 +88,6 @@ export const TeamPerformance = () => {
   const { data: binaryStats } = useGetBinaryStatsQuery(distributorId, { skip: !distributorId });
   const { data: dashboardData, isLoading: isLoadingDashboard } = useGetDistributorDashboardQuery();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterPosition, setFilterPosition] = useState<'all' | 'left' | 'right'>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'joinedAt' | 'pv' | 'referrals'>('joinedAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-
   // Extract team members from binary tree
   const teamMembers = useMemo(() => {
     if (!binaryTree) return [];
@@ -137,36 +111,6 @@ export const TeamPerformance = () => {
   const growthPercentage = previousMonthMembers > 0 
     ? ((totalMembers - previousMonthMembers) / previousMonthMembers * 100).toFixed(1)
     : '0';
-
-  // Filter and sort team members
-  const filteredMembers = useMemo(() => {
-    let filtered = teamMembers.filter(member => {
-      const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesPosition = filterPosition === 'all' || member.position === filterPosition;
-      return matchesSearch && matchesPosition;
-    });
-
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      switch (sortBy) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case 'joinedAt':
-          comparison = new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
-          break;
-        case 'pv':
-          comparison = a.pv - b.pv;
-          break;
-        case 'referrals':
-          comparison = a.referrals - b.referrals;
-          break;
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    return filtered;
-  }, [teamMembers, searchQuery, filterPosition, sortBy, sortOrder]);
 
   // Top performers from API or fallback to calculated
   const topPerformers = useMemo(() => {
@@ -198,7 +142,7 @@ export const TeamPerformance = () => {
     ];
   }, [dashboardData?.team_growth_trend, totalMembers]);
 
-  // Distribution data from API or fallback
+  // Distribution data from API or fallback — RSL: primary color, RSR: blue
   const distributionData = useMemo(() => {
     if (dashboardData?.team_distribution) {
       return [
@@ -212,36 +156,16 @@ export const TeamPerformance = () => {
           name: 'RSR', 
           value: dashboardData.team_distribution.rsb_count, 
           percentage: dashboardData.team_distribution.rsb_percentage,
-          color: COLORS[1] 
+          color: RSR_BLUE 
         },
       ];
     }
     // Fallback to calculated data
     return [
       { name: 'RSL', value: leftMembers, percentage: 0, color: COLORS[0] },
-      { name: 'RSR', value: rightMembers, percentage: 0, color: COLORS[1] },
+      { name: 'RSR', value: rightMembers, percentage: 0, color: RSR_BLUE },
     ];
   }, [dashboardData?.team_distribution, leftMembers, rightMembers]);
-
-  // Performance by level
-  const levelData = useMemo(() => {
-    const levels: Record<number, number> = {};
-    teamMembers.forEach(member => {
-      levels[member.level] = (levels[member.level] || 0) + 1;
-    });
-    return Object.entries(levels)
-      .map(([level, count]) => ({ level: `Level ${level}`, count }))
-      .sort((a, b) => parseInt(a.level.replace('Level ', '')) - parseInt(b.level.replace('Level ', '')));
-  }, [teamMembers]);
-
-  const handleSort = (field: 'name' | 'joinedAt' | 'pv' | 'referrals') => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -393,168 +317,6 @@ export const TeamPerformance = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Team Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Team Overview</CardTitle>
-          <CardDescription>View detailed performance metrics of your team members</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Filters and Search */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search team members..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={filterPosition} onValueChange={(value: 'all' | 'left' | 'right') => setFilterPosition(value)}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filter by position" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Positions</SelectItem>
-                <SelectItem value="left">RSL</SelectItem>
-                <SelectItem value="right">RSR</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Team Members Table */}
-          {filteredMembers.length > 0 ? (
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 -ml-3"
-                        onClick={() => handleSort('name')}
-                      >
-                        Name
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 -ml-3"
-                        onClick={() => handleSort('joinedAt')}
-                      >
-                        Joined
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>Position</TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 -ml-3"
-                        onClick={() => handleSort('pv')}
-                      >
-                        PV
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 -ml-3"
-                        onClick={() => handleSort('referrals')}
-                      >
-                        Referrals
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>Level</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMembers.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell className="font-medium">{member.name}</TableCell>
-                      <TableCell>
-                        {formatDisplayDate(member.joinedAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            member.position === 'left'
-                              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0'
-                              : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0'
-                          }
-                        >
-                          {member.position === 'left' ? 'RSL' : 'RSR'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>₹{member.pv.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          {member.referrals}
-                        </div>
-                      </TableCell>
-                      <TableCell>Level {member.level}</TableCell>
-                      <TableCell>
-                        <Badge variant={member.isActive ? 'default' : 'outline'}>
-                          {member.isActive ? (
-                            <>
-                              <Activity className="mr-1 h-3 w-3" />
-                              Active
-                            </>
-                          ) : (
-                            'Inactive'
-                          )}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No team members found</p>
-              {searchQuery && <p className="text-sm mt-2">Try adjusting your search or filters</p>}
-            </div>
-          )}
-
-          {/* Performance by Level Chart */}
-          {levelData.length > 0 && (
-            <div className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Distribution by Level</CardTitle>
-                  <CardDescription>Team members at each hierarchy level</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={levelData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="level" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="hsl(var(--primary))" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };

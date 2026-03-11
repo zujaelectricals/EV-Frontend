@@ -1,60 +1,71 @@
-import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { motion } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import {
   GitBranch,
   Users,
+  DollarSign,
   TrendingUp,
   TrendingDown,
   Link as LinkIcon,
   Copy,
   ArrowRight,
   Award,
-} from 'lucide-react';
-import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { useGetBinaryStatsQuery } from '@/app/api/binaryApi';
-import { updateDistributorInfo } from '@/app/slices/authSlice';
-import { StatsCard } from '@/shared/components/StatsCard';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+} from "lucide-react";
+import { useAppSelector, useAppDispatch } from "@/app/hooks";
+import { useGetBinaryStatsQuery } from "@/app/api/binaryApi";
+import { updateDistributorInfo } from "@/app/slices/authSlice";
+import { StatsCard } from "@/shared/components/StatsCard";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/utils";
 
 export const DistributorDashboard = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
-  const distributorId = user?.id || '';
-  const { data: binaryStats } = useGetBinaryStatsQuery(distributorId, { skip: !distributorId });
+  const distributorId = user?.id || "";
+  const { data: binaryStats } = useGetBinaryStatsQuery(distributorId, {
+    skip: !distributorId,
+  });
 
   // Sync pool money from localStorage to Redux state when binaryStats change
   useEffect(() => {
     if (user?.id && binaryStats) {
       try {
-        const authDataStr = localStorage.getItem('ev_nexus_auth_data');
+        const authDataStr = localStorage.getItem("ev_nexus_auth_data");
         if (authDataStr) {
           const authData = JSON.parse(authDataStr);
-          if (authData.user && authData.user.distributorInfo && 
-              authData.user.id === user.id) {
-            const storedPoolMoney = authData.user.distributorInfo.poolMoney || 0;
+          if (
+            authData.user &&
+            authData.user.distributorInfo &&
+            authData.user.id === user.id
+          ) {
+            const storedPoolMoney =
+              authData.user.distributorInfo.poolMoney || 0;
             // Update Redux state if pool money has changed
             if (user.distributorInfo?.poolMoney !== storedPoolMoney) {
-              dispatch(updateDistributorInfo({
-                poolMoney: storedPoolMoney,
-                totalReferrals: binaryStats.totalReferrals,
-              }));
+              dispatch(
+                updateDistributorInfo({
+                  poolMoney: storedPoolMoney,
+                  totalReferrals: binaryStats.totalReferrals,
+                }),
+              );
             }
           }
         }
       } catch (error) {
-        console.error('Error syncing pool money:', error);
+        console.error("Error syncing pool money:", error);
       }
     }
   }, [binaryStats, user?.id, dispatch, user?.distributorInfo?.poolMoney]);
 
-  const referralLink = `https://zuja.com/ref/${user?.distributorInfo?.referralCode || user?.id || 'demo'}`;
+  const referralLink = `https://zuja.com/ref/${user?.distributorInfo?.referralCode || user?.id || "demo"}`;
 
-  const copyReferralLink = () => {
-    navigator.clipboard.writeText(referralLink);
-    toast.success('ASA link copied to clipboard!');
+  const copyReferralLink = async () => {
+    const ok = await copyToClipboard(referralLink);
+    if (ok) toast.success("ASA link copied to clipboard!");
+    else toast.error("Could not copy. Please select and copy the link manually.");
   };
 
   // Calculate earnings breakdown - KPA cards
@@ -64,18 +75,22 @@ export const DistributorDashboard = () => {
   const totalNet = totalGross - totalTDS - totalPool;
 
   // Check if user is a verified distributor - isDistributor from API is sufficient
-  const isVerified = user?.isDistributor === true || user?.distributorInfo?.isVerified;
+  const isVerified =
+    user?.isDistributor === true || user?.distributorInfo?.isVerified;
 
   if (!isVerified) {
     return (
       <div className="space-y-6">
         <div className="glass-card rounded-2xl p-8 text-center">
           <Award className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-2xl font-bold text-foreground mb-2">ASA(Authorized Sales Associate) Application Pending</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            ASA(Authorized Sales Associate) Application Pending
+          </h2>
           <p className="text-muted-foreground mb-6">
-            Your ASA(Authorized Sales Associate) application is under review. You'll be notified once it's approved.
+            Your ASA(Authorized Sales Associate) application is under review.
+            You'll be notified once it's approved.
           </p>
-          <Button onClick={() => navigate('/profile?tab=distributor')}>
+          <Button onClick={() => navigate("/profile?tab=distributor")}>
             View Application Status
           </Button>
         </div>
@@ -86,7 +101,9 @@ export const DistributorDashboard = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">ASA(Authorized Sales Associate) Dashboard</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          ASA(Authorized Sales Associate) Dashboard
+        </h1>
         <p className="text-muted-foreground mt-1">
           Overview of your referrals, earnings, and quick actions
         </p>
@@ -114,11 +131,18 @@ export const DistributorDashboard = () => {
           transitionDelay={0.05}
         />
         <StatsCard
+          title="Total Gross Earnings"
+          value={`₹${totalGross.toLocaleString()}`}
+          icon={DollarSign}
+          variant="primary"
+          transitionDelay={0.1}
+        />
+        <StatsCard
           title="Total TDS Deducted"
           value={`₹${totalTDS.toLocaleString()}`}
           icon={TrendingDown}
           variant="warning"
-          transitionDelay={0.1}
+          transitionDelay={0.15}
         />
       </motion.div>
 
@@ -163,7 +187,9 @@ export const DistributorDashboard = () => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-foreground">Sales Tracking</p>
-              <p className="text-sm text-muted-foreground">Monitor sales and referrals</p>
+              <p className="text-sm text-muted-foreground">
+                Monitor sales and referrals
+              </p>
             </div>
             <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-sky-600" />
           </motion.div>

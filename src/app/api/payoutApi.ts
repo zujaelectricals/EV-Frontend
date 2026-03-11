@@ -463,6 +463,76 @@ export const payoutApi = api.injectEndpoints({
         { type: 'Payout', id: 'LIST-processing' },
       ],
     }),
+    approveManualPayout: builder.mutation<{ message: string; payout: PayoutResponse }, { id: number; notes?: string }>({
+      queryFn: async ({ id, notes }) => {
+        try {
+          const { accessToken } = getAuthTokens();
+          const baseUrl = API_BASE_URL;
+          const url = `${baseUrl}payout/${id}/approve_manual/`;
+
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+
+          if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+          }
+
+          const requestBody = notes ? { notes } : {};
+          const requestBodyString = JSON.stringify(requestBody);
+
+          let response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: requestBodyString,
+          });
+
+          if (response.status === 401) {
+            const refreshData = await refreshAccessToken();
+            if (refreshData) {
+              const { accessToken } = getAuthTokens();
+              if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                response = await fetch(url, {
+                  method: 'POST',
+                  headers,
+                  body: requestBodyString,
+                });
+              }
+            } else {
+              const errorData = await response.json().catch(() => ({}));
+              return { error: { status: response.status, data: errorData } };
+            }
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return {
+              error: {
+                status: response.status,
+                data: errorData,
+              },
+            };
+          }
+
+          const data = await response.json();
+          return { data };
+        } catch (error) {
+          return {
+            error: {
+              status: 'FETCH_ERROR',
+              error: String(error),
+            },
+          };
+        }
+      },
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Payout', id },
+        { type: 'Payout', id: 'LIST' },
+        { type: 'Payout', id: 'LIST-pending' },
+        { type: 'Payout', id: 'LIST-processing' },
+      ],
+    }),
     completePayout: builder.mutation<PayoutResponse, { id: number; transaction_id?: string; notes?: string }>({
       queryFn: async ({ id, transaction_id, notes }) => {
         try {
@@ -576,10 +646,11 @@ export const payoutApi = api.injectEndpoints({
   overrideExisting: false,
 });
 
-export const { 
+export const {
   useGetPayoutsQuery,
   useCreatePayoutMutation,
   useProcessPayoutMutation,
-  useCompletePayoutMutation
+  useApproveManualPayoutMutation,
+  useCompletePayoutMutation,
 } = payoutApi;
 

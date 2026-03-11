@@ -1,11 +1,24 @@
-import { api } from './baseApi';
-import { BinaryPair } from '@/app/slices/binarySlice';
-import { API_BASE_URL } from '../../lib/config';
+import { api } from "./baseApi";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { BinaryPair } from "@/app/slices/binarySlice";
+import { API_BASE_URL } from "../../lib/config";
+
+// Minimal type for stored account in localStorage (profile switcher)
+interface StoredAccount {
+  user?: {
+    id?: string;
+    distributorInfo?: {
+      referralCode?: string;
+      isDistributor?: boolean;
+      isVerified?: boolean;
+    };
+  };
+}
 
 export interface BinaryNode {
   id: string;
   name: string;
-  position: 'left' | 'right' | 'root';
+  position: "left" | "right" | "root";
   pv: number;
   joinedAt: string;
   isActive: boolean;
@@ -53,7 +66,7 @@ export interface SideMemberNode {
   net_amount_total?: string;
   parent: number | null;
   parent_name?: string | null; // Parent name from API
-  side: 'left' | 'right' | null;
+  side: "left" | "right" | null;
   level: number;
   left_count: number;
   right_count: number;
@@ -101,10 +114,13 @@ export interface TreeNodeResponse {
   net_amount_total: string;
   parent: number | null;
   parent_name?: string | null; // Parent name from API
-  side: 'left' | 'right' | null;
+  side: "left" | "right" | null;
   level: number;
   left_count: number;
   right_count: number;
+  total_descendants?: number;
+  remaining_left_members_to_be_paired?: number;
+  remaining_right_members_to_be_paired?: number;
   binary_commission_activated: boolean;
   activation_timestamp: string | null;
   counts_for_activation?: boolean;
@@ -151,8 +167,8 @@ export interface SearchResultNode {
   date_joined: string;
   parent_id: number;
   parent_name: string;
-  side: 'left' | 'right';
-  tree_side: 'left' | 'right';
+  side: "left" | "right";
+  tree_side: "left" | "right";
   level: number;
   left_count: number;
   right_count: number;
@@ -225,75 +241,85 @@ const REFERRAL_COMMISSION = 1000; // ₹1,000 per referral (only before activati
 const BINARY_ACTIVATION_REQUIREMENT = 3; // 3 users (not pairs) needed
 
 // localStorage keys
-const BINARY_TREE_STORAGE_KEY = 'ev_nexus_binary_trees';
-const PENDING_NODES_STORAGE_KEY = 'ev_nexus_pending_nodes';
-const PAIR_COUNT_STORAGE_KEY = 'ev_nexus_pair_counts'; // Track pair counts per distributor
+const BINARY_TREE_STORAGE_KEY = "ev_nexus_binary_trees";
+const PENDING_NODES_STORAGE_KEY = "ev_nexus_pending_nodes";
+const PAIR_COUNT_STORAGE_KEY = "ev_nexus_pair_counts"; // Track pair counts per distributor
 
 // Helper function to find distributor ID by referral code
 function findDistributorIdByReferralCode(referralCode: string): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
-    const accountsKey = 'ev_nexus_multiple_accounts';
+    const accountsKey = "ev_nexus_multiple_accounts";
     const stored = localStorage.getItem(accountsKey);
     if (stored) {
       const accounts = JSON.parse(stored);
-      const distributor = accounts.find((acc: any) => 
-        acc.user?.distributorInfo?.referralCode === referralCode &&
-        acc.user?.distributorInfo?.isDistributor === true &&
-        acc.user?.distributorInfo?.isVerified === true
+      const distributor = accounts.find(
+        (acc: StoredAccount) =>
+          acc.user?.distributorInfo?.referralCode === referralCode &&
+          acc.user?.distributorInfo?.isDistributor === true &&
+          acc.user?.distributorInfo?.isVerified === true,
       );
       if (distributor?.user?.id) {
         return distributor.user.id;
       }
     }
   } catch (error) {
-    console.error('Error finding distributor by referral code:', error);
+    console.error("Error finding distributor by referral code:", error);
   }
   return null;
 }
 
 // Helper functions for localStorage
 function getBinaryTreesFromStorage(): Record<string, BinaryNode> {
-  if (typeof window === 'undefined') return {};
+  if (typeof window === "undefined") return {};
   try {
     const stored = localStorage.getItem(BINARY_TREE_STORAGE_KEY);
     return stored ? JSON.parse(stored) : {};
   } catch (error) {
-    console.error('Error reading binary trees from localStorage:', error);
+    console.error("Error reading binary trees from localStorage:", error);
     return {};
   }
 }
 
-function saveBinaryTreeToStorage(distributorId: string, tree: BinaryNode): void {
-  if (typeof window === 'undefined') return;
+function saveBinaryTreeToStorage(
+  distributorId: string,
+  tree: BinaryNode,
+): void {
+  if (typeof window === "undefined") return;
   try {
     const trees = getBinaryTreesFromStorage();
     trees[distributorId] = tree;
     localStorage.setItem(BINARY_TREE_STORAGE_KEY, JSON.stringify(trees));
   } catch (error) {
-    console.error('Error saving binary tree to localStorage:', error);
+    console.error("Error saving binary tree to localStorage:", error);
   }
 }
 
 function getPendingNodesFromStorage(): Record<string, PendingNode[]> {
-  if (typeof window === 'undefined') return {};
+  if (typeof window === "undefined") return {};
   try {
     const stored = localStorage.getItem(PENDING_NODES_STORAGE_KEY);
     return stored ? JSON.parse(stored) : {};
   } catch (error) {
-    console.error('Error reading pending nodes from localStorage:', error);
+    console.error("Error reading pending nodes from localStorage:", error);
     return {};
   }
 }
 
-function savePendingNodesToStorage(distributorId: string, nodes: PendingNode[]): void {
-  if (typeof window === 'undefined') return;
+function savePendingNodesToStorage(
+  distributorId: string,
+  nodes: PendingNode[],
+): void {
+  if (typeof window === "undefined") return;
   try {
     const pendingNodes = getPendingNodesFromStorage();
     pendingNodes[distributorId] = nodes;
-    localStorage.setItem(PENDING_NODES_STORAGE_KEY, JSON.stringify(pendingNodes));
+    localStorage.setItem(
+      PENDING_NODES_STORAGE_KEY,
+      JSON.stringify(pendingNodes),
+    );
   } catch (error) {
-    console.error('Error saving pending nodes to localStorage:', error);
+    console.error("Error saving pending nodes to localStorage:", error);
   }
 }
 
@@ -303,7 +329,7 @@ function addPendingNode(distributorId: string, node: PendingNode): void {
     pendingNodes[distributorId] = [];
   }
   // Check if node already exists
-  if (!pendingNodes[distributorId].find(n => n.userId === node.userId)) {
+  if (!pendingNodes[distributorId].find((n) => n.userId === node.userId)) {
     pendingNodes[distributorId].push(node);
     savePendingNodesToStorage(distributorId, pendingNodes[distributorId]);
   }
@@ -312,14 +338,16 @@ function addPendingNode(distributorId: string, node: PendingNode): void {
 function removePendingNode(distributorId: string, userId: string): void {
   const pendingNodes = getPendingNodesFromStorage();
   if (pendingNodes[distributorId]) {
-    pendingNodes[distributorId] = pendingNodes[distributorId].filter(n => n.userId !== userId);
+    pendingNodes[distributorId] = pendingNodes[distributorId].filter(
+      (n) => n.userId !== userId,
+    );
     savePendingNodesToStorage(distributorId, pendingNodes[distributorId]);
   }
 }
 
 // Get stored pair count for a distributor
 function getStoredPairCount(distributorId: string): number {
-  if (typeof window === 'undefined') return 0;
+  if (typeof window === "undefined") return 0;
   try {
     const stored = localStorage.getItem(PAIR_COUNT_STORAGE_KEY);
     if (stored) {
@@ -327,43 +355,48 @@ function getStoredPairCount(distributorId: string): number {
       return counts[distributorId] || 0;
     }
   } catch (error) {
-    console.error('Error reading pair counts from localStorage:', error);
+    console.error("Error reading pair counts from localStorage:", error);
   }
   return 0;
 }
 
 // Save pair count for a distributor
 function savePairCount(distributorId: string, count: number): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     const stored = localStorage.getItem(PAIR_COUNT_STORAGE_KEY);
     const counts = stored ? JSON.parse(stored) : {};
     counts[distributorId] = count;
     localStorage.setItem(PAIR_COUNT_STORAGE_KEY, JSON.stringify(counts));
   } catch (error) {
-    console.error('Error saving pair count to localStorage:', error);
+    console.error("Error saving pair count to localStorage:", error);
   }
 }
 
 // Helper function to update user's distributorInfo in localStorage
-function updateDistributorInfoInStorage(distributorId: string, updates: any): void {
-  if (typeof window === 'undefined') return;
-  
+function updateDistributorInfoInStorage(
+  distributorId: string,
+  updates: Record<string, unknown>,
+): void {
+  if (typeof window === "undefined") return;
+
   try {
-    const authDataStr = localStorage.getItem('ev_nexus_auth_data');
+    const authDataStr = localStorage.getItem("ev_nexus_auth_data");
     if (authDataStr) {
       const authData = JSON.parse(authDataStr);
-      if (authData.user && (authData.user.id === distributorId || 
-          authData.user.id?.startsWith(distributorId) || 
-          distributorId.startsWith(authData.user.id))) {
-        
+      if (
+        authData.user &&
+        (authData.user.id === distributorId ||
+          authData.user.id?.startsWith(distributorId) ||
+          distributorId.startsWith(authData.user.id))
+      ) {
         // Initialize distributorInfo if needed
         if (!authData.user.distributorInfo) {
           authData.user.distributorInfo = {
             isDistributor: true,
             isVerified: true,
-            verificationStatus: 'approved',
-            referralCode: '',
+            verificationStatus: "approved",
+            referralCode: "",
             leftCount: 0,
             rightCount: 0,
             totalReferrals: 0,
@@ -376,20 +409,26 @@ function updateDistributorInfoInStorage(distributorId: string, updates: any): vo
             joinedAt: new Date().toISOString(),
           };
         }
-        
+
         // Apply updates
-        authData.user.distributorInfo = { ...authData.user.distributorInfo, ...updates };
-        
+        authData.user.distributorInfo = {
+          ...authData.user.distributorInfo,
+          ...updates,
+        };
+
         // Also update in profile switcher accounts
         try {
-          const accountsKey = 'ev_nexus_multiple_accounts';
+          const accountsKey = "ev_nexus_multiple_accounts";
           const storedAccounts = localStorage.getItem(accountsKey);
           if (storedAccounts) {
             const accounts = JSON.parse(storedAccounts);
-            const updatedAccounts = accounts.map((acc: any) => {
-              if (acc.user && (acc.user.id === distributorId || 
-                  acc.user.id?.startsWith(distributorId) || 
-                  distributorId.startsWith(acc.user.id))) {
+            const updatedAccounts = accounts.map((acc: StoredAccount) => {
+              if (
+                acc.user &&
+                (acc.user.id === distributorId ||
+                  acc.user.id?.startsWith(distributorId) ||
+                  distributorId.startsWith(acc.user.id))
+              ) {
                 return {
                   ...acc,
                   user: {
@@ -406,21 +445,24 @@ function updateDistributorInfoInStorage(distributorId: string, updates: any): vo
             localStorage.setItem(accountsKey, JSON.stringify(updatedAccounts));
           }
         } catch (accountError) {
-          console.warn('Could not update distributor info in profile switcher accounts:', accountError);
+          console.warn(
+            "Could not update distributor info in profile switcher accounts:",
+            accountError,
+          );
         }
-        
-        localStorage.setItem('ev_nexus_auth_data', JSON.stringify(authData));
+
+        localStorage.setItem("ev_nexus_auth_data", JSON.stringify(authData));
       }
     }
   } catch (error) {
-    console.error('Error updating distributor info:', error);
+    console.error("Error updating distributor info:", error);
   }
 }
 
 // Credit activation bonus when 3rd referral is added
 function creditActivationBonus(distributorId: string): void {
   try {
-    const authDataStr = localStorage.getItem('ev_nexus_auth_data');
+    const authDataStr = localStorage.getItem("ev_nexus_auth_data");
     if (authDataStr) {
       const authData = JSON.parse(authDataStr);
       if (authData.user && authData.user.distributorInfo) {
@@ -429,65 +471,91 @@ function creditActivationBonus(distributorId: string): void {
             activationBonusCredited: true,
             binaryActivated: true,
           });
-          console.log(`Activation bonus of ₹${ACTIVATION_BONUS} credited for distributor ${distributorId}`);
+          console.log(
+            `Activation bonus of ₹${ACTIVATION_BONUS} credited for distributor ${distributorId}`,
+          );
         }
       }
     }
   } catch (error) {
-    console.error('Error crediting activation bonus:', error);
+    console.error("Error crediting activation bonus:", error);
   }
 }
 
 // Update pool money when reaching 10 pairs or ₹20,000 commission
-function updatePoolMoneyAtLimit(distributorId: string, totalCommission: number, pairCount: number): void {
+function updatePoolMoneyAtLimit(
+  distributorId: string,
+  totalCommission: number,
+  pairCount: number,
+): void {
   try {
-    const authDataStr = localStorage.getItem('ev_nexus_auth_data');
+    const authDataStr = localStorage.getItem("ev_nexus_auth_data");
     if (authDataStr) {
       const authData = JSON.parse(authDataStr);
       if (authData.user && authData.user.distributorInfo) {
         const currentPoolMoney = authData.user.distributorInfo.poolMoney || 0;
-        const hasReachedLimit = (pairCount >= MAX_PAIRS || totalCommission >= MAX_COMMISSION);
-        
+        const hasReachedLimit =
+          pairCount >= MAX_PAIRS || totalCommission >= MAX_COMMISSION;
+
         // Only add pool money once when limit is reached
         if (hasReachedLimit && currentPoolMoney < POOL_MONEY_AT_LIMIT) {
           updateDistributorInfoInStorage(distributorId, {
             poolMoney: POOL_MONEY_AT_LIMIT,
           });
-          console.log(`Added ₹${POOL_MONEY_AT_LIMIT} to pool money for reaching limit (${pairCount} pairs, ₹${totalCommission} commission)`);
+          console.log(
+            `Added ₹${POOL_MONEY_AT_LIMIT} to pool money for reaching limit (${pairCount} pairs, ₹${totalCommission} commission)`,
+          );
         }
       }
     }
   } catch (error) {
-    console.error('Error updating pool money at limit:', error);
+    console.error("Error updating pool money at limit:", error);
   }
 }
 
 // Find the first available position in the tree (first null child)
-function findFirstAvailablePosition(node: BinaryNode, depth: number = 0, maxDepth: number = 10): { parentId: string; side: 'left' | 'right' } | null {
+function findFirstAvailablePosition(
+  node: BinaryNode,
+  depth: number = 0,
+  maxDepth: number = 10,
+): { parentId: string; side: "left" | "right" } | null {
   if (depth > maxDepth) return null;
-  
+
   // Check left child
   if (!node.children.left) {
-    return { parentId: node.id, side: 'left' };
+    return { parentId: node.id, side: "left" };
   }
-  
+
   // Check right child
   if (!node.children.right) {
-    return { parentId: node.id, side: 'right' };
+    return { parentId: node.id, side: "right" };
   }
-  
+
   // Recursively check children
-  const leftResult = findFirstAvailablePosition(node.children.left, depth + 1, maxDepth);
+  const leftResult = findFirstAvailablePosition(
+    node.children.left,
+    depth + 1,
+    maxDepth,
+  );
   if (leftResult) return leftResult;
-  
-  const rightResult = findFirstAvailablePosition(node.children.right, depth + 1, maxDepth);
+
+  const rightResult = findFirstAvailablePosition(
+    node.children.right,
+    depth + 1,
+    maxDepth,
+  );
   if (rightResult) return rightResult;
-  
+
   return null;
 }
 
 // Add node to tree at specified position
-function addNodeToTree(tree: BinaryNode, newNode: BinaryNode, parentId: string, side: 'left' | 'right'): BinaryNode {
+function addNodeToTree(
+  tree: BinaryNode,
+  newNode: BinaryNode,
+  parentId: string,
+  side: "left" | "right",
+): BinaryNode {
   function addNodeRecursive(node: BinaryNode): BinaryNode {
     if (node.id === parentId) {
       return {
@@ -498,80 +566,91 @@ function addNodeToTree(tree: BinaryNode, newNode: BinaryNode, parentId: string, 
         },
       };
     }
-    
+
     return {
       ...node,
       children: {
         left: node.children.left ? addNodeRecursive(node.children.left) : null,
-        right: node.children.right ? addNodeRecursive(node.children.right) : null,
+        right: node.children.right
+          ? addNodeRecursive(node.children.right)
+          : null,
       },
     };
   }
-  
+
   return addNodeRecursive(tree);
 }
 
 // Find parent node of a given node
-function findParentNode(tree: BinaryNode, nodeId: string, parent: BinaryNode | null = null): { parent: BinaryNode | null; side: 'left' | 'right' | null } | null {
+function findParentNode(
+  tree: BinaryNode,
+  nodeId: string,
+  parent: BinaryNode | null = null,
+): { parent: BinaryNode | null; side: "left" | "right" | null } | null {
   if (tree.children.left?.id === nodeId) {
-    return { parent: tree, side: 'left' };
+    return { parent: tree, side: "left" };
   }
   if (tree.children.right?.id === nodeId) {
-    return { parent: tree, side: 'right' };
+    return { parent: tree, side: "right" };
   }
-  
+
   if (tree.children.left) {
     const result = findParentNode(tree.children.left, nodeId, tree);
     if (result) return result;
   }
-  
+
   if (tree.children.right) {
     const result = findParentNode(tree.children.right, nodeId, tree);
     if (result) return result;
   }
-  
+
   return null;
 }
 
 // Swap two sibling nodes (same parent, left and right)
-function swapSiblingNodes(tree: BinaryNode, nodeId: string, newParentId: string, newSide: 'left' | 'right'): BinaryNode {
+function swapSiblingNodes(
+  tree: BinaryNode,
+  nodeId: string,
+  newParentId: string,
+  newSide: "left" | "right",
+): BinaryNode {
   // Find the parent and side of the node being moved
   const sourceParentInfo = findParentNode(tree, nodeId);
   if (!sourceParentInfo || !sourceParentInfo.parent || !sourceParentInfo.side) {
-    console.error('Source parent not found for node swap');
+    console.error("Source parent not found for node swap");
     return tree;
   }
-  
+
   const sourceParent = sourceParentInfo.parent;
   const sourceSide = sourceParentInfo.side;
-  
+
   // Check if we're swapping siblings (same parent, opposite sides)
   if (sourceParent.id !== newParentId) {
-    console.error('Cannot swap: nodes are not siblings');
+    console.error("Cannot swap: nodes are not siblings");
     return tree;
   }
-  
+
   // If trying to swap with the same side, no change needed
   if (sourceSide === newSide) {
     return tree;
   }
-  
+
   // Perform the swap
   function swapRecursive(node: BinaryNode): BinaryNode {
     if (node.id === newParentId) {
       const leftChild = node.children.left;
       const rightChild = node.children.right;
-      
+
       // Swap the children
       return {
         ...node,
         children: {
-          left: rightChild ? { ...rightChild, position: 'left' } : null,
-          right: leftChild ? { ...leftChild, position: 'right' } : null,
+          left: rightChild ? { ...rightChild, position: "left" } : null,
+          right: leftChild ? { ...leftChild, position: "right" } : null,
         },
       };
     }
-    
+
     return {
       ...node,
       children: {
@@ -580,14 +659,22 @@ function swapSiblingNodes(tree: BinaryNode, nodeId: string, newParentId: string,
       },
     };
   }
-  
+
   return swapRecursive(tree);
 }
 
 // Move node in tree (for drag and drop)
-function moveNodeInTree(tree: BinaryNode, nodeId: string, newParentId: string, newSide: 'left' | 'right'): BinaryNode {
+function moveNodeInTree(
+  tree: BinaryNode,
+  nodeId: string,
+  newParentId: string,
+  newSide: "left" | "right",
+): BinaryNode {
   // First, remove the node from its current position
-  function removeNodeRecursive(node: BinaryNode): { node: BinaryNode; removedNode: BinaryNode | null } {
+  function removeNodeRecursive(node: BinaryNode): {
+    node: BinaryNode;
+    removedNode: BinaryNode | null;
+  } {
     if (node.children.left?.id === nodeId) {
       const removedNode = node.children.left;
       return {
@@ -602,101 +689,107 @@ function moveNodeInTree(tree: BinaryNode, nodeId: string, newParentId: string, n
         removedNode,
       };
     }
-    
+
     if (node.children.left) {
       const leftResult = removeNodeRecursive(node.children.left);
       if (leftResult.removedNode) {
         return {
-          node: { ...node, children: { ...node.children, left: leftResult.node } },
+          node: {
+            ...node,
+            children: { ...node.children, left: leftResult.node },
+          },
           removedNode: leftResult.removedNode,
         };
       }
     }
-    
+
     if (node.children.right) {
       const rightResult = removeNodeRecursive(node.children.right);
       if (rightResult.removedNode) {
         return {
-          node: { ...node, children: { ...node.children, right: rightResult.node } },
+          node: {
+            ...node,
+            children: { ...node.children, right: rightResult.node },
+          },
           removedNode: rightResult.removedNode,
         };
       }
     }
-    
+
     return { node, removedNode: null };
   }
-  
+
   const { node: treeWithoutNode, removedNode } = removeNodeRecursive(tree);
-  
+
   if (!removedNode) {
-    console.error('Node not found in tree');
+    console.error("Node not found in tree");
     return tree;
   }
-  
+
   // Now add the node at the new position
   const updatedNode = { ...removedNode, position: newSide };
   return addNodeToTree(treeWithoutNode, updatedNode, newParentId, newSide);
 }
 
 const mockBinaryTree: BinaryNode = {
-  id: 'root',
-  name: 'You',
-  position: 'root',
+  id: "root",
+  name: "You",
+  position: "root",
   pv: 5000,
-  joinedAt: '2024-01-01',
+  joinedAt: "2024-01-01",
   isActive: true,
   children: {
     left: {
-      id: 'l1',
-      name: 'Amit Kumar',
-      position: 'left',
+      id: "l1",
+      name: "Amit Kumar",
+      position: "left",
       pv: 5000,
-      joinedAt: '2024-02-15',
+      joinedAt: "2024-02-15",
       isActive: true,
       children: {
         left: {
-          id: 'l1l',
-          name: 'Priya Singh',
-          position: 'left',
+          id: "l1l",
+          name: "Priya Singh",
+          position: "left",
           pv: 5000,
-          joinedAt: '2024-03-10',
+          joinedAt: "2024-03-10",
           isActive: true,
           children: { left: null, right: null },
         },
         right: {
-          id: 'l1r',
-          name: 'Rahul Sharma',
-          position: 'right',
+          id: "l1r",
+          name: "Rahul Sharma",
+          position: "right",
           pv: 5000,
-          joinedAt: '2024-03-20',
+          joinedAt: "2024-03-20",
           isActive: true,
           children: { left: null, right: null },
         },
       },
     },
     right: {
-      id: 'r1',
-      name: 'Sneha Patel',
-      position: 'right',
+      id: "r1",
+      name: "Sneha Patel",
+      position: "right",
       pv: 5000,
-      joinedAt: '2024-02-20',
+      joinedAt: "2024-02-20",
       isActive: true,
       children: {
         left: {
-          id: 'r1l',
-          name: 'Vikram Reddy',
-          position: 'left',
+          id: "r1l",
+          name: "Vikram Reddy",
+          position: "left",
           pv: 5000,
-          joinedAt: '2024-04-05',
+          joinedAt: "2024-04-05",
           isActive: true,
           children: { left: null, right: null },
         },
         right: {
-          id: 'r1r',
-          name: 'Anita Desai',
-          position: 'right',
+          id: "r1r",
+          name: "Anita Desai",
+          position: "right",
           pv: 5000,
-          joinedAt: '2024-04-15',
+          joinedAt: "2024-04-15",
           isActive: true,
           children: { left: null, right: null },
         },
@@ -706,18 +799,30 @@ const mockBinaryTree: BinaryNode = {
 };
 
 // Calculate pairs from binary tree
-function calculatePairs(node: BinaryNode | null, side: 'left' | 'right'): number {
+function calculatePairs(
+  node: BinaryNode | null,
+  side: "left" | "right",
+): number {
   if (!node) return 0;
   if (!node.children.left && !node.children.right) return 1;
-  return calculatePairs(node.children.left, 'left') + calculatePairs(node.children.right, 'right');
+  return (
+    calculatePairs(node.children.left, "left") +
+    calculatePairs(node.children.right, "right")
+  );
 }
 
-function countReferrals(node: BinaryNode | null): { left: number; right: number; total: number } {
+function countReferrals(node: BinaryNode | null): {
+  left: number;
+  right: number;
+  total: number;
+} {
   if (!node) return { left: 0, right: 0, total: 0 };
-  
-  const leftCount = countReferrals(node.children.left).total + (node.children.left ? 1 : 0);
-  const rightCount = countReferrals(node.children.right).total + (node.children.right ? 1 : 0);
-  
+
+  const leftCount =
+    countReferrals(node.children.left).total + (node.children.left ? 1 : 0);
+  const rightCount =
+    countReferrals(node.children.right).total + (node.children.right ? 1 : 0);
+
   return {
     left: leftCount,
     right: rightCount,
@@ -743,20 +848,25 @@ const poolMoney = cappedPairs >= MAX_PAIRS ? POOL_MONEY_AT_LIMIT : 0;
 const netEarnings = totalEarnings - tdsDeducted - poolMoney;
 const ceilingAmount = Math.min(totalEarnings * 0.2, 20000); // 20% max ₹20,000
 
-const mockPairHistory: PairMatch[] = Array.from({ length: cappedPairs }, (_, i) => ({
-  id: `pair-${i + 1}`,
-  leftUserId: `left-${i + 1}`,
-  rightUserId: `right-${i + 1}`,
-  leftPV: 5000,
-  rightPV: 5000,
-  matchedPV: 5000,
-  commission: COMMISSION_PER_PAIR,
-  tds: COMMISSION_PER_PAIR * TDS_RATE,
-  // Net amount after TDS (pool money is added separately when limit is reached)
-  netAmount: COMMISSION_PER_PAIR * (1 - TDS_RATE),
-  poolMoney: 0, // Pool money is 0 per pair, only ₹4000 when limit reached
-  matchedAt: new Date(Date.now() - (cappedPairs - i) * 86400000).toISOString(),
-}));
+const mockPairHistory: PairMatch[] = Array.from(
+  { length: cappedPairs },
+  (_, i) => ({
+    id: `pair-${i + 1}`,
+    leftUserId: `left-${i + 1}`,
+    rightUserId: `right-${i + 1}`,
+    leftPV: 5000,
+    rightPV: 5000,
+    matchedPV: 5000,
+    commission: COMMISSION_PER_PAIR,
+    tds: COMMISSION_PER_PAIR * TDS_RATE,
+    // Net amount after TDS (pool money is added separately when limit is reached)
+    netAmount: COMMISSION_PER_PAIR * (1 - TDS_RATE),
+    poolMoney: 0, // Pool money is 0 per pair, only ₹4000 when limit reached
+    matchedAt: new Date(
+      Date.now() - (cappedPairs - i) * 86400000,
+    ).toISOString(),
+  }),
+);
 
 const mockStats: BinaryStats = {
   totalLeftPV: leftCount * 5000,
@@ -777,14 +887,23 @@ const mockStats: BinaryStats = {
 };
 
 // Helper function to transform API TreeNodeResponse to BinaryNode
-function transformTreeNodeToBinaryNode(node: TreeNodeResponse | null, position: 'left' | 'right' | 'root' = 'root'): BinaryNode | null {
+function transformTreeNodeToBinaryNode(
+  node: TreeNodeResponse | null,
+  position: "left" | "right" | "root" = "root",
+): BinaryNode | null {
   if (!node) {
-    console.log(`transformTreeNodeToBinaryNode: Node is null for position ${position}`);
+    console.log(
+      `transformTreeNodeToBinaryNode: Node is null for position ${position}`,
+    );
     return null;
   }
 
-  console.log(`transformTreeNodeToBinaryNode: Transforming node ${node.node_id} (${node.user_full_name}), position: ${position}`);
-  console.log(`transformTreeNodeToBinaryNode: Left child exists: ${!!node.left_child}, Right child exists: ${!!node.right_child}`);
+  console.log(
+    `transformTreeNodeToBinaryNode: Transforming node ${node.node_id} (${node.user_full_name}), position: ${position}`,
+  );
+  console.log(
+    `transformTreeNodeToBinaryNode: Left child exists: ${!!node.left_child}, Right child exists: ${!!node.right_child}`,
+  );
 
   const transformed: BinaryNode = {
     id: `node-${node.node_id}`,
@@ -795,12 +914,15 @@ function transformTreeNodeToBinaryNode(node: TreeNodeResponse | null, position: 
     isActive: node.is_active_buyer,
     userId: node.user_id.toString(),
     children: {
-      left: transformTreeNodeToBinaryNode(node.left_child, 'left'),
-      right: transformTreeNodeToBinaryNode(node.right_child, 'right'),
+      left: transformTreeNodeToBinaryNode(node.left_child, "left"),
+      right: transformTreeNodeToBinaryNode(node.right_child, "right"),
     },
   };
 
-  console.log(`transformTreeNodeToBinaryNode: Transformed node ${node.node_id}:`, transformed);
+  console.log(
+    `transformTreeNodeToBinaryNode: Transformed node ${node.node_id}:`,
+    transformed,
+  );
   return transformed;
 }
 
@@ -808,40 +930,55 @@ export const binaryApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getBinaryTree: builder.query<BinaryNode, string>({
       query: () => ({
-        url: 'binary/nodes/tree_structure/',
-        method: 'GET',
+        url: "binary/nodes/tree_structure/",
+        method: "GET",
       }),
       transformResponse: (response: TreeNodeResponse): BinaryNode => {
         // Log the API response
-        console.log('Tree Structure API Response:', response);
-        console.log('Tree Structure API Response - left_child:', response.left_child);
-        console.log('Tree Structure API Response - right_child:', response.right_child);
-        
+        console.log("Tree Structure API Response:", response);
+        console.log(
+          "Tree Structure API Response - left_child:",
+          response.left_child,
+        );
+        console.log(
+          "Tree Structure API Response - right_child:",
+          response.right_child,
+        );
+
         // Transform the root node
-        const leftChild = transformTreeNodeToBinaryNode(response.left_child, 'left');
-        const rightChild = transformTreeNodeToBinaryNode(response.right_child, 'right');
-        
-        console.log('Transformed left child:', leftChild);
-        console.log('Transformed right child:', rightChild);
-        
+        const leftChild = transformTreeNodeToBinaryNode(
+          response.left_child,
+          "left",
+        );
+        const rightChild = transformTreeNodeToBinaryNode(
+          response.right_child,
+          "right",
+        );
+
+        console.log("Transformed left child:", leftChild);
+        console.log("Transformed right child:", rightChild);
+
         const rootUserId =
           response.user_id != null
             ? response.user_id.toString()
             : response.id != null
-            ? response.id.toString()
-            : '';
+              ? response.id.toString()
+              : "";
 
         if (!rootUserId) {
           console.warn(
-            'getBinaryTree.transformResponse: Missing user identifier on response. Raw response:',
+            "getBinaryTree.transformResponse: Missing user identifier on response. Raw response:",
             response,
           );
         }
 
         const rootNode: BinaryNode = {
           id: `node-${response.node_id}`,
-          name: response.user_full_name || response.user_username || response.user_email,
-          position: 'root',
+          name:
+            response.user_full_name ||
+            response.user_username ||
+            response.user_email,
+          position: "root",
           pv: parseFloat(response.total_amount) || 0,
           joinedAt: response.date_joined,
           isActive: response.is_active_buyer,
@@ -851,152 +988,197 @@ export const binaryApi = api.injectEndpoints({
             right: rightChild,
           },
         };
-        
-        console.log('Final root node:', rootNode);
+
+        console.log("Final root node:", rootNode);
         return rootNode;
       },
-      providesTags: (result, error, distributorId) => [{ type: 'Binary', id: distributorId }],
+      providesTags: (result, error, distributorId) => [
+        { type: "Binary", id: distributorId },
+      ],
     }),
     // Get full tree structure with side members
     getTreeStructure: builder.query<
       TreeNodeResponse,
       {
         distributorId: string;
-        side?: 'left' | 'right' | 'both';
+        side?: "left" | "right" | "both";
         page?: number;
         page_size?: number;
         min_depth?: number;
         max_depth?: number;
         search?: string;
+        direct_referrals_only?: boolean;
       }
     >({
-      query: ({ side, page, page_size, min_depth, max_depth, search }) => {
+      query: ({
+        side,
+        page,
+        page_size,
+        min_depth,
+        max_depth,
+        search,
+        direct_referrals_only,
+      }) => {
         const params = new URLSearchParams();
-        
+
         // Always include side (defaults to 'both' if not provided)
         if (side) {
-          params.append('side', side);
+          params.append("side", side);
         }
-        
+
         // Always include page and page_size when provided to ensure pagination
         // API defaults: page=1 if page_size is provided, page_size=20
         // We always send explicit values for consistency and proper caching
         if (page !== undefined && page !== null) {
-          params.append('page', page.toString());
+          params.append("page", page.toString());
         }
         if (page_size !== undefined && page_size !== null) {
-          params.append('page_size', page_size.toString());
+          params.append("page_size", page_size.toString());
         }
-        
+
         // Only include depth filters if they are explicitly set
         // This prevents sending unnecessary parameters
         if (min_depth !== undefined && min_depth !== null) {
-          params.append('min_depth', min_depth.toString());
+          params.append("min_depth", min_depth.toString());
         }
         if (max_depth !== undefined && max_depth !== null) {
-          params.append('max_depth', max_depth.toString());
+          params.append("max_depth", max_depth.toString());
         }
-        
+
         // Include search parameter if provided
         if (search && search.trim()) {
-          params.append('search', search.trim());
+          params.append("search", search.trim());
         }
-        
+
+        // When true, only direct referrals are shown as left/right children
+        if (direct_referrals_only === true) {
+          params.append("direct_referrals_only", "true");
+        }
+
         const queryString = params.toString();
-        const url = queryString 
+        const url = queryString
           ? `binary/nodes/tree_structure/?${queryString}`
-          : 'binary/nodes/tree_structure/';
-        
+          : "binary/nodes/tree_structure/";
+
         // Console log the actual API endpoint URL being called
         const baseUrl = API_BASE_URL;
         const fullUrl = `${baseUrl}${url}`;
         const requestStartTime = performance.now();
         const requestTimestamp = new Date().toISOString();
-        
-        console.log('🌐 [Binary Tree API] Raw endpoint URL:', fullUrl);
-        console.log('🌐 [Binary Tree API] Query parameters:', {
+
+        console.log("🌐 [Binary Tree API] Raw endpoint URL:", fullUrl);
+        console.log("🌐 [Binary Tree API] Query parameters:", {
           side,
           page,
           page_size,
           min_depth,
           max_depth,
           search,
+          direct_referrals_only,
           queryString,
         });
-        console.log('⏱️ [Binary Tree API] Request started at:', requestTimestamp);
-        console.log('⏱️ [Binary Tree API] Performance mark: request-start');
-        
+        console.log(
+          "⏱️ [Binary Tree API] Request started at:",
+          requestTimestamp,
+        );
+        console.log("⏱️ [Binary Tree API] Performance mark: request-start");
+
         // Store start time for later measurement
-        performance.mark('binary-tree-request-start');
-        
+        performance.mark("binary-tree-request-start");
+
         return {
           url,
-          method: 'GET',
+          method: "GET",
         };
       },
       // Transform response to measure API response time
       transformResponse: (response: TreeNodeResponse, meta, arg) => {
         const responseEndTime = performance.now();
         const responseTimestamp = new Date().toISOString();
-        
+
         // Measure time from request start
         try {
-          performance.mark('binary-tree-response-received');
+          performance.mark("binary-tree-response-received");
           performance.measure(
-            'binary-tree-api-duration',
-            'binary-tree-request-start',
-            'binary-tree-response-received'
+            "binary-tree-api-duration",
+            "binary-tree-request-start",
+            "binary-tree-response-received",
           );
-          const measure = performance.getEntriesByName('binary-tree-api-duration')[0];
+          const measure = performance.getEntriesByName(
+            "binary-tree-api-duration",
+          )[0];
           const apiDuration = measure.duration;
-          
-          console.log('⏱️ [Binary Tree API] Response received at:', responseTimestamp);
-          console.log('⏱️ [Binary Tree API] API Response Time:', `${apiDuration.toFixed(2)}ms`);
-          console.log('⏱️ [Binary Tree API] Response size:', {
-            left_side_members_count: response.left_side_members 
-              ? (typeof response.left_side_members === 'object' && 'results' in response.left_side_members
-                  ? response.left_side_members.results.length 
-                  : Array.isArray(response.left_side_members) 
-                    ? response.left_side_members.length 
-                    : 0)
+
+          console.log(
+            "⏱️ [Binary Tree API] Response received at:",
+            responseTimestamp,
+          );
+          console.log(
+            "⏱️ [Binary Tree API] API Response Time:",
+            `${apiDuration.toFixed(2)}ms`,
+          );
+          console.log("⏱️ [Binary Tree API] Response size:", {
+            left_side_members_count: response.left_side_members
+              ? typeof response.left_side_members === "object" &&
+                "results" in response.left_side_members
+                ? response.left_side_members.results.length
+                : Array.isArray(response.left_side_members)
+                  ? response.left_side_members.length
+                  : 0
               : 0,
-            right_side_members_count: response.right_side_members 
-              ? (typeof response.right_side_members === 'object' && 'results' in response.right_side_members
-                  ? response.right_side_members.results.length 
-                  : Array.isArray(response.right_side_members) 
-                    ? response.right_side_members.length 
-                    : 0)
+            right_side_members_count: response.right_side_members
+              ? typeof response.right_side_members === "object" &&
+                "results" in response.right_side_members
+                ? response.right_side_members.results.length
+                : Array.isArray(response.right_side_members)
+                  ? response.right_side_members.length
+                  : 0
               : 0,
             has_left_child: !!response.left_child,
             has_right_child: !!response.right_child,
           });
         } catch (error) {
-          console.warn('⏱️ [Binary Tree API] Performance measurement error:', error);
+          console.warn(
+            "⏱️ [Binary Tree API] Performance measurement error:",
+            error,
+          );
         }
-        
+
         return response;
       },
       // Serialize query args to ensure proper caching for different filter combinations
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
-        const { distributorId, side, page, page_size, min_depth, max_depth } = queryArgs;
-        return `${endpointName}(${JSON.stringify({ 
-          distributorId, 
-          side: side || 'both', 
-          page: page || 1, 
+        const {
+          distributorId,
+          side,
+          page,
+          page_size,
+          min_depth,
+          max_depth,
+          direct_referrals_only,
+        } = queryArgs;
+        return `${endpointName}(${JSON.stringify({
+          distributorId,
+          side: side || "both",
+          page: page || 1,
           page_size: page_size || 20,
           min_depth: min_depth ?? undefined,
-          max_depth: max_depth ?? undefined
+          max_depth: max_depth ?? undefined,
+          direct_referrals_only: direct_referrals_only ?? false,
         })})`;
       },
       providesTags: (result, error, args) => [
-        { type: 'Binary', id: args.distributorId },
-        { type: 'Binary', id: `${args.distributorId}-${args.side || 'both'}-${args.page || 1}` },
+        { type: "Binary", id: args.distributorId },
+        {
+          type: "Binary",
+          id: `${args.distributorId}-${args.side || "both"}-${args.page || 1}`,
+        },
       ],
     }),
     getPendingNodes: builder.query<PendingNode[], string>({
       query: () => ({
-        url: 'binary/nodes/tree_structure/',
-        method: 'GET',
+        url: "binary/nodes/tree_structure/",
+        method: "GET",
       }),
       transformResponse: (response: TreeNodeResponse): PendingNode[] => {
         // Extract pending_users from the response
@@ -1010,10 +1192,12 @@ export const binaryApi = api.injectEndpoints({
           username: user.user_username,
           pv: 0, // PV not provided in API response, defaulting to 0
           joinedAt: new Date().toISOString(), // Joined date not provided in API response
-          referredBy: '', // Referral code not provided in API response
+          referredBy: "", // Referral code not provided in API response
         }));
       },
-      providesTags: (result, error, distributorId) => [{ type: 'PendingNodes', id: distributorId }],
+      providesTags: (result, error, distributorId) => [
+        { type: "PendingNodes", id: distributorId },
+      ],
     }),
     getPairHistory: builder.query<PairMatch[], void>({
       queryFn: async () => {
@@ -1023,20 +1207,20 @@ export const binaryApi = api.injectEndpoints({
     }),
     getBinaryStats: builder.query<BinaryStats, string>({
       query: () => ({
-        url: 'binary/nodes/tree_structure/',
-        method: 'GET',
+        url: "binary/nodes/tree_structure/",
+        method: "GET",
       }),
       transformResponse: (response: TreeNodeResponse): BinaryStats => {
-        // Use actual data from API response
-        const leftCount = response.left_count || 0;
-        const rightCount = response.right_count || 0;
+        // RSL/RSR KPI cards show remaining members to be paired (from nodes/tree_structure)
+        const leftCount = response.remaining_left_members_to_be_paired ?? 0;
+        const rightCount = response.remaining_right_members_to_be_paired ?? 0;
         const totalReferrals = response.total_referrals || 0;
         const totalPairs = response.total_binary_pairs || 0;
         const binaryActivated = response.binary_commission_activated || false;
         const totalEarnings = parseFloat(response.total_earnings) || 0;
         const tdsDeducted = parseFloat(response.tds_current) || 0;
         const netAmountTotal = parseFloat(response.net_amount_total) || 0;
-        
+
         // Calculate total PV for left and right sides from tree structure
         function calculateTotalPV(node: TreeNodeResponse | null): number {
           if (!node) return 0;
@@ -1049,16 +1233,23 @@ export const binaryApi = api.injectEndpoints({
           }
           return total;
         }
-        
-        const totalLeftPV = response.left_child ? calculateTotalPV(response.left_child) : 0;
-        const totalRightPV = response.right_child ? calculateTotalPV(response.right_child) : 0;
-        
+
+        const totalLeftPV = response.left_child
+          ? calculateTotalPV(response.left_child)
+          : 0;
+        const totalRightPV = response.right_child
+          ? calculateTotalPV(response.right_child)
+          : 0;
+
         // Calculate pairs beyond limit (if total pairs > 10)
         const pairsBeyondLimit = Math.max(0, totalPairs - MAX_PAIRS);
-        
+
         // Activation bonus (if activated and has activation timestamp)
-        const activationBonus = binaryActivated && response.activation_timestamp ? ACTIVATION_BONUS : 0;
-        
+        const activationBonus =
+          binaryActivated && response.activation_timestamp
+            ? ACTIVATION_BONUS
+            : 0;
+
         const stats: BinaryStats = {
           totalLeftPV: totalLeftPV,
           totalRightPV: totalRightPV,
@@ -1078,36 +1269,50 @@ export const binaryApi = api.injectEndpoints({
           activationBonus: activationBonus,
           pairsBeyondLimit: pairsBeyondLimit,
         };
-        
-        console.log('Binary Stats from API:', stats);
-        
+
+        console.log("Binary Stats from API:", stats);
+
         return stats;
       },
-      providesTags: (result, error, distributorId) => [{ type: 'BinaryStats', id: distributorId }],
+      providesTags: (result, error, distributorId) => [
+        { type: "BinaryStats", id: distributorId },
+      ],
     }),
     addReferralNode: builder.mutation<
       { success: boolean; message: string },
-      { distributorId: string; userId: string; userName: string; pv: number; referralCode: string }
+      {
+        distributorId: string;
+        userId: string;
+        userName: string;
+        pv: number;
+        referralCode: string;
+      }
     >({
-      queryFn: async ({ distributorId, userId, userName, pv, referralCode }) => {
+      queryFn: async ({
+        distributorId,
+        userId,
+        userName,
+        pv,
+        referralCode,
+      }) => {
         await new Promise((resolve) => setTimeout(resolve, 500));
-        
+
         // Get or create tree
         const trees = getBinaryTreesFromStorage();
         let tree = trees[distributorId];
-        
+
         if (!tree) {
           // Initialize tree if it doesn't exist
           try {
-            const authData = localStorage.getItem('ev_nexus_auth_data');
+            const authData = localStorage.getItem("ev_nexus_auth_data");
             if (authData) {
               const parsed = JSON.parse(authData);
               const user = parsed.user;
               if (user && user.id === distributorId) {
                 tree = {
                   id: `root-${distributorId}`,
-                  name: user.name || 'You',
-                  position: 'root',
+                  name: user.name || "You",
+                  position: "root",
                   pv: user.preBookingInfo?.preBookingAmount || 5000,
                   joinedAt: user.joinedAt || new Date().toISOString(),
                   isActive: true,
@@ -1117,15 +1322,15 @@ export const binaryApi = api.injectEndpoints({
               }
             }
           } catch (e) {
-            console.error('Error initializing tree:', e);
+            console.error("Error initializing tree:", e);
           }
-          
+
           if (!tree) {
             // Fallback: create a basic root node
             tree = {
               id: `root-${distributorId}`,
-              name: 'You',
-              position: 'root',
+              name: "You",
+              position: "root",
               pv: 5000,
               joinedAt: new Date().toISOString(),
               isActive: true,
@@ -1134,7 +1339,7 @@ export const binaryApi = api.injectEndpoints({
             };
           }
         }
-        
+
         // Always add new users to pending nodes - distributor will manually position them
         const pendingNode: PendingNode = {
           id: `pending-${userId}`,
@@ -1144,9 +1349,9 @@ export const binaryApi = api.injectEndpoints({
           joinedAt: new Date().toISOString(),
           referredBy: referralCode,
         };
-        
+
         addPendingNode(distributorId, pendingNode);
-        
+
         return {
           data: {
             success: true,
@@ -1155,83 +1360,116 @@ export const binaryApi = api.injectEndpoints({
         };
       },
       invalidatesTags: (result, error, { distributorId }) => [
-        { type: 'PendingNodes', id: distributorId },
-        { type: 'Binary', id: distributorId },
-        { type: 'BinaryStats', id: distributorId },
+        { type: "PendingNodes", id: distributorId },
+        { type: "Binary", id: distributorId },
+        { type: "BinaryStats", id: distributorId },
       ],
     }),
     positionPendingNode: builder.mutation<
       { success: boolean; message: string },
-      { distributorId: string; userId: string; parentId?: string; side: 'left' | 'right' }
+      {
+        distributorId: string;
+        userId: string;
+        parentId?: string;
+        side: "left" | "right";
+      }
     >({
       query: ({ userId, side }) => {
         // Extract numeric ID from userId
         const targetUserId = parseInt(userId, 10);
-        
+
         // Prepare request body matching the API specification
         const body = {
           target_user_id: targetUserId,
           side: side, // "left" or "right"
-          allow_replacement: false // Optional, default: false
+          allow_replacement: false, // Optional, default: false
         };
-        
+
         // Console log the request body
-        console.log('🔵 [PLACE_USER API] Request Body:', JSON.stringify(body, null, 2));
-        console.log('🔵 [PLACE_USER API] Extracted IDs:', {
+        console.log(
+          "🔵 [PLACE_USER API] Request Body:",
+          JSON.stringify(body, null, 2),
+        );
+        console.log("🔵 [PLACE_USER API] Extracted IDs:", {
           targetUserId,
           side,
         });
-        
+
         return {
-          url: 'binary/nodes/place_user/',
-          method: 'POST',
+          url: "binary/nodes/place_user/",
+          method: "POST",
           body: body,
         };
       },
-      transformResponse: (response: any) => {
+      transformResponse: (response: Record<string, unknown>) => {
         // Console log the response
-        console.log('🟢 [PLACE_USER API] Response:', JSON.stringify(response, null, 2));
-        console.log('🟢 [PLACE_USER API] Response Type:', typeof response);
-        console.log('🟢 [PLACE_USER API] Response Keys:', Object.keys(response || {}));
-        
+        console.log(
+          "🟢 [PLACE_USER API] Response:",
+          JSON.stringify(response, null, 2),
+        );
+        console.log("🟢 [PLACE_USER API] Response Type:", typeof response);
+        console.log(
+          "🟢 [PLACE_USER API] Response Keys:",
+          Object.keys(response || {}),
+        );
+
         return {
           success: true,
-          message: response.message || response.detail || 'User positioned successfully',
+          message: String(
+            response.message ??
+              response.detail ??
+              "User positioned successfully",
+          ),
         };
       },
-      transformErrorResponse: (response: any) => {
+      transformErrorResponse: (response: Record<string, unknown>) => {
         // Console log the error response
-        console.log('🔴 [PLACE_USER API] Error Response:', JSON.stringify(response, null, 2));
-        console.log('🔴 [PLACE_USER API] Error Status:', response.status);
-        console.log('🔴 [PLACE_USER API] Error Data:', response.data);
-        
+        console.log(
+          "🔴 [PLACE_USER API] Error Response:",
+          JSON.stringify(response, null, 2),
+        );
+        console.log("🔴 [PLACE_USER API] Error Status:", response.status);
+        console.log("🔴 [PLACE_USER API] Error Data:", response.data);
+
         return {
-          status: response.status || 'ERROR',
-          data: response.data || response.message || response.detail || 'Failed to position user',
+          status: response.status || "ERROR",
+          data:
+            response.data ||
+            response.message ||
+            response.detail ||
+            "Failed to position user",
         };
       },
       invalidatesTags: (result, error, { distributorId }) => [
-        { type: 'PendingNodes', id: distributorId },
-        { type: 'Binary', id: distributorId },
-        { type: 'BinaryStats', id: distributorId },
+        { type: "PendingNodes", id: distributorId },
+        { type: "Binary", id: distributorId },
+        { type: "BinaryStats", id: distributorId },
       ],
     }),
     moveNode: builder.mutation<
       { success: boolean; message: string },
-      { distributorId: string; nodeId: string; newParentId: string; newSide: 'left' | 'right' }
+      {
+        distributorId: string;
+        nodeId: string;
+        newParentId: string;
+        newSide: "left" | "right";
+      }
     >({
       queryFn: async ({ distributorId, nodeId, newParentId, newSide }) => {
         await new Promise((resolve) => setTimeout(resolve, 500));
-        
+
         const trees = getBinaryTreesFromStorage();
         const tree = trees[distributorId];
-        
+
         if (!tree) {
           return {
-            error: { status: 'NOT_FOUND', data: 'Binary tree not found' },
+            error: {
+              status: 404,
+              data: "Binary tree not found",
+            } as FetchBaseQueryError,
           };
         }
-        
+
         // Validate that new position is available
         function findNodeById(node: BinaryNode, id: string): BinaryNode | null {
           if (node.id === id) return node;
@@ -1245,154 +1483,216 @@ export const binaryApi = api.injectEndpoints({
           }
           return null;
         }
-        
+
         const newParentNode = findNodeById(tree, newParentId);
         if (!newParentNode) {
           return {
-            error: { status: 'NOT_FOUND', data: 'New parent node not found' },
+            error: {
+              status: 404,
+              data: "New parent node not found",
+            } as FetchBaseQueryError,
           };
         }
-        
+
         // Check if target position is occupied
         if (newParentNode.children[newSide]) {
           // Check if we're swapping siblings (same parent, opposite side)
           const sourceParentInfo = findParentNode(tree, nodeId);
-          if (sourceParentInfo && sourceParentInfo.parent && sourceParentInfo.parent.id === newParentId) {
+          if (
+            sourceParentInfo &&
+            sourceParentInfo.parent &&
+            sourceParentInfo.parent.id === newParentId
+          ) {
             // This is a sibling swap - swap the nodes
-            const updatedTree = swapSiblingNodes(tree, nodeId, newParentId, newSide);
+            const updatedTree = swapSiblingNodes(
+              tree,
+              nodeId,
+              newParentId,
+              newSide,
+            );
             saveBinaryTreeToStorage(distributorId, updatedTree);
-            
+
             return {
               data: {
                 success: true,
-                message: 'Nodes swapped successfully.',
+                message: "Nodes swapped successfully.",
               },
             };
           } else {
             // Position is occupied by a non-sibling node
             return {
-              error: { status: 'CONFLICT', data: `Position ${newSide} is already occupied` },
+              error: {
+                status: 409,
+                data: `Position ${newSide} is already occupied`,
+              } as FetchBaseQueryError,
             };
           }
         }
-        
+
         // Move node to empty position
         const updatedTree = moveNodeInTree(tree, nodeId, newParentId, newSide);
         saveBinaryTreeToStorage(distributorId, updatedTree);
-        
+
         return {
           data: {
             success: true,
-            message: 'Node moved successfully.',
+            message: "Node moved successfully.",
           },
         };
       },
       invalidatesTags: (result, error, { distributorId }) => [
-        { type: 'Binary', id: distributorId },
-        { type: 'BinaryStats', id: distributorId },
+        { type: "Binary", id: distributorId },
+        { type: "BinaryStats", id: distributorId },
       ],
     }),
-    addReferral: builder.mutation<{ success: boolean; message: string }, { userId: string; side: 'left' | 'right' }>({
+    addReferral: builder.mutation<
+      { success: boolean; message: string },
+      { userId: string; side: "left" | "right" }
+    >({
       queryFn: async ({ userId, side }) => {
         await new Promise((resolve) => setTimeout(resolve, 500));
         // In real implementation, this would add a referral and check for pair matching
-        return { 
-          data: { 
-            success: true, 
-            message: `Referral added to ${side === 'left' ? 'RSL' : 'RSR'}. Team commission will be calculated automatically.` 
-          } 
+        return {
+          data: {
+            success: true,
+            message: `Referral added to ${side === "left" ? "RSL" : "RSR"}. Team commission will be calculated automatically.`,
+          },
         };
       },
-      invalidatesTags: (result, error, { userId }) => ['Binary', 'BinaryStats'],
+      invalidatesTags: (result, error, { userId }) => ["Binary", "BinaryStats"],
     }),
-    checkPairs: builder.mutation<any, void>({
-      query: () => ({
-        url: 'binary/pairs/check_pairs/',
-        method: 'POST',
-      }),
+    checkPairs: builder.mutation<unknown, void>({
+      query: () => {
+        const body = { confirm: true };
+        console.log("check_pairs body:", body);
+        return {
+          url: "binary/pairs/check_pairs/",
+          method: "POST",
+          body,
+        };
+      },
       invalidatesTags: (result, error) => [
-        { type: 'Binary' },
-        { type: 'BinaryStats' },
+        { type: "Binary" },
+        { type: "BinaryStats" },
       ],
     }),
     // Get node children for lazy loading
     getNodeChildren: builder.query<
-      { node_id: number; left_child: TreeNodeResponse | null; right_child: TreeNodeResponse | null },
-      { node_id: number; side?: 'left' | 'right' | 'both' }
+      {
+        node_id: number;
+        left_child: TreeNodeResponse | null;
+        right_child: TreeNodeResponse | null;
+      },
+      {
+        node_id: number;
+        side?: "left" | "right" | "both";
+        direct_referrals_only?: boolean;
+      }
     >({
-      query: ({ node_id, side }) => {
+      query: ({ node_id, side, direct_referrals_only }) => {
         const params = new URLSearchParams();
-        params.append('node_id', node_id.toString());
-        
+        params.append("node_id", node_id.toString());
+
         if (side) {
-          params.append('side', side);
+          params.append("side", side);
         }
-        
+        if (direct_referrals_only === true) {
+          params.append("direct_referrals_only", "true");
+        }
+
         return {
           url: `binary/nodes/node_children/?${params.toString()}`,
-          method: 'GET',
+          method: "GET",
         };
       },
       providesTags: (result, error, { node_id }) => [
-        { type: 'Binary', id: `node-${node_id}` },
+        { type: "Binary", id: `node-${node_id}` },
       ],
     }),
     // Get available positions for parent node selection
-    getAvailablePositions: builder.query<
-      AvailablePositionsResponse,
-      void
-    >({
+    getAvailablePositions: builder.query<AvailablePositionsResponse, void>({
       query: () => ({
-        url: 'binary/nodes/available_positions/',
-        method: 'GET',
+        url: "binary/nodes/available_positions/",
+        method: "GET",
       }),
-      transformResponse: (response: any): AvailablePositionsResponse => {
+      transformResponse: (
+        response: Record<string, unknown>,
+      ): AvailablePositionsResponse => {
         // Log the raw response
-        console.log('🔵 [Available Positions API] Raw Response:', JSON.stringify(response, null, 2));
-        console.log('🔵 [Available Positions API] Response Type:', typeof response);
-        
+        console.log(
+          "🔵 [Available Positions API] Raw Response:",
+          JSON.stringify(response, null, 2),
+        );
+        console.log(
+          "🔵 [Available Positions API] Response Type:",
+          typeof response,
+        );
+
         // Handle the expected response format with available_positions array
-        if (response && response.available_positions && Array.isArray(response.available_positions)) {
+        if (
+          response &&
+          response.available_positions &&
+          Array.isArray(response.available_positions)
+        ) {
           const transformed: AvailablePositionsResponse = {
-            count: response.count || response.available_positions.length,
-            available_positions: response.available_positions.map((item: any): AvailablePosition => ({
-              node_id: item.node_id,
-              user_id: item.user_id,
-              user_email: item.user_email || '',
-              user_username: item.user_username || item.user_email || '',
-              user_full_name: item.user_full_name || item.user_username || item.user_email || 'Unknown',
-              referral_code: item.referral_code || '',
-              referral_code_used: item.referral_code_used || '',
-              level: item.level || 0,
-              left_available: item.left_available ?? true,
-              right_available: item.right_available ?? true,
-              left_count: item.left_count || 0,
-              right_count: item.right_count || 0,
-            })),
+            count:
+              Number(response.count) ||
+              (response.available_positions as unknown[]).length,
+            available_positions: (
+              response.available_positions as Record<string, unknown>[]
+            ).map(
+              (item: Record<string, unknown>): AvailablePosition => ({
+                node_id: Number(item.node_id) || 0,
+                user_id: Number(item.user_id) || 0,
+                user_email: String(item.user_email ?? ""),
+                user_username: String(
+                  item.user_username ?? item.user_email ?? "",
+                ),
+                user_full_name: String(
+                  item.user_full_name ??
+                    item.user_username ??
+                    item.user_email ??
+                    "Unknown",
+                ),
+                referral_code: String(item.referral_code ?? ""),
+                referral_code_used: String(item.referral_code_used ?? ""),
+                level: Number(item.level) || 0,
+                left_available: item.left_available === false ? false : true,
+                right_available: item.right_available === false ? false : true,
+                left_count: Number(item.left_count) || 0,
+                right_count: Number(item.right_count) || 0,
+              }),
+            ),
           };
-          console.log('🟢 [Available Positions API] Transformed Response:', JSON.stringify(transformed, null, 2));
-          console.log('🟢 [Available Positions API] Count:', transformed.count);
+          console.log(
+            "🟢 [Available Positions API] Transformed Response:",
+            JSON.stringify(transformed, null, 2),
+          );
+          console.log("🟢 [Available Positions API] Count:", transformed.count);
           return transformed;
         }
-        
+
         // Fallback: return empty structure if response format is unexpected
-        console.warn('⚠️ [Available Positions API] Unexpected response format:', response);
+        console.warn(
+          "⚠️ [Available Positions API] Unexpected response format:",
+          response,
+        );
         return {
           count: 0,
           available_positions: [],
         };
       },
-      providesTags: [{ type: 'Binary', id: 'available-positions' }],
+      providesTags: [{ type: "Binary", id: "available-positions" }],
     }),
   }),
 });
 
-export const { 
+export const {
   useGetBinaryTreeQuery,
   useGetTreeStructureQuery,
   useGetPendingNodesQuery,
-  useGetPairHistoryQuery, 
-  useGetBinaryStatsQuery, 
+  useGetPairHistoryQuery,
+  useGetBinaryStatsQuery,
   useAddReferralMutation,
   useAddReferralNodeMutation,
   usePositionPendingNodeMutation,

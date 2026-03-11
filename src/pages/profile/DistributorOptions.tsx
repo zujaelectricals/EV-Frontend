@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAppSelector } from '@/app/hooks';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { copyToClipboard } from '@/lib/utils';
 
 export function DistributorOptions() {
   const { user } = useAppSelector((state) => state.auth);
@@ -13,9 +14,10 @@ export function DistributorOptions() {
 
   const referralLink = `https://zuja.com/ref/${distributorInfo?.referralCode || user?.id}`;
 
-  const copyReferralLink = () => {
-    navigator.clipboard.writeText(referralLink);
-    toast.success('ASA link copied to clipboard!');
+  const copyReferralLink = async () => {
+    const ok = await copyToClipboard(referralLink);
+    if (ok) toast.success('ASA link copied to clipboard!');
+    else toast.error('Could not copy. Please select and copy the link manually.');
   };
 
   const distributorOptions = [

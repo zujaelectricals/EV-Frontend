@@ -5,6 +5,49 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Copy text to clipboard. Tries Clipboard API first, then falls back to
+ * document.execCommand('copy') so copy works even when the async API fails
+ * (e.g. permission, secure context, or user gesture issues).
+ * @returns true if copy succeeded, false otherwise
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (!text) return false;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fall through to fallback
+  }
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    textarea.setAttribute('readonly', '');
+    document.body.appendChild(textarea);
+    textarea.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Format wallet transaction type for display: underscores to spaces,
+ * and "BINARY PAIR" replaced with "Partner Framework".
+ */
+export function formatWalletTransactionType(type: string): string {
+  return type
+    .replace(/_/g, " ")
+    .replace(/\bBINARY PAIR\b/gi, "Partner Framework");
+}
+
 // JWT token utilities
 interface JWTPayload {
   exp?: number; // Expiration time (Unix timestamp)
@@ -126,6 +169,45 @@ export function formatDisplayDateTime(date: string | Date | null | undefined, se
     const minutes = String(dateObj.getMinutes()).padStart(2, '0');
     
     return `${day}${separator}${month}${separator}${year} ${hours}:${minutes}`;
+  } catch {
+    return 'N/A';
+  }
+}
+
+/**
+ * Format a date with time in Indian Standard Time (IST) for UI display
+ * @param date - Date string, Date object, or null/undefined
+ * @param separator - Separator to use between date parts (default: '/')
+ * @returns Formatted string e.g. "09/03/2026, 14:30 IST", or 'N/A' if invalid
+ */
+export function formatDisplayDateTimeIST(date: string | Date | null | undefined, separator: '/' | '-' = '/'): string {
+  if (!date) return 'N/A';
+
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+    if (isNaN(dateObj.getTime())) {
+      return 'N/A';
+    }
+
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(dateObj);
+    const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? '';
+    const day = get('day');
+    const month = get('month');
+    const year = get('year');
+    const hour = get('hour');
+    const minute = get('minute');
+
+    return `${day}${separator}${month}${separator}${year}, ${hour}:${minute} IST`;
   } catch {
     return 'N/A';
   }

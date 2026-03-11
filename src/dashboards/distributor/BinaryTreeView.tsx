@@ -50,6 +50,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -91,7 +93,7 @@ import { toast } from "sonner";
 import { BinaryTreeNode } from "@/binary/components/BinaryTreeNode";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { formatDisplayDate } from "@/lib/utils";
+import { formatDisplayDateTimeIST } from "@/lib/utils";
 
 interface TeamMember {
   id: string;
@@ -534,6 +536,7 @@ export const BinaryTreeView = () => {
   const [pageSize, setPageSize] = useState(500); // Default: 500
   const [minDepth, setMinDepth] = useState<number | undefined>(undefined); // Optional, no default
   const [maxDepth, setMaxDepth] = useState<number | undefined>(500); // Default: 500
+  const [directReferralsOnly, setDirectReferralsOnly] = useState(false);
 
   // Search state
   const [searchInput, setSearchInput] = useState(""); // Input field value
@@ -566,6 +569,7 @@ export const BinaryTreeView = () => {
       min_depth?: number;
       max_depth?: number;
       search?: string;
+      direct_referrals_only?: boolean;
     } = {
       distributorId,
       side: sideFilter,
@@ -590,6 +594,10 @@ export const BinaryTreeView = () => {
       params.search = searchQuery.trim();
     }
 
+    if (directReferralsOnly) {
+      params.direct_referrals_only = true;
+    }
+
     return params;
   }, [
     distributorId,
@@ -599,6 +607,7 @@ export const BinaryTreeView = () => {
     minDepth,
     maxDepth,
     searchQuery,
+    directReferralsOnly,
   ]);
 
   const {
@@ -664,7 +673,11 @@ export const BinaryTreeView = () => {
     isLoading: isLoadingChildren,
     isFetching: isFetchingChildren,
   } = useGetNodeChildrenQuery(
-    { node_id: currentLoadingNodeId!, side: "both" },
+    {
+      node_id: currentLoadingNodeId!,
+      side: "both",
+      direct_referrals_only: directReferralsOnly || undefined,
+    },
     { skip: !currentLoadingNodeId, refetchOnMountOrArgChange: true },
   );
 
@@ -1302,8 +1315,23 @@ export const BinaryTreeView = () => {
   const handleMatchPairs = async () => {
     try {
       const result = await checkPairs().unwrap();
-      console.log("Check Pairs Response:", result);
-      toast.success("Pairs matched successfully!");
+      const apiMessage =
+        result && typeof result === "object"
+          ? ((
+              result as {
+                message?: string;
+                detail?: string;
+                data?: { message?: string };
+              }
+            ).message ??
+            (result as { detail?: string }).detail ??
+            (result as { data?: { message?: string } }).data?.message)
+          : undefined;
+      const message =
+        typeof apiMessage === "string" && apiMessage.trim()
+          ? apiMessage
+          : "Pairs matched successfully!";
+      toast.success(message);
       // Refetch tree structure after matching pairs
       await refetchTree();
       await refetchStructure();
@@ -1426,27 +1454,25 @@ export const BinaryTreeView = () => {
           title="Revenue Stream Left (RSL) Count"
           value={binaryStats?.leftCount?.toString() || "0"}
           icon={Users}
-          variant="info"
+          variant="primary"
         />
         <StatsCard
           title="Revenue Stream Right (RSR) Count"
           value={binaryStats?.rightCount?.toString() || "0"}
           icon={Users}
-          variant="info"
+          variant="primary"
         />
         <StatsCard
           title="Total Partner Framework"
-          value={`${binaryStats?.totalPairs || 0}/${
-            binaryStats?.maxPairs || 10
-          }`}
+          value={(binaryStats?.totalPairs ?? 0).toString()}
           icon={GitBranch}
           variant="primary"
         />
         <StatsCard
           title="Total Earnings"
-          value="••••"
+          value={`₹${(binaryStats?.totalEarnings || 0).toLocaleString()}`}
           icon={TrendingUp}
-          variant="success"
+          variant="primary"
         />
       </div>
 
@@ -1506,15 +1532,6 @@ export const BinaryTreeView = () => {
                         {pendingNode.email && (
                           <p className="text-sm text-muted-foreground mt-1">
                             {pendingNode.email}
-                          </p>
-                        )}
-                        {pendingNode.pv > 0 ? (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            PV: ₹{pendingNode.pv.toLocaleString()}
-                          </p>
-                        ) : (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            PV: N/A
                           </p>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
@@ -1667,137 +1684,123 @@ export const BinaryTreeView = () => {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          {/* Server-side Filters */}
-          <div className="flex flex-col gap-3 mb-6 p-4 rounded-xl bg-gradient-to-r from-pink-50/60 to-slate-50/60 border border-pink-500/15">
-            {/* Top row: dropdowns and depth filters */}
-            <div className="flex flex-wrap items-center gap-3">
-              <Select
-                value={sideFilter}
-                onValueChange={(value: "left" | "right" | "both") => {
-                  setSideFilter(value);
-                  setLeftPage(1);
-                  setRightPage(1);
-                  setBothPage(1);
-                  // Clear expanded nodes when filter changes
-                  setExpandedNodes(new Set());
-                  setLoadedChildren(new Map());
-                }}
-              >
-                <SelectTrigger className="w-[130px] border-pink-500/25 bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="both">Both Sides</SelectItem>
-                  <SelectItem value="left">Left (RSL)</SelectItem>
-                  <SelectItem value="right">Right (RSR)</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={pageSize.toString()}
-                onValueChange={(value) => {
-                  setPageSize(Number(value));
-                  setLeftPage(1);
-                  setRightPage(1);
-                  setBothPage(1);
-                  // Clear expanded nodes when page size changes
-                  setExpandedNodes(new Set());
-                  setLoadedChildren(new Map());
-                }}
-              >
-                <SelectTrigger className="w-[90px] border-pink-500/25 bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="75">75</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                  <SelectItem value="500">500</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium whitespace-nowrap text-foreground">
-                  Min Depth:
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={minDepth ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value.trim();
-                    setMinDepth(value === "" ? undefined : Number(value));
-                    // Clear expanded nodes when depth filter changes
-                    setExpandedNodes(new Set());
-                    setLoadedChildren(new Map());
-                  }}
-                  placeholder="0"
-                  className="w-[70px] border-pink-500/25"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium whitespace-nowrap text-foreground">
-                  Max Depth:
-                </label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={maxDepth ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value.trim();
-                    setMaxDepth(value === "" ? undefined : Number(value));
-                    // Clear expanded nodes when depth filter changes
-                    setExpandedNodes(new Set());
-                    setLoadedChildren(new Map());
-                  }}
-                  placeholder="2"
-                  className="w-[70px] border-pink-500/25"
-                />
-              </div>
-            </div>
-
-            {/* Search row - full width on mobile */}
+          {/* Server-side Filters - single row: dropdowns, depth filters, search */}
+          <div className="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-xl bg-gradient-to-r from-pink-50/60 to-slate-50/60 border border-pink-500/15">
+            <Select
+              value={sideFilter}
+              onValueChange={(value: "left" | "right" | "both") => {
+                setSideFilter(value);
+                setLeftPage(1);
+                setRightPage(1);
+                setBothPage(1);
+                setExpandedNodes(new Set());
+                setLoadedChildren(new Map());
+              }}
+            >
+              <SelectTrigger className="w-[130px] border-pink-500/25 bg-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="both">Both Sides</SelectItem>
+                <SelectItem value="left">Left (RSL)</SelectItem>
+                <SelectItem value="right">Right (RSR)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setLeftPage(1);
+                setRightPage(1);
+                setBothPage(1);
+                setExpandedNodes(new Set());
+                setLoadedChildren(new Map());
+              }}
+            >
+              <SelectTrigger className="w-[90px] border-pink-500/25 bg-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="75">75</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+                <SelectItem value="500">500</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      setSearchQuery(searchInput);
-                      // Clear expanded nodes when search changes
-                      setExpandedNodes(new Set());
-                      setLoadedChildren(new Map());
-                    }
+              <label className="text-sm font-medium whitespace-nowrap text-foreground">
+                Min Depth:
+              </label>
+              <Input
+                type="number"
+                min="0"
+                value={minDepth ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  setMinDepth(value === "" ? undefined : Number(value));
+                  setExpandedNodes(new Set());
+                  setLoadedChildren(new Map());
+                }}
+                placeholder="0"
+                className="w-[70px] border-pink-500/25"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium whitespace-nowrap text-foreground">
+                Max Depth:
+              </label>
+              <Input
+                type="number"
+                min="1"
+                value={maxDepth ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value.trim();
+                  setMaxDepth(value === "" ? undefined : Number(value));
+                  setExpandedNodes(new Set());
+                  setLoadedChildren(new Map());
+                }}
+                placeholder="2"
+                className="w-[70px] border-pink-500/25"
+              />
+            </div>
+            <div className="relative flex-1 min-w-[180px] flex items-center gap-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none shrink-0" />
+              <Input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setSearchQuery(searchInput);
+                    setExpandedNodes(new Set());
+                    setLoadedChildren(new Map());
+                  }
+                }}
+                placeholder="Search members..."
+                className="w-full min-w-0 pl-9 pr-8 border-pink-500/25 bg-white h-10"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => {
+                    setSearchInput("");
+                    setSearchQuery("");
+                    setExpandedNodes(new Set());
+                    setLoadedChildren(new Map());
                   }}
-                  placeholder="Search members..."
-                  className="w-full pl-9 pr-8 border-pink-500/25 bg-white"
-                />
-                {searchInput && (
-                  <button
-                    onClick={() => {
-                      setSearchInput("");
-                      setSearchQuery("");
-                      // Clear expanded nodes when search is cleared
-                      setExpandedNodes(new Set());
-                      setLoadedChildren(new Map());
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
               <Button
                 size="sm"
                 onClick={() => {
                   setSearchQuery(searchInput);
-                  // Clear expanded nodes when search changes
                   setExpandedNodes(new Set());
                   setLoadedChildren(new Map());
                 }}
-                className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:from-pink-600 hover:to-rose-600 shrink-0"
+                className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 hover:from-pink-600 hover:to-rose-600 shrink-0 h-10"
               >
                 <Search className="h-4 w-4 mr-1" />
                 Search
@@ -1904,7 +1907,7 @@ export const BinaryTreeView = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="py-3 text-muted-foreground">
-                          {formatDisplayDate(member.joinedAt)}
+                          {formatDisplayDateTimeIST(member.joinedAt)}
                         </TableCell>
                         <TableCell className="py-3">
                           {member.isActive ? (
@@ -2054,7 +2057,7 @@ export const BinaryTreeView = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="py-4 text-muted-foreground">
-                            {formatDisplayDate(member.joinedAt)}
+                            {formatDisplayDateTimeIST(member.joinedAt)}
                           </TableCell>
                           <TableCell className="py-4">
                             {member.isActive ? (

@@ -87,7 +87,7 @@ export function PayButton({
         entityId,
         openRazorpayCheckout,
         {
-          name: name || 'EV Nexus',
+          name: name || 'Zuja Electricals',
           description: description || `Payment for ${entityType}`,
           prefill: getUserPrefill(),
           onClose: () => {

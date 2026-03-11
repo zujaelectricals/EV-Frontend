@@ -55,6 +55,7 @@ import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { setCredentials } from "@/app/slices/authSlice";
 import { useGetBookingsQuery } from "@/app/api/bookingApi";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export function ProfilePage() {
@@ -793,28 +794,27 @@ export function ProfilePage() {
                   </div>
                 ) : rawProfileData?.referral_link ? (
                   <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <div className="flex-1 relative">
-                        <input
-                          type="text"
-                          value={rawProfileData.referral_link}
-                          readOnly
-                          className="w-full px-3 py-2 pr-12 border border-border rounded-md bg-muted text-sm sm:text-base font-mono cursor-text"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            navigator.clipboard.writeText(rawProfileData.referral_link || '');
-                            toast.success('ASA link copied to clipboard!');
-                          }}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                          title="Copy ASA link"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                      </div>
+                    <div className="flex gap-2 items-stretch">
+                      <input
+                        type="text"
+                        value={rawProfileData.referral_link}
+                        readOnly
+                        className="flex-1 min-w-0 px-3 py-2 border border-border rounded-md bg-muted text-sm sm:text-base font-mono cursor-text"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={async () => {
+                          const ok = await copyToClipboard(rawProfileData.referral_link || '');
+                          if (ok) toast.success('ASA link copied to clipboard!');
+                          else toast.error('Could not copy. Please select and copy the link manually.');
+                        }}
+                        className="h-auto shrink-0 w-10 rounded-md border border-border"
+                        title="Copy ASA link"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
                     </div>
                     <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
                       <p className="text-sm font-medium mb-2">How it works:</p>
@@ -1427,28 +1427,27 @@ export function ProfilePage() {
                         <LinkIcon className="w-4 h-4" />
                         Your ASA Link
                       </label>
-                      <div className="flex gap-2">
-                        <div className="flex-1 relative">
-                          <input
-                            type="text"
-                            value={profileData.referral_link}
-                            readOnly
-                            className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-muted text-sm sm:text-base font-mono cursor-text"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              navigator.clipboard.writeText(profileData.referral_link || '');
-                              toast.success('ASA link copied to clipboard!');
-                            }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                            title="Copy ASA link"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
-                        </div>
+                      <div className="flex gap-2 items-stretch">
+                        <input
+                          type="text"
+                          value={profileData.referral_link}
+                          readOnly
+                          className="flex-1 min-w-0 px-3 py-2 border border-border rounded-md bg-muted text-sm sm:text-base font-mono cursor-text"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={async () => {
+                            const ok = await copyToClipboard(profileData.referral_link || '');
+                            if (ok) toast.success('ASA link copied to clipboard!');
+                            else toast.error('Could not copy. Please select and copy the link manually.');
+                          }}
+                          className="h-auto shrink-0 w-10 rounded-md border border-border"
+                          title="Copy ASA link"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Share this link with friends and family to earn referral bonuses
