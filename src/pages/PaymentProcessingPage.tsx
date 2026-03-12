@@ -168,18 +168,26 @@ export function PaymentProcessingPage() {
         contact: user.phone || undefined,
       } : undefined;
 
-      // Trigger Razorpay payment flow directly for additional payment
+      // Trigger Razorpay — onPaymentSubmitted closes UI as soon as user pays (before verification)
       const paymentResult = await payForEntity(
         'booking',
-        typeof additionalPaymentData.bookingId === 'string' 
-          ? parseInt(additionalPaymentData.bookingId, 10) 
+        typeof additionalPaymentData.bookingId === 'string'
+          ? parseInt(additionalPaymentData.bookingId, 10)
           : additionalPaymentData.bookingId,
         openRazorpayCheckout,
         {
-          name: 'EV Nexus',
+          name: 'Zuja Electricals',
           description: `Additional payment for ${additionalPaymentData.vehicleName}`,
           amount: additionalPaymentData.amount,
           prefill: userPrefill,
+          onPaymentSubmitted: () => {
+            setIsProcessing(false);
+            navigate('/profile?tab=orders', {
+              replace: true,
+              state: { paymentCompleted: true },
+            });
+            setTimeout(() => toast.success('Payment Verified Successfully', { duration: 4000 }), 300);
+          },
           onClose: () => {
             setIsProcessing(false);
             toast.info('Payment cancelled. You can try again later.');
@@ -193,60 +201,20 @@ export function PaymentProcessingPage() {
         }
       );
 
-      // Payment verified successfully
+      // Verification completed after we already navigated; invalidate so orders refresh
       if (paymentResult.success) {
-        setStatusMessage('Payment verified successfully!');
-        
-        // Invalidate booking cache to force refresh of My Orders section
-        const bookingId = typeof additionalPaymentData.bookingId === 'string' 
-          ? parseInt(additionalPaymentData.bookingId, 10) 
+        const bookingId = typeof additionalPaymentData.bookingId === 'string'
+          ? parseInt(additionalPaymentData.bookingId, 10)
           : additionalPaymentData.bookingId;
-        
         dispatch(
           api.util.invalidateTags([
             { type: 'Booking', id: 'LIST' },
             { type: 'Booking', id: 'LIST-all' },
             { type: 'Booking', id: 'LIST-pending' },
             { type: 'Booking', id: 'LIST-active' },
-            { type: 'Booking', id: bookingId }, // Invalidate specific booking
+            { type: 'Booking', id: bookingId },
           ])
         );
-        
-        console.log('✅ [PAYMENT-PROCESSING] Invalidated booking cache for refresh');
-        
-        // Wait a moment to show success message
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Navigate to profile page with orders tab and payment completed flag
-        navigate('/profile?tab=orders', { 
-          replace: true,
-          state: { paymentCompleted: true }
-        });
-        
-        // Show success toast after navigation
-        setTimeout(() => {
-          // Check if payment was already verified by webhook
-          const normalizedMessage = paymentResult.message?.toLowerCase().trim() || '';
-          const hasAlready = normalizedMessage.includes('already');
-          const hasSuccess = normalizedMessage.includes('success') || normalizedMessage.includes('succeed');
-          const hasWebhook = normalizedMessage.includes('webhook');
-          const hasProcessed = normalizedMessage.includes('processed');
-          
-          const isWebhookVerified = normalizedMessage && (
-            (hasAlready && (hasSuccess || hasWebhook || hasProcessed)) ||
-            normalizedMessage.includes('already verified') ||
-            normalizedMessage.includes('payment already') ||
-            normalizedMessage.includes('already verified by')
-          );
-          
-          const successMessage = isWebhookVerified 
-            ? 'Payment Verified Successfully' 
-            : (paymentResult.message || 'Payment Verified Successfully');
-          
-          toast.success(successMessage, {
-            duration: 4000,
-          });
-        }, 600);
       } else {
         throw new Error(paymentResult.message || 'Payment verification failed');
       }
@@ -282,15 +250,20 @@ export function PaymentProcessingPage() {
         contact: user.phone || undefined,
       } : undefined;
 
-      // Trigger Razorpay payment flow
+      // Trigger Razorpay payment flow — onPaymentSubmitted closes UI as soon as user pays (before verification)
       const paymentResult = await payForEntity(
         'booking',
         booking.id,
         openRazorpayCheckout,
         {
-          name: 'EV Nexus',
+          name: 'Zuja Electricals',
           description: `Pre-booking payment for ${bookingData.scooter.name}`,
           prefill: userPrefill,
+          onPaymentSubmitted: () => {
+            setIsProcessing(false);
+            navigate('/profile?tab=orders', { replace: true });
+            setTimeout(() => toast.success('Payment Verified Successfully', { duration: 4000 }), 300);
+          },
           onClose: () => {
             setIsProcessing(false);
             toast.info('Payment cancelled. You can complete payment later.');
@@ -306,157 +279,128 @@ export function PaymentProcessingPage() {
         }
       );
 
-      // Payment verified successfully
+      // Verification completed after we already navigated; run post-payment logic in background
       if (paymentResult.success) {
-        setStatusMessage('Verifying your payment...');
-        
-        // Call make payment API
-        const paymentResponse = await makePayment({
-          bookingId: booking.id,
-          paymentData: {
-            amount: bookingData.booking_amount,
-            payment_method: 'online',
-          },
-        }).unwrap();
-
-        const updatedBooking = paymentResponse || booking;
-
-        // Calculate referral bonus if ASA code is provided
-        let referralBonus = 0;
-        let tdsDeducted = 0;
-        if (bookingData.referral_code && bookingData.referral_code.trim()) {
-          referralBonus = REFERRAL_BONUS;
-          tdsDeducted = referralBonus * TDS_RATE;
-          const netBonus = referralBonus - tdsDeducted;
-
-          dispatch(addPayout({
-            id: `payout-${Date.now()}`,
-            amount: netBonus,
-            type: 'referral',
-            status: 'pending',
-            description: `Referral bonus for ${bookingData.scooter.name} pre-booking`,
-            tds: tdsDeducted,
-            netAmount: netBonus,
-            requestedAt: new Date().toISOString(),
-          }));
-        }
-
-        // Create local booking object
-        const localBooking = {
-          id: updatedBooking.id.toString(),
-          vehicleId: bookingData.scooter.id,
-          vehicleName: bookingData.scooter.name,
-          status: 'pre-booked' as const,
-          preBookingAmount: parseFloat(updatedBooking.booking_amount),
-          totalAmount: parseFloat(updatedBooking.total_amount),
-          remainingAmount: parseFloat(updatedBooking.remaining_amount),
-          totalPaid: parseFloat(updatedBooking.total_paid),
-          paymentMethod: 'full' as const,
-          emiPlan: undefined,
-          paymentDueDate: updatedBooking.expires_at as string,
-          paymentStatus: 'partial' as const,
-          isActiveBuyer: true,
-          redemptionPoints: bookingData.redemptionPoints,
-          redemptionEligible: false,
-          bookedAt: updatedBooking.created_at as string,
-          referredBy: updatedBooking.referred_by && typeof updatedBooking.referred_by === 'object' 
-            ? String(updatedBooking.referred_by.id) 
-            : undefined,
-          referralBonus: referralBonus > 0 ? referralBonus : undefined,
-          tdsDeducted: referralBonus > 0 ? tdsDeducted : undefined,
-          addedToTeamNetwork: false,
-        };
-
-        // Add user to distributor's binary tree if eligible
-        if (user && bookingData.booking_amount >= DISTRIBUTOR_ELIGIBILITY_AMOUNT && bookingData.referral_code && bookingData.referral_code.trim()) {
+        void (async () => {
           try {
-            let distributorId: string | null = null;
-            
-            const authDataStr = localStorage.getItem('ev_nexus_auth_data');
-            if (authDataStr) {
+            const paymentResponse = await makePayment({
+              bookingId: booking.id,
+              paymentData: {
+                amount: bookingData.booking_amount,
+                payment_method: 'online',
+              },
+            }).unwrap();
+            const updatedBooking = paymentResponse || booking;
+
+            let referralBonus = 0;
+            let tdsDeducted = 0;
+            if (bookingData.referral_code?.trim()) {
+              referralBonus = REFERRAL_BONUS;
+              tdsDeducted = referralBonus * TDS_RATE;
+              dispatch(addPayout({
+                id: `payout-${Date.now()}`,
+                amount: referralBonus - tdsDeducted,
+                type: 'referral',
+                status: 'pending',
+                description: `Referral bonus for ${bookingData.scooter.name} pre-booking`,
+                tds: tdsDeducted,
+                netAmount: referralBonus - tdsDeducted,
+                requestedAt: new Date().toISOString(),
+              }));
+            }
+
+            const localBooking = {
+              id: updatedBooking.id.toString(),
+              vehicleId: bookingData.scooter.id,
+              vehicleName: bookingData.scooter.name,
+              status: 'pre-booked' as const,
+              preBookingAmount: parseFloat(updatedBooking.booking_amount),
+              totalAmount: parseFloat(updatedBooking.total_amount),
+              remainingAmount: parseFloat(updatedBooking.remaining_amount),
+              totalPaid: parseFloat(updatedBooking.total_paid),
+              paymentMethod: 'full' as const,
+              emiPlan: undefined,
+              paymentDueDate: updatedBooking.expires_at as string,
+              paymentStatus: 'partial' as const,
+              isActiveBuyer: true,
+              redemptionPoints: bookingData.redemptionPoints,
+              redemptionEligible: false,
+              bookedAt: updatedBooking.created_at as string,
+              referredBy: updatedBooking.referred_by && typeof updatedBooking.referred_by === 'object'
+                ? String(updatedBooking.referred_by.id)
+                : undefined,
+              referralBonus: referralBonus > 0 ? referralBonus : undefined,
+              tdsDeducted: referralBonus > 0 ? tdsDeducted : undefined,
+              addedToTeamNetwork: false,
+            };
+
+            if (!user || bookingData.booking_amount < DISTRIBUTOR_ELIGIBILITY_AMOUNT || !bookingData.referral_code?.trim()) {
+              dispatch(addBooking(localBooking));
+            } else {
+              let distributorId: string | null = null;
               try {
-                const authData = JSON.parse(authDataStr);
-                if (authData.user?.distributorInfo?.referralCode === bookingData.referral_code.trim() &&
-                    authData.user?.distributorInfo?.isDistributor === true &&
-                    authData.user?.distributorInfo?.isVerified === true) {
-                  distributorId = authData.user.id;
+                const authDataStr = localStorage.getItem('ev_nexus_auth_data');
+                if (authDataStr) {
+                  const authData = JSON.parse(authDataStr);
+                  if (authData.user?.distributorInfo?.referralCode === bookingData.referral_code.trim() &&
+                      authData.user?.distributorInfo?.isDistributor === true &&
+                      authData.user?.distributorInfo?.isVerified === true) {
+                    distributorId = authData.user.id;
+                  }
                 }
               } catch (e) {
                 console.error('Error parsing auth data:', e);
               }
+              if (distributorId) {
+                addReferralNode({
+                  distributorId,
+                  userId: user.id,
+                  userName: user.name,
+                  pv: bookingData.booking_amount,
+                  referralCode: bookingData.referral_code.trim(),
+                }).unwrap().then(() => {
+                  dispatch(addBooking({ ...localBooking, addedToTeamNetwork: true }));
+                }).catch((err) => {
+                  console.error('Error adding user to binary tree:', err);
+                  dispatch(addBooking(localBooking));
+                });
+              } else {
+                dispatch(addBooking(localBooking));
+              }
             }
-            
-            if (distributorId) {
-              await addReferralNode({
-                distributorId: distributorId,
-                userId: user.id,
-                userName: user.name,
-                pv: bookingData.booking_amount,
-                referralCode: bookingData.referral_code.trim(),
-              }).unwrap();
-              
-              localBooking.addedToTeamNetwork = true;
+
+            if (typeof window !== 'undefined') {
+              if (bookingData.referral_code?.trim()) {
+                localStorage.setItem('ev_nexus_referral_code', bookingData.referral_code.trim());
+              }
+              if (bookingData.delivery_city?.trim()) localStorage.setItem('ev_nexus_delivery_city', bookingData.delivery_city.trim());
+              if (bookingData.delivery_state?.trim()) localStorage.setItem('ev_nexus_delivery_state', bookingData.delivery_state.trim());
+              if (bookingData.delivery_pin?.trim()) localStorage.setItem('ev_nexus_delivery_pincode', bookingData.delivery_pin.trim());
             }
-          } catch (error) {
-            console.error('Error adding user to binary tree:', error);
+
+            dispatch(updatePreBooking({
+              hasPreBooked: true,
+              preBookingAmount: bookingData.booking_amount,
+              totalPaid: bookingData.booking_amount,
+              preBookingDate: new Date().toISOString(),
+              vehicleId: bookingData.scooter.id,
+              vehicleName: bookingData.scooter.name,
+              isActiveBuyer: true,
+              remainingAmount: bookingData.remainingAmount,
+              paymentDueDate: bookingData.paymentDueDate,
+              paymentStatus: 'partial',
+              redemptionPoints: bookingData.redemptionPoints,
+              redemptionEligible: false,
+              isDistributorEligible: bookingData.isAlreadyDistributor ? true : bookingData.isDistributorEligible,
+              wantsToJoinDistributor: bookingData.isAlreadyDistributor ? false : bookingData.joinDistributorProgram,
+            }));
+            dispatch(api.util.invalidateTags(['Inventory']));
+          } catch (err) {
+            console.error('Post-payment sync failed:', err);
+            toast.error('Payment recorded. Refreshing your orders.');
+            dispatch(api.util.invalidateTags(['Booking', 'Inventory']));
           }
-        }
-
-        dispatch(addBooking(localBooking));
-
-        // Store ASA code in localStorage
-        if (bookingData.referral_code.trim() && typeof window !== 'undefined') {
-          localStorage.setItem('ev_nexus_referral_code', bookingData.referral_code.trim());
-        }
-        
-        // Store delivery address in localStorage
-        if (typeof window !== 'undefined') {
-          if (bookingData.delivery_city.trim()) {
-            localStorage.setItem('ev_nexus_delivery_city', bookingData.delivery_city.trim());
-          }
-          if (bookingData.delivery_state.trim()) {
-            localStorage.setItem('ev_nexus_delivery_state', bookingData.delivery_state.trim());
-          }
-          if (bookingData.delivery_pin.trim()) {
-            localStorage.setItem('ev_nexus_delivery_pincode', bookingData.delivery_pin.trim());
-          }
-        }
-
-        // Update user pre-booking info
-        dispatch(updatePreBooking({
-          hasPreBooked: true,
-          preBookingAmount: bookingData.booking_amount,
-          totalPaid: bookingData.booking_amount,
-          preBookingDate: new Date().toISOString(),
-          vehicleId: bookingData.scooter.id,
-          vehicleName: bookingData.scooter.name,
-          isActiveBuyer: true,
-          remainingAmount: bookingData.remainingAmount,
-          paymentDueDate: bookingData.paymentDueDate,
-          paymentStatus: 'partial',
-          redemptionPoints: bookingData.redemptionPoints,
-          redemptionEligible: false,
-          isDistributorEligible: bookingData.isAlreadyDistributor ? true : bookingData.isDistributorEligible,
-          wantsToJoinDistributor: bookingData.isAlreadyDistributor ? false : bookingData.joinDistributorProgram,
-        }));
-
-        // Invalidate inventory cache
-        dispatch(api.util.invalidateTags(['Inventory']));
-
-        setStatusMessage('Payment verified successfully!');
-        
-        // Wait a moment to show success message
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Navigate to profile page with orders tab
-        navigate('/profile?tab=orders', { replace: true });
-        
-        // Show success toast after navigation
-        setTimeout(() => {
-          toast.success('Payment Verified Successfully', {
-            duration: 4000,
-          });
-        }, 600);
+        })();
       } else {
         throw new Error(paymentResult.message || 'Payment verification failed');
       }

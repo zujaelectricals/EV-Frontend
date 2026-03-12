@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState, useMemo, useEffect } from 'react';
-import { DollarSign, Search, Filter, Download, CheckCircle, XCircle, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, Check } from 'lucide-react';
+import { DollarSign, Search, Filter, Download, CheckCircle, XCircle, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, Check, AlertCircle, Zap, Hand } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -49,16 +49,44 @@ import { useAppSelector } from '@/app/hooks';
 import {
   useGetPayoutsQuery,
   useProcessPayoutMutation,
+  useApproveManualPayoutMutation,
   useCompletePayoutMutation,
   PayoutResponse,
   PayoutsListResponse,
+  GetPayoutsParams,
 } from '@/app/api/payoutApi';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 
 type PayoutStatus = 'pending' | 'processing' | 'completed' | 'rejected' | 'cancelled';
+
+/** Shape of API/RTK error we read message from */
+interface PayoutErrorShape {
+  data?: {
+    error?: string;
+    message?: string;
+    detail?: string | Array<{ msg?: string }>;
+  };
+  message?: string;
+}
+
+/** Extract user-friendly error message from API/RTK Query error */
+const getPayoutErrorMessage = (error: unknown, fallback: string): string => {
+  const err = error as PayoutErrorShape | null | undefined;
+  if (!err || typeof err !== 'object') return fallback;
+  const data = err.data;
+  if (data && typeof data === 'object') {
+    if (typeof data.error === 'string') return data.error;
+    if (typeof data.message === 'string') return data.message;
+    if (typeof data.detail === 'string') return data.detail;
+    if (Array.isArray(data.detail) && data.detail[0]?.msg) return data.detail[0].msg;
+  }
+  if (typeof err.message === 'string') return err.message;
+  return fallback;
+};
 
 const getStatusBadge = (status: PayoutStatus) => {
   switch (status) {
@@ -99,13 +127,16 @@ export const Payouts = () => {
   const [completingPayout, setCompletingPayout] = useState<PayoutResponse | null>(null);
   const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
+  const [processType, setProcessType] = useState<'manual' | 'automatic' | null>(null);
   const [processNotes, setProcessNotes] = useState('');
   const [completeTransactionId, setCompleteTransactionId] = useState('');
   const [completeNotes, setCompleteNotes] = useState('');
+  const [processError, setProcessError] = useState<string | null>(null);
+  const [completeError, setCompleteError] = useState<string | null>(null);
 
   // Build query parameters
-  const queryParams = useMemo(() => {
-    const params: any = {
+  const queryParams = useMemo((): GetPayoutsParams => {
+    const params: GetPayoutsParams = {
       page: currentPage,
       page_size: pageSize,
     };
@@ -156,6 +187,7 @@ export const Payouts = () => {
 
   // Mutations
   const [processPayout, { isLoading: isProcessing }] = useProcessPayoutMutation();
+  const [approveManualPayout, { isLoading: isApprovingManual }] = useApproveManualPayoutMutation();
   const [completePayout, { isLoading: isCompleting }] = useCompletePayoutMutation();
 
   // Filter payouts by search query (client-side)
@@ -203,7 +235,9 @@ export const Payouts = () => {
 
   const handleProcess = (payout: PayoutResponse) => {
     setProcessingPayout(payout);
+    setProcessType(null);
     setProcessNotes('');
+    setProcessError(null);
     setIsProcessDialogOpen(true);
   };
 
@@ -211,36 +245,49 @@ export const Payouts = () => {
     if (!processingPayout) return;
 
     try {
-      const requestBody = processNotes.trim() ? { notes: processNotes.trim() } : {};
       const requestPayload = {
         id: processingPayout.id,
         notes: processNotes.trim() || undefined,
       };
-      
-      console.log('📤 [PAYOUTS Component] ========================================');
-      console.log('📤 [PAYOUTS Component] Processing Payout');
-      console.log('📤 [PAYOUTS Component] Payout ID:', processingPayout.id);
-      console.log('📤 [PAYOUTS Component] Request Payload (Formatted):', JSON.stringify(requestPayload, null, 2));
-      console.log('📤 [PAYOUTS Component] Request Body (Formatted):', JSON.stringify(requestBody, null, 2));
-      console.log('📤 [PAYOUTS Component] Request Body (Raw):', requestBody);
-      console.log('📤 [PAYOUTS Component] ========================================');
-      
+
       const result = await processPayout(requestPayload).unwrap();
-      
-      console.log('✅ [PAYOUTS Component] ========================================');
-      console.log('✅ [PAYOUTS Component] Process Payout Success');
-      console.log('✅ [PAYOUTS Component] Response (Formatted):', JSON.stringify(result, null, 2));
-      console.log('✅ [PAYOUTS Component] Response (Raw):', result);
-      console.log('✅ [PAYOUTS Component] ========================================');
-      
+
       toast.success('Payout processed successfully');
       setIsProcessDialogOpen(false);
       setProcessingPayout(null);
+      setProcessType(null);
       setProcessNotes('');
+      setProcessError(null);
       await refetch();
-    } catch (error: any) {
-      console.error('❌ [PAYOUTS Component] Process payout error:', error);
-      toast.error(error?.data?.message || error?.data?.detail || 'Failed to process payout');
+    } catch (error: unknown) {
+      const message = getPayoutErrorMessage(error, 'Failed to process payout');
+      setProcessError(message);
+      toast.error(message);
+    }
+  };
+
+  const confirmApproveManual = async () => {
+    if (!processingPayout) return;
+
+    try {
+      const requestPayload = {
+        id: processingPayout.id,
+        notes: processNotes.trim() || undefined,
+      };
+
+      await approveManualPayout(requestPayload).unwrap();
+
+      toast.success('Payout approved for manual transfer. Complete it via the Complete button after transferring offline.');
+      setIsProcessDialogOpen(false);
+      setProcessingPayout(null);
+      setProcessType(null);
+      setProcessNotes('');
+      setProcessError(null);
+      await refetch();
+    } catch (error: unknown) {
+      const message = getPayoutErrorMessage(error, 'Failed to approve manual payout');
+      setProcessError(message);
+      toast.error(message);
     }
   };
 
@@ -248,6 +295,7 @@ export const Payouts = () => {
     setCompletingPayout(payout);
     setCompleteTransactionId('');
     setCompleteNotes('');
+    setCompleteError(null);
     setIsCompleteDialogOpen(true);
   };
 
@@ -290,10 +338,13 @@ export const Payouts = () => {
       setCompletingPayout(null);
       setCompleteTransactionId('');
       setCompleteNotes('');
+      setCompleteError(null);
       await refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [PAYOUTS Component] Complete payout error:', error);
-      toast.error(error?.data?.message || error?.data?.detail || 'Failed to complete payout');
+      const message = getPayoutErrorMessage(error, 'Failed to complete payout');
+      setCompleteError(message);
+      toast.error(message);
     }
   };
 
@@ -649,7 +700,7 @@ export const Payouts = () => {
                                 size="sm"
                                 className="bg-blue-500 hover:bg-blue-600"
                                 onClick={() => handleProcess(payout)}
-                                disabled={isProcessing}
+                                disabled={isProcessing || isApprovingManual}
                               >
                                 <Play className="h-4 w-4 mr-1" />
                                 Process
@@ -738,57 +789,127 @@ export const Payouts = () => {
         setIsProcessDialogOpen(open);
         if (!open) {
           setProcessingPayout(null);
+          setProcessType(null);
           setProcessNotes('');
+          setProcessError(null);
         }
       }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Process Payout</DialogTitle>
             <DialogDescription>
-              Process payout request #{processingPayout?.id}. This will deduct the amount from the user's wallet and set status to 'processing'.
+              {processType === null
+                ? `Choose how to process payout request #${processingPayout?.id}.`
+                : processType === 'automatic'
+                  ? `Process via payment gateway (Razorpay). Payout #${processingPayout?.id} will be deducted and sent automatically.`
+                  : `Approve for manual/offline transfer. Amount will be deducted from wallet; you will transfer net amount (e.g. NEFT/IMPS) and then mark complete with optional UTR/reference.`}
             </DialogDescription>
           </DialogHeader>
+          {processError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{processError}</AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-4">
-            {processingPayout && (
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">User Email</Label>
-                    <p className="text-sm font-medium">{processingPayout.user_email}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Requested Amount</Label>
-                    <p className="text-sm font-medium">₹{parseFloat(processingPayout.requested_amount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Net Amount</Label>
-                    <p className="text-sm font-medium text-success">₹{parseFloat(processingPayout.net_amount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Bank Account</Label>
-                    <p className="text-sm font-medium">{processingPayout.account_holder_name} - {processingPayout.bank_name}</p>
-                  </div>
+            {processType === null ? (
+              <div className="grid grid-cols-2 gap-4 py-2 w-full min-w-0">
+                <div
+                  className="h-full min-h-[120px] w-full min-w-0 flex flex-col items-center justify-center gap-3 p-6 border-2 rounded-md border-muted bg-muted/30 cursor-not-allowed opacity-60"
+                  aria-disabled="true"
+                >
+                  <Zap className="h-8 w-8 shrink-0 text-muted-foreground" />
+                  <span className="font-semibold text-muted-foreground">Automatic</span>
+                  <span className="text-xs text-muted-foreground text-center leading-snug px-1">
+                    Process via Razorpay
+                    <br />
+                    gateway
+                  </span>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-full min-h-[120px] w-full min-w-0 flex flex-col items-center justify-center gap-3 p-6 border-2 hover:border-primary hover:bg-primary/5 overflow-visible"
+                  onClick={() => setProcessType('manual')}
+                >
+                  <Hand className="h-8 w-8 shrink-0 text-primary" />
+                  <span className="font-semibold">Manual</span>
+                  <span className="text-xs text-muted-foreground text-center leading-snug px-1">
+                    Offline transfer (NEFT/IMPS),
+                    <br />
+                    then mark complete
+                  </span>
+                </Button>
               </div>
+            ) : (
+              <>
+                {processingPayout && (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">User Email</Label>
+                        <p className="text-sm font-medium">{processingPayout.user_email}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Requested Amount</Label>
+                        <p className="text-sm font-medium">₹{parseFloat(processingPayout.requested_amount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Net Amount</Label>
+                        <p className="text-sm font-medium text-success">₹{parseFloat(processingPayout.net_amount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Bank Account</Label>
+                        <p className="text-sm font-medium">{processingPayout.account_holder_name} - {processingPayout.bank_name}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="process-notes">Notes (Optional)</Label>
+                  <Textarea
+                    id="process-notes"
+                    placeholder={processType === 'manual' ? 'e.g. Approved for manual NEFT transfer' : 'Add any notes for processing...'}
+                    value={processNotes}
+                    onChange={(e) => setProcessNotes(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              </>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="process-notes">Notes (Optional)</Label>
-              <Textarea
-                id="process-notes"
-                placeholder="Add any notes for processing..."
-                value={processNotes}
-                onChange={(e) => setProcessNotes(e.target.value)}
-                rows={3}
-              />
-            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsProcessDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmProcess} disabled={isProcessing}>
-              {isProcessing ? 'Processing...' : 'Process Payout'}
-            </Button>
+            {processType === null ? (
+              <Button variant="outline" onClick={() => setIsProcessDialogOpen(false)}>
+                Cancel
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setProcessType(null);
+                    setProcessError(null);
+                  }}
+                  disabled={isProcessing || isApprovingManual}
+                >
+                  Back
+                </Button>
+                <Button variant="outline" onClick={() => setIsProcessDialogOpen(false)}>
+                  Cancel
+                </Button>
+                {processType === 'automatic' && (
+                  <Button onClick={confirmProcess} disabled={isProcessing}>
+                    {isProcessing ? 'Processing...' : 'Process Payout'}
+                  </Button>
+                )}
+                {processType === 'manual' && (
+                  <Button onClick={confirmApproveManual} disabled={isApprovingManual}>
+                    {isApprovingManual ? 'Approving...' : 'Approve for manual transfer'}
+                  </Button>
+                )}
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -800,15 +921,22 @@ export const Payouts = () => {
           setCompletingPayout(null);
           setCompleteTransactionId('');
           setCompleteNotes('');
+          setCompleteError(null);
         }
       }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Complete Payout</DialogTitle>
             <DialogDescription>
-              Mark payout request #{completingPayout?.id} as completed after payment gateway confirms successful transfer.
+              Mark payout #{completingPayout?.id} as completed. For gateway payouts: after Razorpay confirms. For manual payouts: after you have transferred the net amount offline (NEFT/IMPS); add UTR/reference and notes if needed.
             </DialogDescription>
           </DialogHeader>
+          {completeError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{completeError}</AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-4">
             {completingPayout && (
               <div className="space-y-2">

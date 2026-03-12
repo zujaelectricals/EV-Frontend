@@ -1,9 +1,19 @@
-import { useState, useMemo } from 'react';
-import { Users, Search, Mail, Phone, Calendar, ChevronLeft, ChevronRight, X, Wallet } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState, useMemo } from "react";
+import {
+  Users,
+  Search,
+  Mail,
+  Phone,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Wallet,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -11,14 +21,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -26,64 +36,87 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { UserExtended } from '../types/userManagement';
-import { useGetNormalUsersQuery, useUpdateTotalEarningsMutation, type UserProfileResponse } from '@/app/api/userApi';
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { UserExtended } from "../types/userManagement";
+import {
+  useGetNormalUsersQuery,
+  useUpdateTotalEarningsMutation,
+  type UserProfileResponse,
+} from "@/app/api/userApi";
 
 /** User row for Update Payout Balance table (includes total_earnings from API) */
 type PayoutBalanceUser = UserExtended & { totalEarnings?: string };
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { toast } from 'sonner';
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { toast } from "sonner";
 
-const mapApiUserToExtended = (apiUser: UserProfileResponse): PayoutBalanceUser => {
-  const fullName = `${apiUser.first_name || ''} ${apiUser.last_name || ''}`.trim() || apiUser.email;
-  let kycStatus: 'pending' | 'verified' | 'rejected' | 'not_submitted' = 'not_submitted';
-  if (apiUser.kyc_status === 'verified' || apiUser.kyc_status === 'approved') {
-    kycStatus = 'verified';
-  } else if (apiUser.kyc_status === 'pending') {
-    kycStatus = 'pending';
-  } else if (apiUser.kyc_status === 'rejected') {
-    kycStatus = 'rejected';
+const mapApiUserToExtended = (
+  apiUser: UserProfileResponse,
+): PayoutBalanceUser => {
+  const fullName =
+    `${apiUser.first_name || ""} ${apiUser.last_name || ""}`.trim() ||
+    apiUser.email;
+  let kycStatus: "pending" | "verified" | "rejected" | "not_submitted" =
+    "not_submitted";
+  if (apiUser.kyc_status === "verified" || apiUser.kyc_status === "approved") {
+    kycStatus = "verified";
+  } else if (apiUser.kyc_status === "pending") {
+    kycStatus = "pending";
+  } else if (apiUser.kyc_status === "rejected") {
+    kycStatus = "rejected";
   }
   return {
     id: String(apiUser.id),
     userId: `U${apiUser.id}`,
     name: fullName,
     email: apiUser.email,
-    phone: apiUser.mobile || 'N/A',
-    role: apiUser.is_distributor ? 'distributor' : 'user',
-    status: apiUser.is_active_buyer === false ? 'inactive' : 'active',
+    phone: apiUser.mobile || "N/A",
+    role: apiUser.is_distributor ? "distributor" : "user",
+    status: apiUser.is_active_buyer === false ? "inactive" : "active",
     kycStatus,
     emailVerified: true,
     phoneVerified: !!apiUser.mobile,
-    joinDate: apiUser.date_joined ? new Date(apiUser.date_joined).toISOString().split('T')[0] : '',
+    joinDate: apiUser.date_joined
+      ? new Date(apiUser.date_joined).toISOString().split("T")[0]
+      : "",
     totalOrders: 0,
     totalSpent: 0,
-    paymentStatus: 'unpaid',
-    distributorInfo: apiUser.is_distributor ? { referralCode: apiUser.referral_code, verified: apiUser.is_distributor } : undefined,
+    paymentStatus: "unpaid",
+    distributorInfo: apiUser.is_distributor
+      ? {
+          referralCode: apiUser.referral_code,
+          verified: apiUser.is_distributor,
+        }
+      : undefined,
     address: {
-      street: `${apiUser.address_line1 || ''} ${apiUser.address_line2 || ''}`.trim(),
-      city: apiUser.city || '',
-      state: apiUser.state || '',
-      pincode: apiUser.pincode || '',
-      country: apiUser.country || 'India',
+      street:
+        `${apiUser.address_line1 || ""} ${apiUser.address_line2 || ""}`.trim(),
+      city: apiUser.city || "",
+      state: apiUser.state || "",
+      pincode: apiUser.pincode || "",
+      country: apiUser.country || "India",
     },
     totalEarnings: apiUser.total_earnings ?? undefined,
   };
 };
 
 // Validate total_earned: non-negative decimal, max 12 digits (10 before + 2 after decimal), 2 decimal places
-function validateTotalEarned(value: string): { valid: boolean; message?: string } {
-  if (value.trim() === '') {
-    return { valid: false, message: 'Payout Wallet Balance is required.' };
+function validateTotalEarned(value: string): {
+  valid: boolean;
+  message?: string;
+} {
+  if (value.trim() === "") {
+    return { valid: false, message: "Payout Wallet Balance is required." };
   }
   const num = Number(value);
   if (Number.isNaN(num) || num < 0) {
-    return { valid: false, message: 'Enter a non-negative number.' };
+    return { valid: false, message: "Enter a non-negative number." };
   }
   if (!/^\d{0,10}(\.\d{1,2})?$/.test(value.trim())) {
-    return { valid: false, message: 'Max 12 digits and 2 decimal places (e.g. 1234.56).' };
+    return {
+      valid: false,
+      message: "Max 12 digits and 2 decimal places (e.g. 1234.56).",
+    };
   }
   return { valid: true };
 }
@@ -91,19 +124,19 @@ function validateTotalEarned(value: string): { valid: boolean; message?: string 
 // Format for API: exactly 2 decimal places
 function formatTotalEarned(value: string): string {
   const trimmed = value.trim();
-  if (!trimmed) return '0.00';
+  if (!trimmed) return "0.00";
   const num = Number(trimmed);
-  if (Number.isNaN(num) || num < 0) return '0.00';
+  if (Number.isNaN(num) || num < 0) return "0.00";
   return num.toFixed(2);
 }
 
 export const UpdatePayoutBalance = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [searchInput, setSearchInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [ordering, setOrdering] = useState<string>('date_joined');
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [ordering, setOrdering] = useState<string>("date_joined");
 
   const queryParams = useMemo(() => {
     const params: {
@@ -117,13 +150,18 @@ export const UpdatePayoutBalance = () => {
       page_size: pageSize,
       ordering,
     };
-    if (roleFilter === 'distributor') params.is_distributor = true;
-    else if (roleFilter === 'user') params.is_distributor = false;
+    if (roleFilter === "distributor") params.is_distributor = true;
+    else if (roleFilter === "user") params.is_distributor = false;
     if (searchQuery.trim()) params.search = searchQuery.trim();
     return params;
   }, [currentPage, pageSize, roleFilter, ordering, searchQuery]);
 
-  const { data: usersResponse, isLoading, error, refetch } = useGetNormalUsersQuery(queryParams, {
+  const {
+    data: usersResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useGetNormalUsersQuery(queryParams, {
     refetchOnMountOrArgChange: true,
   });
 
@@ -143,7 +181,8 @@ export const UpdatePayoutBalance = () => {
 
   const totalPages = useMemo(() => {
     if (!usersResponse) return 0;
-    if (Array.isArray(usersResponse)) return Math.ceil(usersResponse.length / pageSize);
+    if (Array.isArray(usersResponse))
+      return Math.ceil(usersResponse.length / pageSize);
     return usersResponse.count ? Math.ceil(usersResponse.count / pageSize) : 0;
   }, [usersResponse, pageSize]);
 
@@ -152,25 +191,27 @@ export const UpdatePayoutBalance = () => {
     setSearchQuery(searchInput.trim());
   };
   const handleClearSearch = () => {
-    setSearchInput('');
-    setSearchQuery('');
+    setSearchInput("");
+    setSearchQuery("");
     setCurrentPage(1);
   };
 
   // Edit Balance modal state
-  const [editBalanceUser, setEditBalanceUser] = useState<PayoutBalanceUser | null>(null);
-  const [balanceInput, setBalanceInput] = useState('');
+  const [editBalanceUser, setEditBalanceUser] =
+    useState<PayoutBalanceUser | null>(null);
+  const [balanceInput, setBalanceInput] = useState("");
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const [updateTotalEarnings, { isLoading: isUpdating }] = useUpdateTotalEarningsMutation();
+  const [updateTotalEarnings, { isLoading: isUpdating }] =
+    useUpdateTotalEarningsMutation();
 
   const openEditBalance = (user: PayoutBalanceUser) => {
     setEditBalanceUser(user);
     setBalanceInput(
-      user.totalEarnings != null && user.totalEarnings !== ''
+      user.totalEarnings != null && user.totalEarnings !== ""
         ? formatTotalEarned(String(user.totalEarnings))
-        : '0.00'
+        : "0.00",
     );
     setBalanceError(null);
     setShowConfirm(false);
@@ -178,7 +219,7 @@ export const UpdatePayoutBalance = () => {
 
   const closeEditBalance = () => {
     setEditBalanceUser(null);
-    setBalanceInput('');
+    setBalanceInput("");
     setBalanceError(null);
     setShowConfirm(false);
   };
@@ -186,7 +227,7 @@ export const UpdatePayoutBalance = () => {
   const handleBalanceSubmit = () => {
     const validation = validateTotalEarned(balanceInput);
     if (!validation.valid) {
-      setBalanceError(validation.message ?? 'Invalid value');
+      setBalanceError(validation.message ?? "Invalid value");
       return;
     }
     setBalanceError(null);
@@ -197,7 +238,7 @@ export const UpdatePayoutBalance = () => {
     if (!editBalanceUser) return;
     const validation = validateTotalEarned(balanceInput);
     if (!validation.valid) {
-      setBalanceError(validation.message ?? 'Invalid value');
+      setBalanceError(validation.message ?? "Invalid value");
       return;
     }
     const total_earned = formatTotalEarned(balanceInput);
@@ -206,13 +247,20 @@ export const UpdatePayoutBalance = () => {
         userId: Number(editBalanceUser.id),
         total_earned,
       }).unwrap();
-      toast.success(`Payout balance updated. New total_earned: ${result.total_earned}, wallet_balance: ${result.wallet_balance}`);
+      toast.success(
+        `Payout balance updated. New total_earned: ${result.total_earned}, wallet_balance: ${result.wallet_balance}`,
+      );
       closeEditBalance();
       refetch();
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'data' in err && err.data && typeof (err.data as { message?: string }).message === 'string'
-        ? (err.data as { message: string }).message
-        : 'Failed to update payout balance.';
+      const msg =
+        err &&
+        typeof err === "object" &&
+        "data" in err &&
+        err.data &&
+        typeof (err.data as { message?: string }).message === "string"
+          ? (err.data as { message: string }).message
+          : "Failed to update payout balance.";
       toast.error(msg);
     }
   };
@@ -229,14 +277,20 @@ export const UpdatePayoutBalance = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Update Payout Balance</h1>
-          <p className="text-muted-foreground mt-1">Update payout wallet balance for users</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Update Payout Balance
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Update payout wallet balance for users
+          </p>
         </div>
         <Card>
           <CardContent className="p-6">
             <div className="text-center text-destructive">
               <p>Failed to load users. Please try again.</p>
-              <Button onClick={() => refetch()} className="mt-4">Retry</Button>
+              <Button onClick={() => refetch()} className="mt-4">
+                Retry
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -247,8 +301,12 @@ export const UpdatePayoutBalance = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Update Payout Balance</h1>
-        <p className="text-muted-foreground mt-1">Update payout wallet balance (total earned) for any user</p>
+        <h1 className="text-3xl font-bold text-foreground">
+          Update Payout Balance
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Update payout wallet balance (total earned) for any user
+        </p>
       </div>
 
       <Card>
@@ -263,7 +321,7 @@ export const UpdatePayoutBalance = () => {
                   className="pl-10 pr-10 w-64"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 />
                 {searchQuery && (
                   <button
@@ -328,7 +386,9 @@ export const UpdatePayoutBalance = () => {
                     <div className="flex flex-col items-center gap-2">
                       <Users className="h-8 w-8 text-muted-foreground opacity-50" />
                       <p className="text-muted-foreground">
-                        {searchQuery ? 'No users found matching your search.' : 'No users found.'}
+                        {searchQuery
+                          ? "No users found matching your search."
+                          : "No users found."}
                       </p>
                     </div>
                   </TableCell>
@@ -338,10 +398,16 @@ export const UpdatePayoutBalance = () => {
                   <TableRow key={user.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-foreground">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.userId}</p>
+                        <p className="font-medium text-foreground">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {user.userId}
+                        </p>
                         {user.distributorInfo?.referralCode && (
-                          <p className="text-xs text-primary mt-1">Ref: {user.distributorInfo.referralCode}</p>
+                          <p className="text-xs text-primary mt-1">
+                            Ref: {user.distributorInfo.referralCode}
+                          </p>
                         )}
                       </div>
                     </TableCell>
@@ -359,15 +425,20 @@ export const UpdatePayoutBalance = () => {
                     </TableCell>
                     <TableCell>
                       <span className="font-medium tabular-nums">
-                        {user.totalEarnings != null && user.totalEarnings !== ''
-                          ? Number(user.totalEarnings).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          : '—'}
+                        {user.totalEarnings != null && user.totalEarnings !== ""
+                          ? Number(user.totalEarnings).toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "—"}
                       </span>
                     </TableCell>
                     <TableCell>
-                      {user.kycStatus === 'verified' ? (
-                        <Badge className="bg-success text-white">Verified</Badge>
-                      ) : user.kycStatus === 'pending' ? (
+                      {user.kycStatus === "verified" ? (
+                        <Badge className="bg-success text-white">
+                          Verified
+                        </Badge>
+                      ) : user.kycStatus === "pending" ? (
                         <Badge variant="default">Pending</Badge>
                       ) : (
                         <Badge variant="outline">Not Submitted</Badge>
@@ -380,7 +451,9 @@ export const UpdatePayoutBalance = () => {
                           <span className="text-sm">{user.joinDate}</span>
                         </div>
                       ) : (
-                        <span className="text-sm text-muted-foreground">N/A</span>
+                        <span className="text-sm text-muted-foreground">
+                          N/A
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -421,7 +494,8 @@ export const UpdatePayoutBalance = () => {
                   </SelectContent>
                 </Select>
                 <span className="text-sm text-muted-foreground">
-                  Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
+                  Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                  {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -434,11 +508,15 @@ export const UpdatePayoutBalance = () => {
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Previous
                 </Button>
-                <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                <span className="text-sm">
+                  Page {currentPage} of {totalPages}
+                </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
                   disabled={currentPage === totalPages || isLoading}
                 >
                   Next
@@ -451,14 +529,17 @@ export const UpdatePayoutBalance = () => {
       </Card>
 
       {/* Edit Balance Dialog */}
-      <Dialog open={!!editBalanceUser} onOpenChange={(open) => !open && closeEditBalance()}>
+      <Dialog
+        open={!!editBalanceUser}
+        onOpenChange={(open) => !open && closeEditBalance()}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Payout Wallet Balance</DialogTitle>
             <DialogDescription>
               {editBalanceUser
                 ? `Set total earned (payout wallet balance) for ${editBalanceUser.name} (${editBalanceUser.userId}). Non-negative decimal, max 12 digits, 2 decimal places.`
-                : ''}
+                : ""}
             </DialogDescription>
           </DialogHeader>
           {editBalanceUser && (
@@ -466,7 +547,9 @@ export const UpdatePayoutBalance = () => {
               {!showConfirm ? (
                 <>
                   <div className="space-y-2 py-2">
-                    <Label htmlFor="payout-balance">Payout Wallet Balance (total_earned)</Label>
+                    <Label htmlFor="payout-balance">
+                      Payout Wallet Balance (total_earned)
+                    </Label>
                     <Input
                       id="payout-balance"
                       type="text"
@@ -477,7 +560,7 @@ export const UpdatePayoutBalance = () => {
                         setBalanceInput(e.target.value);
                         setBalanceError(null);
                       }}
-                      className={balanceError ? 'border-destructive' : ''}
+                      className={balanceError ? "border-destructive" : ""}
                     />
                     {balanceError && (
                       <p className="text-sm text-destructive">{balanceError}</p>
@@ -487,22 +570,25 @@ export const UpdatePayoutBalance = () => {
                     <Button variant="outline" onClick={closeEditBalance}>
                       Cancel
                     </Button>
-                    <Button onClick={handleBalanceSubmit}>
-                      Continue
-                    </Button>
+                    <Button onClick={handleBalanceSubmit}>Continue</Button>
                   </DialogFooter>
                 </>
               ) : (
                 <>
                   <p className="text-sm text-muted-foreground py-2">
-                    Set total earned to <strong>{formatTotalEarned(balanceInput)}</strong> for {editBalanceUser.name}?
+                    Set total earned to{" "}
+                    <strong>{formatTotalEarned(balanceInput)}</strong> for{" "}
+                    {editBalanceUser.name}?
                   </p>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowConfirm(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowConfirm(false)}
+                    >
                       Back
                     </Button>
                     <Button onClick={handleConfirmSubmit} disabled={isUpdating}>
-                      {isUpdating ? 'Updating...' : 'Confirm & Submit'}
+                      {isUpdating ? "Updating..." : "Confirm & Submit"}
                     </Button>
                   </DialogFooter>
                 </>
@@ -511,7 +597,6 @@ export const UpdatePayoutBalance = () => {
           )}
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };

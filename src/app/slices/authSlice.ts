@@ -17,6 +17,7 @@ export interface DistributorInfo {
   isVerified: boolean;
   verificationStatus: 'pending' | 'approved' | 'rejected';
   referralCode: string;
+  referralLink?: string;
   referredBy?: string;
   leftCount: number;
   rightCount: number;

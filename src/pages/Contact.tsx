@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, MessageSquare, Clock, CheckCircle2 } from 'lucide-react';
+import { Mail, Phone, MapPin, MessageSquare, Clock } from 'lucide-react';
 import { StoreNavbar } from '@/store/StoreNavbar';
 import { Footer } from '@/components/Footer';
 import { FloatingPetals } from '@/components/FloatingPetals';
@@ -27,13 +27,6 @@ export function Contact() {
       title: 'Working Hours',
       lines: ['Mon - Sat: 9AM - 8PM', 'Sunday: Holiday'],
     },
-  ];
-
-  const quickAnswers = [
-    'What is the warranty period?',
-    'Do you offer financing options?',
-    'Where can I get service?',
-    'Can I trade in my old scooter?',
   ];
 
   return (
@@ -240,28 +233,6 @@ export function Contact() {
                   <p className="text-gray-600">KUTTIYIDAYIL, ARRATTUVAZHY</p>
                   <p className="text-gray-600">Alappuzha North, Ambalapuzha</p>
                   <p className="text-gray-600">Alappuzha- 688007, Kerala</p>
-                </div>
-              </div>
-
-              {/* Quick Answers Card */}
-              <div
-                className="relative p-6 rounded-3xl overflow-hidden"
-                style={{
-                  background: 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)',
-                }}
-              >
-                {/* Decorative elements */}
-                <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/10" />
-                <div className="absolute bottom-4 right-8 w-6 h-6 rounded-full bg-orange-400/60" />
-
-                <h3 className="text-xl font-bold text-white mb-4">Quick Answers</h3>
-                <div className="space-y-3">
-                  {quickAnswers.map((question, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-white/90 flex-shrink-0" />
-                      <span className="text-white/90 text-sm">{question}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
 

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { toast } from 'sonner';
+import { copyToClipboard } from '@/lib/utils';
 import { useGetUserProfileQuery } from '@/app/api/userApi';
 import { setCredentials } from '@/app/slices/authSlice';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,13 +30,18 @@ export const ReferralLink = () => {
   const currentUser = profileData || user;
   const distributorInfo = currentUser?.distributorInfo;
   
-  // Get referral code from distributorInfo (populated from API's referral_code field)
-  const referralCode = distributorInfo?.referralCode || 'N/A';
+  // Prefer link from user/profile (referral_link), fallback to code (referral_code)
+  const referralLink = distributorInfo?.referralLink;
+  const referralCode = distributorInfo?.referralCode || '';
+  const displayValue = referralLink || referralCode || 'N/A';
 
-  const copyReferralCode = () => {
-    if (referralCode !== 'N/A') {
-      navigator.clipboard.writeText(referralCode);
-      toast.success('ASA code copied to clipboard!');
+  const copyReferralLink = async () => {
+    if (displayValue === 'N/A') return;
+    const ok = await copyToClipboard(displayValue);
+    if (ok) {
+      toast.success(referralLink ? 'ASA link copied to clipboard!' : 'ASA code copied to clipboard!');
+    } else {
+      toast.error('Could not copy. Please select and copy the link manually.');
     }
   };
 
@@ -43,8 +49,8 @@ export const ReferralLink = () => {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">ASA Code</h1>
-          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Share your ASA code and earn commissions</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">ASA Link</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Share your ASA link and earn commissions</p>
         </div>
         <Button
           variant="ghost"
@@ -59,31 +65,31 @@ export const ReferralLink = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {/* ASA Code Card */}
+        {/* ASA Link Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <LinkIcon className="h-5 w-5 text-primary" />
-              Your ASA Code
+              Your ASA Link
             </CardTitle>
             <CardDescription>
-              Share this code with friends and family to earn referral bonuses
+              Share this link with friends and family to earn referral bonuses
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>ASA Code</Label>
+              <Label>ASA Link</Label>
               <div className="flex gap-2">
                 {isLoading ? (
                   <Skeleton className="h-10 flex-1" />
                 ) : (
                   <Input
-                    value={referralCode}
+                    value={displayValue}
                     readOnly
-                    className="font-mono text-lg sm:text-xl font-bold text-center tracking-wider"
+                    className="font-mono text-sm sm:text-base truncate"
                   />
                 )}
-                <Button onClick={copyReferralCode} size="icon" variant="outline" disabled={referralCode === 'N/A' || isLoading} className="shrink-0">
+                <Button onClick={copyReferralLink} size="icon" variant="outline" disabled={displayValue === 'N/A' || isLoading} className="shrink-0">
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>

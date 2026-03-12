@@ -385,7 +385,7 @@ export const AdminDashboard = () => {
       </motion.div>
 
       {/* KPI Cards */}
-      <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -431,46 +431,6 @@ export const AdminDashboard = () => {
           transition={{ delay: 0.1 }}
           className="relative h-full"
         >
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-950/20 dark:via-background dark:to-indigo-950/20 h-full flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium">
-                Total Visitors
-              </CardTitle>
-              <div className="rounded-full bg-blue-500/10 p-2">
-                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col justify-center">
-              <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-                {kpiCardsData?.total_visitors.value.toLocaleString() || 0}
-              </div>
-              <div className="flex items-center gap-1 mt-1">
-                {kpiCardsData?.total_visitors.trend === "up" ? (
-                  <ArrowUpRight className="h-3 w-3 text-pink-600 dark:text-pink-400 flex-shrink-0" />
-                ) : (
-                  <ArrowDownRight className="h-3 w-3 text-rose-600 dark:text-rose-400 flex-shrink-0" />
-                )}
-                <span
-                  className={`text-[10px] sm:text-xs ${
-                    kpiCardsData?.total_visitors.trend === "up"
-                      ? "text-pink-600 dark:text-pink-400"
-                      : "text-rose-600 dark:text-rose-400"
-                  }`}
-                >
-                  {kpiCardsData?.total_visitors.trend === "up" ? "+" : ""}
-                  {kpiCardsData?.total_visitors.change || 0}% from last month
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="relative h-full"
-        >
           <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-amber-950/20 dark:via-background dark:to-orange-950/20 h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
               <CardTitle className="text-xs sm:text-sm font-medium">
@@ -494,7 +454,7 @@ export const AdminDashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.15 }}
           className="relative h-full"
         >
           <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-pink-50 via-white to-rose-50 dark:from-pink-950/20 dark:via-background dark:to-rose-950/20 h-full flex flex-col">
@@ -512,32 +472,6 @@ export const AdminDashboard = () => {
               </div>
               <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                 {kpiCardsData?.paid_orders.conversion?.toFixed(1) || 0}% conversion
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="relative h-full"
-        >
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-cyan-50 via-white to-sky-50 dark:from-cyan-950/20 dark:via-background dark:to-sky-950/20 h-full flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium">
-                Delivered
-              </CardTitle>
-              <div className="rounded-full bg-cyan-500/10 p-2">
-                <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col justify-center">
-              <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-cyan-600 to-sky-600 dark:from-cyan-400 dark:to-sky-400 bg-clip-text text-transparent">
-                {kpiCardsData?.delivered.value.toLocaleString() || 0}
-              </div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                {kpiCardsData?.delivered.conversion?.toFixed(1) || 0}% conversion
               </div>
             </CardContent>
           </Card>

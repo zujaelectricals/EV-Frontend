@@ -255,8 +255,8 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   // Use ref to prevent duplicate submissions (refs update synchronously)
   const isSubmittingRef = useRef(false);
-  const [preBookingAmount, setPreBookingAmount] = useState(500);
-  const [inputValue, setInputValue] = useState('500'); // Local state for input field
+  const [preBookingAmount, setPreBookingAmount] = useState(0);
+  const [inputValue, setInputValue] = useState(''); // Local state for input field (user enters manually)
   
   // Get referral code from localStorage or prop, default to empty string
   const getReferralCodeFromStorage = useCallback(() => {
@@ -327,10 +327,11 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const [isLoadingRazorpay, setIsLoadingRazorpay] = useState(false);
+  const paymentVerifiedRef = useRef(false);
 
   // Sync inputValue when preBookingAmount changes externally
   useEffect(() => {
-    setInputValue(preBookingAmount.toString());
+    setInputValue(preBookingAmount === 0 ? '' : preBookingAmount.toString());
   }, [preBookingAmount]);
 
   // Auto-fill referral code when modal opens (from localStorage or prop)
@@ -916,8 +917,10 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
       
       const isOpen = !!(razorpayModal || highZIndexDivs.length > 0);
       
-      // If Razorpay was open and now it's closed, hide loading screen
-      if (wasRazorpayOpen && !isOpen && isLoadingRazorpay) {
+      // Hide when: (1) modal was open and now closed, or (2) payment already verified and modal not open
+      const shouldHide = !isOpen && isLoadingRazorpay && (wasRazorpayOpen || paymentVerifiedRef.current);
+      if (shouldHide) {
+        paymentVerifiedRef.current = false;
         setIsLoadingRazorpay(false);
       }
       
@@ -960,7 +963,7 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
         booking.id, // entity_id (booking ID)
         openRazorpayCheckout,
         {
-          name: 'EV Nexus',
+          name: 'Zuja Electricals',
           description: `Pre-booking payment for ${scooter.name}`,
           prefill: userPrefill,
           onClose: () => {
@@ -984,10 +987,10 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
 
       // Payment verified successfully by Razorpay
       if (paymentResult.success) {
-        console.log('✅ [PAYMENT] Razorpay payment verified, showing loading overlay');
-        // Hide Razorpay loading and show verification loading
-        setIsLoadingRazorpay(false);
+        console.log('✅ [PAYMENT] Razorpay payment verified; hiding overlay immediately');
+        paymentVerifiedRef.current = true;
         setIsProcessingPayment(false);
+        setIsLoadingRazorpay(false);
         setIsVerifyingPayment(true);
         
         // Restore pointer-events immediately after payment success
@@ -1580,9 +1583,10 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
             <Input
               id="preBookingAmount"
               type="number"
-              min={MIN_PRE_BOOKING}
+              min={0}
               max={totalAmount}
               step="1"
+              placeholder="Enter amount"
               value={inputValue}
               onChange={(e) => {
                 // Allow free typing - update local input value
@@ -1591,27 +1595,29 @@ export function PreBookingModal({ scooter, isOpen, onClose, referralCode, stockD
                 
                 // Update the actual amount if it's a valid number
                 const numValue = Number(value);
-                if (!isNaN(numValue) && numValue >= 0) {
+                if (value === '' || value === undefined) {
+                  setPreBookingAmount(0);
+                } else if (!isNaN(numValue) && numValue >= 0) {
                   setPreBookingAmount(numValue);
                 }
               }}
               onBlur={(e) => {
-                // Validate and clamp on blur (when user finishes typing)
-                const value = Number(e.target.value);
-                let finalValue = MIN_PRE_BOOKING;
-                
-                if (!isNaN(value)) {
-                  if (value < MIN_PRE_BOOKING) {
-                    finalValue = MIN_PRE_BOOKING;
-                  } else if (value > totalAmount) {
-                    finalValue = totalAmount;
-                  } else {
-                    finalValue = value;
-                  }
+                // Clamp to valid range on blur; do not force minimum (user must enter at least MIN_PRE_BOOKING to proceed)
+                const value = e.target.value;
+                if (value === '') {
+                  setPreBookingAmount(0);
+                  setInputValue('');
+                  return;
                 }
-                
-                setPreBookingAmount(finalValue);
-                setInputValue(finalValue.toString());
+                const numValue = Number(value);
+                if (isNaN(numValue) || numValue < 0) {
+                  setPreBookingAmount(0);
+                  setInputValue('');
+                  return;
+                }
+                const clamped = Math.min(numValue, totalAmount);
+                setPreBookingAmount(clamped);
+                setInputValue(clamped.toString());
               }}
               className="text-lg h-12 border-2 focus:border-primary transition-colors"
             />

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState, useMemo, useEffect } from 'react';
-import { Users, UserCheck, Search, Filter, Download, Eye, Edit, Ban, Mail, Phone, Calendar, TrendingUp, ChevronLeft, ChevronRight, X, FileText } from 'lucide-react';
+import { Users, Search, Filter, Download, Eye, Edit, Ban, Mail, Phone, Calendar, ChevronLeft, ChevronRight, X, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -349,10 +349,6 @@ export const ActiveUsers = () => {
     return usersResponse.count ? Math.ceil(usersResponse.count / pageSize) : 0;
   }, [usersResponse, pageSize]);
 
-  // Count distributors and regular users from current page (all users, not just active)
-  const distributors = users.filter((u) => u.role === 'distributor').length;
-  const regularUsers = users.filter((u) => u.role === 'user').length;
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -401,88 +397,6 @@ export const ActiveUsers = () => {
             Export
           </Button>
         </div> */}
-      </div>
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-emerald-950/20 dark:via-background dark:to-teal-950/20 h-full flex flex-col">
-            <CardContent className="p-6 flex-1 flex flex-col justify-center">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Active</p>
-                  <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent mt-1">{totalActive}</p>
-                </div>
-                <div className="rounded-full bg-emerald-500/10 p-3">
-                  <UserCheck className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-cyan-50 via-white to-sky-50 dark:from-cyan-950/20 dark:via-background dark:to-sky-950/20 h-full flex flex-col">
-              <CardContent className="p-6 flex-1 flex flex-col justify-center">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Distributors</p>
-                  <p className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-sky-600 dark:from-cyan-400 dark:to-sky-400 bg-clip-text text-transparent mt-1">{distributors}</p>
-                </div>
-                <div className="rounded-full bg-cyan-500/10 p-3">
-                  <Users className="h-8 w-8 text-cyan-600 dark:text-cyan-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-950/20 dark:via-background dark:to-indigo-950/20 h-full flex flex-col">
-              <CardContent className="p-6 flex-1 flex flex-col justify-center">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Regular Users</p>
-                  <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mt-1">{regularUsers}</p>
-                </div>
-                <div className="rounded-full bg-blue-500/10 p-3">
-                  <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-pink-50 via-white to-rose-50 dark:from-pink-950/20 dark:via-background dark:to-rose-950/20 h-full flex flex-col">
-            <CardContent className="p-6 flex-1 flex flex-col justify-center">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Growth Rate</p>
-                  <p className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent mt-1">+12.5%</p>
-                </div>
-                <div className="rounded-full bg-pink-500/10 p-3">
-                  <TrendingUp className="h-8 w-8 text-pink-600 dark:text-pink-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
       </div>
 
       {/* Users Table */}

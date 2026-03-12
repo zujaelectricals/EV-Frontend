@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -79,6 +79,7 @@ export function MyOrders() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
   const [isLoadingRazorpay, setIsLoadingRazorpay] = useState(false);
+  const paymentVerifiedRef = useRef(false);
   
   // Fetch user profile to get vehicle_delivery_date
   const { data: profileData } = useGetUserProfileRawQuery();
@@ -243,6 +244,9 @@ export function MyOrders() {
         reservationStatus: apiBooking.reservation_status,
         bonusAmount: (apiBooking.bonus_amount !== null && apiBooking.bonus_amount !== undefined && parseFloat(apiBooking.bonus_amount) > 0)
           ? parseFloat(apiBooking.bonus_amount)
+          : undefined,
+        deductionsApplied: (apiBooking.deductions_applied !== null && apiBooking.deductions_applied !== undefined && parseFloat(apiBooking.deductions_applied) > 0)
+          ? parseFloat(apiBooking.deductions_applied)
           : undefined,
       };
     });
@@ -426,7 +430,7 @@ export function MyOrders() {
         parseInt(bookingId, 10), // entity_id (booking ID)
         openRazorpayCheckout,
         {
-          name: 'EV Nexus',
+          name: 'Zuja Electricals',
           description: `Additional payment for ${booking.vehicleName || 'booking'}`,
           amount: amount, // Amount in rupees for partial payment
           prefill: userPrefill,
@@ -447,7 +451,7 @@ export function MyOrders() {
 
       // Payment verified successfully
       if (paymentResult.success) {
-        // Hide loading screen and call success handler
+        paymentVerifiedRef.current = true;
         setIsLoadingRazorpay(false);
         // Call the existing handleAdditionalPaymentSuccess function with payment message
         await handleAdditionalPaymentSuccess(paymentResult.message);
@@ -515,13 +519,12 @@ export function MyOrders() {
       // Refresh bookings to get updated data
       await refetch();
       
-      // Reset states
+      // Reset states (overlay hides when Razorpay modal closes, via useEffect poll)
       setSelectedBooking(null);
       setPaymentAmount(0);
       setCustomPaymentAmount("");
       setMaxPaymentAmount(0);
       setIsProcessingPayment(false);
-      setIsLoadingRazorpay(false);
       
       console.log("✅ [PAYMENT] Payment processed successfully via Razorpay");
     } catch (error) {
@@ -598,8 +601,10 @@ export function MyOrders() {
       
       const isOpen = !!(razorpayModal || highZIndexDivs.length > 0);
       
-      // If Razorpay was open and now it's closed, hide loading screen
-      if (wasRazorpayOpen && !isOpen && isLoadingRazorpay) {
+      // Hide when: (1) modal was open and now closed, or (2) payment already verified and modal not open
+      const shouldHide = !isOpen && isLoadingRazorpay && (wasRazorpayOpen || paymentVerifiedRef.current);
+      if (shouldHide) {
+        paymentVerifiedRef.current = false;
         setIsLoadingRazorpay(false);
       }
       
@@ -883,6 +888,16 @@ export function MyOrders() {
                             }}
                           >
                             ₹{booking.bonusAmount.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Deductions Applied */}
+                      {booking.deductionsApplied !== undefined && booking.deductionsApplied > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Deductions Applied</span>
+                          <span className="text-base font-semibold text-foreground">
+                            ₹{booking.deductionsApplied.toLocaleString()}
                           </span>
                         </div>
                       )}

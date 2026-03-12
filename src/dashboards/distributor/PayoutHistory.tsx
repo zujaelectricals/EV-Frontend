@@ -1,14 +1,38 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ClipboardList, DollarSign, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, Wallet, Plus, ChevronLeft, ChevronRight, Shield } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { Payout, PayoutStatus, setPayouts } from '@/app/slices/payoutSlice';
-import { StatsCard } from '@/shared/components/StatsCard';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  ClipboardList,
+  DollarSign,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  RefreshCw,
+  Wallet,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Shield,
+  FileDown,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useAppSelector, useAppDispatch } from "@/app/hooks";
+import { Payout, PayoutStatus, setPayouts } from "@/app/slices/payoutSlice";
+import { StatsCard } from "@/shared/components/StatsCard";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -16,13 +40,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -30,29 +60,65 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { useGetPayoutsQuery, useCreatePayoutMutation, CreatePayoutRequest } from '@/app/api/payoutApi';
-import { useGetWalletTransactionsQuery, GetWalletTransactionsParams } from '@/app/api/walletApi';
-import { useGetUserProfileQuery } from '@/app/api/userApi';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { api } from '@/app/api/baseApi';
-import { useSendUniversalOTPMutation, useVerifyUniversalOTPMutation } from '@/app/api/authApi';
-import { formatDisplayDate } from '@/lib/utils';
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import {
+  useGetPayoutsQuery,
+  useCreatePayoutMutation,
+  CreatePayoutRequest,
+} from "@/app/api/payoutApi";
+import {
+  useGetWalletTransactionsQuery,
+  GetWalletTransactionsParams,
+} from "@/app/api/walletApi";
+import { useGetUserProfileQuery } from "@/app/api/userApi";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { api } from "@/app/api/baseApi";
+import {
+  useSendUniversalOTPMutation,
+  useVerifyUniversalOTPMutation,
+} from "@/app/api/authApi";
+import { formatDisplayDate, formatWalletTransactionType } from "@/lib/utils";
+import { exportWalletTransactionsToPdf } from "@/lib/walletTransactionsPdf";
 
-const getStatusBadge = (status: PayoutStatus | 'rejected') => {
+const getStatusBadge = (status: PayoutStatus | "rejected") => {
   switch (status) {
-    case 'completed':
-      return <Badge className="bg-success text-white"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>;
-    case 'processing':
-      return <Badge className="bg-blue-500 text-white"><Clock className="w-3 h-3 mr-1" />Processing</Badge>;
-    case 'pending':
-      return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
-    case 'failed':
-    case 'rejected':
-      return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />{status === 'rejected' ? 'Rejected' : 'Failed'}</Badge>;
-    case 'cancelled':
-      return <Badge variant="secondary"><XCircle className="w-3 h-3 mr-1" />Cancelled</Badge>;
+    case "completed":
+      return (
+        <Badge className="bg-success text-white">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Completed
+        </Badge>
+      );
+    case "processing":
+      return (
+        <Badge className="bg-blue-500 text-white">
+          <Clock className="w-3 h-3 mr-1" />
+          Processing
+        </Badge>
+      );
+    case "pending":
+      return (
+        <Badge variant="outline">
+          <Clock className="w-3 h-3 mr-1" />
+          Pending
+        </Badge>
+      );
+    case "failed":
+    case "rejected":
+      return (
+        <Badge variant="destructive">
+          <XCircle className="w-3 h-3 mr-1" />
+          {status === "rejected" ? "Rejected" : "Failed"}
+        </Badge>
+      );
+    case "cancelled":
+      return (
+        <Badge variant="secondary">
+          <XCircle className="w-3 h-3 mr-1" />
+          Cancelled
+        </Badge>
+      );
     default:
       return <Badge variant="outline">{status}</Badge>;
   }
@@ -60,13 +126,67 @@ const getStatusBadge = (status: PayoutStatus | 'rejected') => {
 
 const getTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
-    referral: 'Referral Bonus',
-    binary: 'Team Commission',
-    pool: 'Pool Money',
-    incentive: 'Incentive',
-    milestone: 'Milestone Reward',
+    referral: "Referral Bonus",
+    binary: "Team Commission",
+    pool: "Pool Money",
+    incentive: "Incentive",
+    milestone: "Milestone Reward",
   };
   return labels[type] || type;
+};
+
+/** Extract user-facing error message from create payout API error (RTK Query / backend shapes) */
+const getCreatePayoutErrorMessage = (
+  error: unknown,
+  fallback: string,
+): string => {
+  if (!error || typeof error !== "object") return fallback;
+  const err = error as Record<string, unknown>;
+  // RTK Query queryFn returns { error: { status, data } }; unwrap() rejects with that object
+  const data = (err.data ?? (err.error as Record<string, unknown>)?.data) as
+    | Record<string, unknown>
+    | undefined;
+  if (!data || typeof data !== "object") return fallback;
+  const str = (v: unknown): v is string =>
+    typeof v === "string" && v.length > 0;
+  const knownKeys = [
+    "error",
+    "message",
+    "detail",
+    "error_message",
+    "msg",
+    "reason",
+  ] as const;
+  for (const key of knownKeys) {
+    if (str(data[key])) return data[key] as string;
+  }
+  // Case-insensitive: e.g. "Detail" or "Error"
+  const lowerKey = Object.keys(data).find((k) =>
+    knownKeys.includes(k.toLowerCase() as (typeof knownKeys)[number]),
+  );
+  if (lowerKey && str(data[lowerKey])) return data[lowerKey] as string;
+  if (Array.isArray(data.detail) && data.detail.length > 0) {
+    const first = data.detail[0];
+    if (str(first)) return first;
+    if (
+      first &&
+      typeof first === "object" &&
+      str((first as { msg?: string }).msg)
+    )
+      return (first as { msg: string }).msg;
+  }
+  if (
+    data.detail &&
+    typeof data.detail === "object" &&
+    typeof (data.detail as { message?: string }).message === "string"
+  ) {
+    return (data.detail as { message: string }).message;
+  }
+  // Last resort: any string value in the response that looks like a message
+  for (const v of Object.values(data)) {
+    if (typeof v === "string" && v.length > 15) return v;
+  }
+  return fallback;
 };
 
 export const PayoutHistory = () => {
@@ -74,47 +194,53 @@ export const PayoutHistory = () => {
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
   const { payouts } = useAppSelector((state) => state.payout);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [refreshKey, setRefreshKey] = useState(0);
   const [showCreatePayoutDialog, setShowCreatePayoutDialog] = useState(false);
   const [showTransactionsDialog, setShowTransactionsDialog] = useState(false);
-  const [createPayout, { isLoading: isCreatingPayout }] = useCreatePayoutMutation();
+  const [createPayout, { isLoading: isCreatingPayout }] =
+    useCreatePayoutMutation();
   const [selectedBankIndex, setSelectedBankIndex] = useState<number>(0);
-  
+
   // OTP state
   const [showOtpDialog, setShowOtpDialog] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
+  const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [otpIdentifier, setOtpIdentifier] = useState<string>('');
-  const [otpType, setOtpType] = useState<'email' | 'mobile'>('mobile');
-  const [sendUniversalOTP, { isLoading: isSendingOtp }] = useSendUniversalOTPMutation();
-  const [verifyUniversalOTP, { isLoading: isVerifyingOtp }] = useVerifyUniversalOTPMutation();
-  
+  const [otpIdentifier, setOtpIdentifier] = useState<string>("");
+  const [otpType, setOtpType] = useState<"email" | "mobile">("mobile");
+  const [createPayoutError, setCreatePayoutError] = useState<string | null>(
+    null,
+  );
+  const [sendUniversalOTP, { isLoading: isSendingOtp }] =
+    useSendUniversalOTPMutation();
+  const [verifyUniversalOTP, { isLoading: isVerifyingOtp }] =
+    useVerifyUniversalOTPMutation();
+
   // Fetch user profile to check KYC status
   const { data: profileData } = useGetUserProfileQuery();
   const currentUser = profileData || user;
-  
+
   // Check KYC verification status
   const kycStatusValue = currentUser?.kycStatus;
-  const kycStatus = kycStatusValue === null ? 'not_submitted' : (kycStatusValue || 'not_submitted');
-  const isKYCVerified = kycStatus === 'verified' || (kycStatusValue as string) === 'approved';
-  
+  const kycStatus =
+    kycStatusValue === null
+      ? "not_submitted"
+      : kycStatusValue || "not_submitted";
+  const isKYCVerified =
+    kycStatus === "verified" || (kycStatusValue as string) === "approved";
+
   // Transactions state
   const [transactionsPage, setTransactionsPage] = useState(1);
   const [transactionsPageSize, setTransactionsPageSize] = useState(20);
-  const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>('all');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
-  
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+
   // Build transactions query params
   const transactionsParams = useMemo<GetWalletTransactionsParams>(() => {
     const params: GetWalletTransactionsParams = {
       page: transactionsPage,
       page_size: transactionsPageSize,
     };
-    if (transactionTypeFilter !== 'all') {
-      params.transaction_type = transactionTypeFilter;
-    }
     if (startDate) {
       params.start_date = startDate;
     }
@@ -122,37 +248,54 @@ export const PayoutHistory = () => {
       params.end_date = endDate;
     }
     return params;
-  }, [transactionsPage, transactionsPageSize, transactionTypeFilter, startDate, endDate]);
-  
+  }, [transactionsPage, transactionsPageSize, startDate, endDate]);
+
   // Fetch transactions only when dialog is open
-  const { 
-    data: transactionsData, 
-    isLoading: isLoadingTransactions, 
+  const {
+    data: transactionsData,
+    isLoading: isLoadingTransactions,
     isFetching: isFetchingTransactions,
-    error: transactionsError 
+    error: transactionsError,
   } = useGetWalletTransactionsQuery(
     showTransactionsDialog ? transactionsParams : undefined,
     {
       skip: !showTransactionsDialog,
-    }
+    },
   );
-  
+
   // Form state for create payout
   const [payoutForm, setPayoutForm] = useState<CreatePayoutRequest>({
     requested_amount: 0,
-    bank_name: '',
-    account_number: '',
-    ifsc_code: '',
-    account_holder_name: user?.name || '',
+    bank_name: "",
+    account_number: "",
+    ifsc_code: "",
+    account_holder_name: user?.name || "",
     emi_auto_filled: false,
-    reason: '',
+    reason: "",
   });
 
   // Map API status to query parameter
-  const getApiStatus = (localStatus: string): 'pending' | 'processing' | 'completed' | 'rejected' | 'cancelled' | undefined => {
-    if (localStatus === 'all') return undefined;
-    if (['pending', 'processing', 'completed', 'rejected', 'cancelled'].includes(localStatus)) {
-      return localStatus as 'pending' | 'processing' | 'completed' | 'rejected' | 'cancelled';
+  const getApiStatus = (
+    localStatus: string,
+  ):
+    | "pending"
+    | "processing"
+    | "completed"
+    | "rejected"
+    | "cancelled"
+    | undefined => {
+    if (localStatus === "all") return undefined;
+    if (
+      ["pending", "processing", "completed", "rejected", "cancelled"].includes(
+        localStatus,
+      )
+    ) {
+      return localStatus as
+        | "pending"
+        | "processing"
+        | "completed"
+        | "rejected"
+        | "cancelled";
     }
     return undefined;
   };
@@ -163,21 +306,18 @@ export const PayoutHistory = () => {
     return apiStatus ? { status: apiStatus } : undefined;
   }, [apiStatus]);
 
-  const { 
-    data: payoutsData, 
-    isLoading: isLoadingPayouts, 
-    error: payoutsError, 
+  const {
+    data: payoutsData,
+    isLoading: isLoadingPayouts,
+    error: payoutsError,
     refetch,
     isFetching,
-    currentData
-  } = useGetPayoutsQuery(
-    queryParams,
-    {
-      refetchOnMountOrArgChange: true,
-      refetchOnFocus: false,
-      refetchOnReconnect: true,
-    }
-  );
+    currentData,
+  } = useGetPayoutsQuery(queryParams, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: false,
+    refetchOnReconnect: true,
+  });
 
   // Use currentData if available, otherwise fallback to data
   const activePayoutsData = currentData ?? payoutsData;
@@ -188,17 +328,17 @@ export const PayoutHistory = () => {
   // Handle refresh button click
   const handleRefresh = async () => {
     try {
-      const status = apiStatus || 'all';
+      const status = apiStatus || "all";
       dispatch(
         api.util.invalidateTags([
-          { type: 'Payout', id: 'LIST' },
-          { type: 'Payout', id: `LIST-${status}` },
-        ])
+          { type: "Payout", id: "LIST" },
+          { type: "Payout", id: `LIST-${status}` },
+        ]),
       );
-      
+
       const result = await refetch();
       if (result.data) {
-        setRefreshKey(prev => prev + 1);
+        setRefreshKey((prev) => prev + 1);
         toast.success("Payouts refreshed successfully");
       } else if (result.error) {
         toast.error("Failed to refresh payouts");
@@ -212,25 +352,31 @@ export const PayoutHistory = () => {
   // Map API payouts to local payout format
   const mappedPayouts = useMemo(() => {
     if (!activePayoutsData?.payouts?.results) return [];
-    
+
     return activePayoutsData.payouts.results.map((apiPayout) => {
       // Derive description from payout details
-      const description = apiPayout.notes || 
+      const description =
+        apiPayout.notes ||
         `Payout to ${apiPayout.account_holder_name} (${apiPayout.bank_name})`;
-      
+
       // Map 'rejected' status to 'failed' for compatibility with PayoutStatus type
-      const mappedStatus = apiPayout.status === 'rejected' ? 'failed' : apiPayout.status;
-      
+      const mappedStatus =
+        apiPayout.status === "rejected" ? "failed" : apiPayout.status;
+
       return {
         id: apiPayout.id.toString(),
         amount: parseFloat(apiPayout.requested_amount) || 0,
-        type: 'binary' as Payout['type'], // Default type since API doesn't provide it
+        type: "binary" as Payout["type"], // Default type since API doesn't provide it
         status: mappedStatus as PayoutStatus,
         description: description,
         requestedAt: apiPayout.created_at,
         processedAt: apiPayout.processed_at || undefined,
-        tds: apiPayout.tds_amount ? parseFloat(apiPayout.tds_amount) : undefined,
-        netAmount: apiPayout.net_amount ? parseFloat(apiPayout.net_amount) : undefined,
+        tds: apiPayout.tds_amount
+          ? parseFloat(apiPayout.tds_amount)
+          : undefined,
+        netAmount: apiPayout.net_amount
+          ? parseFloat(apiPayout.net_amount)
+          : undefined,
       };
     });
   }, [activePayoutsData]);
@@ -260,98 +406,113 @@ export const PayoutHistory = () => {
   // Debug: Log wallet summary when available
   useEffect(() => {
     if (activePayoutsData?.wallet_summary) {
-      console.log('💰 [PAYOUT HISTORY] Wallet Summary:', activePayoutsData.wallet_summary);
-      console.log('💰 [PAYOUT HISTORY] Total Withdrawn:', activePayoutsData.wallet_summary.total_withdrawn);
+      console.log(
+        "💰 [PAYOUT HISTORY] Wallet Summary:",
+        activePayoutsData.wallet_summary,
+      );
+      console.log(
+        "💰 [PAYOUT HISTORY] Total Withdrawn:",
+        activePayoutsData.wallet_summary.total_withdrawn,
+      );
     }
   }, [activePayoutsData]);
 
   // Filter payouts by tab status
   const filteredPayouts = useMemo(() => {
-    if (statusFilter === 'all') return displayPayouts;
-    if (statusFilter === 'pending') {
-      return displayPayouts.filter(p => p.status === 'pending' || p.status === 'processing');
+    if (statusFilter === "all") return displayPayouts;
+    if (statusFilter === "pending") {
+      return displayPayouts.filter(
+        (p) => p.status === "pending" || p.status === "processing",
+      );
     }
-    if (statusFilter === 'completed') {
-      return displayPayouts.filter(p => p.status === 'completed');
+    if (statusFilter === "completed") {
+      return displayPayouts.filter((p) => p.status === "completed");
     }
     return displayPayouts;
   }, [displayPayouts, statusFilter]);
 
   // Calculate stats from wallet_summary and payouts
   const walletSummary = activePayoutsData?.wallet_summary;
-  
+
   // Total Payouts: Use total_withdrawn from wallet_summary if available, otherwise sum from payouts
   const totalPayouts = useMemo(() => {
     if (walletSummary?.total_withdrawn) {
       const withdrawn = parseFloat(walletSummary.total_withdrawn);
       return isNaN(withdrawn) ? 0 : withdrawn;
     }
-    return displayPayouts.reduce((sum, p) => sum + (p.netAmount || p.amount), 0);
+    return displayPayouts.reduce(
+      (sum, p) => sum + (p.netAmount || p.amount),
+      0,
+    );
   }, [walletSummary, displayPayouts]);
-  
-  // Pending payouts: Filter from displayPayouts
-  const pendingPayouts = useMemo(() => 
-    displayPayouts.filter(p => p.status === 'pending' || p.status === 'processing'),
-    [displayPayouts]
+
+  // Pending payouts: Filter from displayPayouts (pending or processing = not yet completed)
+  const pendingPayouts = useMemo(
+    () =>
+      displayPayouts.filter(
+        (p) => p.status === "pending" || p.status === "processing",
+      ),
+    [displayPayouts],
   );
-  const totalPending = useMemo(() => 
-    pendingPayouts.reduce((sum, p) => sum + (p.amount || 0), 0),
-    [pendingPayouts]
+  const totalPending = useMemo(
+    () => pendingPayouts.reduce((sum, p) => sum + (p.amount || 0), 0),
+    [pendingPayouts],
   );
-  
+
   // Completed payouts: Filter from displayPayouts
-  const completedPayouts = useMemo(() => 
-    displayPayouts.filter(p => p.status === 'completed'),
-    [displayPayouts]
+  const completedPayouts = useMemo(
+    () => displayPayouts.filter((p) => p.status === "completed"),
+    [displayPayouts],
   );
-  
+
+  // Block new payout when any payout is pending or processing
+  const hasPendingPayout = pendingPayouts.length > 0;
+
   // Total Transactions: Use count from API response
   const totalTransactions = activePayoutsData?.payouts?.count ?? 0;
-
-  // Set to true when payout feature goes live; until then only the "coming soon" message is shown
-  const SHOW_PAYOUT_PAGE_CONTENT = false;
 
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Payout History</h1>
-        <p className="text-muted-foreground mt-1 text-sm sm:text-base">View all your payout requests and transaction history</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+          Payout History
+        </h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+          View all your payout requests and transaction history
+        </p>
       </div>
 
-      <Alert className="border-primary/20 bg-primary/5">
-        <AlertCircle className="h-4 w-4 text-primary" />
-        <AlertDescription>
-          Payouts are coming soon. We&apos;re finalizing the payout experience to ensure your withdrawals are processed
-          smoothly and securely.
-        </AlertDescription>
-      </Alert>
-
-      {/* Rest of payout page content hidden until payouts go live */}
-      {SHOW_PAYOUT_PAGE_CONTENT && (
-      <>
       {/* Stats Overview */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Payouts"
-          value={isLoadingPayouts ? '...' : `₹${totalPayouts.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={
+            isLoadingPayouts
+              ? "..."
+              : `₹${totalPayouts.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          }
           icon={DollarSign}
           variant="success"
         />
         <StatsCard
           title="Pending Amount"
-          value={isLoadingPayouts ? '...' : `₹${totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={
+            isLoadingPayouts
+              ? "..."
+              : `₹${totalPending.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          }
           icon={Clock}
           variant="warning"
         />
         <StatsCard
           title="Completed"
-          value={isLoadingPayouts ? '...' : completedPayouts.length.toString()}
+          value={isLoadingPayouts ? "..." : completedPayouts.length.toString()}
           icon={CheckCircle}
           variant="primary"
         />
         <StatsCard
           title="Total Transactions"
-          value={isLoadingPayouts ? '...' : totalTransactions.toString()}
+          value={isLoadingPayouts ? "..." : totalTransactions.toString()}
           icon={ClipboardList}
           variant="info"
         />
@@ -363,7 +524,9 @@ export const PayoutHistory = () => {
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <CardTitle>Wallet Summary</CardTitle>
-              <CardDescription>Your current wallet balance and earnings overview</CardDescription>
+              <CardDescription>
+                Your current wallet balance and earnings overview
+              </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2 shrink-0">
               <Button
@@ -383,36 +546,58 @@ export const PayoutHistory = () => {
                   <span className="inline-block">
                     <Button
                       onClick={() => {
-                        // Check KYC verification before opening dialog
-                        if (!isKYCVerified) {
-                          toast.error('KYC verification is required to create payouts. Please complete your KYC verification first.');
-                          navigate('/profile?tab=kyc');
+                        // Block new payout if one is already pending/processing
+                        if (hasPendingPayout) {
+                          toast.error(
+                            "You already have a pending payout. Please wait for it to be processed before creating a new one.",
+                          );
                           return;
                         }
-                        
+                        // Check KYC verification before opening dialog
+                        if (!isKYCVerified) {
+                          toast.error(
+                            "KYC verification is required to create payouts. Please complete your KYC verification first.",
+                          );
+                          navigate("/profile?tab=kyc");
+                          return;
+                        }
+
                         // Auto-fill bank details from API response if available
-                        const currentBalance = parseFloat(walletSummary.current_balance || '0');
-                        const defaultBank = bankDetails.length > 0 ? bankDetails[0] : null;
-                        
+                        const currentBalance = parseFloat(
+                          walletSummary.current_balance || "0",
+                        );
+                        const defaultBank =
+                          bankDetails.length > 0 ? bankDetails[0] : null;
+
                         setSelectedBankIndex(0);
                         setPayoutForm({
-                          requested_amount: currentBalance > 0 ? currentBalance : 0,
+                          requested_amount:
+                            currentBalance > 0 ? currentBalance : 0,
                           // Auto-fill from bank_details if available
-                          bank_name: defaultBank?.bank_name || '',
-                          account_number: defaultBank?.account_number || '',
-                          ifsc_code: defaultBank?.ifsc_code || '',
-                          account_holder_name: defaultBank?.account_holder_name || user?.name || '',
+                          bank_name: defaultBank?.bank_name || "",
+                          account_number: defaultBank?.account_number || "",
+                          ifsc_code: defaultBank?.ifsc_code || "",
+                          account_holder_name:
+                            defaultBank?.account_holder_name ||
+                            user?.name ||
+                            "",
                           emi_auto_filled: false,
-                          reason: '',
+                          reason: "",
                         });
                         setShowCreatePayoutDialog(true);
                       }}
-                      disabled={parseFloat(walletSummary.current_balance || '0') <= 0 || !isKYCVerified}
+                      disabled={
+                        hasPendingPayout ||
+                        parseFloat(walletSummary.current_balance || "0") <= 0 ||
+                        !isKYCVerified
+                      }
                       size="sm"
                       className={`flex-1 sm:flex-none bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 shadow-md shadow-pink-500/25 ${
-                        !isKYCVerified || parseFloat(walletSummary.current_balance || '0') <= 0
-                          ? 'opacity-50 cursor-not-allowed'
-                          : 'hover:opacity-90'
+                        hasPendingPayout ||
+                        !isKYCVerified ||
+                        parseFloat(walletSummary.current_balance || "0") <= 0
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:opacity-90"
                       }`}
                     >
                       <Plus className="w-4 h-4 mr-2" />
@@ -420,15 +605,23 @@ export const PayoutHistory = () => {
                     </Button>
                   </span>
                 </TooltipTrigger>
-                {(!isKYCVerified || parseFloat(walletSummary.current_balance || '0') <= 0) && (
+                {(hasPendingPayout ||
+                  !isKYCVerified ||
+                  parseFloat(walletSummary.current_balance || "0") <= 0) && (
                   <TooltipContent side="bottom" className="max-w-xs">
                     <p className="font-semibold mb-1">
-                      {!isKYCVerified ? 'KYC Verification Required' : 'Insufficient Balance'}
+                      {hasPendingPayout
+                        ? "Pending Payout"
+                        : !isKYCVerified
+                          ? "KYC Verification Required"
+                          : "Insufficient Balance"}
                     </p>
                     <p className="text-xs">
-                      {!isKYCVerified
-                        ? 'Please complete your KYC verification to create payout requests.'
-                        : 'Your wallet balance is too low to create a payout request.'}
+                      {hasPendingPayout
+                        ? "You have a pending payout. Wait for it to be processed before creating a new one."
+                        : !isKYCVerified
+                          ? "Please complete your KYC verification to create payout requests."
+                          : "Your wallet balance is too low to create a payout request."}
                     </p>
                   </TooltipContent>
                 )}
@@ -440,23 +633,39 @@ export const PayoutHistory = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Current Balance</p>
                 <p className="text-xl sm:text-2xl font-bold text-foreground">
-                  ₹{parseFloat(walletSummary.current_balance || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹
+                  {parseFloat(
+                    walletSummary.current_balance || "0",
+                  ).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Earned</p>
                 <p className="text-xl sm:text-2xl font-bold text-success">
-                  ₹••••
+                  ₹
+                  {parseFloat(walletSummary.total_earned || "0").toLocaleString(
+                    "en-IN",
+                    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                  )}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Withdrawn</p>
                 <p className="text-xl sm:text-2xl font-bold text-primary">
-                  ₹{parseFloat(walletSummary.total_withdrawn || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹
+                  {parseFloat(
+                    walletSummary.total_withdrawn || "0",
+                  ).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </p>
               </div>
             </div>
-            
+
             {/* KYC Verification Message */}
             {!isKYCVerified && (
               <div className="mt-6 p-4 rounded-lg border-2 border-amber-400/60 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 dark:border-amber-500/40">
@@ -471,11 +680,12 @@ export const PayoutHistory = () => {
                       KYC Verification Required
                     </h4>
                     <p className="text-sm text-amber-800 dark:text-amber-200 mb-3 leading-relaxed">
-                      To create payout requests, you must complete your KYC verification first. 
-                      This is a one-time process that helps us ensure secure transactions.
+                      To create payout requests, you must complete your KYC
+                      verification first. This is a one-time process that helps
+                      us ensure secure transactions.
                     </p>
                     <Button
-                      onClick={() => navigate('/profile?tab=kyc')}
+                      onClick={() => navigate("/profile?tab=kyc")}
                       className="bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-sm hover:shadow-md transition-all"
                       size="sm"
                     >
@@ -490,12 +700,22 @@ export const PayoutHistory = () => {
         </Card>
       )}
 
-      <Tabs value={statusFilter} onValueChange={setStatusFilter} className="space-y-4">
+      <Tabs
+        value={statusFilter}
+        onValueChange={setStatusFilter}
+        className="space-y-4"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <TabsList className="w-full sm:w-auto">
-            <TabsTrigger value="all" className="flex-1 sm:flex-none">All Payouts</TabsTrigger>
-            <TabsTrigger value="pending" className="flex-1 sm:flex-none">Pending</TabsTrigger>
-            <TabsTrigger value="completed" className="flex-1 sm:flex-none">Completed</TabsTrigger>
+            <TabsTrigger value="all" className="flex-1 sm:flex-none">
+              All Payouts
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="flex-1 sm:flex-none">
+              Pending
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="flex-1 sm:flex-none">
+              Completed
+            </TabsTrigger>
           </TabsList>
           <Button
             variant="outline"
@@ -505,7 +725,9 @@ export const PayoutHistory = () => {
             title="Refresh payouts"
             className="w-full sm:w-auto"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${(isLoadingPayouts || isFetching) ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${isLoadingPayouts || isFetching ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
@@ -514,7 +736,9 @@ export const PayoutHistory = () => {
           <Card>
             <CardHeader>
               <CardTitle>All Payouts</CardTitle>
-              <CardDescription>Complete history of all payout transactions</CardDescription>
+              <CardDescription>
+                Complete history of all payout transactions
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoadingPayouts ? (
@@ -524,7 +748,9 @@ export const PayoutHistory = () => {
               ) : payoutsError ? (
                 <div className="text-center py-12">
                   <ClipboardList className="h-12 w-12 mx-auto mb-4 text-destructive" />
-                  <p className="text-muted-foreground mb-4">Failed to load payouts. Please try again.</p>
+                  <p className="text-muted-foreground mb-4">
+                    Failed to load payouts. Please try again.
+                  </p>
                   <Button onClick={handleRefresh} variant="outline">
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Retry
@@ -533,61 +759,89 @@ export const PayoutHistory = () => {
               ) : filteredPayouts.length === 0 ? (
                 <div className="text-center py-12">
                   <ClipboardList className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No payout history available</p>
+                  <p className="text-muted-foreground">
+                    No payout history available
+                  </p>
                 </div>
               ) : (
                 <>
                   {activePayoutsData?.payouts?.count !== undefined && (
                     <div className="text-sm text-muted-foreground mb-4">
-                      Showing {filteredPayouts.length} of {activePayoutsData.payouts.count} payouts
-                      {activePayoutsData.payouts.total_pages && activePayoutsData.payouts.total_pages > 1 && (
-                        <span className="ml-2">
-                          (Page {activePayoutsData.payouts.page || 1} of {activePayoutsData.payouts.total_pages})
-                        </span>
-                      )}
+                      Showing {filteredPayouts.length} of{" "}
+                      {activePayoutsData.payouts.count} payouts
+                      {activePayoutsData.payouts.total_pages &&
+                        activePayoutsData.payouts.total_pages > 1 && (
+                          <span className="ml-2">
+                            (Page {activePayoutsData.payouts.page || 1} of{" "}
+                            {activePayoutsData.payouts.total_pages})
+                          </span>
+                        )}
                     </div>
                   )}
                   <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="whitespace-nowrap">Date</TableHead>
-                        <TableHead className="whitespace-nowrap">Type</TableHead>
-                        <TableHead className="whitespace-nowrap">Description</TableHead>
-                        <TableHead className="whitespace-nowrap">Amount</TableHead>
-                        <TableHead className="whitespace-nowrap">TDS</TableHead>
-                        <TableHead className="whitespace-nowrap">Net Amount</TableHead>
-                        <TableHead className="whitespace-nowrap">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredPayouts.map((payout) => (
-                      <TableRow key={payout.id}>
-                        <TableCell className="whitespace-nowrap">
-                          {formatDisplayDate(payout.requestedAt)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{getTypeLabel(payout.type)}</Badge>
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {payout.description}
-                        </TableCell>
-                        <TableCell className="font-semibold whitespace-nowrap">
-                          ₹{payout.amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-warning whitespace-nowrap">
-                          {payout.tds ? `₹${payout.tds.toLocaleString()}` : '-'}
-                        </TableCell>
-                        <TableCell className="font-semibold text-success whitespace-nowrap">
-                          ₹{(payout.netAmount || payout.amount).toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(payout.status as PayoutStatus | 'rejected')}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="whitespace-nowrap">
+                            Date
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap">
+                            Type
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap">
+                            Description
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap">
+                            Amount
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap">
+                            TDS
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap">
+                            Net Amount
+                          </TableHead>
+                          <TableHead className="whitespace-nowrap">
+                            Status
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPayouts.map((payout) => (
+                          <TableRow key={payout.id}>
+                            <TableCell className="whitespace-nowrap">
+                              {formatDisplayDate(payout.requestedAt)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {getTypeLabel(payout.type)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate">
+                              {payout.description}
+                            </TableCell>
+                            <TableCell className="font-semibold whitespace-nowrap">
+                              ₹{payout.amount.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-warning whitespace-nowrap">
+                              {payout.tds
+                                ? `₹${payout.tds.toLocaleString()}`
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="font-semibold text-success whitespace-nowrap">
+                              ₹
+                              {(
+                                payout.netAmount || payout.amount
+                              ).toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(
+                                payout.status as PayoutStatus | "rejected",
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 </>
               )}
@@ -613,34 +867,48 @@ export const PayoutHistory = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="whitespace-nowrap">Date</TableHead>
-                      <TableHead className="whitespace-nowrap">Type</TableHead>
-                      <TableHead className="whitespace-nowrap">Description</TableHead>
-                      <TableHead className="whitespace-nowrap">Amount</TableHead>
-                      <TableHead className="whitespace-nowrap">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingPayouts.map((payout) => (
-                      <TableRow key={payout.id}>
-                        <TableCell className="whitespace-nowrap">
-                          {formatDisplayDate(payout.requestedAt)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{getTypeLabel(payout.type)}</Badge>
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">{payout.description}</TableCell>
-                        <TableCell className="font-semibold whitespace-nowrap">
-                          ₹{payout.amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(payout.status)}</TableCell>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap">
+                          Date
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          Type
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          Description
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          Amount
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          Status
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingPayouts.map((payout) => (
+                        <TableRow key={payout.id}>
+                          <TableCell className="whitespace-nowrap">
+                            {formatDisplayDate(payout.requestedAt)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {getTypeLabel(payout.type)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {payout.description}
+                          </TableCell>
+                          <TableCell className="font-semibold whitespace-nowrap">
+                            ₹{payout.amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(payout.status)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
@@ -661,42 +929,61 @@ export const PayoutHistory = () => {
               ) : completedPayouts.length === 0 ? (
                 <div className="text-center py-12">
                   <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No completed payouts yet</p>
+                  <p className="text-muted-foreground">
+                    No completed payouts yet
+                  </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="whitespace-nowrap">Date</TableHead>
-                      <TableHead className="whitespace-nowrap">Type</TableHead>
-                      <TableHead className="whitespace-nowrap">Description</TableHead>
-                      <TableHead className="whitespace-nowrap">Net Amount</TableHead>
-                      <TableHead className="whitespace-nowrap">Processed Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {completedPayouts.map((payout) => (
-                      <TableRow key={payout.id}>
-                        <TableCell className="whitespace-nowrap">
-                          {formatDisplayDate(payout.requestedAt)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{getTypeLabel(payout.type)}</Badge>
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">{payout.description}</TableCell>
-                        <TableCell className="font-semibold text-success whitespace-nowrap">
-                          ₹{(payout.netAmount || payout.amount).toLocaleString()}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {payout.processedAt 
-                            ? formatDisplayDate(payout.processedAt)
-                            : '-'}
-                        </TableCell>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap">
+                          Date
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          Type
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          Description
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          Net Amount
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap">
+                          Processed Date
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {completedPayouts.map((payout) => (
+                        <TableRow key={payout.id}>
+                          <TableCell className="whitespace-nowrap">
+                            {formatDisplayDate(payout.requestedAt)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {getTypeLabel(payout.type)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {payout.description}
+                          </TableCell>
+                          <TableCell className="font-semibold text-success whitespace-nowrap">
+                            ₹
+                            {(
+                              payout.netAmount || payout.amount
+                            ).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {payout.processedAt
+                              ? formatDisplayDate(payout.processedAt)
+                              : "-"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
@@ -705,31 +992,38 @@ export const PayoutHistory = () => {
       </Tabs>
 
       {/* Create Payout Dialog */}
-      <Dialog open={showCreatePayoutDialog} onOpenChange={setShowCreatePayoutDialog}>
+      <Dialog
+        open={showCreatePayoutDialog}
+        onOpenChange={setShowCreatePayoutDialog}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Payout Request</DialogTitle>
             <DialogDescription>
-              Request a payout from your wallet balance. Bank details will be used for the transfer.
+              Request a payout from your wallet balance. Bank details will be
+              used for the transfer.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {/* KYC Verification Warning */}
             {!isKYCVerified && (
               <Alert variant="destructive">
                 <Shield className="h-4 w-4" />
                 <AlertDescription>
-                  <p className="font-semibold mb-2">KYC Verification Required</p>
+                  <p className="font-semibold mb-2">
+                    KYC Verification Required
+                  </p>
                   <p className="mb-3 text-sm">
-                    KYC verification is required to create payouts. Please complete your KYC verification first.
+                    KYC verification is required to create payouts. Please
+                    complete your KYC verification first.
                   </p>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
                       setShowCreatePayoutDialog(false);
-                      navigate('/profile?tab=kyc');
+                      navigate("/profile?tab=kyc");
                     }}
                   >
                     Complete KYC Verification
@@ -737,13 +1031,21 @@ export const PayoutHistory = () => {
                 </AlertDescription>
               </Alert>
             )}
-            
+
             {/* Available Balance Info */}
             {walletSummary && (
               <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">Available Balance</p>
+                <p className="text-sm text-muted-foreground">
+                  Available Balance
+                </p>
                 <p className="text-2xl font-bold text-foreground">
-                  ₹{parseFloat(walletSummary.current_balance || '0').toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹
+                  {parseFloat(
+                    walletSummary.current_balance || "0",
+                  ).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </p>
               </div>
             )}
@@ -757,13 +1059,20 @@ export const PayoutHistory = () => {
                 id="requested_amount"
                 type="number"
                 min="1"
-                max={walletSummary ? parseFloat(walletSummary.current_balance || '0') : undefined}
+                max={
+                  walletSummary
+                    ? parseFloat(walletSummary.current_balance || "0")
+                    : undefined
+                }
                 step="0.01"
                 placeholder="Enter amount"
-                value={payoutForm.requested_amount || ''}
+                value={payoutForm.requested_amount || ""}
                 onChange={(e) => {
                   const value = parseFloat(e.target.value) || 0;
-                  setPayoutForm(prev => ({ ...prev, requested_amount: value }));
+                  setPayoutForm((prev) => ({
+                    ...prev,
+                    requested_amount: value,
+                  }));
                 }}
               />
               {walletSummary && (
@@ -771,8 +1080,13 @@ export const PayoutHistory = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const maxAmount = parseFloat(walletSummary.current_balance || '0');
-                    setPayoutForm(prev => ({ ...prev, requested_amount: maxAmount }));
+                    const maxAmount = parseFloat(
+                      walletSummary.current_balance || "0",
+                    );
+                    setPayoutForm((prev) => ({
+                      ...prev,
+                      requested_amount: maxAmount,
+                    }));
                   }}
                   className="mt-1"
                 >
@@ -784,12 +1098,13 @@ export const PayoutHistory = () => {
             {/* Bank Details */}
             <div className="space-y-4">
               <h4 className="font-medium">Bank Details</h4>
-              
+
               {/* Bank Account Selection Dropdown (if multiple accounts) */}
               {bankDetails.length > 1 && (
                 <div className="space-y-2">
                   <Label htmlFor="bank_account_select">
-                    Select Bank Account <span className="text-destructive">*</span>
+                    Select Bank Account{" "}
+                    <span className="text-destructive">*</span>
                   </Label>
                   <Select
                     value={selectedBankIndex.toString()}
@@ -798,7 +1113,7 @@ export const PayoutHistory = () => {
                       const selectedBank = bankDetails[index];
                       if (selectedBank) {
                         setSelectedBankIndex(index);
-                        setPayoutForm(prev => ({
+                        setPayoutForm((prev) => ({
                           ...prev,
                           bank_name: selectedBank.bank_name,
                           account_number: selectedBank.account_number,
@@ -814,7 +1129,8 @@ export const PayoutHistory = () => {
                     <SelectContent>
                       {bankDetails.map((bank, index) => (
                         <SelectItem key={index} value={index.toString()}>
-                          {bank.bank_name} - {bank.account_number.slice(-4)} ({bank.account_holder_name})
+                          {bank.bank_name} - {bank.account_number.slice(-4)} (
+                          {bank.account_holder_name})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -824,9 +1140,12 @@ export const PayoutHistory = () => {
 
               {bankDetails.length === 1 && (
                 <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground">Using saved bank account</p>
+                  <p className="text-sm text-muted-foreground">
+                    Using saved bank account
+                  </p>
                   <p className="text-sm font-medium">
-                    {bankDetails[0].bank_name} - {bankDetails[0].account_number.slice(-4)}
+                    {bankDetails[0].bank_name} -{" "}
+                    {bankDetails[0].account_number.slice(-4)}
                   </p>
                 </div>
               )}
@@ -834,20 +1153,26 @@ export const PayoutHistory = () => {
               {bankDetails.length === 0 && (
                 <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg">
                   <p className="text-sm text-warning">
-                    No saved bank accounts found. Please enter your bank details manually.
+                    No saved bank accounts found. Please enter your bank details
+                    manually.
                   </p>
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 <Label htmlFor="bank_name">
                   Bank Name <span className="text-destructive">*</span>
                 </Label>
-                  <Input
+                <Input
                   id="bank_name"
                   placeholder="e.g., State Bank of India"
                   value={payoutForm.bank_name}
-                  onChange={(e) => setPayoutForm(prev => ({ ...prev, bank_name: e.target.value }))}
+                  onChange={(e) =>
+                    setPayoutForm((prev) => ({
+                      ...prev,
+                      bank_name: e.target.value,
+                    }))
+                  }
                   disabled={bankDetails.length > 0}
                 />
               </div>
@@ -857,11 +1182,16 @@ export const PayoutHistory = () => {
                   <Label htmlFor="account_number">
                     Account Number <span className="text-destructive">*</span>
                   </Label>
-                    <Input
+                  <Input
                     id="account_number"
                     placeholder="1234567890"
                     value={payoutForm.account_number}
-                    onChange={(e) => setPayoutForm(prev => ({ ...prev, account_number: e.target.value }))}
+                    onChange={(e) =>
+                      setPayoutForm((prev) => ({
+                        ...prev,
+                        account_number: e.target.value,
+                      }))
+                    }
                     disabled={bankDetails.length > 0}
                   />
                 </div>
@@ -870,11 +1200,16 @@ export const PayoutHistory = () => {
                   <Label htmlFor="ifsc_code">
                     IFSC Code <span className="text-destructive">*</span>
                   </Label>
-                    <Input
+                  <Input
                     id="ifsc_code"
                     placeholder="SBIN0001234"
                     value={payoutForm.ifsc_code}
-                    onChange={(e) => setPayoutForm(prev => ({ ...prev, ifsc_code: e.target.value.toUpperCase() }))}
+                    onChange={(e) =>
+                      setPayoutForm((prev) => ({
+                        ...prev,
+                        ifsc_code: e.target.value.toUpperCase(),
+                      }))
+                    }
                     className="uppercase"
                     disabled={bankDetails.length > 0}
                   />
@@ -883,13 +1218,19 @@ export const PayoutHistory = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="account_holder_name">
-                  Account Holder Name <span className="text-destructive">*</span>
+                  Account Holder Name{" "}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="account_holder_name"
                   placeholder="John Doe"
                   value={payoutForm.account_holder_name}
-                  onChange={(e) => setPayoutForm(prev => ({ ...prev, account_holder_name: e.target.value }))}
+                  onChange={(e) =>
+                    setPayoutForm((prev) => ({
+                      ...prev,
+                      account_holder_name: e.target.value,
+                    }))
+                  }
                   disabled={bankDetails.length > 0}
                 />
               </div>
@@ -902,8 +1243,13 @@ export const PayoutHistory = () => {
                 <Textarea
                   id="reason"
                   placeholder="Need funds for emergency expenses"
-                  value={payoutForm.reason || ''}
-                  onChange={(e) => setPayoutForm(prev => ({ ...prev, reason: e.target.value }))}
+                  value={payoutForm.reason || ""}
+                  onChange={(e) =>
+                    setPayoutForm((prev) => ({
+                      ...prev,
+                      reason: e.target.value,
+                    }))
+                  }
                   rows={3}
                 />
               </div>
@@ -916,15 +1262,17 @@ export const PayoutHistory = () => {
               onClick={() => {
                 setShowCreatePayoutDialog(false);
                 setSelectedBankIndex(0);
-                const defaultBank = bankDetails.length > 0 ? bankDetails[0] : null;
+                const defaultBank =
+                  bankDetails.length > 0 ? bankDetails[0] : null;
                 setPayoutForm({
                   requested_amount: 0,
-                  bank_name: defaultBank?.bank_name || '',
-                  account_number: defaultBank?.account_number || '',
-                  ifsc_code: defaultBank?.ifsc_code || '',
-                  account_holder_name: defaultBank?.account_holder_name || user?.name || '',
+                  bank_name: defaultBank?.bank_name || "",
+                  account_number: defaultBank?.account_number || "",
+                  ifsc_code: defaultBank?.ifsc_code || "",
+                  account_holder_name:
+                    defaultBank?.account_holder_name || user?.name || "",
                   emi_auto_filled: false,
-                  reason: '',
+                  reason: "",
                 });
               }}
               disabled={isCreatingPayout}
@@ -935,32 +1283,52 @@ export const PayoutHistory = () => {
               onClick={async () => {
                 // Validate KYC verification
                 if (!isKYCVerified) {
-                  toast.error('KYC verification is required to create payouts. Please complete your KYC verification first.');
+                  toast.error(
+                    "KYC verification is required to create payouts. Please complete your KYC verification first.",
+                  );
                   setShowCreatePayoutDialog(false);
-                  navigate('/profile?tab=kyc');
+                  navigate("/profile?tab=kyc");
                   return;
                 }
-                
+
                 // Validation
-                if (!payoutForm.requested_amount || payoutForm.requested_amount <= 0) {
-                  toast.error('Please enter a valid amount');
+                if (
+                  !payoutForm.requested_amount ||
+                  payoutForm.requested_amount <= 0
+                ) {
+                  toast.error("Please enter a valid amount");
                   return;
                 }
-                if (walletSummary && payoutForm.requested_amount > parseFloat(walletSummary.current_balance || '0')) {
-                  toast.error('Requested amount cannot exceed available balance');
+                if (
+                  walletSummary &&
+                  payoutForm.requested_amount >
+                    parseFloat(walletSummary.current_balance || "0")
+                ) {
+                  toast.error(
+                    "Requested amount cannot exceed available balance",
+                  );
                   return;
                 }
-                if (!payoutForm.bank_name || !payoutForm.account_number || !payoutForm.ifsc_code || !payoutForm.account_holder_name) {
-                  toast.error('Please fill in all required bank details');
+                if (
+                  !payoutForm.bank_name ||
+                  !payoutForm.account_number ||
+                  !payoutForm.ifsc_code ||
+                  !payoutForm.account_holder_name
+                ) {
+                  toast.error("Please fill in all required bank details");
                   return;
                 }
 
                 // Determine identifier (prefer mobile, fallback to email)
-                const identifier = user?.phone || user?.email || '';
-                const otpTypeValue: 'email' | 'mobile' = user?.phone ? 'mobile' : 'email';
-                
+                const identifier = user?.phone || user?.email || "";
+                const otpTypeValue: "email" | "mobile" = user?.phone
+                  ? "mobile"
+                  : "email";
+
                 if (!identifier) {
-                  toast.error('Unable to send OTP: No email or mobile number found');
+                  toast.error(
+                    "Unable to send OTP: No email or mobile number found",
+                  );
                   return;
                 }
 
@@ -968,27 +1336,35 @@ export const PayoutHistory = () => {
                   // Step 1: Send OTP
                   setOtpIdentifier(identifier);
                   setOtpType(otpTypeValue);
-                  setOtpCode('');
+                  setOtpCode("");
                   setOtpSent(false);
-                  
+
                   await sendUniversalOTP({
                     identifier,
                     otp_type: otpTypeValue,
                   }).unwrap();
-                  
+
                   setOtpSent(true);
+                  setCreatePayoutError(null);
                   setShowCreatePayoutDialog(false);
                   setShowOtpDialog(true);
-                  toast.success(`OTP sent to your ${otpTypeValue === 'mobile' ? 'mobile number' : 'email'}`);
+                  toast.success(
+                    `OTP sent to your ${otpTypeValue === "mobile" ? "mobile number" : "email"}`,
+                  );
                 } catch (error: unknown) {
-                  const errorMessage = 
-                    (error && typeof error === 'object' && 'data' in error && 
-                     error.data && typeof error.data === 'object' && 
-                     ('message' in error.data || 'detail' in error.data))
-                      ? (error.data as { message?: string; detail?: string }).message || 
-                        (error.data as { message?: string; detail?: string }).detail || 
-                        'Failed to send OTP'
-                      : 'Failed to send OTP';
+                  const errorMessage =
+                    error &&
+                    typeof error === "object" &&
+                    "data" in error &&
+                    error.data &&
+                    typeof error.data === "object" &&
+                    ("message" in error.data || "detail" in error.data)
+                      ? (error.data as { message?: string; detail?: string })
+                          .message ||
+                        (error.data as { message?: string; detail?: string })
+                          .detail ||
+                        "Failed to send OTP"
+                      : "Failed to send OTP";
                   toast.error(errorMessage);
                 }
               }}
@@ -997,10 +1373,10 @@ export const PayoutHistory = () => {
               {isCreatingPayout || isSendingOtp ? (
                 <>
                   <LoadingSpinner size="sm" className="mr-2" />
-                  {isSendingOtp ? 'Sending OTP...' : 'Creating...'}
+                  {isSendingOtp ? "Sending OTP..." : "Creating..."}
                 </>
               ) : (
-                'Create Payout Request'
+                "Create Payout Request"
               )}
             </Button>
           </DialogFooter>
@@ -1008,22 +1384,33 @@ export const PayoutHistory = () => {
       </Dialog>
 
       {/* OTP Verification Dialog */}
-      <Dialog open={showOtpDialog} onOpenChange={(open) => {
-        if (!open && !isVerifyingOtp && !isCreatingPayout) {
-          setShowOtpDialog(false);
-          setOtpCode('');
-          setOtpSent(false);
-          setShowCreatePayoutDialog(true);
-        }
-      }}>
+      <Dialog
+        open={showOtpDialog}
+        onOpenChange={(open) => {
+          if (!open && !isVerifyingOtp && !isCreatingPayout) {
+            setShowOtpDialog(false);
+            setOtpCode("");
+            setOtpSent(false);
+            setCreatePayoutError(null);
+            setShowCreatePayoutDialog(true);
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Verify OTP</DialogTitle>
             <DialogDescription>
-              Please enter the OTP sent to your {otpType === 'mobile' ? 'mobile number' : 'email'} to confirm the payout request.
+              Please enter the OTP sent to your{" "}
+              {otpType === "mobile" ? "mobile number" : "email"} to confirm the
+              payout request.
             </DialogDescription>
           </DialogHeader>
-          
+          {createPayoutError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{createPayoutError}</AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="otp_code">
@@ -1035,7 +1422,7 @@ export const PayoutHistory = () => {
                 placeholder="Enter 6-digit OTP"
                 value={otpCode}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  const value = e.target.value.replace(/\D/g, "").slice(0, 6);
                   setOtpCode(value);
                 }}
                 maxLength={6}
@@ -1045,11 +1432,14 @@ export const PayoutHistory = () => {
               />
               {otpSent && (
                 <p className="text-sm text-muted-foreground">
-                  OTP sent to {otpType === 'mobile' ? otpIdentifier.replace(/(\d{2})(\d{4})(\d{4})/, '$1****$2') : otpIdentifier.replace(/(.{2})(.*)(@.*)/, '$1***$3')}
+                  OTP sent to{" "}
+                  {otpType === "mobile"
+                    ? otpIdentifier.replace(/(\d{2})(\d{4})(\d{4})/, "$1****$2")
+                    : otpIdentifier.replace(/(.{2})(.*)(@.*)/, "$1***$3")}
                 </p>
               )}
             </div>
-            
+
             <div className="flex justify-end">
               <Button
                 variant="outline"
@@ -1062,23 +1452,28 @@ export const PayoutHistory = () => {
                       otp_type: otpType,
                     }).unwrap();
                     setOtpSent(true);
-                    setOtpCode('');
-                    toast.success('OTP resent successfully');
+                    setOtpCode("");
+                    toast.success("OTP resent successfully");
                   } catch (error: unknown) {
-                    const errorMessage = 
-                      (error && typeof error === 'object' && 'data' in error && 
-                       error.data && typeof error.data === 'object' && 
-                       ('message' in error.data || 'detail' in error.data))
-                        ? (error.data as { message?: string; detail?: string }).message || 
-                          (error.data as { message?: string; detail?: string }).detail || 
-                          'Failed to resend OTP'
-                        : 'Failed to resend OTP';
+                    const errorMessage =
+                      error &&
+                      typeof error === "object" &&
+                      "data" in error &&
+                      error.data &&
+                      typeof error.data === "object" &&
+                      ("message" in error.data || "detail" in error.data)
+                        ? (error.data as { message?: string; detail?: string })
+                            .message ||
+                          (error.data as { message?: string; detail?: string })
+                            .detail ||
+                          "Failed to resend OTP"
+                        : "Failed to resend OTP";
                     toast.error(errorMessage);
                   }
                 }}
                 disabled={isSendingOtp || isVerifyingOtp || isCreatingPayout}
               >
-                {isSendingOtp ? 'Resending...' : 'Resend OTP'}
+                {isSendingOtp ? "Resending..." : "Resend OTP"}
               </Button>
             </div>
           </div>
@@ -1089,7 +1484,7 @@ export const PayoutHistory = () => {
               onClick={() => {
                 if (!isVerifyingOtp && !isCreatingPayout) {
                   setShowOtpDialog(false);
-                  setOtpCode('');
+                  setOtpCode("");
                   setOtpSent(false);
                   setShowCreatePayoutDialog(true);
                 }
@@ -1101,7 +1496,7 @@ export const PayoutHistory = () => {
             <Button
               onClick={async () => {
                 if (!otpCode || otpCode.length !== 6) {
-                  toast.error('Please enter a valid 6-digit OTP');
+                  toast.error("Please enter a valid 6-digit OTP");
                   return;
                 }
 
@@ -1112,56 +1507,67 @@ export const PayoutHistory = () => {
                     otp_code: otpCode,
                     otp_type: otpType,
                   }).unwrap();
-                  
-                  toast.success('OTP verified successfully');
-                  
+
+                  toast.success("OTP verified successfully");
+
                   // Step 3: Create payout after successful OTP verification
                   try {
                     const result = await createPayout(payoutForm).unwrap();
-                    toast.success(result.message || 'Payout request created successfully!');
+                    toast.success(
+                      result.message || "Payout request created successfully!",
+                    );
                     setShowOtpDialog(false);
                     setShowCreatePayoutDialog(false);
-                    setOtpCode('');
+                    setOtpCode("");
                     setOtpSent(false);
                     setSelectedBankIndex(0);
-                    const defaultBank = bankDetails.length > 0 ? bankDetails[0] : null;
+                    const defaultBank =
+                      bankDetails.length > 0 ? bankDetails[0] : null;
                     setPayoutForm({
                       requested_amount: 0,
-                      bank_name: defaultBank?.bank_name || '',
-                      account_number: defaultBank?.account_number || '',
-                      ifsc_code: defaultBank?.ifsc_code || '',
-                      account_holder_name: defaultBank?.account_holder_name || user?.name || '',
+                      bank_name: defaultBank?.bank_name || "",
+                      account_number: defaultBank?.account_number || "",
+                      ifsc_code: defaultBank?.ifsc_code || "",
+                      account_holder_name:
+                        defaultBank?.account_holder_name || user?.name || "",
                       emi_auto_filled: false,
-                      reason: '',
+                      reason: "",
                     });
                     // Refresh payouts list
                     await refetch();
                   } catch (error: unknown) {
-                    const errorMessage = 
-                      (error && typeof error === 'object' && 'data' in error && 
-                       error.data && typeof error.data === 'object' && 
-                       ('message' in error.data || 'detail' in error.data))
-                        ? (error.data as { message?: string; detail?: string }).message || 
-                          (error.data as { message?: string; detail?: string }).detail || 
-                          'Failed to create payout request'
-                        : 'Failed to create payout request';
+                    const errorMessage = getCreatePayoutErrorMessage(
+                      error,
+                      "Failed to create payout request",
+                    );
+                    setCreatePayoutError(errorMessage);
                     toast.error(errorMessage);
-                    // Keep OTP dialog open if payout creation fails
+                    // Keep OTP dialog open so user sees the error
                   }
                 } catch (error: unknown) {
-                  const errorMessage = 
-                    (error && typeof error === 'object' && 'data' in error && 
-                     error.data && typeof error.data === 'object' && 
-                     ('message' in error.data || 'detail' in error.data))
-                      ? (error.data as { message?: string; detail?: string }).message || 
-                        (error.data as { message?: string; detail?: string }).detail || 
-                        'Invalid OTP. Please try again.'
-                      : 'Invalid OTP. Please try again.';
+                  const errorMessage =
+                    error &&
+                    typeof error === "object" &&
+                    "data" in error &&
+                    error.data &&
+                    typeof error.data === "object" &&
+                    ("message" in error.data || "detail" in error.data)
+                      ? (error.data as { message?: string; detail?: string })
+                          .message ||
+                        (error.data as { message?: string; detail?: string })
+                          .detail ||
+                        "Invalid OTP. Please try again."
+                      : "Invalid OTP. Please try again.";
                   toast.error(errorMessage);
-                  setOtpCode('');
+                  setOtpCode("");
                 }
               }}
-              disabled={isVerifyingOtp || isCreatingPayout || !otpCode || otpCode.length !== 6}
+              disabled={
+                isVerifyingOtp ||
+                isCreatingPayout ||
+                !otpCode ||
+                otpCode.length !== 6
+              }
             >
               {isVerifyingOtp ? (
                 <>
@@ -1174,7 +1580,7 @@ export const PayoutHistory = () => {
                   Creating Payout...
                 </>
               ) : (
-                'Verify & Create Payout'
+                "Verify & Create Payout"
               )}
             </Button>
           </DialogFooter>
@@ -1182,7 +1588,10 @@ export const PayoutHistory = () => {
       </Dialog>
 
       {/* Transactions Dialog */}
-      <Dialog open={showTransactionsDialog} onOpenChange={setShowTransactionsDialog}>
+      <Dialog
+        open={showTransactionsDialog}
+        onOpenChange={setShowTransactionsDialog}
+      >
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Wallet Transactions</DialogTitle>
@@ -1190,32 +1599,10 @@ export const PayoutHistory = () => {
               View all wallet transaction history with pagination and filtering
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor="transaction_type">Transaction Type</Label>
-                <Select value={transactionTypeFilter} onValueChange={(value) => {
-                  setTransactionTypeFilter(value);
-                  setTransactionsPage(1);
-                }}>
-                  <SelectTrigger id="transaction_type">
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="REFERRAL_BONUS">Referral Bonus</SelectItem>
-                    <SelectItem value="BINARY_PAIR">Partner Framework</SelectItem>
-                    <SelectItem value="BINARY_INITIAL_BONUS">Partner framework Initial Bonus</SelectItem>
-                    <SelectItem value="DIRECT_USER_COMMISSION">Direct User Commission</SelectItem>
-                    <SelectItem value="TDS_DEDUCTION">TDS Deduction</SelectItem>
-                    <SelectItem value="EMI_DEDUCTION">EMI Deduction</SelectItem>
-                    <SelectItem value="PAYOUT">Payout</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
               <div className="space-y-2">
                 <Label htmlFor="start_date">Start Date</Label>
                 <Input
@@ -1228,7 +1615,7 @@ export const PayoutHistory = () => {
                   }}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="end_date">End Date</Label>
                 <Input
@@ -1241,11 +1628,11 @@ export const PayoutHistory = () => {
                   }}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="page_size">Page Size</Label>
-                <Select 
-                  value={transactionsPageSize.toString()} 
+                <Select
+                  value={transactionsPageSize.toString()}
                   onValueChange={(value) => {
                     setTransactionsPageSize(Number(value));
                     setTransactionsPage(1);
@@ -1265,14 +1652,13 @@ export const PayoutHistory = () => {
             </div>
 
             {/* Clear Filters Button */}
-            {(transactionTypeFilter !== 'all' || startDate || endDate) && (
+            {(startDate || endDate) && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setTransactionTypeFilter('all');
-                  setStartDate('');
-                  setEndDate('');
+                  setStartDate("");
+                  setEndDate("");
                   setTransactionsPage(1);
                 }}
               >
@@ -1288,20 +1674,49 @@ export const PayoutHistory = () => {
             ) : transactionsError ? (
               <div className="text-center py-12">
                 <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
-                <p className="text-muted-foreground mb-4">Failed to load transactions. Please try again.</p>
-                <Button onClick={() => window.location.reload()} variant="outline">
+                <p className="text-muted-foreground mb-4">
+                  Failed to load transactions. Please try again.
+                </p>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                >
                   Retry
                 </Button>
               </div>
-            ) : !transactionsData?.results || transactionsData.results.length === 0 ? (
+            ) : !transactionsData?.results ||
+              transactionsData.results.length === 0 ? (
               <div className="text-center py-12">
                 <ClipboardList className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground">No transactions found</p>
               </div>
             ) : (
               <>
-                <div className="text-sm text-muted-foreground mb-4">
-                  Showing {transactionsData.results.length} of {transactionsData.count} transactions
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {transactionsData.results.length} of{" "}
+                    {transactionsData.count} transactions
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      exportWalletTransactionsToPdf(transactionsData.results, {
+                        pageNumber: transactionsPage,
+                        totalPages: Math.ceil(
+                          transactionsData.count / transactionsPageSize,
+                        ),
+                        totalCount: transactionsData.count,
+                        dateRange: {
+                          start: startDate || undefined,
+                          end: endDate || undefined,
+                        },
+                      })
+                    }
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Export PDF
+                  </Button>
                 </div>
                 <div className="border rounded-lg overflow-hidden">
                   <Table>
@@ -1319,39 +1734,66 @@ export const PayoutHistory = () => {
                       {transactionsData.results.map((transaction) => {
                         const amount = parseFloat(transaction.amount);
                         const isCredit = amount >= 0;
-                        const tdsAmount = transaction.tds_amount ? parseFloat(transaction.tds_amount) : 0;
+                        const tdsAmount = transaction.tds_amount
+                          ? parseFloat(transaction.tds_amount)
+                          : 0;
                         return (
                           <TableRow key={transaction.id}>
                             <TableCell>
-                              {transaction.transaction_type.replace(/_/g, ' ')}
+                              {formatWalletTransactionType(transaction.transaction_type)}
                             </TableCell>
-                            <TableCell className={`font-semibold ${isCredit ? 'text-success' : 'text-destructive'}`}>
-                              {isCredit ? '+' : ''}₹{Math.abs(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <TableCell
+                              className={`font-semibold ${isCredit ? "text-success" : "text-destructive"}`}
+                            >
+                              {isCredit ? "+" : ""}₹
+                              {Math.abs(amount).toLocaleString("en-IN", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
                             </TableCell>
                             <TableCell>
                               {tdsAmount > 0 ? (
                                 <span className="text-warning">
-                                  ₹{tdsAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  ₹
+                                  {tdsAmount.toLocaleString("en-IN", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
                                 </span>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
                             <TableCell>
-                              ₹{parseFloat(transaction.balance_before).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </TableCell>
-                            <TableCell>
-                              ₹{parseFloat(transaction.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </TableCell>
-                            <TableCell>
-                              {new Date(transaction.created_at).toLocaleString('en-IN', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
+                              ₹
+                              {parseFloat(
+                                transaction.balance_before,
+                              ).toLocaleString("en-IN", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
                               })}
+                            </TableCell>
+                            <TableCell>
+                              ₹
+                              {parseFloat(
+                                transaction.balance_after,
+                              ).toLocaleString("en-IN", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(transaction.created_at).toLocaleString(
+                                "en-IN",
+                                {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                },
+                              )}
                             </TableCell>
                           </TableRow>
                         );
@@ -1365,51 +1807,77 @@ export const PayoutHistory = () => {
                   <div className="flex items-center justify-between pt-4 border-t">
                     <div className="flex items-center gap-4">
                       <div className="text-sm text-muted-foreground">
-                        Page {transactionsPage} of {Math.ceil(transactionsData.count / transactionsPageSize)} ({transactionsData.count} total)
+                        Page {transactionsPage} of{" "}
+                        {Math.ceil(
+                          transactionsData.count / transactionsPageSize,
+                        )}{" "}
+                        ({transactionsData.count} total)
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setTransactionsPage(prev => Math.max(1, prev - 1))}
-                        disabled={!transactionsData.previous || isFetchingTransactions}
+                        onClick={() =>
+                          setTransactionsPage((prev) => Math.max(1, prev - 1))
+                        }
+                        disabled={
+                          !transactionsData.previous || isFetchingTransactions
+                        }
                       >
                         <ChevronLeft className="h-4 w-4 mr-1" />
                         Previous
                       </Button>
                       <div className="flex items-center gap-1">
-                        {Array.from({ length: Math.min(5, Math.ceil(transactionsData.count / transactionsPageSize)) }, (_, i) => {
-                          const totalPages = Math.ceil(transactionsData.count / transactionsPageSize);
-                          let pageNum: number;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (transactionsPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (transactionsPage >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = transactionsPage - 2 + i;
-                          }
-                          return (
-                            <Button
-                              key={pageNum}
-                              variant={transactionsPage === pageNum ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setTransactionsPage(pageNum)}
-                              disabled={isFetchingTransactions}
-                              className="w-8 h-8 p-0"
-                            >
-                              {pageNum}
-                            </Button>
-                          );
-                        })}
+                        {Array.from(
+                          {
+                            length: Math.min(
+                              5,
+                              Math.ceil(
+                                transactionsData.count / transactionsPageSize,
+                              ),
+                            ),
+                          },
+                          (_, i) => {
+                            const totalPages = Math.ceil(
+                              transactionsData.count / transactionsPageSize,
+                            );
+                            let pageNum: number;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (transactionsPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (transactionsPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = transactionsPage - 2 + i;
+                            }
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={
+                                  transactionsPage === pageNum
+                                    ? "default"
+                                    : "outline"
+                                }
+                                size="sm"
+                                onClick={() => setTransactionsPage(pageNum)}
+                                disabled={isFetchingTransactions}
+                                className="w-8 h-8 p-0"
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          },
+                        )}
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setTransactionsPage(prev => prev + 1)}
-                        disabled={!transactionsData.next || isFetchingTransactions}
+                        onClick={() => setTransactionsPage((prev) => prev + 1)}
+                        disabled={
+                          !transactionsData.next || isFetchingTransactions
+                        }
                       >
                         Next
                         <ChevronRight className="h-4 w-4 ml-1" />
@@ -1427,9 +1895,8 @@ export const PayoutHistory = () => {
               onClick={() => {
                 setShowTransactionsDialog(false);
                 setTransactionsPage(1);
-                setTransactionTypeFilter('all');
-                setStartDate('');
-                setEndDate('');
+                setStartDate("");
+                setEndDate("");
               }}
             >
               Close
@@ -1437,9 +1904,6 @@ export const PayoutHistory = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </>
-      )}
     </div>
   );
 };
-

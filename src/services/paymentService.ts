@@ -251,14 +251,22 @@ export async function verifyPayment(
 
   // Console log the response
   console.log('✅ [PAYMENTS/VERIFY] Response:', JSON.stringify(response, null, 2));
+
+  // Normalize: backend may return status: "SUCCESS" instead of success: true, and "payment id" key
+  const raw = response as Record<string, unknown>;
+  const normalized: VerifyPaymentResponse = {
+    ...response,
+    success: response.success === true || raw.status === 'SUCCESS',
+    payment_id: response.payment_id ?? (raw['payment id'] as string | undefined) ?? (raw.payment_id as string | undefined),
+  };
   console.log('✅ [PAYMENTS/VERIFY] Response Details:', {
-    success: response.success,
-    payment_id: response.payment_id,
-    message: response.message,
+    success: normalized.success,
+    payment_id: normalized.payment_id,
+    message: normalized.message,
     timestamp: new Date().toISOString(),
   });
 
-  return response;
+  return normalized;
 }
 
 /**
@@ -284,6 +292,8 @@ export async function payForEntity(
     };
     onClose?: () => void;
     onDismiss?: () => void;
+    /** Called as soon as user completes payment (handler invoked), before verification. Use to close UI immediately. */
+    onPaymentSubmitted?: () => void;
   }
 ): Promise<VerifyPaymentResponse> {
   // Step 1: Create order on backend
@@ -295,7 +305,7 @@ export async function payForEntity(
       key: orderData.key_id,
       amount: orderData.amount,
       currency: orderData.currency || 'INR',
-      name: options?.name || 'EV Nexus',
+      name: options?.name || 'Zuja Electricals',
       description: options?.description || 'Payment for booking',
       order_id: orderData.order_id,
       prefill: options?.prefill,
@@ -305,7 +315,9 @@ export async function payForEntity(
         razorpay_signature: string;
       }) => {
         try {
-          // Step 3: Verify payment on backend
+          // Close UI immediately (before verification) so user doesn't wait
+          options?.onPaymentSubmitted?.();
+          // Step 3: Verify payment on backend (runs in background from user's perspective)
           const verificationResult = await verifyPayment({
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_order_id: response.razorpay_order_id,
