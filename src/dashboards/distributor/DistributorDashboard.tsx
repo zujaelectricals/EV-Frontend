@@ -5,7 +5,6 @@ import {
   GitBranch,
   Users,
   DollarSign,
-  TrendingUp,
   TrendingDown,
   Link as LinkIcon,
   Copy,
@@ -109,12 +108,12 @@ export const DistributorDashboard = () => {
         </p>
       </div>
 
-      {/* All KPI Cards Grid */}
+      {/* All KPI Cards Grid + Team Network */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4"
+        className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
       >
         <StatsCard
           title="Total Referrals"
@@ -144,54 +143,23 @@ export const DistributorDashboard = () => {
           variant="warning"
           transitionDelay={0.15}
         />
-      </motion.div>
-
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl"
-      >
-        <Link to="/distributor/team-network">
+        <Link to="/distributor/team-network" className="block h-full">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            whileHover={{ scale: 1.02, y: -6 }}
-            className="group relative flex items-center gap-4 rounded-2xl border-2 border-pink-500/20 bg-gradient-to-br from-white to-pink-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-pink-500/40 hover:shadow-xl hover:shadow-pink-500/15"
+            transition={{ delay: 0.2 }}
+            whileHover={{ scale: 1.02, y: -4 }}
+            className="group relative flex flex-col gap-3 rounded-2xl border-2 border-pink-500/20 bg-gradient-to-br from-white to-pink-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-pink-500/40 hover:shadow-xl hover:shadow-pink-500/15 h-full min-h-[120px]"
           >
             <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-pink-500 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="rounded-xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 p-4">
+            <div className="rounded-xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 p-3 w-fit">
               <GitBranch className="h-6 w-6 text-pink-600" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-foreground">Team Network</p>
               <p className="text-sm text-muted-foreground">View network</p>
             </div>
-            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-pink-500" />
-          </motion.div>
-        </Link>
-
-        <Link to="/distributor/sales">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            whileHover={{ scale: 1.02, y: -6 }}
-            className="group relative flex items-center gap-4 rounded-2xl border-2 border-sky-400/20 bg-gradient-to-br from-white to-sky-50/40 p-6 shadow-lg shadow-slate-200/50 transition-all hover:border-sky-400/40 hover:shadow-xl hover:shadow-sky-500/15"
-          >
-            <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-sky-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="rounded-xl bg-gradient-to-br from-sky-400/20 to-blue-500/20 p-4">
-              <TrendingUp className="h-6 w-6 text-sky-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-foreground">Sales Tracking</p>
-              <p className="text-sm text-muted-foreground">
-                Monitor sales and referrals
-              </p>
-            </div>
-            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-sky-600" />
+            <ArrowRight className="self-end h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-pink-500" />
           </motion.div>
         </Link>
       </motion.div>
