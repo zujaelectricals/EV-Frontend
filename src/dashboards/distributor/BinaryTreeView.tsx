@@ -1332,11 +1332,13 @@ export const BinaryTreeView = () => {
           ? apiMessage
           : "Pairs matched successfully!";
       toast.success(message);
-      // Refetch tree structure after matching pairs
-      await refetchTree();
-      await refetchStructure();
-      // Also refetch stats
-      await refetchStats();
+      // Refetch tree structure after matching pairs (only if queries were started — skip: !distributorId).
+      // RTK Query error #38: "Cannot refetch a query that has not been started yet" if we refetch when skip was true.
+      if (distributorId) {
+        await refetchTree();
+        await refetchStructure();
+        await refetchStats();
+      }
     } catch (error: unknown) {
       console.error("Check pairs error:", error);
       let errorMessage = "Failed to match pairs. Please try again.";
