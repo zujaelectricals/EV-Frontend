@@ -53,6 +53,7 @@ import {
   useCompletePayoutMutation,
   PayoutResponse,
   PayoutsListResponse,
+  GetPayoutsParams,
 } from '@/app/api/payoutApi';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -62,14 +63,28 @@ import { format } from 'date-fns';
 
 type PayoutStatus = 'pending' | 'processing' | 'completed' | 'rejected' | 'cancelled';
 
+/** Shape of API/RTK error we read message from */
+interface PayoutErrorShape {
+  data?: {
+    error?: string;
+    message?: string;
+    detail?: string | Array<{ msg?: string }>;
+  };
+  message?: string;
+}
+
 /** Extract user-friendly error message from API/RTK Query error */
-const getPayoutErrorMessage = (error: any, fallback: string): string => {
-  const data = error?.data;
-  if (typeof data?.error === 'string') return data.error;
-  if (typeof data?.message === 'string') return data.message;
-  if (typeof data?.detail === 'string') return data.detail;
-  if (Array.isArray(data?.detail) && data.detail[0]?.msg) return data.detail[0].msg;
-  if (typeof error?.message === 'string') return error.message;
+const getPayoutErrorMessage = (error: unknown, fallback: string): string => {
+  const err = error as PayoutErrorShape | null | undefined;
+  if (!err || typeof err !== 'object') return fallback;
+  const data = err.data;
+  if (data && typeof data === 'object') {
+    if (typeof data.error === 'string') return data.error;
+    if (typeof data.message === 'string') return data.message;
+    if (typeof data.detail === 'string') return data.detail;
+    if (Array.isArray(data.detail) && data.detail[0]?.msg) return data.detail[0].msg;
+  }
+  if (typeof err.message === 'string') return err.message;
   return fallback;
 };
 
@@ -120,8 +135,8 @@ export const Payouts = () => {
   const [completeError, setCompleteError] = useState<string | null>(null);
 
   // Build query parameters
-  const queryParams = useMemo(() => {
-    const params: any = {
+  const queryParams = useMemo((): GetPayoutsParams => {
+    const params: GetPayoutsParams = {
       page: currentPage,
       page_size: pageSize,
     };
@@ -244,7 +259,7 @@ export const Payouts = () => {
       setProcessNotes('');
       setProcessError(null);
       await refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
       const message = getPayoutErrorMessage(error, 'Failed to process payout');
       setProcessError(message);
       toast.error(message);
@@ -269,7 +284,7 @@ export const Payouts = () => {
       setProcessNotes('');
       setProcessError(null);
       await refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
       const message = getPayoutErrorMessage(error, 'Failed to approve manual payout');
       setProcessError(message);
       toast.error(message);
@@ -325,7 +340,7 @@ export const Payouts = () => {
       setCompleteNotes('');
       setCompleteError(null);
       await refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [PAYOUTS Component] Complete payout error:', error);
       const message = getPayoutErrorMessage(error, 'Failed to complete payout');
       setCompleteError(message);

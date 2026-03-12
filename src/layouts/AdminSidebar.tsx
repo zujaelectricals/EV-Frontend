@@ -270,7 +270,7 @@ const adminMenuSections: MenuSection[] = [
       //{ label: "Investment Logs", path: "/admin/reports/investments" },
       //{ label: "BV Logs", path: "/admin/reports/bv" },
       //{ label: "Referral Commission", path: "/admin/reports/referral" },
-      { label: "Team Commission", path: "/admin/reports/binary" },
+      //{ label: "Team Commission", path: "/admin/reports/binary" },
       //{ label: "Login History", path: "/admin/reports/login" },
       //{ label: "Notification History", path: "/admin/reports/notifications" },
     ],

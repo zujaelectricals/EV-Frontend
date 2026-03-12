@@ -95,12 +95,12 @@ export const PaymentManagement = () => {
   const [createRefund, { isLoading: isRefunding }] = useCreateRefundMutation();
 
   // Normalize payments response - handle both array and paginated response formats
-  const payments = useMemo(() => {
+  const payments = useMemo((): PaymentResponse[] => {
     if (!paymentsResponse) return [];
     
     // If response is an array directly
     if (Array.isArray(paymentsResponse)) {
-      return paymentsResponse;
+      return paymentsResponse as PaymentResponse[];
     }
     
     // If response is a paginated object with results
@@ -245,9 +245,10 @@ export const PaymentManagement = () => {
       setRefundAmount('');
       setIsFullRefund(true);
       await refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [PAYMENT MANAGEMENT Component] Refund error:', error);
-      toast.error(error?.data?.message || error?.data?.detail || 'Failed to create refund');
+      const err = error as { data?: { message?: string; detail?: string } };
+      toast.error(err?.data?.message || err?.data?.detail || 'Failed to create refund');
     }
   };
 
@@ -309,9 +310,10 @@ export const PaymentManagement = () => {
       setTransactionId('');
       setNotes('');
       await refetch();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [PAYMENT MANAGEMENT Component] Accept payment error:', error);
-      toast.error(error?.data?.message || error?.data?.detail || 'Failed to accept payment');
+      const err = error as { data?: { message?: string; detail?: string } };
+      toast.error(err?.data?.message || err?.data?.detail || 'Failed to accept payment');
     }
   };
 
@@ -356,82 +358,10 @@ export const PaymentManagement = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 max-w-md">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Payments</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">{stats.total}</p>
-                </div>
-                <DollarSign className="h-8 w-8 text-foreground opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Pending</p>
-                  <p className="text-3xl font-bold text-warning mt-1">{stats.pending}</p>
-                </div>
-                <DollarSign className="h-8 w-8 text-warning opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                  <p className="text-3xl font-bold text-success mt-1">{stats.completed}</p>
-                </div>
-                <CheckCircle className="h-8 w-8 text-success opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Refunded</p>
-                  <p className="text-3xl font-bold text-orange-600 mt-1">{stats.refunded}</p>
-                </div>
-                <RotateCcw className="h-8 w-8 text-orange-600 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
         >
           <Card>
             <CardContent className="p-6">
@@ -944,7 +874,7 @@ export const PaymentManagement = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="payment-method">Payment Method *</Label>
-              <Select value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
+              <Select value={paymentMethod} onValueChange={(value: 'online' | 'bank_transfer' | 'cash' | 'wallet') => setPaymentMethod(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

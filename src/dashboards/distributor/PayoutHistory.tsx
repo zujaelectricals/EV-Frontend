@@ -446,7 +446,7 @@ export const PayoutHistory = () => {
     );
   }, [walletSummary, displayPayouts]);
 
-  // Pending payouts: Filter from displayPayouts
+  // Pending payouts: Filter from displayPayouts (pending or processing = not yet completed)
   const pendingPayouts = useMemo(
     () =>
       displayPayouts.filter(
@@ -464,6 +464,9 @@ export const PayoutHistory = () => {
     () => displayPayouts.filter((p) => p.status === "completed"),
     [displayPayouts],
   );
+
+  // Block new payout when any payout is pending or processing
+  const hasPendingPayout = pendingPayouts.length > 0;
 
   // Total Transactions: Use count from API response
   const totalTransactions = activePayoutsData?.payouts?.count ?? 0;
@@ -543,6 +546,13 @@ export const PayoutHistory = () => {
                   <span className="inline-block">
                     <Button
                       onClick={() => {
+                        // Block new payout if one is already pending/processing
+                        if (hasPendingPayout) {
+                          toast.error(
+                            "You already have a pending payout. Please wait for it to be processed before creating a new one.",
+                          );
+                          return;
+                        }
                         // Check KYC verification before opening dialog
                         if (!isKYCVerified) {
                           toast.error(
@@ -577,11 +587,13 @@ export const PayoutHistory = () => {
                         setShowCreatePayoutDialog(true);
                       }}
                       disabled={
+                        hasPendingPayout ||
                         parseFloat(walletSummary.current_balance || "0") <= 0 ||
                         !isKYCVerified
                       }
                       size="sm"
                       className={`flex-1 sm:flex-none bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 shadow-md shadow-pink-500/25 ${
+                        hasPendingPayout ||
                         !isKYCVerified ||
                         parseFloat(walletSummary.current_balance || "0") <= 0
                           ? "opacity-50 cursor-not-allowed"
@@ -593,18 +605,23 @@ export const PayoutHistory = () => {
                     </Button>
                   </span>
                 </TooltipTrigger>
-                {(!isKYCVerified ||
+                {(hasPendingPayout ||
+                  !isKYCVerified ||
                   parseFloat(walletSummary.current_balance || "0") <= 0) && (
                   <TooltipContent side="bottom" className="max-w-xs">
                     <p className="font-semibold mb-1">
-                      {!isKYCVerified
-                        ? "KYC Verification Required"
-                        : "Insufficient Balance"}
+                      {hasPendingPayout
+                        ? "Pending Payout"
+                        : !isKYCVerified
+                          ? "KYC Verification Required"
+                          : "Insufficient Balance"}
                     </p>
                     <p className="text-xs">
-                      {!isKYCVerified
-                        ? "Please complete your KYC verification to create payout requests."
-                        : "Your wallet balance is too low to create a payout request."}
+                      {hasPendingPayout
+                        ? "You have a pending payout. Wait for it to be processed before creating a new one."
+                        : !isKYCVerified
+                          ? "Please complete your KYC verification to create payout requests."
+                          : "Your wallet balance is too low to create a payout request."}
                     </p>
                   </TooltipContent>
                 )}
