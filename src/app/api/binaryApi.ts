@@ -1571,10 +1571,10 @@ export const binaryApi = api.injectEndpoints({
           body,
         };
       },
-      invalidatesTags: (result, error) => [
-        { type: "Binary" },
-        { type: "BinaryStats" },
-      ],
+      // Do not invalidate Binary/BinaryStats here: invalidation triggers refetch on all
+      // subscribed queries with those tags, including skipped ones (e.g. Sidebar when
+      // !isVerifiedDistributor), causing RTK Query error #38 (refetch before query started).
+      // BinaryTreeView refetches tree/structure/stats manually on success.
     }),
     // Get node children for lazy loading
     getNodeChildren: builder.query<
