@@ -25,7 +25,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAppSelector } from "@/app/hooks";
+import { useAppSelector, useAppDispatch } from "@/app/hooks";
+import { api } from "@/app/api/baseApi";
 import {
   useGetBinaryTreeQuery,
   useGetTreeStructureQuery,
@@ -522,6 +523,7 @@ function extractTeamMembersFromSideMembers(
 }
 
 export const BinaryTreeView = () => {
+  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const distributorId = user?.id || "";
 
@@ -1332,12 +1334,15 @@ export const BinaryTreeView = () => {
           ? apiMessage
           : "Pairs matched successfully!";
       toast.success(message);
-      // Refetch tree structure after matching pairs (only if queries were started — skip: !distributorId).
-      // RTK Query error #38: "Cannot refetch a query that has not been started yet" if we refetch when skip was true.
+      // Invalidate only this distributor's cache so subscribed queries refetch. Using specific ids
+      // avoids triggering refetch on skipped queries (which causes RTK Query error #38).
       if (distributorId) {
-        await refetchTree();
-        await refetchStructure();
-        await refetchStats();
+        dispatch(
+          api.util.invalidateTags([
+            { type: "Binary", id: distributorId },
+            { type: "BinaryStats", id: distributorId },
+          ])
+        );
       }
     } catch (error: unknown) {
       console.error("Check pairs error:", error);

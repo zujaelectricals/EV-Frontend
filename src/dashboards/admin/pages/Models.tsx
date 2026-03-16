@@ -179,6 +179,7 @@ export const Models = () => {
   // Edit form state
   const [formData, setFormData] = useState({
     name: '',
+    model_code: '',
     vehicle_color: [] as string[],
     battery_variant: [] as string[],
     price: 0,
@@ -320,6 +321,7 @@ export const Models = () => {
       // Populate form with fetched data
       setFormData({
         name: result.name,
+        model_code: result.model_code || '',
         vehicle_color: result.vehicle_color,
         battery_variant: result.battery_variant,
         price: parseFloat(result.price),
@@ -374,6 +376,7 @@ export const Models = () => {
     setEditingVehicleDetail(null);
     setFormData({
       name: '',
+      model_code: '',
       vehicle_color: [],
       battery_variant: [],
       price: 0,
@@ -664,6 +667,11 @@ export const Models = () => {
         requestData.initial_quantity = formData.initial_quantity;
       }
 
+      // Include model_code when editing (if provided)
+      if (formData.model_code?.trim()) {
+        requestData.model_code = formData.model_code.trim();
+      }
+
       // Console log the PUT request body
       console.log('📤 [PUT API REQUEST] Request Body:', JSON.stringify(requestData, null, 2));
       console.log('📤 [PUT API REQUEST] Variant ID:', editingVariantId);
@@ -792,9 +800,8 @@ export const Models = () => {
                             <Label>Model Code</Label>
                             <Input 
                               placeholder="EV-RED-75K-ZKZ9H1" 
-                              value={editingVehicleDetail.model_code || ''}
-                              disabled
-                              className="bg-muted"
+                              value={formData.model_code}
+                              onChange={(e) => setFormData({ ...formData, model_code: e.target.value })}
                             />
                           </div>
                         )}
