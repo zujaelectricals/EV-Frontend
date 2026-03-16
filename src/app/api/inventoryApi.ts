@@ -149,6 +149,7 @@ export interface UpdateVehicleRequest {
   color_images?: Record<string, number[]>; // Optional: Object mapping colors to image ID arrays
   image_ids?: number[]; // Optional: Fallback array of image IDs
   initial_quantity?: number; // Or use stock_quantity (both supported)
+  model_code?: string; // Optional: Editable model/sku code for the variant
 }
 
 // Create vehicle request - POST inventory/vehicles/
