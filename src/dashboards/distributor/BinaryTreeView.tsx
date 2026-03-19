@@ -25,7 +25,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAppSelector } from "@/app/hooks";
+import { useAppSelector, useAppDispatch } from "@/app/hooks";
+import { api } from "@/app/api/baseApi";
 import {
   useGetBinaryTreeQuery,
   useGetTreeStructureQuery,
@@ -94,6 +95,7 @@ import { BinaryTreeNode } from "@/binary/components/BinaryTreeNode";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatDisplayDateTimeIST } from "@/lib/utils";
+import { useGetPayoutsQuery } from "@/app/api/payoutApi";
 
 interface TeamMember {
   id: string;
@@ -522,6 +524,7 @@ function extractTeamMembersFromSideMembers(
 }
 
 export const BinaryTreeView = () => {
+  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const distributorId = user?.id || "";
 
@@ -640,6 +643,13 @@ export const BinaryTreeView = () => {
   } = useGetBinaryStatsQuery(distributorId, { skip: !distributorId });
   const { data: pendingNodes = [], isLoading: pendingLoading } =
     useGetPendingNodesQuery(distributorId, { skip: !distributorId });
+  const {
+    data: payoutsData,
+    isLoading: isWalletSummaryLoading,
+    isError: isWalletSummaryError,
+    refetch: refetchPayouts,
+  } = useGetPayoutsQuery(undefined, { skip: !distributorId });
+  const walletSummary = payoutsData?.wallet_summary;
   const [positionPendingNode, { isLoading: isPositioningNode }] =
     usePositionPendingNodeMutation();
   const [checkPairs, { isLoading: isCheckingPairs }] = useCheckPairsMutation();
@@ -1237,6 +1247,16 @@ export const BinaryTreeView = () => {
         // Refetch tree structure after positioning
         await refetchTree();
         await refetchStructure();
+        await refetchStats();
+
+        // Wallet/balances can change as a result of placement; refresh payout cache
+        dispatch(
+          api.util.invalidateTags([
+            { type: "Payout", id: "LIST" },
+            { type: "Payout", id: "LIST-all" },
+          ]),
+        );
+        await refetchPayouts();
       } else {
         toast.error(result.message || "Failed to position node");
         setConfirmPositionDialogOpen(false);
@@ -1332,13 +1352,25 @@ export const BinaryTreeView = () => {
           ? apiMessage
           : "Pairs matched successfully!";
       toast.success(message);
-      // Refetch tree structure after matching pairs (only if queries were started — skip: !distributorId).
-      // RTK Query error #38: "Cannot refetch a query that has not been started yet" if we refetch when skip was true.
+      // Invalidate only this distributor's cache so subscribed queries refetch. Using specific ids
+      // avoids triggering refetch on skipped queries (which causes RTK Query error #38).
       if (distributorId) {
-        await refetchTree();
-        await refetchStructure();
-        await refetchStats();
+        dispatch(
+          api.util.invalidateTags([
+            { type: "Binary", id: distributorId },
+            { type: "BinaryStats", id: distributorId },
+          ])
+        );
       }
+
+      // Pair matching can affect wallet summary; refresh payout cache
+      dispatch(
+        api.util.invalidateTags([
+          { type: "Payout", id: "LIST" },
+          { type: "Payout", id: "LIST-all" },
+        ]),
+      );
+      await refetchPayouts();
     } catch (error: unknown) {
       console.error("Check pairs error:", error);
       let errorMessage = "Failed to match pairs. Please try again.";
@@ -1437,6 +1469,17 @@ export const BinaryTreeView = () => {
     );
   }
 
+  const formatINR = (value: string | undefined) => {
+    const num = Number.parseFloat(value ?? "0");
+    const safe = Number.isFinite(num) ? num : 0;
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(safe);
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
@@ -1477,6 +1520,52 @@ export const BinaryTreeView = () => {
           variant="primary"
         />
       </div>
+
+      <Card className="border-pink-500/20 bg-gradient-to-r from-pink-50/70 via-white to-rose-50/60">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                Wallet Summary
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Current balance and lifetime payout totals
+              </p>
+            </div>
+            {isWalletSummaryLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading wallet…</span>
+              </div>
+            ) : isWalletSummaryError ? (
+              <div className="text-xs text-muted-foreground">
+                Wallet summary unavailable
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-xl border border-pink-500/15 bg-white/70 p-3">
+              <p className="text-xs text-muted-foreground">Current Balance</p>
+              <p className="mt-1 text-base font-bold text-foreground">
+                {formatINR(walletSummary?.current_balance)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-pink-500/15 bg-white/70 p-3">
+              <p className="text-xs text-muted-foreground">Total Earned</p>
+              <p className="mt-1 text-base font-bold text-foreground">
+                {formatINR(walletSummary?.total_earned)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-pink-500/15 bg-white/70 p-3">
+              <p className="text-xs text-muted-foreground">Total Withdrawn</p>
+              <p className="mt-1 text-base font-bold text-foreground">
+                {formatINR(walletSummary?.total_withdrawn)}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Binary Account Enablement Status */}
       {/* {binaryStats?.binaryActivated && binaryStats?.activationBonus && (
