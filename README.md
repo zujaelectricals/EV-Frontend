@@ -8,7 +8,7 @@ This project is the EV Nexus Platform (Zuja Electric) - electric scooters and ve
 
 You can work locally using your preferred IDE. The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-Follow these steps:
+Follow these steps:ddddddddddddddddd
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
