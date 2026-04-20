@@ -274,38 +274,8 @@ export const PayoutHistory = () => {
     reason: "",
   });
 
-  // Map API status to query parameter
-  const getApiStatus = (
-    localStatus: string,
-  ):
-    | "pending"
-    | "processing"
-    | "completed"
-    | "rejected"
-    | "cancelled"
-    | undefined => {
-    if (localStatus === "all") return undefined;
-    if (
-      ["pending", "processing", "completed", "rejected", "cancelled"].includes(
-        localStatus,
-      )
-    ) {
-      return localStatus as
-        | "pending"
-        | "processing"
-        | "completed"
-        | "rejected"
-        | "cancelled";
-    }
-    return undefined;
-  };
-
-  // Get payouts with status filter
-  const apiStatus = getApiStatus(statusFilter);
-  const queryParams = useMemo(() => {
-    return apiStatus ? { status: apiStatus } : undefined;
-  }, [apiStatus]);
-
+  // Always load the full payout list. Tab filters are client-side only so stats
+  // (pending amount, Create Payout disabled state) stay correct when e.g. viewing "Completed".
   const {
     data: payoutsData,
     isLoading: isLoadingPayouts,
@@ -313,7 +283,7 @@ export const PayoutHistory = () => {
     refetch,
     isFetching,
     currentData,
-  } = useGetPayoutsQuery(queryParams, {
+  } = useGetPayoutsQuery(undefined, {
     refetchOnMountOrArgChange: true,
     refetchOnFocus: false,
     refetchOnReconnect: true,
@@ -328,11 +298,10 @@ export const PayoutHistory = () => {
   // Handle refresh button click
   const handleRefresh = async () => {
     try {
-      const status = apiStatus || "all";
       dispatch(
         api.util.invalidateTags([
           { type: "Payout", id: "LIST" },
-          { type: "Payout", id: `LIST-${status}` },
+          { type: "Payout", id: "LIST-all" },
         ]),
       );
 
@@ -1740,7 +1709,9 @@ export const PayoutHistory = () => {
                         return (
                           <TableRow key={transaction.id}>
                             <TableCell>
-                              {formatWalletTransactionType(transaction.transaction_type)}
+                              {formatWalletTransactionType(
+                                transaction.transaction_type,
+                              )}
                             </TableCell>
                             <TableCell
                               className={`font-semibold ${isCredit ? "text-success" : "text-destructive"}`}
